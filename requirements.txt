@@ -1,9 +1,6 @@
 # List required packages in this file, one per line.
 numpy
 pandas
-scipy
-scikit-learn
-sqlalchemy
-openpyxl
 pint
 pint-pandas
+matplotlib
