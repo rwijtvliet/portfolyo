@@ -27,7 +27,9 @@ def get_index(freq="D", tz="Europe/Berlin", start=None) -> pd.DatetimeIndex:
     return pd.date_range(start, freq=freq, periods=periods, tz=tz)
 
 
-def get_series(i=None, name="w", has_unit: bool = True) -> pd.Series:
+def get_series(
+    i: pd.DatetimeIndex = None, name="w", has_unit: bool = True
+) -> pd.Series:
     """Get Series with index `i` and name `name`. Values from mock-up functions (if in
     'wqpr') or random between 100 and 200."""
     if i is None:
@@ -55,7 +57,7 @@ def get_series(i=None, name="w", has_unit: bool = True) -> pd.Series:
 
 
 def get_dataframe(
-    i=None,
+    i: pd.DatetimeIndex = None,
     columns="wp",
     has_unit: bool = True,
 ) -> pd.DataFrame:
@@ -71,13 +73,13 @@ def get_dataframe(
 # Portfolio line.
 
 
-def get_singlepfline(i=None, kind: str = "all") -> SinglePfLine:
+def get_singlepfline(i: pd.DatetimeIndex = None, kind: str = "all") -> SinglePfLine:
     """Get single portfolio line, i.e. without children."""
     columns = {"q": "q", "p": "p", "all": "qr"}[kind]
     return SinglePfLine(get_dataframe(i, columns))
 
 
-def get_multipfline(i=None, kind: str = "all") -> MultiPfLine:
+def get_multipfline(i: pd.DatetimeIndex = None, kind: str = "all") -> MultiPfLine:
     """Get multi portfolio line. With 2 (singlepfline) children of the same ``kind``."""
     if i is None:
         i = get_index()
@@ -85,13 +87,14 @@ def get_multipfline(i=None, kind: str = "all") -> MultiPfLine:
 
 
 def get_pfline(
-    i=None,
+    i: pd.DatetimeIndex = None,
     kind: str = "all",
     max_nlevels: int = 3,
     childcount: int = 2,
     prefix: str = "",
 ) -> PfLine:
-    """Get portfolio line, without children or with children in random number of levels."""
+    """Get portfolio line, without children or with children in random number of levels.
+    (including the current level; max_nlevels must be >= 1.)"""
     # Gather information.
     if i is None:
         i = get_index()
@@ -115,7 +118,7 @@ def get_pfline(
 # Portfolio state.
 
 
-def get_pfstate(i=None, avg=None) -> PfState:
+def get_pfstate(i: pd.DatetimeIndex = None, avg=None) -> PfState:
     """Get portfolio state."""
     if i is None:
         i = get_index()
@@ -127,7 +130,7 @@ def get_pfstate(i=None, avg=None) -> PfState:
     return PfState.from_series(wo=wo, pu=pu, ws=ws, ps=ps)
 
 
-def get_pfstates(i=None, num=3) -> Dict[str, PfState]:
+def get_pfstates(i: pd.DatetimeIndex = None, num=3) -> Dict[str, PfState]:
     """Get dictionary of portfolio states."""
     names = ["Pf 1", "Portfolio 2 (long name)", "Portfolio number three"]
     for n in range(3, num):
