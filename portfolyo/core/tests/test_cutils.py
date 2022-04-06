@@ -206,7 +206,7 @@ def avgable():
     return combis
 
 
-@pytest.mark.parametrize("fr1,fr2,descr", summable())
+# @pytest.mark.parametrize("fr1,fr2,descr", summable())
 def test_changefreq_sum(fr1, fr2, descr):
     testfr = utils.changefreq_sum(fr1, fr2.index.freq)
     if isinstance(fr1, pd.Series):
@@ -215,7 +215,7 @@ def test_changefreq_sum(fr1, fr2, descr):
         testing.assert_frame_equal(testfr, fr2)
 
 
-@pytest.mark.parametrize("fr1,fr2,descr", avgable())
+# @pytest.mark.parametrize("fr1,fr2,descr", avgable())
 def test_changefreq_avg(fr1, fr2, descr):
     testfr = utils.changefreq_avg(fr1, fr2.index.freq)
     if isinstance(fr1, pd.Series):

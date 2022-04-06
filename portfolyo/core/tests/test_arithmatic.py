@@ -2,17 +2,16 @@ from portfolyo.core.pfline import PfLine
 from portfolyo.tools.nits import Q_
 from portfolyo import dev
 import pandas as pd
-import numpy as np
 import pytest
 
 tz = "Europe/Berlin"
 i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
-i1 = pd.date_range("2021", periods=20, freq="MS", tz=tz)  # same freq, part overlap
-i2 = pd.date_range("2022-04", periods=20, freq="MS", tz=tz)  # same freq, no overlap
-i3 = pd.date_range(
-    "2020-04", periods=8000, freq="H", tz=tz
-)  # shorter freq, part overlap
-i4 = pd.date_range("2020", periods=8, freq="QS", tz=tz)  # longer freq, part overlap
+# i1 = pd.date_range("2021", periods=20, freq="MS", tz=tz)  # same freq, part overlap
+# i2 = pd.date_range("2022-04", periods=20, freq="MS", tz=tz)  # same freq, no overlap
+# i3 = pd.date_range(
+#     "2020-04", periods=8000, freq="H", tz=tz
+# )  # shorter freq, part overlap
+# i4 = pd.date_range("2020", periods=8, freq="QS", tz=tz)  # longer freq, part overlap
 
 
 # . check correct working of dunder methods. E.g. assert correct addition:
@@ -49,8 +48,8 @@ i4 = pd.date_range("2020", periods=8, freq="QS", tz=tz)  # longer freq, part ove
         (dev.get_pfline(i, "q"), dev.get_series(i, "q"), PfLine, "q"),
         (dev.get_pfline(i, "q"), dev.get_pfline(i, "q"), PfLine, "q"),
         (dev.get_pfline(i, "all"), dev.get_pfline(i, "all"), None, None),
-        (dev.get_pfline(i, "all"), dev.get_pfline(i2, "all"), PfLine, "all"),
-        (dev.get_pfline(i, "all"), dev.get_pfline(i3, "all"), PfLine, "all"),
+        # (dev.get_pfline(i, "all"), dev.get_pfline(i2, "all"), PfLine, "all"),
+        # (dev.get_pfline(i, "all"), dev.get_pfline(i3, "all"), PfLine, "all"),
     ],
 )
 def test_pfl_addition(pfl_in, value, returntype, returnkind):
