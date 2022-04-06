@@ -92,7 +92,10 @@ def test_settsindex_1(
 def test_settsindex_2(freq, tz, removesome):
     """Test raising errors on incorrect frequencies or indices with gaps."""
     # Get index.
-    i = dev.get_index(freq, tz)
+    while True:
+        i = dev.get_index(freq, tz)
+        if len(i) > 5:
+            break
     # If no timezone specified and below-daily values, the created index will have to few/many datapoints.
     if not tz and pf.freq_up_or_down(freq, "D") > 1:
         return

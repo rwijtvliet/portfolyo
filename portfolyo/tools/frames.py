@@ -137,8 +137,8 @@ def fill_gaps(fr: NDFrame, maxgap: int = 2) -> NDFrame:
 
     Returns
     -------
-    pd.Series
-        Series with gaps filled up.
+    pd.Series or pd.DataFrame
+        with gaps filled up.
     """
     if isinstance(fr, pd.DataFrame):
         return pd.DataFrame({c: fill_gaps(s, maxgap) for c, s in fr.items()})

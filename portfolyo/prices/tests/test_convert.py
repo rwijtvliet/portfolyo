@@ -1,30 +1,56 @@
-from portfolyo.prices import convert, utils
-from portfolyo.core import utils as cutils
-from portfolyo.tools.frames import set_ts_index
+import functools
+from portfolyo.prices import convert
+from portfolyo.tools import nits, stamps
 from portfolyo import testing
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
 
 
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize("withunit", [True, False])
 @pytest.mark.parametrize(
-    ("b", "p", "o", "ts_left", "ts_right"),
+    ("b", "p", "o", "o_EuropeBerlin", "ts_left", "freq"),
     [
-        (1, 1, 1, "2020-01-06", "2020-01-11"),  # working days; 50% peak
-        (1, 2, 0, "2020-01-06", "2020-01-11"),
-        (1, 3, -1, "2020-01-06", "2020-01-11"),
-        (100, 100, 100, "2020-01-06", "2020-01-11"),
-        (1.5, 4.5, 0.5, "2020-01-12", "2020-01-14"),  # sunday and monday; 25% peak
-        (100, 200, 80, "2020-01-11", "2020-01-14"),  # weekend and monday; 16.667% peak
-        (100, np.nan, 100, "2020-01-11", "2020-01-13"),  # weekend only; 0% peak
+        (100, 100, 100, None, "2020-01-01", "MS"),  # 31 days, 23 working days
+        (100, 200, 41.02564103, None, "2020-01-01", "MS"),
+        (100, 300, -17.94871795, None, "2020-01-01", "MS"),
+        (100, 100, 100, None, "2020-01-01", "QS"),  # 91 days, 65 working days
+        (100, 200, 44.44444444, 44.40484676, "2020-01-01", "QS"),
+        (100, 300, -11.11111111, -11.19030649, "2020-01-01", "QS"),
+        (100, 100, 100, None, "2020-01-01", "D"),  # weekday
+        (100, 200, 0, None, "2020-01-01", "D"),  # weekday
+        (100, 300, -100, None, "2020-01-01", "D"),  # weekday
+        (100, np.nan, 100, None, "2020-01-04", "D"),  # weekend only
     ],
 )
-def test_pbaseppeakpoffpeak_explicit(b, p, o, ts_left, ts_right):
-    assert np.isclose(convert.peak(b, o, ts_left, ts_right), p, equal_nan=True)
-    if p is np.nan:
-        p = 0
-    assert np.isclose(convert.offpeak(b, p, ts_left, ts_right), o)
-    assert np.isclose(convert.base(p, o, ts_left, ts_right), b)
+def test_pbaseppeakpoffpeak_explicit(
+    b: float,
+    p: float,
+    o: float,
+    ts_left: str,
+    freq: str,
+    withunit: bool,
+    tz: str,
+    o_EuropeBerlin: float,
+):
+    """Test if base, peak and offpeak values can be calculated from single values."""
+    # Handle timezone.
+    ts_left = pd.Timestamp(ts_left, tz=tz)
+    if tz is not None and o_EuropeBerlin is not None:
+        o = o_EuropeBerlin
+
+    # Handle units.
+    if withunit:  # add a (random) unit to see if conversion still works.
+        b, p, o = nits.Q_(b, "MW"), nits.Q_(p, "MW"), nits.Q_(o, "MW")
+
+    # Do testing.
+    assert np.isclose(convert.peak(b, o, ts_left, freq), p, equal_nan=True)
+    if np.isnan(p):
+        p = 0 if not withunit else nits.Q_(0, "MW")
+    assert np.isclose(convert.offpeak(b, p, ts_left, freq), o)
+    assert np.isclose(convert.base(p, o, ts_left, freq), b)
 
 
 @pytest.mark.parametrize("withunits", [True, False])
@@ -59,213 +85,134 @@ def test_completebpoframe_explicit(bpoframe, testcol: str, withunits: bool):
     testing.assert_frame_equal(bpoframe, result)
 
 
-@pytest.fixture(params=["var", "MS", "QS", "AS"])
-def short_freq(request):
-    return request.param
+@functools.cache
+def get_df_fromexcel(tz, aggfreq) -> pd.DataFrame:
+    path = Path(__file__).parent / "test_convert_data.xlsx"
+    sheetname = f'{aggfreq}_{"None" if tz is None else tz.replace("/", "")}'
+    df = pd.read_excel(path, sheetname, header=6, index_col=0)
+    df = df.tz_localize(tz, ambiguous="infer")
+    df.index.freq = aggfreq
+    return df
 
 
-@pytest.fixture(params=["MS", "QS", "AS"])
-def long_freq(request):
-    return request.param
+@pytest.mark.parametrize("withunit", [True, False])
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_pbaseppeakpoffpeak_fromexcel(tz: str, aggfreq: str, withunit: bool):
+    """Test if base, peak and offpeak value for a period can be calculated from the other two."""
+
+    # Pick random row.
+    row = get_df_fromexcel(tz, aggfreq).sample().iloc[0, :]
+    ts_left, b, p, o = row.name, row.base, row.peak, row.offpeak
+
+    # Adjust input values.
+    if withunit:
+        b, p, o = nits.Q_(b, "MW"), nits.Q_(p, "MW"), nits.Q_(o, "MW")
+
+    # Get result and test.
+    assert np.isclose(convert.peak(b, o, ts_left, aggfreq), p)
+    assert np.isclose(convert.offpeak(b, p, ts_left, aggfreq), o)
+    assert np.isclose(convert.base(p, o, ts_left, aggfreq), b)
 
 
-@pytest.fixture(params=["H", "15T"])
-def tseries_freq(request):
-    return request.param
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_completebpoframe_fromexcel(tz: str, aggfreq: str):
+    """Test if a partial bpoframe can be completed to a full bpoframe."""
+    bpoframe = get_df_fromexcel(tz, aggfreq)[["base", "peak", "offpeak"]]
+
+    for key in bpoframe:
+        partial = bpoframe.drop(columns=key)
+        bpoframe_result = convert.complete_bpoframe(partial)
+        testing.assert_frame_equal(bpoframe_result, bpoframe)
 
 
-@pytest.fixture(scope="session")
-def series_and_frames():
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
+@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_tseries2singlebpo_fromexcel(tz, freq, aggfreq):
+    """Test if a timeseries can be converted into single base, peak and offpeak values."""
+    tseries = get_df_fromexcel(tz, freq)["var"]
+    bpoframe = get_df_fromexcel(tz, aggfreq)[["base", "peak", "offpeak"]]
 
-    i_15T = pd.date_range(
-        "2020", "2022", freq="15T", tz="Europe/Berlin", inclusive="left"
-    )
+    ts = np.random.choice(bpoframe.index)
+    values_expected = bpoframe.loc[ts, :]
 
-    def exp(mean_p, ampl_p, mean_op, ampl_o):
-        tz = "Europe/Berlin"
-        start, end = (pd.Timestamp("2020", tz=tz), pd.Timestamp("2021", tz=tz))
-        angle = lambda ts: 2 * np.pi * (ts - start) / (end - start)
+    s_source = tseries[(tseries.index >= ts) & (tseries.index.ts_right < ts.ts_right)]
+    values_result = convert.tseries2singlebpo(s_source)
 
-        def expectation(ts):
-            m, a = (mean_p, ampl_p) if utils.is_peak_hour(ts) else (mean_op, ampl_o)
-            alpha = angle(ts) + np.pi / 12
-            return m + a * np.cos(alpha) + a / 10 * np.cos(alpha * 15)
-
-        return np.vectorize(expectation)  # make sure it accepts arrays
-
-    keys = ["peak", "offpeak", "base"]
-    pricefunc = exp(50, 40, 30, 25)
-    pricevals = np.random.normal(pricefunc(i_15T), 5)  # added noise
-    source = pd.DataFrame({"p": pricevals, "ts": i_15T})  # with integer index
-
-    # (Quarter)hourly timeseries with variable prices.
-    tseries = {
-        "var": {
-            "15T": set_ts_index(source, "ts")["p"],
-            "H": set_ts_index(
-                source.groupby(source.index // 4).agg({"p": "mean", "ts": "first"}),
-                "ts",
-            )["p"],
-        }
-    }
-
-    # Dataframes with base, peak, offpeak prices.
-
-    def isstart(period):
-        return lambda ts: ts.floor("D") == ts and getattr(ts, f"is_{period}_start")
-
-    bpoframes_sourcedata = {
-        freq: {**{key: [] for key in keys}, "index": [], "new": isstart(period)}
-        for freq, period in {
-            "MS": "month",
-            "QS": "quarter",
-            "AS": "year",
-        }.items()
-    }
-
-    for ts, p in tseries["var"]["H"].items():
-        ispeak = utils.is_peak_hour(ts)
-        for freq, dic in bpoframes_sourcedata.items():
-            if dic["new"](ts):
-                dic["index"].append(ts)
-                for key in keys:
-                    dic[key].append([])
-
-            dic["base"][-1].append(p)
-            dic["peak" if ispeak else "offpeak"][-1].append(p)
-
-    bpoframes = {}
-    for freq, dic in bpoframes_sourcedata.items():
-        for key in keys:
-            dic[key] = [np.mean(l) if len(l) else np.nan for l in dic[key]]
-        df = pd.DataFrame({key: dic[key] for key in keys}, dic["index"])
-        bpoframe = set_ts_index(df.resample(freq).asfreq())
-        bpoframes[freq] = bpoframe
-
-    # (Quarter)hourly timeseries with uniform peak and offpeak prices.
-    for period, bpoframe in bpoframes.items():
-        i0 = tseries["var"]["H"].index
-        offset_f = {
-            "MS": pd.offsets.MonthBegin,
-            "QS": lambda ts: pd.offsets.QuarterBegin(ts, startingMonth=1),
-            "AS": pd.offsets.YearBegin,
-        }[period]
-        i1 = i0.map(lambda ts: ts.floor("d") + offset_f(1) + offset_f(-1))
-        ispeak = utils.is_peak_hour(i0)
-        df = bpoframe.loc[i1, :]
-        s = pd.Series(np.where(ispeak, df["peak"], df["offpeak"]), i0)
-        tseries[period] = {}
-        tseries[period]["H"] = s
-        tseries[period]["15T"] = cutils.changefreq_avg(s, "15T")
-
-    return tseries, bpoframes
+    for key in ["base", "peak", "offpeak"]:
+        assert np.isclose(values_result[key], values_expected[key])
 
 
-_keys = ["base", "peak", "offpeak"]
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
+@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_tseries2bpoframe_fromexcel(tz, freq, aggfreq):
+    """Test if a timeseries (i.e., long) can be converted into a bpo-frame (i.e., wide)."""
+    tseries = get_df_fromexcel(tz, freq)["var"]
+    bpoframe_result = convert.tseries2bpoframe(tseries, aggfreq)
+
+    bpoframe_expected = get_df_fromexcel(tz, aggfreq)[["base", "peak", "offpeak"]]
+
+    testing.assert_frame_equal(bpoframe_result, bpoframe_expected)
 
 
-def test_pbaseppeakpoffpeak(series_and_frames, long_freq):
-    # long_freq: uniform frequency to start with {'ms', 'qs', 'as'}
-    # after conversion, values must be same as one provided by fixture
-    tseries, bpoframes = series_and_frames
-    idx = np.random.randint(len(bpoframes[long_freq].index))
-    ts_left = bpoframes[long_freq].index[idx]
-    ts_right = bpoframes[long_freq].index.ts_right[idx]
-    values_ref = bpoframes[long_freq].loc[ts_left, :]
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
+@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_bpoframe2timeseries_fromexcel(tz, freq, aggfreq, drop):
+    """Test if a bpoframe (i.e., wide) can be converted into a timeseries (i.e., long)."""
+    bpoframe = get_df_fromexcel(tz, aggfreq)[["base", "peak", "offpeak"]]
+    tseries_result = convert.bpoframe2tseries(bpoframe, freq)
 
-    for key, f in [
-        ("p_peak", convert.peak),
-        ("p_base", convert.base),
-        ("p_offpeak", convert.offpeak),
-    ]:
-        othervalues = [values_ref[k] for k in _keys if k != key]
-        value_test = f(*othervalues, ts_left, ts_right)
-        assert np.isclose(value_test, values_ref[key])
+    tseries_expected = get_df_fromexcel(tz, freq)[f"{aggfreq}_TRUE"]
+    testing.assert_series_equal(tseries_result, tseries_expected)
 
 
-def test_completebpoframe(series_and_frames, long_freq):
-    # long_freq: uniform frequency to start with {'ms', 'qs', 'as'}
-    # after conversion, values must be same as one provided by fixture
-    tseries, bpoframes = series_and_frames
-    df_ref = bpoframes[long_freq]
+@pytest.mark.parametrize(
+    ("short_aggfreq", "long_aggfreq"),
+    [
+        ("MS", "MS"),
+        ("MS", "QS"),
+        ("MS", "AS"),
+        ("QS", "QS"),
+        ("QS", "AS"),
+        ("AS", "AS"),
+    ],
+)
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_bpoframe2bpoframe_fromexcel(tz, short_aggfreq, long_aggfreq):
+    """Test if a bpoframe with a short frequency (e.g., months) can correctly be
+    downsampled, to a bpoframe with a longer frequency (e.g., quarters)."""
 
-    for key in _keys:
-        partialframe = df_ref[[okey for okey in _keys if okey != key]]
-        df_test = convert.complete_bpoframe(partialframe)
-        for testkey in _keys:
-            pd.testing.assert_series_equal(df_test[testkey], df_ref[testkey])
+    bpoframe_source = get_df_fromexcel(tz, short_aggfreq)[["base", "peak", "offpeak"]]
+    bpoframe_result = convert.bpoframe2bpoframe(bpoframe_source, long_aggfreq)
 
-
-def test_tseries2singlebpo(series_and_frames, long_freq, tseries_freq):
-    # tseries_freq: hour or quarterhour {'h', '15t'}
-    # long_freq: uniform frequency to start with {'ms', 'qs', 'as'}
-    # after conversion, values must be same as one provided by fixture
-    tseries, bpoframes = series_and_frames
-    ts = np.random.choice(bpoframes[long_freq].index)
-    values_ref = bpoframes[long_freq].loc[ts, :]
-
-    s = tseries[long_freq][tseries_freq]
-    s_source = s[(s.index >= ts) & (s.index < ts + ts.freq)]
-    values_test = convert.tseries2singlebpo(s_source)
-
-    for key in ["p_peak", "p_base", "p_offpeak"]:
-        assert np.isclose(values_test[key], values_ref[key])
+    bpoframe_expected = get_df_fromexcel(tz, long_aggfreq)[["base", "peak", "offpeak"]]
+    testing.assert_frame_equal(bpoframe_result, bpoframe_expected)
 
 
-def test_bpoframe2tseries(series_and_frames, long_freq, tseries_freq):
-    # tseries_freq: hour or quarterhour {'h', '15t'}
-    # long_freq: uniform frequency to start with {'ms', 'qs', 'as'}
-    # after conversion, timeseries must be same as one provided by fixture.
-    tseries, bpoframes = series_and_frames
-    df_source = bpoframes[long_freq]
-    s_test = convert.bpoframe2tseries(df_source, tseries_freq)
-    s_ref = tseries[long_freq][tseries_freq]
-    pd.testing.assert_series_equal(s_test, s_ref)
+@pytest.mark.parametrize("po", [True, False])
+@pytest.mark.parametrize(
+    ("short_aggfreq", "long_aggfreq"),
+    [
+        ("MS", "MS"),
+        ("MS", "QS"),
+        ("MS", "AS"),
+        ("QS", "QS"),
+        ("QS", "AS"),
+        ("AS", "AS"),
+    ],
+)
+@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_tseries2tseries_fromexcel(tz, freq, short_aggfreq, long_aggfreq, po):
+    """Test if a (e.g., hourly) timeseries with a short aggregation frequency (e.g., months)
+    can correctly be converted into another hourly timeseries with a longer aggregation
+    frequency (e.g., quarters)."""
+    tseries_source = get_df_fromexcel(tz, freq)[f"{short_aggfreq}_{str(po).upper()}"]
+    tseries_result = convert.tseries2tseries(tseries_source, long_aggfreq)
 
-
-def test_bpoframe2bpoframe(series_and_frames, short_freq, long_freq):
-    # short_freq: uniform frequency to start with {'ms', 'qs', 'as'}
-    # long_freq: uniform frequency to convert to {'ms', 'qs', 'as'}
-    # after conversion, bpoframe must be same as one provided by fixture.
-    tseries, bpoframes = series_and_frames
-    if short_freq == "var" or cutils.freq_up_or_down(short_freq, long_freq) > 0:
-        return  # if upsampling, the resulting series will not equal the reference
-    df_source = bpoframes[short_freq]
-    df_test = convert.bpoframe2bpoframe(df_source, long_freq)
-    df_ref = bpoframes[long_freq]
-    for col in df_ref.columns:
-        if col in df_test.columns:
-            pd.testing.assert_series_equal(df_test[col], df_ref[col])
-
-
-def test_tseries2bpoframe(series_and_frames, short_freq, long_freq, tseries_freq):
-    # tseries_freq: hour or quarterhour {'h', '15t'}
-    # short_freq: uniform frequency to start with {'var', 'ms', 'qs', 'as'}
-    # long_freq: uniform frequency to convert to {'ms', 'qs', 'as'}
-    # after conversion, bpoframe must be same as one provided by fixture.
-    tseries, bpoframes = series_and_frames
-    if short_freq != "var" and cutils.freq_up_or_down(short_freq, long_freq) > 0:
-        return  # if upsampling, the resulting series will not equal the reference
-    s_source = tseries[short_freq][tseries_freq]
-    df_test = convert.tseries2bpoframe(s_source, long_freq)
-    df_ref = bpoframes[long_freq]
-    for col in df_ref.columns:
-        if col in df_test.columns:
-            pd.testing.assert_series_equal(df_test[col], df_ref[col])
-
-
-def test_tseries2tseries(series_and_frames, short_freq, long_freq, tseries_freq):
-    # tseries_freq: hour or quarterhour {'h', '15t'}
-    # short_freq: uniform frequency to start with {'var', 'ms', 'qs', 'as'}
-    # long_freq: uniform frequency to convert to {'ms', 'qs', 'as'}
-    # after conversion, timeseries must be same as one provided by fixture.
-    tseries, bpoframes = series_and_frames
-    if short_freq != "var" and cutils.freq_up_or_down(short_freq, long_freq) > 0:
-        return  # if upsampling, the resulting series will not equal the reference
-    s_source = tseries[short_freq][tseries_freq]
-    s_test = convert.tseries2tseries(s_source, long_freq)
-    s_ref = tseries[long_freq][tseries_freq]
-    pd.testing.assert_series_equal(s_test, s_ref)
-
-
-# TODO: tests where the start and/or end of the timeseries do not fall on a natural period end
+    tseries_expected = get_df_fromexcel(tz, freq)[f"{long_aggfreq}_{str(po).upper()}"]
+    testing.assert_series_equal(tseries_result, tseries_expected, check_names=False)

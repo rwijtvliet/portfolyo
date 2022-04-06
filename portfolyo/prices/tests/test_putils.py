@@ -166,10 +166,10 @@ def test_duration(
     ],
 )
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-def test_ts_leftright(ts_trade, period_type, period_start, tz, expected_left):
+def test_deliveryperiod(ts_trade, period_type, period_start, tz, expected_left):
     ts_trade = pd.Timestamp(ts_trade, tz=tz)
     expected_left = pd.Timestamp(expected_left, tz=tz)
-    ts_deliv = utils.ts_leftright(ts_trade, period_type, period_start)
+    ts_deliv = utils.delivery_period(ts_trade, period_type, period_start)
     assert ts_deliv[0] == expected_left
     try:
         add = {"m": 1, "q": 3, "s": 6, "a": 12}[period_type]

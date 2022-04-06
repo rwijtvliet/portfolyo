@@ -115,3 +115,18 @@ def set_units(
     for name, unit in units.items():
         df[name] = set_unit(df[name], unit)
     return df
+
+
+def drop_units(fr: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.DataFrame]:
+    """
+    Convert ``fr`` to base units and return only the magnitude.
+
+    If ``fr`` is not unit-aware, return as-is.
+    """
+    if isinstance(fr, pd.Series):
+        try:
+            return fr.pint.to_base_units().pint.m
+        except AttributeError:
+            return fr
+    else:
+        return pd.DataFrame({col: drop_units(s) for col, s in fr.items()})

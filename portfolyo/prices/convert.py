@@ -7,13 +7,12 @@ Convert volume [MW] and price [Eur/MWh] timeseries using base, peak, offpeak tim
    peak and offpeak values in series with hourly (or shorter) index
 
 . Conversions with information loss:
-.. Hourly varying values --> Peak and offpeak values in dataframe with yearly/quarterly/monthly index
+.. Hourly varying values --> Peak and offpeak values.
 """
 
 from typing import Union, Iterable
 from . import utils
 from ..core.utils import changefreq_avg
-from ..tools.nits import Q_
 from ..tools.types import Value, Stamp
 from ..tools.stamps import freq_up_or_down
 from ..tools.frames import trim_frame
@@ -25,25 +24,27 @@ import warnings
 BPO = ("base", "peak", "offpeak")
 
 
-def group_function(freq: str, bpo: bool = False):
+def group_function(freq: str, po: bool = False):
     """Function to group all rows that belong to same 'product'."""
     if freq == "MS":
-        if bpo:
+        if po:
             return lambda ts: (ts.year, ts.month, utils.is_peak_hour(ts))
         else:
             return lambda ts: (ts.year, ts.month)
     elif freq == "QS":
-        if bpo:
+        if po:
             return lambda ts: (ts.year, ts.quarter, utils.is_peak_hour(ts))
         else:
             return lambda ts: (ts.year, ts.quarter)
     elif freq == "AS":
-        if bpo:
+        if po:
             return lambda ts: (ts.year, utils.is_peak_hour(ts))
         else:
             return lambda ts: (ts.year,)
 
-    raise ValueError(f"Parameter ``freq`` must be one of 'MS', 'QS', 'AS'; got {freq}.")
+    raise ValueError(
+        f"Parameter ``freq`` must be one of 'MS', 'QS', 'AS'; got '{freq}'."
+    )
 
 
 def offpeak(
@@ -283,7 +284,7 @@ def tseries2bpoframe(s: pd.Series, freq: str = "MS", prefix: str = "") -> pd.Dat
     """
     if freq not in ("MS", "QS", "AS"):
         raise ValueError(
-            f"Parameter ``freq`` must be one of 'MS', 'QS', 'AS'; got {freq}."
+            f"Parameter ``freq`` must be one of 'MS', 'QS', 'AS'; got '{freq}'."
         )
 
     # Remove partial data
@@ -352,7 +353,7 @@ def bpoframe2tseries(
     Freq: H, Length: 8784, dtype: float64
     """
     if freq not in ("H", "15T"):
-        raise ValueError(f"Parameter ``freq`` must be 'H' or '15T'; got {freq}")
+        raise ValueError(f"Parameter ``freq`` must be 'H' or '15T'; got '{freq}'.")
 
     df = bpoframe.rename({f"{prefix}{bpo}": bpo for bpo in BPO}, axis=1)  # remove prefx
     df = complete_bpoframe(df)  # make sure we have peak and offpeak columns
@@ -411,7 +412,7 @@ def tseries2tseries(s: pd.Series, freq: str = "MS") -> pd.Series:
     """
     if s.index.freq not in ("H", "15T"):
         raise ValueError(
-            f"Frequency of provided timeseries must be hourly or quarterhourly; got {s.index.freq}."
+            f"Frequency of provided timeseries must be hourly or quarterhourly; got '{s.index.freq}'."
         )
 
     # Handle possible units.

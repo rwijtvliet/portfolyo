@@ -1,4 +1,4 @@
-from portfolyo.tools import stamps
+from portfolyo.tools import stamps, nits
 import pandas as pd
 import numpy as np
 import pytest
@@ -6,66 +6,139 @@ import pytest
 freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
 
 
-@pytest.mark.parametrize("iter", [False, True])  # make iterable or not
+@pytest.mark.parametrize("iterable", [False, True])  # make iterable or not
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(
-    ("ts", "fut", "freq", "expected_ts"),
+    ("ts", "fut", "freq", "expected_floor", "expected_ceil"),
     [
-        (pd.Timestamp("2020"), 0, "D", pd.Timestamp("2020")),
-        (pd.Timestamp("2020"), 0, "MS", pd.Timestamp("2020")),
-        (pd.Timestamp("2020"), 0, "QS", pd.Timestamp("2020")),
-        (pd.Timestamp("2020"), 0, "AS", pd.Timestamp("2020")),
-        (pd.Timestamp("2020"), 1, "D", pd.Timestamp("2020-01-02")),
-        (pd.Timestamp("2020"), 1, "MS", pd.Timestamp("2020-02")),
-        (pd.Timestamp("2020"), 1, "QS", pd.Timestamp("2020-04")),
-        (pd.Timestamp("2020"), 1, "AS", pd.Timestamp("2021")),
-        (pd.Timestamp("2020"), -1, "D", pd.Timestamp("2019-12-31")),
-        (pd.Timestamp("2020"), -1, "MS", pd.Timestamp("2019-12")),
-        (pd.Timestamp("2020"), -1, "QS", pd.Timestamp("2019-10")),
-        (pd.Timestamp("2020"), -1, "AS", pd.Timestamp("2019")),
-        (pd.Timestamp("2020-01-01 23:55"), 0, "D", pd.Timestamp("2020")),
-        (pd.Timestamp("2020-01-24 1:32"), 0, "MS", pd.Timestamp("2020")),
-        (pd.Timestamp("2020-03-03 3:33"), 0, "QS", pd.Timestamp("2020")),
-        (pd.Timestamp("2020-10-11 12:34"), 0, "AS", pd.Timestamp("2020")),
-        (pd.Timestamp("2020-01-01 23:55"), 1, "D", pd.Timestamp("2020-01-02")),
-        (pd.Timestamp("2020-01-24 1:32"), 1, "MS", pd.Timestamp("2020-02")),
-        (pd.Timestamp("2020-03-03 3:33"), 1, "QS", pd.Timestamp("2020-04")),
-        (pd.Timestamp("2020-10-11 12:34"), 1, "AS", pd.Timestamp("2021")),
-        (pd.Timestamp("2020-01-01 23:55"), -1, "D", pd.Timestamp("2019-12-31")),
-        (pd.Timestamp("2020-01-24 1:32"), -1, "MS", pd.Timestamp("2019-12")),
-        (pd.Timestamp("2020-03-03 3:33"), -1, "QS", pd.Timestamp("2019-10")),
-        (pd.Timestamp("2020-10-11 12:34"), -1, "AS", pd.Timestamp("2019")),
+        ("2020", 0, "D", "2020", None),
+        ("2020", 0, "MS", "2020", None),
+        ("2020", 0, "QS", "2020", None),
+        ("2020", 0, "AS", "2020", None),
+        ("2020", 1, "D", "2020-01-02", None),
+        ("2020", 1, "MS", "2020-02", None),
+        ("2020", 1, "QS", "2020-04", None),
+        ("2020", 1, "AS", "2021", None),
+        ("2020", -1, "D", "2019-12-31", None),
+        ("2020", -1, "MS", "2019-12", None),
+        ("2020", -1, "QS", "2019-10", None),
+        ("2020", -1, "AS", "2019", None),
+        ("2020-02-01", 0, "D", "2020-02-01", None),
+        ("2020-02-01", 0, "MS", "2020-02-01", None),
+        ("2020-02-01", 0, "QS", "2020-01-01", "2020-04-01"),
+        ("2020-02-01", 0, "AS", "2020", "2021"),
+        ("2020-01-01 23:55", 0, "D", "2020", "2020-01-02"),
+        ("2020-01-24 1:32", 0, "MS", "2020", "2020-02"),
+        ("2020-03-03 3:33", 0, "QS", "2020", "2020-04"),
+        ("2020-10-11 12:34", 0, "AS", "2020", "2021"),
+        ("2020-01-01 23:55", 1, "D", "2020-01-02", "2020-01-03"),
+        ("2020-01-24 1:32", 1, "MS", "2020-02", "2020-03"),
+        ("2020-03-03 3:33", 1, "QS", "2020-04", "2020-07"),
+        ("2020-10-11 12:34", 1, "AS", "2021", "2022"),
+        ("2020-01-01 23:55", -1, "D", "2019-12-31", "2020-01-01"),
+        ("2020-01-24 1:32", -1, "MS", "2019-12", "2020"),
+        ("2020-03-03 3:33", -1, "QS", "2019-10", "2020"),
+        ("2020-10-11 12:34", -1, "AS", "2019", "2020"),
     ],
 )
-def test_floorts(
-    ts: pd.Timestamp,
+@pytest.mark.parametrize("function", ["floor", "ceil"])
+def test_floorceilts(
+    function: str,
+    ts: str,
     fut: int,
     freq: str,
-    expected_ts: pd.Timestamp,
+    expected_floor: str,
+    expected_ceil: str,
     tz: str,
-    iter: bool,
+    iterable: bool,
 ):
-    """Test if timestamp or iterable of timestamps is correctly floored."""
+    """Test if timestamp or iterable of timestamps is correctly floored and ceiled."""
+    # Prepare.
+    fn = stamps.floor_ts if function == "floor" else stamps.ceil_ts
+    if function == "floor" or expected_ceil is None:
+        expected_single = expected_floor
+    else:
+        expected_single = expected_ceil
+
+    ts = pd.Timestamp(ts)
+    expected_single = pd.Timestamp(expected_single)
+
     if tz:
         ts = ts.tz_localize(tz)
-        expected_ts = expected_ts.tz_localize(tz)
+        expected_single = expected_single.tz_localize(tz)
 
-    if not iter:
+    # Test.
+    if not iterable:
         # Test single value.
-        assert stamps.floor_ts(ts, freq, fut) == expected_ts
+        assert fn(ts, freq, fut) == expected_single
+
     else:
         # Test index.
         periods = np.random.randint(4, 40)
+        index = pd.date_range(ts, periods=periods, freq=freq)  # causes rounding of ts
+        index += ts - index[0]  # undoes the rounding
 
-        index = pd.date_range(ts, periods=periods, freq=freq)  # ts no longer at index 0
-        index += ts - index[0]  # index starts again with ts and has non-floored values
+        result_iter = fn(index, freq, fut)
+        result_iter.freq = None  # disregard checking frequencies here
+        expected_iter = pd.date_range(expected_single, periods=periods, freq=freq)
+        expected_iter.freq = None  # disregard checking frequencies here
+        pd.testing.assert_index_equal(result_iter, expected_iter)
 
-        result = stamps.floor_ts(index, freq, fut)
-        result.freq = None  # disregard checking frequencies here
-        expected_result = pd.date_range(expected_ts, periods=periods, freq=freq)
-        expected_result.freq = None  # disregard checking frequencies here
 
-        pd.testing.assert_index_equal(result, expected_result)
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize(
+    ("ts", "freq", "is_boundary"),
+    [
+        ("2020", "H", True),
+        ("2020", "D", True),
+        ("2020", "MS", True),
+        ("2020", "AS", True),
+        ("2020-01-01 15:45", "H", False),
+        ("2020-01-01 15:45", "D", False),
+        ("2020-01-01 15:45", "MS", False),
+        ("2020-01-01 15:45", "AS", False),
+        ("2020-01-01 15:00", "H", True),
+        ("2020-01-01 15:00", "D", False),
+        ("2020-01-01 15:00", "MS", False),
+        ("2020-01-01 15:00", "AS", False),
+        ("2020-04-01", "H", True),
+        ("2020-04-01", "D", True),
+        ("2020-04-01", "MS", True),
+        ("2020-04-01", "AS", False),
+    ],
+)
+def test_assertboundary(ts, freq, is_boundary, tz):
+    """Test if boundary timestamps are correctly identified."""
+    ts = pd.Timestamp(ts, tz=tz)
+    if is_boundary:
+        _ = stamps.assert_boundary_ts(ts, freq)
+    else:
+        with pytest.raises(ValueError):
+            _ = stamps.assert_boundary_ts(ts, freq)
+
+
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize(
+    ("start", "end", "freq", "trimfreq", "expected_start", "expected_end"),
+    [
+        ("2020-01-05", "2020-12-21", "D", "H", "2020-01-05", "2020-12-21"),
+        ("2020-01-05", "2020-12-21", "D", "D", "2020-01-05", "2020-12-21"),
+        ("2020-01-05", "2020-12-21", "D", "MS", "2020-02", "2020-12"),
+        ("2020-01-05", "2020-12-21", "D", "QS", "2020-04", "2020-10"),
+        ("2020-01-05", "2020-12-21", "D", "AS", None, None),
+    ],
+)
+def test_trimindex(start, end, freq, trimfreq, expected_start, expected_end, tz):
+    """Test if indices are correctly trimmed."""
+    i = pd.date_range(start, end, freq=freq, inclusive="left", tz=tz)
+    result = stamps.trim_index(i, trimfreq)
+    if expected_start is not None:
+        expected = pd.date_range(
+            expected_start, expected_end, freq=freq, inclusive="left", tz=tz
+        )
+    else:
+        expected = pd.DatetimeIndex([], freq=freq, tz=tz)
+    pd.testing.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("tz_left", [None, "Europe/Berlin", "Asia/Kolkata"])
@@ -116,6 +189,30 @@ def test_tsleftright(tss: tuple, expected_tss: tuple, tz_left: str, tz_right: st
 
     for a, b in zip(result, exp_result):
         assert a == b
+
+
+@pytest.mark.parametrize(
+    ("ts", "freq", "hours"),
+    [
+        (pd.Timestamp("2020-01-01"), "D", 24),
+        (pd.Timestamp("2020-01-01"), "MS", 744),
+        (pd.Timestamp("2020-01-01"), "QS", 2184),
+        (pd.Timestamp("2020-01-01"), "AS", 8784),
+        (pd.Timestamp("2020-03-01"), "D", 24),
+        (pd.Timestamp("2020-03-01"), "MS", 744),
+        (pd.Timestamp("2020-03-29"), "D", 24),
+        (pd.Timestamp("2020-01-01", tz="Europe/Berlin"), "D", 24),
+        (pd.Timestamp("2020-01-01", tz="Europe/Berlin"), "MS", 744),
+        (pd.Timestamp("2020-01-01", tz="Europe/Berlin"), "QS", 2183),
+        (pd.Timestamp("2020-01-01", tz="Europe/Berlin"), "AS", 8784),
+        (pd.Timestamp("2020-03-01", tz="Europe/Berlin"), "D", 24),
+        (pd.Timestamp("2020-03-01", tz="Europe/Berlin"), "MS", 743),
+        (pd.Timestamp("2020-03-29", tz="Europe/Berlin"), "D", 23),
+    ],
+)
+def test_duration(ts, freq, hours):
+    """Test if duration in correctly calculated."""
+    assert stamps.duration(ts, freq) == nits.Q_(hours, "h")
 
 
 @pytest.mark.parametrize("freq1", freqs_small_to_large)

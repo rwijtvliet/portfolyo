@@ -1,6 +1,5 @@
 """Utilities for calculating / manipulating price data."""
 
-import warnings
 from ..tools import stamps
 from ..tools.types import Stamp
 from ..tools.nits import Q_
@@ -26,15 +25,12 @@ def is_peak_hour(
     -------
     bool (if ts_left is Timestamp) or Series (if ts_left is DatetimeIndex).
     """
-    if isinstance(ts_left, pd.Timestamp):
-        return ts_left.hour >= 8 and ts_left.hour < 20 and ts_left.isoweekday() < 6
-    elif isinstance(ts_left, pd.DatetimeIndex):
+    if isinstance(ts_left, pd.DatetimeIndex):
         ispeak = [is_peak_hour(ts) for ts in ts_left]
         return pd.Series(ispeak, ts_left).rename("is_peak_hour")
 
-    raise TypeError(
-        f"Parameter ``ts_left`` must be ``Timestamp`` or ``DatetimeIndex`` instance; got {type(ts_left)}."
-    )
+    # Assume it's a single timestamp.
+    return ts_left.hour >= 8 and ts_left.hour < 20 and ts_left.isoweekday() < 6
 
 
 duration_base = stamps.duration
@@ -50,12 +46,6 @@ def duration_peak(
     --------
     .tools.stamps.duration
     """
-
-    if isinstance(ts_left, pd.Timestamp) and freq is None:
-        warnings.warn(
-            "Calling the function without passing the ``freq`` parameter will be deprecated in a future release."
-        )
-
     if freq is None:
         freq = ts_left.freq
 
@@ -64,17 +54,7 @@ def duration_peak(
             f"Parameter ``freq`` must be one of {', '.join(stamps.FREQUENCIES)}; got {freq}."
         )
 
-    if isinstance(ts_left, pd.Timestamp):
-        if freq in ["15T", "H"]:
-            return stamps.duration(ts_left, freq) * is_peak_hour(ts_left)
-        elif freq == "D":
-            return Q_(0 if ts_left.isoweekday() >= 6 else 12, "h")
-        else:
-            ts_right = stamps.ts_right(ts_left, freq)
-            days = pd.date_range(ts_left, ts_right, freq="D", inclusive="left")
-            return Q_(sum(days.map(lambda day: day.isoweekday() < 6) * 12), "h")
-
-    elif isinstance(ts_left, pd.DatetimeIndex):
+    if isinstance(ts_left, pd.DatetimeIndex):
         if freq in ["15T", "H"]:
             return stamps.duration(ts_left, freq) * is_peak_hour(ts_left)
         elif freq == "D":
@@ -85,9 +65,15 @@ def duration_peak(
             hours = (duration_peak(ts, freq) for ts in ts_left)  # has unit
             return pd.Series(hours, ts_left, dtype="pint[h]")
 
-    raise TypeError(
-        f"Parameter ``ts_left`` must be ``Timestamp`` or ``DatetimeIndex`` instance; got {type(ts_left)}."
-    )
+    # Assume it's a single timestamp.
+    if freq in ["15T", "H"]:
+        return stamps.duration(ts_left, freq) * is_peak_hour(ts_left)
+    elif freq == "D":
+        return Q_(0 if ts_left.isoweekday() >= 6 else 12, "h")
+    else:
+        ts_right = stamps.ts_right(ts_left, freq)
+        days = pd.date_range(ts_left, ts_right, freq="D", inclusive="left")
+        return Q_(sum(days.map(lambda day: day.isoweekday() < 6) * 12), "h")
 
 
 def duration_offpeak(
@@ -125,50 +111,49 @@ def duration_bpo(
     b = duration_base(ts_left, freq)  # quantity or pint-series
     p = duration_peak(ts_left, freq)  # quantity or pint-series
 
-    if isinstance(ts_left, pd.Timestamp):
-        return pd.Series({"base": b, "peak": p, "offpeak": b - p}, dtype="pint[h]")
-    elif isinstance(ts_left, pd.DatetimeIndex):
+    if isinstance(ts_left, pd.DatetimeIndex):
         return pd.DataFrame({"base": b, "peak": p, "offpeak": b - p}, dtype="pint[h]")
 
-    raise TypeError(
-        f"Parameter ``ts_left`` must be ``pandas.Timestamp`` or ``pandas.DatetimeIndex`` instance; got {type(ts_left)}."
-    )
+    # Assume it's a single timestamp.
+    return pd.Series({"base": b, "peak": p, "offpeak": b - p}, dtype="pint[h]")
 
 
-def ts_leftright(
-    ts_trade: Stamp, period_type: str = "m", period_start: int = 1
-) -> Tuple[Stamp]:
+def delivery_period(
+    ts_trade: pd.Timestamp, period_type: str = "m", front_count: int = 1
+) -> Tuple[pd.Timestamp]:
     """
     Find start and end of delivery period.
 
     Parameters
     ----------
-    ts_trade : datetime
+    ts_trade : pd.Timestamp
         Trading timestamp
     period_type : {'d' (day), 'm' (month, default), 'q' (quarter), 's' (season), 'a' (year)}
-    period_start : int
+    front_count : int
         1 = next/coming (full) period, 2 = period after that, etc.
 
     Returns
     -------
-    (datetime, datetime)
-        left and right timestamp of delivery period.
+    (pd.Timestamp, pd.Timestamp)
+        Left (inclusive) and right (exclusive) timestamp of delivery period.
     """
     ts_left_trade = ts_trade.floor("d")  # start of day
 
     if period_type in ["m", "q", "a"]:
         freq = period_type.upper() + "S"
-        ts_left = stamps.floor_ts(ts_left_trade, freq, period_start)
+        ts_left = stamps.floor_ts(ts_left_trade, freq, front_count)
         ts_right = stamps.floor_ts(ts_left, freq, 1)
     elif period_type == "d":
-        ts_left = ts_trade.floor("d") + pd.Timedelta(days=period_start)
+        ts_left = ts_trade.floor("d") + pd.Timedelta(days=front_count)
         ts_right = ts_left + pd.Timedelta(days=1)
     elif period_type == "s":
-        ts_left, ts_right = ts_leftright(ts_trade, "q", period_start * 2 - 1)
+        ts_left, ts_right = delivery_period(ts_trade, "q", front_count * 2 - 1)
         nextq = pd.offsets.QuarterBegin(1, startingMonth=1)
         ts_right = ts_right + nextq  # make 6 months long
         if ts_left.month % 2 == 1:  # season must start on even month
             ts_left, ts_right = ts_left + nextq, ts_right + nextq
     else:
-        raise ValueError("Invalid value for parameter ``period_type``.")
+        raise ValueError(
+            f"Parameter ``period_type`` must be one of 'd', 'm', 'q', 's', 'a'; got '{period_type}'."
+        )
     return ts_left, ts_right
