@@ -1,8 +1,0 @@
-{
-    "python.formatting.provider": "black",
-    "python.testing.pytestArgs": [
-        "portfolyo"
-    ],
-    "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true
-}
