@@ -5,6 +5,14 @@ portfolyo
    :target: https://pypi.org/project/portfolyo
    :alt: Pypi
 
+.. image:: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci.yaml/badge.svg
+   :target: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci.yaml
+   :alt: Github - CI
+
+.. image:: https://github.com/rwijtvliet/portfolyo/actions/workflows/pre-commit.yaml/badge.svg
+   :target: https://github.com/rwijtvliet/portfolyo/actions/workflows/pre-commit.yaml
+   :alt: Github - Pre-commit
+
 Analysing and manipulating timeseries related to power and gas offtake portfolios.
 
 
