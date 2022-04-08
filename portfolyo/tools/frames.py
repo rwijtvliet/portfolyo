@@ -3,15 +3,18 @@
 Module with tools to modify and standardize dataframes.
 """
 
+from pytz import NonExistentTimeError
 from .stamps import FREQUENCIES, freq_up_or_down, trim_index
 
 from pandas.core.frame import NDFrame
-from typing import Iterable, Union
+from typing import Iterable, Union, Any
 import pandas as pd
 import numpy as np
 import functools
 
 # TODO: rename 'standardize'
+
+
 def set_ts_index(
     fr: NDFrame,
     column: str = None,
@@ -61,7 +64,7 @@ def set_ts_index(
             # . Rightbound timestamps: ambiguous. May contain 3:00 but not 2:00 (A), or vice versa (B): try both
             try:
                 return set_ts_index(fr, None, "rightA", tz)
-            except:
+            except NonExistentTimeError:
                 return set_ts_index(fr, None, "rightB", tz)
         minutes = (fr.index[1] - fr.index[0]).seconds / 60
         if bound == "rightA":
@@ -78,7 +81,7 @@ def set_ts_index(
     if fr.index.tz is None:
         try:
             fr = fr.tz_localize(tz, ambiguous="infer")
-        except:
+        except NonExistentTimeError:
             fr = fr.tz_localize(tz, ambiguous="NaT")
     fr = fr.tz_convert("Europe/Berlin")
 
@@ -166,6 +169,69 @@ def fill_gaps(fr: NDFrame, maxgap: int = 2) -> NDFrame:
         dx, dy = x1 - x0, y1 - y0
         fr.loc[i_before:i_after] = y0 + (section.index - x0) / dx * dy
     return fr
+
+
+def add_header(df: pd.DataFrame, header: Any, axis: int = 1) -> pd.DataFrame:
+    """Add additional (top-)level to dataframe axis (column or index).
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+    header : Any
+        Value to add to top or left of index.
+    axis : int, optional (default: 1)
+
+    Returns
+    -------
+    pd.DataFrame
+    """
+    return pd.concat([df], keys=[header], axis=axis)
+
+
+def concat(dfs: Iterable, axis: int = 0, *args, **kwargs) -> pd.DataFrame:
+    """
+    Wrapper for ``pandas.concat``; concatenate pandas objects even if they have
+    unequal number of levels on concatenation axis.
+
+    Levels containing empty strings are added from below (when concatenating along
+    columns) or right (when concateniting along rows) to match the maximum number
+    found in the dataframes.
+
+    Parameters
+    ----------
+    dfs : Iterable
+        Dataframes that must be concatenated.
+    axis : int, optional
+        Axis along which concatenation must take place. The default is 0.
+
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated Dataframe.
+
+    Notes
+    -----
+    Any arguments and kwarguments are passed onto the ``pandas.concat`` function.
+
+    See also
+    --------
+    pandas.concat
+    """
+
+    def index(df):
+        return df.columns if axis == 1 else df.index
+
+    def add_levels(df):
+        need = want - index(df).nlevels
+        if need > 0:
+            df = pd.concat([df], keys=[("",) * need], axis=axis)  # prepend empty levels
+            for i in range(want - need):  # move empty levels to bottom
+                df = df.swaplevel(i, i + need, axis=axis)
+        return df
+
+    want = np.max([index(df).nlevels for df in dfs])
+    dfs = [add_levels(df) for df in dfs]
+    return pd.concat(dfs, axis=axis, *args, **kwargs)
 
 
 def wavg(

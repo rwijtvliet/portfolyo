@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from . import single_helper
 from .base import PfLine
-from ..utils import changefreq_avg, changefreq_sum
+from .. import changefreq
 
 from typing import Dict, Iterable, Union
 import pandas as pd
@@ -91,9 +91,11 @@ class SinglePfLine(PfLine):
 
     def asfreq(self, freq: str = "MS") -> SinglePfLine:
         if self.kind == "p":
-            df = changefreq_avg(self.df("p"), freq)
-        else:
-            df = changefreq_sum(self.df(self.summable), freq)
+            df = changefreq.averagable(self.df("p"), freq)
+        elif self.kind == "q":
+            df = changefreq.summable(self.df("q"), freq)
+        else:  # self.kind == 'all'
+            df = changefreq.summable(self.df("qr"), freq)
         return SinglePfLine(df)
 
     @property

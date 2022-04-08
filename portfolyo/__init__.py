@@ -1,7 +1,7 @@
 from .core.pfline import PfLine, SinglePfLine, MultiPfLine
 from .core.pfstate import PfState
 from .core.mixins.plot import plot_pfstates
-from .core.utils import changefreq_avg, changefreq_sum
+from .core import changefreq
 from . import dev
 
 from .core import basics  # extend functionalty of pandas

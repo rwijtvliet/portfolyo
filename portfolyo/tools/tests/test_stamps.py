@@ -93,18 +93,18 @@ def test_floorceilts(
         ("2020", "D", True),
         ("2020", "MS", True),
         ("2020", "AS", True),
-        ("2020-01-01 15:45", "H", False),
-        ("2020-01-01 15:45", "D", False),
-        ("2020-01-01 15:45", "MS", False),
-        ("2020-01-01 15:45", "AS", False),
-        ("2020-01-01 15:00", "H", True),
-        ("2020-01-01 15:00", "D", False),
-        ("2020-01-01 15:00", "MS", False),
-        ("2020-01-01 15:00", "AS", False),
         ("2020-04-01", "H", True),
         ("2020-04-01", "D", True),
         ("2020-04-01", "MS", True),
         ("2020-04-01", "AS", False),
+        ("2020-01-01 15:00", "H", True),
+        ("2020-01-01 15:00", "D", False),
+        ("2020-01-01 15:00", "MS", False),
+        ("2020-01-01 15:00", "AS", False),
+        ("2020-01-01 15:45", "H", False),
+        ("2020-01-01 15:45", "D", False),
+        ("2020-01-01 15:45", "MS", False),
+        ("2020-01-01 15:45", "AS", False),
     ],
 )
 def test_assertboundary(ts, freq, is_boundary, tz):
@@ -115,6 +115,38 @@ def test_assertboundary(ts, freq, is_boundary, tz):
     else:
         with pytest.raises(ValueError):
             _ = stamps.assert_boundary_ts(ts, freq)
+
+
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize(
+    ("tss", "freq", "are_boundary"),
+    [
+        (["2020", "2021"], "H", True),
+        (["2020", "2021"], "D", True),
+        (["2020", "2021"], "MS", True),
+        (["2020", "2021"], "AS", True),
+        (["2020-04-01", "2021"], "H", True),
+        (["2020-04-01", "2021"], "D", True),
+        (["2020-04-01", "2021"], "MS", True),
+        (["2020-04-01", "2021"], "AS", False),
+        (["2020-01-01 15:00", "2021"], "H", True),
+        (["2020-01-01 15:00", "2021"], "D", False),
+        (["2020-01-01 15:00", "2021"], "MS", False),
+        (["2020-01-01 15:00", "2021"], "AS", False),
+        (["2020-01-01 15:45", "2021"], "H", False),
+        (["2020-01-01 15:45", "2021"], "D", False),
+        (["2020-01-01 15:45", "2021"], "MS", False),
+        (["2020-01-01 15:45", "2021"], "AS", False),
+    ],
+)
+def test_assertboundary_asindex(tss, freq, are_boundary, tz):
+    """Test if boundary timestamps are correctly identified."""
+    i = pd.Index([pd.Timestamp(ts, tz=tz) for ts in tss])
+    if are_boundary:
+        _ = stamps.assert_boundary_ts(i, freq)
+    else:
+        with pytest.raises(ValueError):
+            _ = stamps.assert_boundary_ts(i, freq)
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
@@ -139,6 +171,36 @@ def test_trimindex(start, end, freq, trimfreq, expected_start, expected_end, tz)
     else:
         expected = pd.DatetimeIndex([], freq=freq, tz=tz)
     pd.testing.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize("freq_as_attr", [True, False])
+@pytest.mark.parametrize(
+    ("ts_left", "freq", "expected_ts_right"),
+    [
+        ("2020", "15T", "2020-01-01 00:15"),
+        ("2020", "H", "2020-01-01 01:00"),
+        ("2020", "D", "2020-01-02"),
+        ("2020", "MS", "2020-02-01"),
+        ("2020", "QS", "2020-04"),
+        ("2020", "AS", "2021"),
+        ("2020-04-21", "15T", "2020-04-21 00:15"),
+        ("2020-04-21", "H", "2020-04-21 01:00"),
+        ("2020-04-21", "D", "2020-04-22"),
+        ("2020-04-21 15:00", "15T", "2020-04-21 15:15"),
+        ("2020-04-21 15:00", "H", "2020-04-21 16:00"),
+    ],
+)
+def test_tsright(ts_left, freq, tz, freq_as_attr, expected_ts_right):
+    """Test if right timestamp is correctly calculated."""
+    if freq_as_attr:
+        ts = pd.Timestamp(ts_left, freq=freq, tz=tz)
+        result = stamps.ts_right(ts)
+    else:
+        ts = pd.Timestamp(ts_left, tz=tz)
+        result = stamps.ts_right(ts, freq)
+    expected = pd.Timestamp(expected_ts_right, tz=tz)
+    assert result == expected
 
 
 @pytest.mark.parametrize("tz_left", [None, "Europe/Berlin", "Asia/Kolkata"])

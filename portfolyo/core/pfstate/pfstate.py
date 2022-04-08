@@ -1,5 +1,5 @@
 """
-Dataframe-like class to hold energy-related timeseries, specific to portfolios, at a 
+Dataframe-like class to hold energy-related timeseries, specific to portfolios, at a
 certain moment in time (e.g., at the current moment, without any historic data).
 """
 
@@ -7,11 +7,12 @@ from __future__ import annotations
 
 
 from .pfstate_helper import make_pflines
-from .. import utils
 from ..ndframelike import NDFrameLike
-from ..pfline import PfLine, SinglePfLine, MultiPfLine
+from ..pfline import PfLine, MultiPfLine
 from ..mixins import PfStateText, PfStatePlot, OtherOutput
-from typing import Optional, Iterable, Union
+from ...tools import frames
+
+from typing import Optional, Union
 import pandas as pd
 import warnings
 
@@ -156,14 +157,15 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         for part in ("offtake", "pnl_cost", "sourced", "unsourced"):
             fl = True if part == "pnl_cost" else flatten  # always flatten pnl_cost
             dfin = self[part].df(flatten=fl)
-            dfs.append(utils.add_header(dfin, part))
-        return utils.concat(dfs, axis=1)
+            dfs.append(frames.add_header(dfin, part))
+        return frames.concat(dfs, axis=1)
 
     # Methods that return new class instance.
 
     def set_offtakevolume(self, offtakevolume: PfLine) -> PfState:
         warnings.warn(
-            "This changes the unsourced volume and causes inaccuracies in its price, if the portfolio has a frequency that is longer than the spot market."
+            "This changes the unsourced volume and causes inaccuracies in its price, if "
+            "the portfolio has a frequency that is longer than the spot market."
         )
         return PfState(offtakevolume, self._unsourcedprice, self._sourced)
 
@@ -172,7 +174,8 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     def set_sourced(self, sourced: PfLine) -> PfState:
         warnings.warn(
-            "This changes the unsourced volume and causes inaccuracies in its price, if the portfolio has a frequency that is longer than the spot market."
+            "This changes the unsourced volume and causes inaccuracies in its price, if "
+            "the portfolio has a frequency that is longer than the spot market."
         )
         return PfState(self._offtakevolume, self._unsourcedprice, sourced)
 
@@ -235,7 +238,7 @@ class _LocIndexer:
         return PfState(offtakevolume, unsourcedprice, sourced)
 
 
-from . import enable_arithmatic, enable_hedging
+from . import enable_arithmatic, enable_hedging  # noqa
 
 enable_arithmatic.apply()
 enable_hedging.apply()

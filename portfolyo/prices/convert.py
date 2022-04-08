@@ -3,7 +3,7 @@ Convert volume [MW] and price [Eur/MWh] timeseries using base, peak, offpeak tim
 
 . Conversions without loss of information:
 .. Base and peak values <--> Peak and offpeak values
-.. Peak and offpeak values in dataframe with yearly/quarterly/monthly index <--> 
+.. Peak and offpeak values in dataframe with yearly/quarterly/monthly index <-->
    peak and offpeak values in series with hourly (or shorter) index
 
 . Conversions with information loss:
@@ -12,7 +12,7 @@ Convert volume [MW] and price [Eur/MWh] timeseries using base, peak, offpeak tim
 
 from typing import Union, Iterable
 from . import utils
-from ..core.utils import changefreq_avg
+from ..core import changefreq
 from ..tools.types import Value, Stamp
 from ..tools.stamps import freq_up_or_down
 from ..tools.frames import trim_frame
@@ -357,7 +357,7 @@ def bpoframe2tseries(
 
     df = bpoframe.rename({f"{prefix}{bpo}": bpo for bpo in BPO}, axis=1)  # remove prefx
     df = complete_bpoframe(df)  # make sure we have peak and offpeak columns
-    df = changefreq_avg(df[["peak", "offpeak"]], freq)
+    df = changefreq.averagable(df[["peak", "offpeak"]], freq)
     df["ispeak"] = df.index.map(utils.is_peak_hour)
 
     return df["offpeak"].where(df["ispeak"], df["peak"])

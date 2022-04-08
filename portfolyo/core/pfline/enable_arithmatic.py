@@ -168,7 +168,8 @@ def _multiply_pfline_and_dimensionlessseries(pfl: PfLine, s: pd.Series):
     """Multiply pfline and dimensionless series."""
     if not isinstance(pfl, single.SinglePfLine) or pfl.kind == "all":
         raise NotImplementedError(
-            "Value(s) without unit can only be multiplied with a single portfolio line with price or volume information."
+            "Value(s) without unit can only be multiplied with a single portfolio line "
+            "with price or volume information."
         )
 
     # Scale the price p (kind == 'p') or the volume q (kind == 'q'), returning PfLine of same kind.
@@ -203,9 +204,9 @@ class PfLineArithmatic:
     METHODS = ["neg", "add", "radd", "sub", "rsub", "mul", "rmul", "truediv"]
 
     def __neg__(self: PfLine):
-        # invert price (kind == 'p'), volume (kind == 'q') or volume and revenue (kind == 'all')
+        # multiply price (kind == 'p'), volume (kind == 'q') or volume and revenue (kind == 'all') with -1
         flat = self.flatten()
-        df = (-flat.df(flat.summable).pint.dequantify()).pint.quantify()
+        df = (-flat.df(flat.summable).pint.dequantify()).pint.quantify()  # workaround
         return single.SinglePfLine(df)
 
     def __add__(self: PfLine, other) -> PfLine:

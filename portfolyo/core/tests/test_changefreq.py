@@ -1,5 +1,5 @@
 from portfolyo import testing
-from portfolyo.core import utils
+from portfolyo.core import changefreq
 from portfolyo.tools.stamps import freq_up_or_down
 from portfolyo.tools.frames import set_ts_index, wavg
 import numpy as np
@@ -208,7 +208,7 @@ def avgable():
 
 # @pytest.mark.parametrize("fr1,fr2,descr", summable())
 def test_changefreq_sum(fr1, fr2, descr):
-    testfr = utils.changefreq_sum(fr1, fr2.index.freq)
+    testfr = changefreq.summable(fr1, fr2.index.freq)
     if isinstance(fr1, pd.Series):
         testing.assert_series_equal(testfr, fr2)
     else:
@@ -217,7 +217,7 @@ def test_changefreq_sum(fr1, fr2, descr):
 
 # @pytest.mark.parametrize("fr1,fr2,descr", avgable())
 def test_changefreq_avg(fr1, fr2, descr):
-    testfr = utils.changefreq_avg(fr1, fr2.index.freq)
+    testfr = changefreq.averagable(fr1, fr2.index.freq)
     if isinstance(fr1, pd.Series):
         testing.assert_series_equal(testfr, fr2)
     else:

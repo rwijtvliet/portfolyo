@@ -1,6 +1,6 @@
 from typing import Iterable
-from portfolyo import dev
-from portfolyo.tools.frames import series_allclose, set_ts_index, wavg, fill_gaps
+from portfolyo import dev, testing
+from portfolyo.tools import frames
 from numpy import nan
 import portfolyo as pf
 import numpy as np
@@ -54,8 +54,8 @@ def test_settsindex_1(
     expected_s = pd.Series(values, i.rename("ts_left"))
 
     # Using expected frame: should stay the same.
-    pd.testing.assert_frame_equal(set_ts_index(expected_df), expected_df)
-    pd.testing.assert_series_equal(set_ts_index(expected_s), expected_s)
+    pd.testing.assert_frame_equal(frames.set_ts_index(expected_df), expected_df)
+    pd.testing.assert_series_equal(frames.set_ts_index(expected_s), expected_s)
 
     i = i.tz_convert(tz)
     if not do_localize:
@@ -70,19 +70,19 @@ def test_settsindex_1(
 
     # Dataframe with index.
     pd.testing.assert_frame_equal(
-        set_ts_index(pd.DataFrame({"a": values}, i), bound=bound, tz=tz),
+        frames.set_ts_index(pd.DataFrame({"a": values}, i), bound=bound, tz=tz),
         expected_df,
     )
 
     # Dataframe with column that must become index.
     pd.testing.assert_frame_equal(
-        set_ts_index(pd.DataFrame({"a": values, "ts": i}), "ts", bound, tz),
+        frames.set_ts_index(pd.DataFrame({"a": values, "ts": i}), "ts", bound, tz),
         expected_df,
     )
 
     # Series.
     pd.testing.assert_series_equal(
-        set_ts_index(pd.Series(values, i), bound=bound, tz=tz), expected_s
+        frames.set_ts_index(pd.Series(values, i), bound=bound, tz=tz), expected_s
     )
 
 
@@ -113,13 +113,13 @@ def test_settsindex_2(freq, tz, removesome):
     # See if error is raised.
     if removesome == 2 or freq not in pf.FREQUENCIES:
         with pytest.raises(ValueError):
-            set_ts_index(s)
+            frames.set_ts_index(s)
         with pytest.raises(ValueError):
-            set_ts_index(df)
+            frames.set_ts_index(df)
         return
 
-    assert set_ts_index(s).index.freq == freq
-    assert set_ts_index(df).index.freq == freq
+    assert frames.set_ts_index(s).index.freq == freq
+    assert frames.set_ts_index(df).index.freq == freq
 
 
 @pytest.mark.parametrize(
@@ -149,14 +149,95 @@ def test_fill_gaps(values, index, maxgap, gapvalues, tol):
     """Test if gaps are correctly interpolated."""
     # Test as Series.
     s = pd.Series(values, index)
-    s_new = fill_gaps(s, maxgap)
+    s_new = frames.fill_gaps(s, maxgap)
     s[s.isna()] = gapvalues
     pd.testing.assert_series_equal(s_new, s, rtol=tol)
     # Test as DataFrame.
     df = pd.DataFrame({"a": values}, index)
-    df_new = fill_gaps(df, maxgap)
+    df_new = frames.fill_gaps(df, maxgap)
     df[df.isna()] = gapvalues
     pd.testing.assert_frame_equal(df_new, df, rtol=tol)
+
+
+@pytest.mark.parametrize(
+    ("df_columns", "header", "expected_columns"),
+    [
+        (["A"], "B", [("B", "A")]),
+        (["A1", "A2"], "B", [("B", "A1"), ("B", "A2")]),
+        (pd.MultiIndex.from_tuples([("B", "A")]), "C", [("C", "B", "A")]),
+        (
+            pd.MultiIndex.from_product([["B"], ["A1", "A2"]]),
+            "C",
+            [("C", "B", "A1"), ("C", "B", "A2")],
+        ),
+        (
+            pd.MultiIndex.from_tuples([("B1", "A1"), ("B2", "A2")]),
+            "C",
+            [("C", "B1", "A1"), ("C", "B2", "A2")],
+        ),
+    ],
+)
+def test_addheader_tocolumns(df_columns, header, expected_columns):
+    """Test if header can be added to the columns of a dataframe."""
+    i = dev.get_index()
+    df_in = pd.DataFrame(np.random.rand(len(i), len(df_columns)), i, df_columns)
+    result_columns = frames.add_header(df_in, header).columns.to_list()
+    assert np.array_equal(result_columns, expected_columns)
+
+
+# TODO: put in ... fixture (?)
+test_index_D = dev.get_index("D")
+test_index_D_deconstructed = test_index_D.map(lambda ts: (ts.year, ts.month, ts.day))
+test_index_H = dev.get_index("H")
+test_index_H_deconstructed = test_index_H.map(lambda ts: (ts.year, ts.month, ts.day))
+
+
+@pytest.mark.parametrize(
+    ("df_index", "header", "expected_index"),
+    [
+        (test_index_D, "test", [("test", i) for i in test_index_D]),
+        (
+            test_index_D_deconstructed,
+            "test",
+            [("test", *i) for i in test_index_D_deconstructed],
+        ),
+        (test_index_H, "test", [("test", i) for i in test_index_H]),
+        (
+            test_index_H_deconstructed,
+            "test",
+            [("test", *i) for i in test_index_H_deconstructed],
+        ),
+    ],
+)
+def test_addheader_torows(df_index, header, expected_index):
+    """Test if header can be added to the rows of a dataframe."""
+    df_in = pd.DataFrame(np.random.rand(len(df_index), 2), df_index, ["A", "B"])
+    result_index = frames.add_header(df_in, header, axis=0).index.to_list()
+    assert np.array_equal(result_index, expected_index)
+
+
+# TODO: put in ... fixture (?)
+test_values = np.random.rand(len(test_index_D), 10)
+test_df_1 = pd.DataFrame(test_values[:, :2], test_index_D, ["A", "B"])
+test_df_2 = pd.DataFrame(test_values[:, 2], test_index_D, ["C"])
+expect_concat_12 = pd.DataFrame(test_values[:, :3], test_index_D, ["A", "B", "C"])
+test_df_3 = pd.DataFrame(test_values[:, 2], test_index_D, pd.Index([("D", "C")]))
+expect_concat_13 = pd.DataFrame(
+    test_values[:, :3], test_index_D, pd.Index([("A", ""), ("B", ""), ("D", "C")])
+)
+
+
+@pytest.mark.parametrize(
+    ("dfs", "axis", "expected"),
+    [
+        ([test_df_1, test_df_2], 1, expect_concat_12),
+        ([test_df_1, test_df_3], 1, expect_concat_13),
+    ],
+)
+def test_concat(dfs, axis, expected):
+    """Test if concatenation works as expected."""
+    result = frames.concat(dfs, axis)
+    testing.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("weightsas", ["none", "list", "series"])
@@ -173,7 +254,7 @@ def test_wavg_valuesasseries1(weightsas, axis):
     elif weightsas == "series":
         weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
         expected_result = 110
-    assert np.isclose(wavg(values, weights, axis), expected_result)
+    assert np.isclose(frames.wavg(values, weights, axis), expected_result)
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series"])
@@ -187,7 +268,7 @@ def test_wavg_valuesasseries2(weightsas, axis):
     elif weightsas == "series":
         weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
         expected_result = 62.5
-    assert np.isclose(wavg(values, weights, axis), expected_result)
+    assert np.isclose(frames.wavg(values, weights, axis), expected_result)
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series"])
@@ -199,7 +280,7 @@ def test_wavg_valuesasseries_na(weightsas, axis):
     weights = [0, 0, 0, 0]
     if weightsas == "series":
         weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
-    assert np.isnan(wavg(values, weights, axis))
+    assert np.isnan(frames.wavg(values, weights, axis))
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series"])
@@ -211,7 +292,7 @@ def test_wavg_valuesasseries_0weights(weightsas, axis):
     weights = [0, 0, 0, 0]
     if weightsas == "series":
         weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
-    assert wavg(values, weights, axis) == 100
+    assert frames.wavg(values, weights, axis) == 100
 
 
 @pytest.mark.parametrize("weightsas", ["none", "list", "series", "dataframe"])
@@ -246,7 +327,7 @@ def test_wavg_valuesasdataframe1(weightsas, axis):
         else:
             expected_result = pd.Series([100, 0, 300, -150])
     pd.testing.assert_series_equal(
-        wavg(values, weights, axis), expected_result, check_dtype=False
+        frames.wavg(values, weights, axis), expected_result, check_dtype=False
     )
 
 
@@ -276,7 +357,7 @@ def test_wavg_valuesasdataframe2(weightsas, axis):
         else:
             expected_result = pd.Series([100, 0, 300, -150])
     pd.testing.assert_series_equal(
-        wavg(values, weights, axis), expected_result, check_dtype=False
+        frames.wavg(values, weights, axis), expected_result, check_dtype=False
     )
 
 
@@ -301,7 +382,7 @@ def test_wavg_valuesasdataframe_na(weightsas, axis):
     if weightsas == "dataframe":
         weights = pd.DataFrame({"a": [0, 0, 0, 0], "b": [0, 0, 0, 0]})
     pd.testing.assert_series_equal(
-        wavg(values, weights, axis), expected_result, check_dtype=False
+        frames.wavg(values, weights, axis), expected_result, check_dtype=False
     )
 
 
@@ -327,7 +408,7 @@ def test_wavg_valuesasdataframe_0weights(weightsas, axis):
     if weightsas == "dataframe":
         weights = pd.DataFrame({"a": [0, 0, 0, 0], "b": [0, 0, 0, 0]})
     pd.testing.assert_series_equal(
-        wavg(values, weights, axis), expected_result, check_dtype=False
+        frames.wavg(values, weights, axis), expected_result, check_dtype=False
     )
 
 
@@ -356,4 +437,4 @@ vals2 = np.array([1, 2.0, -4.1234, 0.5])
 )
 def test_series_allclose(s1, s2, expected_result):
     """Test if series can be correctly compared, even if they have a unit."""
-    assert series_allclose(s1, s2) == expected_result
+    assert frames.series_allclose(s1, s2) == expected_result
