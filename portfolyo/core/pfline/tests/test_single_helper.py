@@ -177,7 +177,8 @@ def test_pfline_unequaltimeperiods(freq, overlap):
     s1 = dev.get_series(i1, "q")
     s2 = dev.get_series(i2, "r")
 
-    intersection = s1.index.intersection(s2.index)
+    intersection_values = [i for i in s1.index if i in s2.index]
+    intersection = pd.Index(intersection_values, freq=freq, name="ts_left")
 
     if not overlap:
         # raise ValueError("The two timeseries do not have anything in common.")
@@ -186,6 +187,6 @@ def test_pfline_unequaltimeperiods(freq, overlap):
         return
 
     result = single_helper.make_dataframe({"q": s1, "r": s2})
+    testing.assert_index_equal(result.index, intersection)
     testing.assert_series_equal(result.q, s1.loc[intersection])
     testing.assert_series_equal(result.r, s2.loc[intersection])
-    testing.assert_index_equal(result.index, intersection)

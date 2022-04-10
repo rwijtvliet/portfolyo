@@ -1,18 +1,61 @@
 """
 Module for doing basic timestamp and frequency operations.
 """
+from .nits import Q_
 
-from typing import Any, Iterable, Optional, Union, Tuple
-import datetime as dt
+from typing import Any, Union, Tuple
+from pytz import AmbiguousTimeError
 import pandas as pd
 import numpy as np
-from .nits import Q_
 
 
 # Allowed frequencies.
 # Perfect containment; a short-frequency time period always entirely falls within a single high-frequency time period.
 # AS -> 4 QS; QS -> 3 MS; MS -> 28-31 D; D -> 23-25 H; H -> 4 15T
 FREQUENCIES = ["AS", "QS", "MS", "D", "H", "15T"]
+
+
+def intersection(*indices: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    """Intersect several DatetimeIndices.
+
+    Parameters
+    ----------
+    *indices : pd.DatetimeIndex
+        The indices to intersect.
+
+    Returns
+    -------
+    pd.DatetimeIndex
+        The intersection, i.e., datetimeindex with values that exist in each index.
+
+    Notes
+    -----
+    If indices have distinct timezones or names, the values from the first index are used.
+    """
+    if len(indices) == 0:
+        raise ValueError("Must specify at least one index.")
+
+    distinct_freqs = set([i.freq for i in indices])
+    if len(indices) > 1 and len(distinct_freqs) != 1:
+        raise ValueError(
+            f"Indices must not have equal frequencies; got {distinct_freqs}."
+        )
+
+    tznaive = sum(i.tz is None for i in indices)
+    if 0 < tznaive < len(indices):
+        raise ValueError(
+            f"All indices must be either timezone-aware or timezone-naive; got {tznaive} naive from {len(indices)}."
+        )
+
+    freq, name, tz = indices[0].freq, indices[0].name, indices[0].tz
+
+    # Calculation is cumbersome: pandas DatetimeIndex.intersection not working correctly on timezone-aware indices.
+    values = set(indices[0])
+    for idx in indices[1:]:
+        values = values.intersection(set(idx))
+    idx = pd.DatetimeIndex(sorted(list(values)), freq=freq, name=name, tz=tz)
+
+    return idx
 
 
 def floor_ts(
@@ -59,11 +102,20 @@ def floor_ts(
     if freq is None:
         freq = ts.freq
 
-    if freq == "15T":
-        return ts.floor("15T") + pd.Timedelta(minutes=future * 15)
-    elif freq == "H":
-        return ts.floor("H") + pd.Timedelta(hours=future)
+    # Rounding to short (< day) frequencies.
+    try:
+        # Can only infer if it's an index.
+        kwargs = {"ambiguous": "infer"} if isinstance(ts, pd.DatetimeIndex) else {}
+        if freq == "15T":
+            return ts.floor("15T", **kwargs) + pd.Timedelta(minutes=future * 15)
+        elif freq == "H":
+            return ts.floor("H", **kwargs) + pd.Timedelta(hours=future)
+    except AmbiguousTimeError:
+        # converting to UTC and then flooring to nearest hour.
+        # TODO: this is incorrect for timezones with fractional offset to UTC.
+        return floor_ts(ts.tz_convert("UTC"), freq, future).tz_convert(ts.tz)
 
+    # Rounding to longer (>= day) frequencies.
     ts = ts.floor("D")  # make sure we return a midnight value
     if freq == "D":
         return ts + pd.Timedelta(days=future)
@@ -186,7 +238,7 @@ def trim_index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
     Examples
     --------
     >>> trim_index(pd.date_range('2020-04-21', periods=200, freq='D'), 'MS')
-    DatetimeIndex(['2020-05-01', '2020-05-02', ..., '2020-10-30', '2020-10-31'], dtype='datetime64[ns]', length=184, freq='D')
+    DatetimeIndex(['2020-05-01', '2020-05-02', ..., '2020-10-31'], dtype='datetime64[ns]', length=184, freq='D')
     >>> trim_index(pd.date_range('2020-04-21', periods=200, freq='D'), 'AS')
     DatetimeIndex([], dtype='datetime64[ns]', freq='D')
     """

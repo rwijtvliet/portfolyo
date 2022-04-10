@@ -1,9 +1,168 @@
 from portfolyo.tools import stamps, nits
+from portfolyo import testing
 import pandas as pd
 import numpy as np
 import pytest
 
 freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
+
+
+@pytest.mark.parametrize(
+    ("idxs", "expected"),
+    [
+        # Days, with and without timezone.
+        (
+            [
+                pd.date_range("2020", freq="D", periods=31),
+                pd.date_range("2020-01-20", freq="D", periods=40),
+            ],
+            pd.date_range("2020-01-20", freq="D", periods=12),
+        ),
+        (
+            [
+                pd.date_range("2020", freq="D", periods=31, tz="Europe/Berlin"),
+                pd.date_range("2020-01-20", freq="D", periods=40, tz="Europe/Berlin"),
+            ],
+            pd.date_range("2020-01-20", freq="D", periods=12, tz="Europe/Berlin"),
+        ),
+        # Error: incompatible timezones.
+        (
+            [
+                pd.date_range("2020", freq="D", periods=31),
+                pd.date_range("2020-01-20", freq="D", periods=40, tz="Europe/Berlin"),
+            ],
+            None,
+        ),
+        # Error: distinct frequencies.
+        (
+            [
+                pd.date_range("2020", freq="H", periods=31),
+                pd.date_range("2020-01-20", freq="D", periods=40),
+            ],
+            None,
+        ),
+        # No overlap.
+        (
+            [
+                pd.date_range("2020", freq="H", periods=24),
+                pd.date_range("2020-01-20", freq="H", periods=72),
+            ],
+            pd.date_range("2020", freq="H", periods=0),
+        ),
+        # Months, with and without timezone.
+        (
+            [
+                pd.date_range("2020", freq="MS", periods=31),
+                pd.date_range("2020-05-01", freq="MS", periods=40),
+            ],
+            pd.date_range("2020-05-01", freq="MS", periods=27),
+        ),
+        (
+            [
+                pd.date_range("2020", freq="MS", periods=31, tz="Europe/Berlin"),
+                pd.date_range("2020-05-01", freq="MS", periods=40, tz="Europe/Berlin"),
+            ],
+            pd.date_range("2020-05-01", freq="MS", periods=27, tz="Europe/Berlin"),
+        ),
+        # Test if names retained.
+        (
+            [
+                pd.date_range("2020", freq="MS", periods=31, name="ts_left"),
+                pd.date_range("2020-05-01", freq="MS", periods=40),
+            ],
+            pd.date_range("2020-05-01", freq="MS", periods=27, name="ts_left"),
+        ),
+        # DST.
+        (
+            [
+                pd.date_range("2020-03-28", freq="H", periods=71, tz="Europe/Berlin"),
+                pd.date_range("2020-03-29", freq="H", periods=71, tz="Europe/Berlin"),
+            ],
+            pd.date_range("2020-03-29", freq="H", periods=47, tz="Europe/Berlin"),
+        ),
+        (
+            [
+                pd.date_range("2020-03-28", freq="H", periods=71, tz="Europe/Berlin"),
+                pd.date_range("2020-03-30", freq="H", periods=72, tz="Europe/Berlin"),
+            ],
+            pd.date_range("2020-03-30", freq="H", periods=24, tz="Europe/Berlin"),
+        ),
+        (
+            [
+                pd.date_range("2020-03-28", freq="H", periods=72),
+                pd.date_range("2020-03-29", freq="H", periods=72),
+            ],
+            pd.date_range("2020-03-29", freq="H", periods=48),
+        ),
+        (
+            [
+                pd.date_range("2020-03-28", freq="H", periods=72),
+                pd.date_range("2020-03-30", freq="H", periods=72),
+            ],
+            pd.date_range("2020-03-30", freq="H", periods=24),
+        ),
+        (
+            [
+                pd.date_range("2020-10-24", freq="H", periods=73, tz="Europe/Berlin"),
+                pd.date_range("2020-10-25", freq="H", periods=73, tz="Europe/Berlin"),
+            ],
+            pd.date_range("2020-10-25", freq="H", periods=49, tz="Europe/Berlin"),
+        ),
+        (
+            [
+                pd.date_range("2020-10-24", freq="H", periods=73, tz="Europe/Berlin"),
+                pd.date_range("2020-10-26", freq="H", periods=72, tz="Europe/Berlin"),
+            ],
+            pd.date_range("2020-10-26", freq="H", periods=24, tz="Europe/Berlin"),
+        ),
+        (
+            [
+                pd.date_range("2020-10-24", freq="H", periods=72),
+                pd.date_range("2020-10-25", freq="H", periods=72),
+            ],
+            pd.date_range("2020-10-25", freq="H", periods=48),
+        ),
+        (
+            [
+                pd.date_range("2020-10-24", freq="H", periods=72),
+                pd.date_range("2020-10-26", freq="H", periods=72),
+            ],
+            pd.date_range("2020-10-26", freq="H", periods=24),
+        ),
+        # Distinct timezones.
+        (
+            [
+                pd.date_range("2020-01-01", freq="15T", periods=96, tz="Europe/Berlin"),
+                pd.date_range("2020-01-01", freq="15T", periods=96, tz="Asia/Kolkata"),
+            ],
+            pd.date_range("2020-01-01", freq="15T", periods=78, tz="Europe/Berlin"),
+        ),
+        (
+            [
+                pd.date_range("2020-01-01", freq="15T", periods=96, tz="Asia/Kolkata"),
+                pd.date_range("2020-01-01", freq="15T", periods=96, tz="Europe/Berlin"),
+            ],
+            pd.date_range(
+                "2020-01-01 04:30", freq="15T", periods=78, tz="Asia/Kolkata"
+            ),
+        ),
+        (
+            [
+                pd.date_range("2020-01-01", freq="H", periods=24, tz="Asia/Kolkata"),
+                pd.date_range("2020-01-01", freq="H", periods=24, tz="Europe/Berlin"),
+            ],
+            pd.date_range("2020-01-01", freq="H", periods=0, tz="Asia/Kolkata"),
+        ),
+    ],
+)
+def test_intersection(idxs, expected):
+    """Test if intersection works correctly."""
+    if expected is None:
+        with pytest.raises(ValueError):
+            _ = stamps.intersection(*idxs)
+    else:
+        result = stamps.intersection(*idxs)
+        testing.assert_index_equal(result, expected)
 
 
 @pytest.mark.parametrize("iterable", [False, True])  # make iterable or not
@@ -39,10 +198,12 @@ freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS
         ("2020-01-24 1:32", -1, "MS", "2019-12", "2020"),
         ("2020-03-03 3:33", -1, "QS", "2019-10", "2020"),
         ("2020-10-11 12:34", -1, "AS", "2019", "2020"),
+        ("2020-03-29 00:00", 0, "H", "2020-03-29 00:00", None),
+        ("2020-10-25 00:00", 0, "H", "2020-10-25 00:00", None),
     ],
 )
 @pytest.mark.parametrize("function", ["floor", "ceil"])
-def test_floorceilts(
+def test_floorceilts_1(
     function: str,
     ts: str,
     fut: int,
@@ -74,7 +235,7 @@ def test_floorceilts(
 
     else:
         # Test index.
-        periods = np.random.randint(4, 40)
+        periods = 10
         index = pd.date_range(ts, periods=periods, freq=freq)  # causes rounding of ts
         index += ts - index[0]  # undoes the rounding
 
@@ -83,6 +244,115 @@ def test_floorceilts(
         expected_iter = pd.date_range(expected_single, periods=periods, freq=freq)
         expected_iter.freq = None  # disregard checking frequencies here
         pd.testing.assert_index_equal(result_iter, expected_iter)
+
+
+@pytest.mark.parametrize(
+    ("ts", "tz", "freq", "expected_floor", "expected_ceil"),
+    [
+        ("2020-04-21 15:25", None, "H", "2020-04-21 15:00", "2020-04-21 16:00"),
+        (
+            "2020-04-21 15:25",
+            "Europe/Berlin",
+            "H",
+            "2020-04-21 15:00",
+            "2020-04-21 16:00",
+        ),
+        (
+            "2020-04-21 15:25+02:00",
+            "Europe/Berlin",
+            "H",
+            "2020-04-21 15:00+02:00",
+            "2020-04-21 16:00+02:00",
+        ),
+        (
+            "2020-04-21 15:25",
+            "Asia/Kolkata",
+            "H",
+            "2020-04-21 15:00",
+            "2020-04-21 16:00",
+        ),
+        ("2020-03-29 01:50", None, "15T", "2020-03-29 01:45", "2020-03-29 02:00"),
+        ("2020-03-29 03:05", None, "15T", "2020-03-29 03:00", "2020-03-29 03:15"),
+        (
+            "2020-03-29 01:50+01:00",
+            "Europe/Berlin",
+            "15T",
+            "2020-03-29 01:45+01:00",
+            "2020-03-29 03:00+02:00",
+        ),
+        (
+            "2020-03-29 03:05+02:00",
+            "Europe/Berlin",
+            "15T",
+            "2020-03-29 03:00+02:00",
+            "2020-03-29 03:15+02:00",
+        ),
+        (
+            "2020-03-29 01:50",
+            "Europe/Berlin",
+            "15T",
+            "2020-03-29 01:45",
+            "2020-03-29 03:00",
+        ),
+        ("2020-03-29 03:05", None, "15T", "2020-03-29 03:00", "2020-03-29 03:15"),
+        ("2020-10-25 02:50", None, "15T", "2020-10-25 02:45", "2020-10-25 03:00"),
+        ("2020-10-25 02:05", None, "15T", "2020-10-25 02:00", "2020-10-25 02:15"),
+        (
+            "2020-10-25 02:50+02:00",
+            "Europe/Berlin",
+            "15T",
+            "2020-10-25 02:45+02:00",
+            "2020-10-25 02:00+01:00",
+        ),
+        (
+            "2020-10-25 02:05+02:00",
+            "Europe/Berlin",
+            "15T",
+            "2020-10-25 02:00+02:00",
+            "2020-10-25 02:15+02:00",
+        ),
+        (
+            "2020-10-25 02:50+01:00",
+            "Europe/Berlin",
+            "15T",
+            "2020-10-25 02:45+01:00",
+            "2020-10-25 03:00+01:00",
+        ),
+        (
+            "2020-10-25 02:05+01:00",
+            "Europe/Berlin",
+            "15T",
+            "2020-10-25 02:00+01:00",
+            "2020-10-25 02:15+01:00",
+        ),
+        (
+            "2020-10-25 02:30+02:00",
+            "Europe/Berlin",
+            "H",
+            "2020-10-25 02:00+02:00",
+            "2020-10-25 02:00+01:00",
+        ),
+        (
+            "2020-10-25 02:30+01:00",
+            "Europe/Berlin",
+            "H",
+            "2020-10-25 02:00+01:00",
+            "2020-10-25 03:00+01:00",
+        ),
+    ],
+)
+@pytest.mark.parametrize("function", ["floor", "ceil"])
+def test_floorceilts_2(function, ts, tz, freq, expected_floor, expected_ceil):
+    """Test flooring and ceiling during DST transitions."""
+    ts_in = pd.Timestamp(ts, tz=tz)
+    if function == "floor":
+        result = stamps.floor_ts(ts_in, freq)
+        expected = pd.Timestamp(expected_floor, tz=tz)
+    else:
+        result = stamps.ceil_ts(ts_in, freq)
+        expected = pd.Timestamp(expected_ceil, tz=tz)
+
+    assert result == expected
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])

@@ -3,7 +3,7 @@
 Module with tools to modify and standardize dataframes.
 """
 
-from pytz import NonExistentTimeError
+from pytz import AmbiguousTimeError, NonExistentTimeError
 from .stamps import FREQUENCIES, freq_up_or_down, trim_index
 
 from pandas.core.frame import NDFrame
@@ -15,11 +15,63 @@ import functools
 # TODO: rename 'standardize'
 
 
+def convert_timezone(fr: NDFrame, tz: Union[str, None], tz_in: str = None):
+    """Change, set, or convert the timezone of the input frame.
+
+    Parameters
+    ----------
+    fr : NDFrame
+        Pandas series or dataframe.
+    tz : str
+        Wanted localization (e.g. 'Europe/Berlin'); all timestamps in the index of the
+        output dataframe are specified with this timezone. 'None' to remove timezone
+        information and get local datetime values.
+    tz_in : str, optional (default: None)
+        Timezone that should be assumed for the input dataframe. Only relevant if input
+        dataframe is not yet localized and timestamps should be understood to be in a
+        different timezone than ``tz``.
+        - If input dataframe is already localized (i.e., already has timezone
+        information), this value is disregarded.
+        - If input dataframe is not localized, and ``tz_in`` is not specified,
+        ``tz`` is assumed.
+
+    Returns
+    -------
+    NDFrame
+        With wanted timezone.
+
+    Notes
+    -----
+    - When specifying ``tz = None``, and the input frame is localized, the resulting
+    frame might have gaps (start of DST) or repeated values (end of DST).
+    - The values are kept as-is.
+    """
+    if fr.index.tz is None:  # Not yet localized. Localize if necessary.
+
+        if tz_in is None:
+            if tz is None:
+                return fr
+            fr = fr.tz_localize(tz, ambiguous="infer")
+        else:  # tz_in is not None
+            fr = fr.tz_localize(tz_in, ambiguous="infer")
+
+    # Localized. Turn into correct timezone.
+    if tz is not None:
+        fr = fr.tz_convert(tz)
+    else:  # tz is None
+        fr = fr.tz_localize(None)
+
+    # Infer frequency.
+    fr.index.freq = pd.infer_freq(fr.index)
+
+    return fr
+
+
 def set_ts_index(
     fr: NDFrame,
     column: str = None,
     bound: str = "left",
-    tz: str = "Europe/Berlin",
+    tz_in: str = None,
     continuous: bool = True,
 ) -> NDFrame:
     """
@@ -34,18 +86,33 @@ def set_ts_index(
         otherwise. Use existing index if none specified.
     bound : str, {'left' (default), 'right'}
         If 'left' ('right'), specifies that input timestamps are left-(right-)bound.
-    tz : str, optional (default: "Europe/Berlin")
-        Timezone of the input frame; used only if input contains timezone-agnostic
-        timestamps.
+    tz_in : str
+        Timezone to assume for input dataframe; used only if index does not already
+        contain timezone information.
     continuous : bool, optional (default: True)
         If true, raise error if data has missing values (i.e., gaps).
 
     Returns
     -------
     NDFrame
-        Same type as `fr`, with left-bound timestamp index in the Europe/Berlin timezone.
+        Same type as `fr`, with left-bound timestamp index.
         Column `column` (if applicable) is removed, and index renamed to 'ts_left'.
     """
+    # TODO: Move to documentation
+    # """
+    # Notes
+    # -----
+    # When only working with non-localized timestamps - meaning, the timezone is not
+    # relevant, and every day has 24h (there is no daylight-savings-time) - then ``tz_in``
+    # and ``tz_out`` must be set to None (= their default values).
+    # When working with localized timestamps, the input data may or may not be localized:
+    # - If the input data is localized, use the ``tz_out`` parameter to convert the time-
+    # stamps to the correct timezone. The ``tz_in`` parameter is disregarded.
+    # - If the input data is not localized, but rather contains local timestamps without
+    # timezone information, use the ``tz_in`` parameter to specify in which timezone they
+    # should be assumed to take place. If not specified, it is assumed that ``tz_in`` ==
+    # ``tz_out``.
+    # """
     if column and isinstance(fr, pd.DataFrame):
         fr = fr.set_index(column)
     else:
@@ -60,30 +127,30 @@ def set_ts_index(
     elif bound.startswith("right"):
         if bound == "right":
             # At start of DST:
-            # . Leftbound timestamps contain 3:00 but not 2:00.
-            # . Rightbound timestamps: ambiguous. May contain 3:00 but not 2:00 (A), or vice versa (B): try both
+            # . Rightbound timestamps (a) contain 3:00 but not 2:00, or (b) vice versa. Try both.
+            # . (Leftbound timestamps contain 3:00 but not 2:00.)
+            # At end of DST:
+            # . Rightbound timestamps contain two timestamps (a) 2:00 or (b) 3:00. Try both.
+            # . (Leftbound timestamps contain two timestamps 2:00.)
             try:
-                return set_ts_index(fr, None, "rightA", tz)
-            except NonExistentTimeError:
-                return set_ts_index(fr, None, "rightB", tz)
+                return set_ts_index(fr, None, "right_a", tz_in)
+            except (NonExistentTimeError, AmbiguousTimeError):
+                return set_ts_index(fr, None, "right_b", tz_in)
         minutes = (fr.index[1] - fr.index[0]).seconds / 60
-        if bound == "rightA":
+        if bound == "right_a":
             fr.loc[fr.index[0] + pd.Timedelta(minutes=-minutes)] = np.nan
             fr = pd.concat([fr.iloc[-1:], fr.iloc[:-1]]).shift(-1).dropna()
-        if bound == "rightB":
+        if bound == "right_b":
             fr.index += pd.Timedelta(minutes=-minutes)
     else:
-        raise ValueError("`bound` must be one of {'left' (default), 'right'}.")
+        raise ValueError(
+            f"Parameter ``bound`` must be 'left' or 'right'; got '{bound}'."
+        )
     fr.index.name = "ts_left"
 
     # Set Europe/Berlin timezone.
 
-    if fr.index.tz is None:
-        try:
-            fr = fr.tz_localize(tz, ambiguous="infer")
-        except NonExistentTimeError:
-            fr = fr.tz_localize(tz, ambiguous="NaT")
-    fr = fr.tz_convert("Europe/Berlin")
+    fr = convert_timezone(fr, "Europe/Berlin", tz_in)
 
     # Set frequency.
 
@@ -92,14 +159,14 @@ def set_ts_index(
     if fr.index.freq is None:
         # (infer_freq does not always work, e.g. during summer-to-wintertime changeover)
         tdelta = (fr.index[1:] - fr.index[:-1]).median()
-        for freq, (tdelta_min, tdelta_max) in {
-            "D": (pd.Timedelta(hours=23), pd.Timedelta(hours=25)),
-            "MS": (pd.Timedelta(days=27), pd.Timedelta(days=32)),
-            "QS": (pd.Timedelta(days=89), pd.Timedelta(days=93)),
-            "AS": (pd.Timedelta(days=364), pd.Timedelta(days=367)),
-        }.items():
-            if tdelta >= tdelta_min and tdelta <= tdelta_max:
-                break
+        if pd.Timedelta(hours=23) <= tdelta <= pd.Timedelta(hours=25):
+            freq = "D"
+        elif pd.Timedelta(days=27) <= tdelta <= pd.Timedelta(days=32):
+            freq = "MS"
+        elif pd.Timedelta(days=89) <= tdelta <= pd.Timedelta(days=93):
+            freq = "QS"
+        elif pd.Timedelta(days=364) <= tdelta <= pd.Timedelta(days=367):
+            freq = "AS"
         else:
             freq = tdelta
         fr2 = fr.resample(freq).asfreq()

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from . import base
-from ...tools import frames, nits
+from ...tools import frames, nits, stamps
 
 from typing import Dict, Optional
 import pandas as pd
@@ -44,19 +44,18 @@ def _data_to_wqpr_series(data) -> pd.DataFrame:
     return w, q, p, r
 
 
-def _dict_to_dataframe(dict) -> pd.DataFrame:
+def _dict_to_dataframe(dic) -> pd.DataFrame:
     """Check data in dictionary, and turn into a general dataframe."""
-    indices = [value.index for value in dict.values() if hasattr(value, "index")]
-    if len(indices) == 0:
-        raise ValueError("No index can be found in the data.")
-    if len(indices) > 1 and len(set([i.freq for i in indices])) != 1:
-        raise ValueError("Timeseries have unequal frequency; resample first.")
-    idx = indices[0]
-    for idx2 in indices[1:]:
-        idx = idx.intersection(idx2)
+    indices = [value.index for value in dic.values() if hasattr(value, "index")]
+    idx = stamps.intersection(*indices)
+
+    # Find.
     newdict = {}
-    for key, val in dict.items():
-        newdict[key] = val[idx] if isinstance(val, pd.Series) else pd.Series(val, idx)
+    for key, val in dic.items():
+        if isinstance(val, pd.Series):
+            newdict[key] = val.loc[idx]
+        else:
+            newdict[key] = pd.Series(val, idx)
     return pd.DataFrame(newdict)
 
 
