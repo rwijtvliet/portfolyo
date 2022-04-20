@@ -1,11 +1,6 @@
-# -*- coding: utf-8 -*-
-"""
-Module with tools to modify and standardize dataframes.
-"""
+"""Module with tools to modify and standardize dataframes."""
 
-from pytz import AmbiguousTimeError, NonExistentTimeError
-from .stamps import FREQUENCIES, freq_up_or_down, trim_index
-
+from . import stamps, zones
 from pandas.core.frame import NDFrame
 from typing import Iterable, Union, Any
 import pandas as pd
@@ -13,58 +8,6 @@ import numpy as np
 import functools
 
 # TODO: rename 'standardize'
-
-
-def convert_timezone(fr: NDFrame, tz: Union[str, None], tz_in: str = None):
-    """Change, set, or convert the timezone of the input frame.
-
-    Parameters
-    ----------
-    fr : NDFrame
-        Pandas series or dataframe.
-    tz : str
-        Wanted localization (e.g. 'Europe/Berlin'); all timestamps in the index of the
-        output dataframe are specified with this timezone. 'None' to remove timezone
-        information and get local datetime values.
-    tz_in : str, optional (default: None)
-        Timezone that should be assumed for the input dataframe. Only relevant if input
-        dataframe is not yet localized and timestamps should be understood to be in a
-        different timezone than ``tz``.
-        - If input dataframe is already localized (i.e., already has timezone
-        information), this value is disregarded.
-        - If input dataframe is not localized, and ``tz_in`` is not specified,
-        ``tz`` is assumed.
-
-    Returns
-    -------
-    NDFrame
-        With wanted timezone.
-
-    Notes
-    -----
-    - When specifying ``tz = None``, and the input frame is localized, the resulting
-    frame might have gaps (start of DST) or repeated values (end of DST).
-    - The values are kept as-is.
-    """
-    if fr.index.tz is None:  # Not yet localized. Localize if necessary.
-
-        if tz_in is None:
-            if tz is None:
-                return fr
-            fr = fr.tz_localize(tz, ambiguous="infer")
-        else:  # tz_in is not None
-            fr = fr.tz_localize(tz_in, ambiguous="infer")
-
-    # Localized. Turn into correct timezone.
-    if tz is not None:
-        fr = fr.tz_convert(tz)
-    else:  # tz is None
-        fr = fr.tz_localize(None)
-
-    # Infer frequency.
-    fr.index.freq = pd.infer_freq(fr.index)
-
-    return fr
 
 
 def set_ts_index(
@@ -87,8 +30,9 @@ def set_ts_index(
     bound : str, {'left' (default), 'right'}
         If 'left' ('right'), specifies that input timestamps are left-(right-)bound.
     tz_in : str
-        Timezone to assume for input dataframe; used only if index does not already
-        contain timezone information.
+        Timezone to assume for input dataframe.
+        Only relevant for tz-naive input dataframes, that have the local time in a location
+        that has DST-transitions.
     continuous : bool, optional (default: True)
         If true, raise error if data has missing values (i.e., gaps).
 
@@ -120,77 +64,107 @@ def set_ts_index(
 
     # Make leftbound.
 
-    fr.index = pd.DatetimeIndex(fr.index)  # turn / try to turn into datetime
+    i = pd.DatetimeIndex(fr.index)  # turn / try to turn into datetime
+    if bound == "right":
+        i = stamps.make_leftbound(i)
+    i.name = "ts_left"
+    fr.index = i
 
-    if bound == "left":
-        pass
-    elif bound.startswith("right"):
-        if bound == "right":
-            # At start of DST:
-            # . Rightbound timestamps (a) contain 3:00 but not 2:00, or (b) vice versa. Try both.
-            # . (Leftbound timestamps contain 3:00 but not 2:00.)
-            # At end of DST:
-            # . Rightbound timestamps contain two timestamps (a) 2:00 or (b) 3:00. Try both.
-            # . (Leftbound timestamps contain two timestamps 2:00.)
-            try:
-                return set_ts_index(fr, None, "right_a", tz_in)
-            except (NonExistentTimeError, AmbiguousTimeError):
-                return set_ts_index(fr, None, "right_b", tz_in)
-        minutes = (fr.index[1] - fr.index[0]).seconds / 60
-        if bound == "right_a":
-            fr.loc[fr.index[0] + pd.Timedelta(minutes=-minutes)] = np.nan
-            fr = pd.concat([fr.iloc[-1:], fr.iloc[:-1]]).shift(-1).dropna()
-        if bound == "right_b":
-            fr.index += pd.Timedelta(minutes=-minutes)
-    else:
-        raise ValueError(
-            f"Parameter ``bound`` must be 'left' or 'right'; got '{bound}'."
-        )
-    fr.index.name = "ts_left"
+    # Set Europe/Berlin timezone and set frequency.
+    fr = zones.force_tzaware(fr, "Europe/Berlin", tz_in=tz_in)
 
-    # Set Europe/Berlin timezone.
-
-    fr = convert_timezone(fr, "Europe/Berlin", tz_in)
-
-    # Set frequency.
+    # Check frequency.
 
     if fr.index.freq is None:
-        fr.index.freq = pd.infer_freq(fr.index)
-    if fr.index.freq is None:
-        # (infer_freq does not always work, e.g. during summer-to-wintertime changeover)
-        tdelta = (fr.index[1:] - fr.index[:-1]).median()
-        if pd.Timedelta(hours=23) <= tdelta <= pd.Timedelta(hours=25):
-            freq = "D"
-        elif pd.Timedelta(days=27) <= tdelta <= pd.Timedelta(days=32):
-            freq = "MS"
-        elif pd.Timedelta(days=89) <= tdelta <= pd.Timedelta(days=93):
-            freq = "QS"
-        elif pd.Timedelta(days=364) <= tdelta <= pd.Timedelta(days=367):
-            freq = "AS"
-        else:
-            freq = tdelta
+        freq = stamps.guess_frequency((i[1:] - i[:-1]).median())
         fr2 = fr.resample(freq).asfreq()
         # If the new dataframe has additional rows, the original dataframe was not gapless.
         if continuous and len(fr2) > len(fr):
             missing = [i for i in fr2.index if i not in fr.index]
             raise ValueError(
-                f"`fr` does not have continuous data; missing data for: {missing}."
+                f"The index of ``fr`` does not have continuous data; missing data for: {missing}."
             )
         fr = fr2
 
-    # Check if frequency all ok.
-
-    if fr.index.freq is None:
-        raise ValueError("Cannot find a frequency in `fr`.")
-    elif fr.index.freq not in FREQUENCIES:
-        for freq in ["MS", "QS"]:  # Edge case: month-/quarterly but starting != Jan.
-            if freq_up_or_down(fr.index.freq, freq) == 0:
-                fr.index.freq = freq
+    if fr.index.freq not in stamps.FREQUENCIES:
+        for freq2 in ["MS", "QS"]:  # Edge case: month-/quarterly but starting != Jan.
+            if stamps.freq_up_or_down(fr.index.freq, freq2) == 0:
+                fr.index.freq = freq2
                 break
         else:
             raise ValueError(
-                f"Found unsupported frequency ({fr.index.freq}). Must be one of: {FREQUENCIES}."
+                f"The data has a non-allowed frequency. Must be one of {', '.join(stamps.FREQUENCIES)}; found {fr.index.freq}."
             )
+
+    # Check boundaries.
+
+    stamps.assert_boundary_ts(fr.index, fr.index.freq)
+
+    # if bound == "left":
+    #     pass
+    # elif bound.startswith("right"):
+    #     if bound == "right":
+    #         # At start of DST:
+    #         # . Rightbound timestamps (a) contain 3:00 but not 2:00, or (b) vice versa. Try both.
+    #         # . (Leftbound timestamps contain 3:00 but not 2:00.)
+    #         # At end of DST:
+    #         # . Rightbound timestamps contain two timestamps (a) 2:00 or (b) 3:00. Try both.
+    #         # . (Leftbound timestamps contain two timestamps 2:00.)
+    #         try:
+    #             return set_ts_index(fr, None, "right_a", tz_in)
+    #         except (NonExistentTimeError, AmbiguousTimeError):
+    #             return set_ts_index(fr, None, "right_b", tz_in)
+    #     minutes = (fr.index[1] - fr.index[0]).seconds / 60
+    #     if bound == "right_a":
+    #         fr.loc[fr.index[0] + pd.Timedelta(minutes=-minutes)] = np.nan
+    #         fr = pd.concat([fr.iloc[-1:], fr.iloc[:-1]]).shift(-1).dropna()
+    #     if bound == "right_b":
+    #         fr.index += pd.Timedelta(minutes=-minutes)
+    # else:
+    #     raise ValueError(
+    #         f"Parameter ``bound`` must be 'left' or 'right'; got '{bound}'."
+    #     )
+    # fr.index.name = "ts_left"
+
+    # # Set frequency.
+
+    # if fr.index.freq is None:
+    #     fr.index.freq = pd.infer_freq(fr.index)
+    # if fr.index.freq is None:
+    #     # (infer_freq does not always work, e.g. during summer-to-wintertime changeover)
+    #     tdelta = (fr.index[1:] - fr.index[:-1]).median()
+    #     if pd.Timedelta(hours=23) <= tdelta <= pd.Timedelta(hours=25):
+    #         freq = "D"
+    #     elif pd.Timedelta(days=27) <= tdelta <= pd.Timedelta(days=32):
+    #         freq = "MS"
+    #     elif pd.Timedelta(days=89) <= tdelta <= pd.Timedelta(days=93):
+    #         freq = "QS"
+    #     elif pd.Timedelta(days=364) <= tdelta <= pd.Timedelta(days=367):
+    #         freq = "AS"
+    #     else:
+    #         freq = tdelta
+    #     fr2 = fr.resample(freq).asfreq()
+    #     # If the new dataframe has additional rows, the original dataframe was not gapless.
+    #     if continuous and len(fr2) > len(fr):
+    #         missing = [i for i in fr2.index if i not in fr.index]
+    #         raise ValueError(
+    #             f"`fr` does not have continuous data; missing data for: {missing}."
+    #         )
+    #     fr = fr2
+
+    # # Check if frequency all ok.
+
+    # if fr.index.freq is None:
+    #     raise ValueError("Cannot find a frequency in `fr`.")
+    # elif fr.index.freq not in stamps.FREQUENCIES:
+    #     for freq in ["MS", "QS"]:  # Edge case: month-/quarterly but starting != Jan.
+    #         if freq_up_or_down(fr.index.freq, freq) == 0:
+    #             fr.index.freq = freq
+    #             break
+    #     else:
+    #         raise ValueError(
+    #             f"Found unsupported frequency ({fr.index.freq}). Must be one of: {stamps.FREQUENCIES}."
+    #         )
 
     return fr
 
@@ -371,7 +345,7 @@ def trim_frame(fr: NDFrame, freq: str) -> NDFrame:
     NDFrame
         Subset of `fr`, with same frequency.
     """
-    i = trim_index(fr.index, freq)
+    i = stamps.trim_index(fr.index, freq)
     return fr.loc[i]
 
 

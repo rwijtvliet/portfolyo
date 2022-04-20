@@ -7,6 +7,499 @@ import pytest
 freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
 
 
+# tzBerlin = "Europe/Berlin"
+# tzKolkata = "Asia/Kolkata"
+
+# # Quarterhourly.
+# # . Normal period.
+# qh1_Berlin_l = pd.date_range("2020-03-01", periods=192, freq="15T")
+# qh1_Berlin = pd.date_range("2020-03-01", periods=192, freq="15T", tz=tzBerlin)
+# qh1_Kolkata_l = pd.date_range("2020-03-01 04:30", periods=192, freq="15T")
+# qh1_Kolkata = pd.date_range("2020-03-01 04:30", periods=192, freq="15T", tz=tzKolkata)
+# qh1_Kolkata_fl = pd.date_range("2020-03-01", periods=192, freq="15T", tz=tzKolkata)
+# # . Start of DST.
+# qh2_Berlin_l = pd.Index(
+#     [
+#         i
+#         for i in pd.date_range("2020-03-28", periods=192, freq="15T")
+#         if not (i.hour == 2 and i.day == 29)
+#     ]
+# )
+# qh2_Berlin = pd.date_range("2020-03-28", periods=188, freq="15T", tz=tzBerlin)
+# qh2_Kolkata_l = pd.date_range("2020-03-28 04:30", periods=188, freq="15T")
+# qh2_Kolkata = pd.date_range("2020-03-28 04:30", periods=188, freq="15T", tz=tzKolkata)
+# qh2_Kolkata_fl = pd.date_range("2020-03-28", periods=188, freq="15T", tz=tzKolkata)
+# # . End of DST.
+# qh3_Berlin_l = pd.Index(
+#     [
+#         *pd.date_range("2020-10-24", periods=108, freq="15T"),
+#         *pd.date_range("2020-10-25 02:00", periods=88, freq="15T"),
+#     ]
+# )  # repeated values on [02:00, 03:00)
+# qh3_Berlin = pd.date_range("2020-10-24", periods=196, freq="15T", tz=tzBerlin)
+# qh3_Kolkata_l = pd.date_range("2020-10-24 03:30", periods=196, freq="15T")
+# qh3_Kolkata = pd.date_range("2020-10-24 03:30", periods=196, freq="15T", tz=tzKolkata)
+# qh3_Kolkata_fl = pd.date_range(
+#     "2020-10-23 23:00", periods=188, freq="15T", tz=tzKolkata
+# )
+
+# # Hourly.
+# # . Normal period.
+# h1_Berlin_l = pd.date_range("2020-03-01", periods=48, freq="H")
+# h1_Berlin = pd.date_range("2020-03-01", periods=48, freq="H", tz=tzBerlin)
+# h1_Kolkata_l = pd.date_range("2020-03-01 04:30", periods=48, freq="H")
+# h1_Kolkata = pd.date_range("2020-03-01 04:30", periods=48, freq="H", tz=tzKolkata)
+# h1_Kolkata_fl = pd.date_range("2020-03-01", periods=48, freq="H", tz=tzKolkata)
+# # . Start of DST.
+# h2_Berlin_l = pd.Index(
+#     [
+#         i
+#         for i in pd.date_range("2020-03-28", periods=48, freq="H")
+#         if not (i.hour == 2 and i.day == 29)
+#     ]
+# )
+# h2_Berlin = pd.date_range("2020-03-28", periods=47, freq="H", tz=tzBerlin)
+# h2_Kolkata_l = pd.date_range("2020-03-28 04:30", periods=47, freq="H")
+# h2_Kolkata = pd.date_range("2020-03-28 04:30", periods=47, freq="H", tz=tzKolkata)
+# h2_Kolkata_fl = pd.date_range("2020-03-28 01:00", periods=47, freq="H", tz=tzKolkata)
+# # . End of DST.
+# h3_Berlin_l = pd.Index(
+#     [
+#         *pd.date_range("2020-10-24", periods=27, freq="H"),
+#         *pd.date_range("2020-10-25 02:00", periods=22, freq="H"),
+#     ]
+# )  # repeated values on [02:00, 03:00)
+# h3_Berlin = pd.date_range("2020-10-24", periods=49, freq="H", tz=tzBerlin)
+# h3_Kolkata_l = pd.date_range("2020-10-24 03:30", periods=49, freq="H")
+# h3_Kolkata = pd.date_range("2020-10-24 03:30", periods=49, freq="H", tz=tzKolkata)
+# h3_Kolkata_fl = pd.date_range("2020-10-23 23:00", periods=49, freq="H", tz=tzKolkata)
+
+
+# # Daily.
+# # . Normal period.
+# d1_Berlin_l = pd.date_range("2020-03-01", periods=15, freq="D")
+# d1_Berlin = pd.date_range("2020-03-01", periods=15, freq="D", tz=tzBerlin)
+# d1_Kolkata_l = pd.date_range("2020-03-01 04:30", periods=15, freq="D")
+# d1_Kolkata = pd.date_range("2020-03-01 04:30", periods=15, freq="D", tz=tzKolkata)
+# d1_Kolkata_fl = pd.date_range("2020-03-01", periods=15, freq="D", tz=tzKolkata)
+# # . Start of DST.
+# d2_Berlin_l = pd.date_range("2020-03-20", periods=15, freq="D")
+# d2_Berlin = pd.date_range("2020-03-20", periods=15, freq="D", tz=tzBerlin)
+# d2_Kolkata_fl = pd.date_range("2020-03-20", periods=15, freq="D", tz=tzKolkata)
+# # . End of DST.
+# d3_Berlin_l = pd.date_range("2020-10-20", periods=15, freq="D")
+# d3_Berlin = pd.date_range("2020-10-20", periods=15, freq="D", tz=tzBerlin)
+# d3_Kolkata_fl = pd.date_range("2020-10-20", periods=15, freq="D", tz=tzKolkata)
+
+
+# @pytest.mark.parametrize(
+#     ("i", "tz", "tz_in", "expected"),
+#     [
+#         # Quarterhourly values.
+#         # . Normal period.
+#         # .. tz-aware input.
+#         (qh1_Berlin, None, None, qh1_Berlin_l),
+#         (qh1_Berlin, tzBerlin, None, qh1_Berlin),
+#         (qh1_Berlin, tzKolkata, None, qh1_Kolkata),
+#         (qh1_Kolkata, None, None, qh1_Kolkata_l),
+#         (qh1_Kolkata, tzKolkata, None, qh1_Kolkata),
+#         (qh1_Kolkata, tzBerlin, None, qh1_Berlin),
+#         # .. Tz-naive input.
+#         (qh1_Berlin_l, None, None, qh1_Berlin_l),
+#         (qh1_Berlin_l, None, tzKolkata, qh1_Berlin_l),
+#         (qh1_Berlin_l, None, tzBerlin, qh1_Berlin_l),
+#         (qh1_Berlin_l, tzBerlin, None, qh1_Berlin),
+#         (qh1_Berlin_l, tzKolkata, tzBerlin, qh1_Kolkata),
+#         (qh1_Berlin_l, tzKolkata, None, qh1_Kolkata_fl),
+#         (qh1_Berlin_l, tzKolkata, tzKolkata, qh1_Kolkata_fl),
+#         (qh1_Kolkata_l, None, None, qh1_Kolkata_l),
+#         (qh1_Kolkata_l, tzKolkata, None, qh1_Kolkata),
+#         (qh1_Kolkata_l, tzBerlin, tzKolkata, qh1_Berlin),
+#         # .. Test if tz_in is ignored for tz-aware input.
+#         (qh1_Kolkata, None, tzBerlin, qh1_Kolkata_l),
+#         (qh1_Kolkata, tzKolkata, tzBerlin, qh1_Kolkata),
+#         (qh1_Kolkata, tzBerlin, tzBerlin, qh1_Berlin),
+#         # . Start of DST.
+#         # .. tz-aware input.
+#         (qh2_Berlin, None, None, qh2_Berlin_l),
+#         (qh2_Berlin, tzBerlin, None, qh2_Berlin),
+#         (qh2_Berlin, tzKolkata, None, qh2_Kolkata),
+#         (qh2_Kolkata, None, None, qh2_Kolkata_l),
+#         (qh2_Kolkata, tzKolkata, None, qh2_Kolkata),
+#         (qh2_Kolkata, tzBerlin, None, qh2_Berlin),
+#         # .. Tz-naive input.
+#         (qh2_Berlin_l, None, None, qh2_Berlin_l),
+#         (qh2_Berlin_l, None, tzBerlin, qh2_Berlin_l),
+#         (qh2_Berlin_l, None, tzKolkata, ValueError),  # *3
+#         (qh2_Berlin_l, tzBerlin, None, qh2_Berlin),
+#         (qh2_Berlin_l, tzKolkata, tzBerlin, ValueError),  # *4
+#         (qh2_Kolkata_l, None, None, qh2_Kolkata_l),
+#         (qh2_Kolkata_l, tzKolkata, None, qh2_Kolkata),
+#         (qh2_Kolkata_l, tzBerlin, tzKolkata, ValueError),  # *4
+#         # . End of DST.
+#         # .. tz-aware input.
+#         (qh3_Berlin, None, None, qh3_Berlin_l),
+#         (qh3_Berlin, tzBerlin, None, qh3_Berlin),
+#         (qh3_Berlin, tzKolkata, None, qh3_Kolkata),
+#         (qh3_Kolkata, None, None, qh3_Kolkata_l),
+#         (qh3_Kolkata, tzKolkata, None, qh3_Kolkata),
+#         (qh3_Kolkata, tzBerlin, None, qh3_Berlin),
+#         # .. Tz-naive input.
+#         (qh3_Berlin_l, None, None, qh3_Berlin_l),
+#         (qh3_Berlin_l, None, tzBerlin, qh3_Berlin_l),
+#         (qh3_Berlin_l, None, tzKolkata, ValueError),  # *3
+#         (qh3_Berlin_l, tzBerlin, None, qh3_Berlin),
+#         (qh3_Berlin_l, tzKolkata, None, ValueError),  # *3
+#         (qh3_Kolkata_l, None, None, qh3_Kolkata_l),
+#         (qh3_Kolkata_l, tzKolkata, None, qh3_Kolkata),
+#         (qh3_Kolkata_l, tzBerlin, tzKolkata, ValueError),  # *4
+#         # Hourly values.
+#         # . Normal period.
+#         # .. tz-aware input.
+#         (h1_Berlin, None, None, h1_Berlin_l),
+#         (h1_Berlin, tzBerlin, None, h1_Berlin),
+#         (h1_Berlin, tzKolkata, None, ValueError),  # *2
+#         (h1_Kolkata, None, None, ValueError),  # *2
+#         (h1_Kolkata, tzKolkata, None, ValueError),  # *2
+#         (h1_Kolkata, tzBerlin, None, h1_Berlin),  # *1
+#         # .. Tz-naive input.
+#         (h1_Berlin_l, None, None, h1_Berlin_l),
+#         (h1_Berlin_l, None, tzKolkata, h1_Berlin_l),
+#         (h1_Berlin_l, tzBerlin, None, h1_Berlin),
+#         (h1_Berlin_l, tzKolkata, tzBerlin, ValueError),  # *2
+#         (h1_Berlin_l, tzBerlin, tzKolkata, ValueError),  # *2
+#         (h1_Berlin_l, tzKolkata, None, h1_Kolkata_fl),
+#         (h1_Berlin_l, tzKolkata, tzKolkata, h1_Kolkata_fl),
+#         (h1_Kolkata_l, None, None, ValueError),  # *1*2
+#         (h1_Kolkata_l, tzKolkata, None, ValueError),  # *1*2
+#         (h1_Kolkata_l, tzBerlin, tzKolkata, h1_Berlin),  # *1
+#         # .. Test if tz_in is ignored for localized input frames.
+#         (h1_Kolkata, None, tzBerlin, ValueError),  # *1*2
+#         (h1_Kolkata, tzKolkata, tzBerlin, ValueError),  # *1*2
+#         (h1_Kolkata, tzBerlin, tzBerlin, h1_Berlin),  # *1
+#         # . Start of DST.
+#         # .. tz-aware input.
+#         (h2_Berlin, None, None, h2_Berlin_l),
+#         (h2_Berlin, tzBerlin, None, h2_Berlin),
+#         (h2_Berlin, tzKolkata, None, ValueError),  # *2
+#         (h2_Kolkata, None, None, ValueError),  # *1*2
+#         (h2_Kolkata, tzKolkata, None, ValueError),  # *1*2
+#         (h2_Kolkata, tzBerlin, None, h2_Berlin),  # *1
+#         # .. Tz-naive input.
+#         (h2_Berlin_l, None, None, h2_Berlin_l),
+#         (h2_Berlin_l, None, tzBerlin, h2_Berlin_l),
+#         (h2_Berlin_l, tzBerlin, None, h2_Berlin),
+#         (h2_Berlin_l, tzKolkata, tzBerlin, h2_Kolkata),
+#         (h2_Kolkata_l, None, None, ValueError),  # *1*2
+#         (h2_Kolkata_l, tzKolkata, None, ValueError),  # *1*2
+#         (h2_Kolkata_l, tzBerlin, tzKolkata, h2_Berlin),  # *1
+#         # . End of DST.
+#         # .. tz-aware input.
+#         (h3_Berlin, None, None, h3_Berlin_l),
+#         (h3_Berlin, tzBerlin, None, h3_Berlin),
+#         (h3_Berlin, tzKolkata, None, ValueError),  # *2
+#         (h3_Kolkata, None, None, ValueError),  # *1*2
+#         (h3_Kolkata, tzKolkata, None, ValueError),  # *1*2
+#         (h3_Kolkata, tzBerlin, None, h3_Berlin),  # *1
+#         # .. Tz-naive input.
+#         (h3_Berlin_l, None, None, h3_Berlin_l),
+#         (h3_Berlin_l, tzBerlin, None, h3_Berlin),
+#         (h3_Kolkata_l, None, None, ValueError),  # *1*2
+#         (h3_Kolkata_l, tzKolkata, None, ValueError),  # *1*2
+#         (h3_Kolkata_l, tzBerlin, tzKolkata, h3_Berlin),  # *1
+#         # Daily values.
+#         # . Normal period.
+#         # .. tz-aware input.
+#         (d1_Berlin, None, None, d1_Berlin_l),
+#         (d1_Berlin, tzBerlin, None, d1_Berlin),
+#         (d1_Berlin, tzKolkata, None, ValueError),  # *2
+#         (d1_Kolkata, None, None, d1_Kolkata_l),  # *1
+#         (d1_Kolkata, tzKolkata, None, ValueError),  # *1*2
+#         (d1_Kolkata, tzBerlin, None, d1_Berlin),  # *1
+#         # .. Tz-naive input.
+#         (d1_Berlin_l, None, None, d1_Berlin_l),
+#         (d1_Berlin_l, None, tzKolkata, d1_Berlin_l),
+#         (d1_Berlin_l, tzBerlin, None, d1_Berlin),
+#         (d1_Berlin_l, tzKolkata, tzBerlin, ValueError),  # *2
+#         (d1_Berlin_l, tzBerlin, tzKolkata, ValueError),  # *2
+#         (d1_Berlin_l, tzKolkata, None, d1_Kolkata_fl),
+#         (d1_Berlin_l, tzKolkata, tzKolkata, d1_Kolkata_fl),
+#         (d1_Kolkata_l, None, None, ValueError),  # *1*2
+#         (d1_Kolkata_l, tzKolkata, None, ValueError),  # *1*2
+#         (d1_Kolkata_l, tzBerlin, tzKolkata, d1_Berlin),  # *1
+#         # . Start of DST.
+#         # .. tz-aware input.
+#         (d2_Berlin, None, None, d2_Berlin_l),
+#         (d2_Berlin, tzBerlin, None, d2_Berlin),
+#         (d2_Berlin, tzKolkata, None, ValueError),  # *2
+#         # .. Tz-naive input.
+#         (d2_Berlin_l, None, None, d2_Berlin_l),
+#         (d2_Berlin_l, None, tzBerlin, d2_Berlin_l),
+#         (d2_Berlin_l, tzBerlin, None, d2_Berlin),
+#         # . End of DST.
+#         # .. tz-aware input.
+#         (d3_Berlin, None, None, d3_Berlin_l),
+#         (d3_Berlin, tzBerlin, None, d3_Berlin),
+#         (d3_Berlin, tzKolkata, None, ValueError),  # *2
+#         # .. Tz-naive input.
+#         (d3_Berlin_l, None, None, d3_Berlin_l),
+#         (d3_Berlin_l, tzBerlin, None, d3_Berlin),
+#     ],
+# )
+# # *1: Index specifies non-boundary timestamps (e.g., hours that start/end at 0:30).
+# # *2: Periods in the index fall on non-boundary timestamps in the target timezone.
+# # *3: Index specifies local timestamps that do not exist (or should doubly exist) in source timezone.
+# # *4: Index cannot be converted because source and target timezone don't
+# def test_settimezone(i, tz, tz_in, expected):
+#     """Test if timezones can be correctly set, and an error is raised if that's expected."""
+#     if isinstance(expected, type) and issubclass(expected, Exception):
+#         with pytest.raises(expected):
+#             _ = stamps.set_timezone(i, tz, tz_in)
+#     else:
+#         result = stamps.set_timezone(i, tz, tz_in)
+#         testing.assert_index_equal(result, expected)
+
+
+# @pytest.mark.parametrize(
+#     ("i", "tz", "floating", "expected"),
+#     [
+#         # . Quarterhourly.
+#         # . . No conversion: should give back original.
+#         (qh1_Berlin, tzBerlin, None, qh1_Berlin),
+#         (qh1_Kolkata, tzKolkata, None, qh1_Kolkata),
+#         # . . Conversion should be done correctly.
+#         (qh1_Berlin, tzKolkata, None, qh1_Kolkata),
+#         (qh1_Berlin, tzKolkata, False, qh1_Kolkata),
+#         (qh1_Kolkata, tzBerlin, None, qh1_Berlin),
+#         (qh1_Kolkata, tzBerlin, False, qh1_Berlin),
+#         # . . Conversion while keeping local time.
+#         (qh1_Kolkata_fl, tzBerlin, True, qh1_Berlin),
+#         # . . Should discard floating argument if input tz-aware and tz same.
+#         (qh1_Berlin, tzBerlin, False, qh1_Berlin),
+#         (qh1_Berlin, tzBerlin, True, qh1_Berlin),
+#         # . Hourly.
+#         # . . No conversion: should give back original.
+#         (h1_Berlin, tzBerlin, None, h1_Berlin),
+#         (h1_Kolkata, tzKolkata, None, h1_Kolkata),
+#         # . . Conversion should be done correctly.
+#         (h1_Berlin, tzKolkata, None, h1_Kolkata),
+#         (h1_Berlin, tzKolkata, False, h1_Kolkata),
+#         (h1_Kolkata, tzBerlin, None, h1_Berlin),
+#         (h1_Kolkata, tzBerlin, False, h1_Berlin),
+#         # . . Conversion while keeping local time.
+#         (h1_Kolkata_fl, tzBerlin, True, h1_Berlin),
+#         # . . Should discard floating argument if input tz-aware and tz same.
+#         (h1_Berlin, tzBerlin, False, h1_Berlin),
+#         (h1_Berlin, tzBerlin, True, h1_Berlin),
+#     ],
+# )
+# def test_forcetzaware_handshorter_tzawareinput_normalperiod(*args, **kwargs):
+#     test_forcetzaware(*args, **kwargs)
+
+
+# def test_forcetzaware(i, tz, floating, expected):
+#     """Test if timezones can be correctly set, and an error is raised if that's expected."""
+#     if isinstance(expected, type) and issubclass(expected, Exception):
+#         with pytest.raises(expected):
+#             _ = stamps.force_tzaware(i, tz, floating)
+#     else:
+#         result = stamps.force_tzaware(i, tz, floating)
+#         testing.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize(
+    ("start", "end", "expected"),
+    [
+        ("2020", "2021", "AS"),
+        ("2020", "2020-04", "QS"),
+        ("2020", "2020-02", "MS"),
+        ("2020", "2020-01-02", "D"),
+        ("2020", "2020-01-01 01:00", "H"),
+        ("2020", "2020-01-01 00:15", "15T"),
+        ("2020-03-29", "2020-03-30", "D"),
+        ("2020-03-01", "2020-04-01", "MS"),
+        ("2020-10-25", "2020-10-26", "D"),
+        ("2020-10-01", "2020-11-01", "MS"),
+    ],
+)
+def test_guessfrequency(start, end, expected, tz):
+    """Test if correct frequency is guessed from start and end timestamp."""
+    tdelta = pd.Timestamp(end, tz=tz) - pd.Timestamp(start, tz=tz)
+    if expected is None:
+        with pytest.raises(ValueError):
+            _ = stamps.guess_frequency(tdelta)
+    else:
+        result = stamps.guess_frequency(tdelta)
+        assert result == expected
+
+
+@pytest.mark.parametrize(
+    ("start", "end", "expected"),
+    [
+        # Hourly.
+        ("2020-03-29 01:00", "2020-03-29 03:00", "H"),
+        ("2020-10-25 01:00", "2020-10-25 02:00+0200", "H"),
+        ("2020-10-25 01:00", "2020-10-25 02:00+0100", None),
+        ("2020-10-25 02:00+0200", "2020-10-25 02:00+0100", "H"),
+        ("2020-10-25 02:00+0200", "2020-10-25 03:00", None),
+        ("2020-10-25 02:00+0100", "2020-10-25 03:00", "H"),
+        # Quarterhourly.
+        ("2020-03-29 01:45", "2020-03-29 03:00", "15T"),
+        ("2020-10-25 01:45", "2020-10-25 02:00+0200", "15T"),
+        ("2020-10-25 01:45", "2020-10-25 02:00+0100", None),
+        ("2020-10-25 02:45+0200", "2020-10-25 02:00+0100", "15T"),
+        ("2020-10-25 02:45+0200", "2020-10-25 03:00", None),
+        ("2020-10-25 02:45+0100", "2020-10-25 03:00", "15T"),
+    ],
+)
+def test_guessfrequency_dst(start, end, expected):
+    """Test if correct frequency is guessed from start and end timestamp."""
+    tz = "Europe/Berlin"
+    tdelta = pd.Timestamp(end, tz=tz) - pd.Timestamp(start, tz=tz)
+    if expected is None:
+        with pytest.raises(ValueError):
+            _ = stamps.guess_frequency(tdelta)
+    else:
+        result = stamps.guess_frequency(tdelta)
+        assert result == expected
+
+
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize("remove_freq", [True, False])
+@pytest.mark.parametrize(
+    ("start", "periods", "freq", "expected_start"),
+    [
+        # Normal index.
+        ("2020-03-01 1:00", 24, "H", "2020-03-01"),
+        ("2020-03-01 0:15", 96, "15T", "2020-03-01"),
+        ("2020-03-02", 31, "D", "2020-03-01"),
+        ("2020-04-01", 12, "MS", "2020-03-01"),
+        ("2020-04-01", 48, "QS", "2020-01-01"),
+        # Index with DST-start.
+        ("2020-03-29 1:00", 24, "H", "2020-03-29"),
+        ("2020-03-29 4:00", 24, "H", "2020-03-29 3:00"),
+        ("2020-03-29 0:15", 96, "15T", "2020-03-29"),
+        ("2020-03-29 0:30", 96, "15T", "2020-03-29 0:15"),
+        ("2020-03-29 1:30", 96, "15T", "2020-03-29 1:15"),
+        ("2020-03-29 3:30", 96, "15T", "2020-03-29 3:15"),
+        ("2020-03-29 3:15", 96, "15T", "2020-03-29 3:00"),
+        # Index with DST-end.
+        ("2020-10-25 1:00", 24, "H", "2020-10-25"),
+        ("2020-10-25 4:00", 24, "H", "2020-10-25 3:00"),
+        ("2020-10-25 0:15", 96, "15T", "2020-10-25"),
+        ("2020-10-25 0:30", 96, "15T", "2020-10-25 0:15"),
+        ("2020-10-25 1:30", 96, "15T", "2020-10-25 1:15"),
+        ("2020-10-25 3:30", 96, "15T", "2020-10-25 3:15"),
+        ("2020-10-25 3:15", 96, "15T", "2020-10-25 3:00"),
+    ],
+)
+def test_makeleftbound(start, periods, freq, expected_start, tz, remove_freq):
+    """Test if index of rightbound timestamps can be make leftbound."""
+    i = pd.date_range(start, periods=periods, freq=freq, tz=tz)
+    expected = pd.date_range(expected_start, periods=periods, freq=freq, tz=tz)
+    if remove_freq:
+        i.freq = None
+    result = stamps.make_leftbound(i)
+    testing.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize("remove_freq", [True, False])
+@pytest.mark.parametrize(
+    ("start", "periods", "freq", "expected_start"),
+    [
+        # Index with DST-start.
+        ("2020-03-29 1:00", 24, "H", "2020-03-29"),
+        ("2020-03-29 3:00", 24, "H", "2020-03-29 1:00"),
+        ("2020-03-29 4:00", 24, "H", "2020-03-29 3:00"),
+        ("2020-03-29 0:15", 96, "15T", "2020-03-29"),
+        ("2020-03-29 1:30", 96, "15T", "2020-03-29 1:15"),
+        ("2020-03-29 1:45", 96, "15T", "2020-03-29 1:30"),
+        ("2020-03-29 3:00", 96, "15T", "2020-03-29 1:45"),
+        ("2020-03-29 3:15", 96, "15T", "2020-03-29 3:00"),
+        # Index with DST-end.
+        ("2020-10-25 1:00", 24, "H", "2020-10-25"),
+        ("2020-10-25 2:00+0200", 24, "H", "2020-10-25 1:00"),
+        ("2020-10-25 2:00+0100", 24, "H", "2020-10-25 2:00+0200"),
+        ("2020-10-25 3:00", 24, "H", "2020-10-25 2:00+0100"),
+        ("2020-10-25 4:00", 24, "H", "2020-10-25 3:00"),
+        ("2020-10-25 0:15", 96, "15T", "2020-10-25"),
+        ("2020-10-25 0:30", 96, "15T", "2020-10-25 0:15"),
+        ("2020-10-25 1:30", 96, "15T", "2020-10-25 1:15"),
+        ("2020-10-25 2:15+0200", 96, "15T", "2020-10-25 2:00+0200"),
+        ("2020-10-25 2:30+0200", 96, "15T", "2020-10-25 2:15+0200"),
+        ("2020-10-25 2:00+0100", 96, "15T", "2020-10-25 2:45+0200"),
+        ("2020-10-25 2:15+0100", 96, "15T", "2020-10-25 2:00+0100"),
+        ("2020-10-25 2:30+0100", 96, "15T", "2020-10-25 2:15+0100"),
+        ("2020-10-25 1:30", 96, "15T", "2020-10-25 1:15"),
+        ("2020-10-25 3:30", 96, "15T", "2020-10-25 3:15"),
+        ("2020-10-25 3:15", 96, "15T", "2020-10-25 3:00"),
+    ],
+)
+def test_makeleftbound_dst_tzaware(start, periods, freq, expected_start, remove_freq):
+    """Test if index of rightbound timestamps can be make leftbound, across DST changeover."""
+    i = pd.date_range(
+        pd.Timestamp(start, tz="Europe/Berlin"), periods=periods, freq=freq
+    )
+    expected = pd.date_range(
+        pd.Timestamp(expected_start, tz="Europe/Berlin"), periods=periods, freq=freq
+    )
+    if remove_freq:
+        i.freq = None
+    result = stamps.make_leftbound(i)
+    testing.assert_index_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("i", "expected"),
+    [
+        (
+            pd.DatetimeIndex(
+                [
+                    "2020-03-29 01:00:00",
+                    "2020-03-29 03:00:00",
+                    "2020-03-29 04:00:00",
+                    "2020-03-29 05:00:00",
+                ],
+                dtype="datetime64[ns]",
+            ),
+            pd.DatetimeIndex(
+                [
+                    "2020-03-29 00:00:00",
+                    "2020-03-29 02:00:00",
+                    "2020-03-29 03:00:00",
+                    "2020-03-29 04:00:00",
+                ],
+                dtype="datetime64[ns]",
+            ),
+        ),
+        (
+            pd.DatetimeIndex(
+                [
+                    "2020-10-25 01:00:00",
+                    "2020-10-25 02:00:00",
+                    "2020-10-25 02:00:00",
+                    "2020-10-25 03:00:00",
+                ],
+                dtype="datetime64[ns]",
+            ),
+            pd.DatetimeIndex(
+                [
+                    "2020-10-25 00:00:00",
+                    "2020-10-25 01:00:00",
+                    "2020-10-25 01:00:00",
+                    "2020-10-25 02:00:00",
+                ],
+                dtype="datetime64[ns]",
+            ),
+        ),
+    ],
+)
+def test_makeleftbound_dst_tznaive(i, expected):
+    result = stamps.make_leftbound(i)
+    testing.assert_index_equal(result, expected)
+
+
 @pytest.mark.parametrize(
     ("idxs", "expected"),
     [

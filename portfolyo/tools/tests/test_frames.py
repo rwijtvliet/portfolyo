@@ -7,91 +7,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-tz_Berlin = "Europe/Berlin"
-tz_Kolkata = "Asia/Kolkata"
 
-i1_Berlin_l = pd.date_range("2020-03-01", periods=48, freq="H")
-i1_Berlin = pd.date_range("2020-03-01", periods=48, freq="H", tz=tz_Berlin)
-i1_Kolkata_l = pd.date_range("2020-03-01 04:30", periods=48, freq="H")
-i1_Kolkata = pd.date_range("2020-03-01 04:30", periods=48, freq="H", tz=tz_Kolkata)
-v1 = np.random.rand(48)
-
-i2_Berlin_l = pd.date_range("2020-03-28", periods=48, freq="H")
-i2_Berlin_l = pd.Index([i for i in i2_Berlin_l if not (i.hour == 2 and i.day == 29)])
-i2_Berlin = pd.date_range("2020-03-28", periods=47, freq="H", tz=tz_Berlin)
-i2_Kolkata_l = pd.date_range("2020-03-28 04:30", periods=47, freq="H")
-i2_Kolkata = pd.date_range("2020-03-28 04:30", periods=47, freq="H", tz=tz_Kolkata)
-v2 = np.random.rand(47)
-
-i3_Berlin_l = pd.date_range("2020-10-24", periods=48, freq="H")
-i3_Berlin_l = pd.Index(sorted([*i3_Berlin_l, pd.Timestamp("2020-10-25 02:00")]))
-i3_Berlin = pd.date_range("2020-10-24", periods=49, freq="H", tz=tz_Berlin)
-i3_Kolkata_l = pd.date_range("2020-10-24 03:30", periods=49, freq="H")
-i3_Kolkata = pd.date_range("2020-10-24 03:30", periods=49, freq="H", tz=tz_Kolkata)
-v3 = np.random.rand(49)
-
-
-@pytest.mark.parametrize("as_dataframe", [True, False])
-@pytest.mark.parametrize(
-    ("s", "tz", "tz_in", "expected_s"),
-    [
-        # Normal day:
-        # Test that localized frames are correctly converted.
-        (pd.Series(v1, i1_Berlin), None, None, pd.Series(v1, i1_Berlin_l)),
-        (pd.Series(v1, i1_Berlin), tz_Berlin, None, pd.Series(v1, i1_Berlin)),
-        (pd.Series(v1, i1_Kolkata), None, None, pd.Series(v1, i1_Kolkata_l)),
-        (pd.Series(v1, i1_Kolkata), tz_Kolkata, None, pd.Series(v1, i1_Kolkata)),
-        (pd.Series(v1, i1_Kolkata), tz_Berlin, None, pd.Series(v1, i1_Berlin)),
-        # Test that non-localized frames are correctly converted.
-        (pd.Series(v1, i1_Berlin_l), None, None, pd.Series(v1, i1_Berlin_l)),
-        (pd.Series(v1, i1_Berlin_l), tz_Berlin, None, pd.Series(v1, i1_Berlin)),
-        (pd.Series(v1, i1_Kolkata_l), None, None, pd.Series(v1, i1_Kolkata_l)),
-        (pd.Series(v1, i1_Kolkata_l), tz_Kolkata, None, pd.Series(v1, i1_Kolkata)),
-        (pd.Series(v1, i1_Kolkata_l), tz_Berlin, tz_Kolkata, pd.Series(v1, i1_Berlin)),
-        # Check that tz_in is ignored for localized input frames.
-        (pd.Series(v1, i1_Kolkata), None, tz_Berlin, pd.Series(v1, i1_Kolkata_l)),
-        (pd.Series(v1, i1_Kolkata), tz_Kolkata, tz_Berlin, pd.Series(v1, i1_Kolkata)),
-        (pd.Series(v1, i1_Kolkata), tz_Berlin, tz_Berlin, pd.Series(v1, i1_Berlin)),
-        # Start of DST:
-        # Test that localized frames are correctly converted.
-        (pd.Series(v2, i2_Berlin), None, None, pd.Series(v2, i2_Berlin_l)),
-        (pd.Series(v2, i2_Berlin), tz_Berlin, None, pd.Series(v2, i2_Berlin)),
-        (pd.Series(v2, i2_Kolkata), None, None, pd.Series(v2, i2_Kolkata_l)),
-        (pd.Series(v2, i2_Kolkata), tz_Kolkata, None, pd.Series(v2, i2_Kolkata)),
-        (pd.Series(v2, i2_Kolkata), tz_Berlin, None, pd.Series(v2, i2_Berlin)),
-        # Test that non-localized frames are correctly converted.
-        (pd.Series(v2, i2_Berlin_l), None, None, pd.Series(v2, i2_Berlin_l)),
-        (pd.Series(v2, i2_Berlin_l), tz_Berlin, None, pd.Series(v2, i2_Berlin)),
-        (pd.Series(v2, i2_Kolkata_l), None, None, pd.Series(v2, i2_Kolkata_l)),
-        (pd.Series(v2, i2_Kolkata_l), tz_Kolkata, None, pd.Series(v2, i2_Kolkata)),
-        (pd.Series(v2, i2_Kolkata_l), tz_Berlin, tz_Kolkata, pd.Series(v2, i2_Berlin)),
-        # End of DST:
-        # Test that localized frames are correctly converted.
-        (pd.Series(v3, i3_Berlin), None, None, pd.Series(v3, i3_Berlin_l)),
-        (pd.Series(v3, i3_Berlin), tz_Berlin, None, pd.Series(v3, i3_Berlin)),
-        (pd.Series(v3, i3_Kolkata), None, None, pd.Series(v3, i3_Kolkata_l)),
-        (pd.Series(v3, i3_Kolkata), tz_Kolkata, None, pd.Series(v3, i3_Kolkata)),
-        (pd.Series(v3, i3_Kolkata), tz_Berlin, None, pd.Series(v3, i3_Berlin)),
-        # Test that non-localized frames are correctly converted.
-        (pd.Series(v3, i3_Berlin_l), None, None, pd.Series(v3, i3_Berlin_l)),
-        (pd.Series(v3, i3_Berlin_l), tz_Berlin, None, pd.Series(v3, i3_Berlin)),
-        (pd.Series(v3, i3_Kolkata_l), None, None, pd.Series(v3, i3_Kolkata_l)),
-        (pd.Series(v3, i3_Kolkata_l), tz_Kolkata, None, pd.Series(v3, i3_Kolkata)),
-        (pd.Series(v3, i3_Kolkata_l), tz_Berlin, tz_Kolkata, pd.Series(v3, i3_Berlin)),
-    ],
-)
-def test_convert_timezone(s, tz, tz_in, expected_s, as_dataframe):
-    """Test if timezones can be correctly converted."""
-    if as_dataframe:
-        df_in = pd.DataFrame({"a": s})
-        expected_df = pd.DataFrame({"a": expected_s})
-        result_df = frames.convert_timezone(df_in, tz, tz_in)
-        testing.assert_frame_equal(result_df, expected_df)
-    else:
-        result_s = frames.convert_timezone(s, tz, tz_in)
-        testing.assert_series_equal(result_s, expected_s)
-
-
+@pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("tz_in", ["Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("do_localize", [True, False])
 @pytest.mark.parametrize("bound", ["right", "left"])
@@ -99,31 +16,31 @@ def test_convert_timezone(s, tz, tz_in, expected_s, as_dataframe):
     ("values", "i"),
     [
         (
-            np.random.random(48),
+            np.random.random(96),
             pd.date_range(
                 "2020-03-01",
-                "2020-03-03",
-                freq="H",
-                inclusive="left",
-                tz="Europe/Berlin",
-            ),
-        ),
-        (  # Check for days incl ST->WT.
-            np.random.random(49),
-            pd.date_range(
-                "2020-10-24",
-                "2020-10-26",
-                freq="H",
+                "2020-03-02",
+                freq="15T",
                 inclusive="left",
                 tz="Europe/Berlin",
             ),
         ),
         (  # Check for days incl WT->ST.
-            np.random.random(47),
+            np.random.random(92),
             pd.date_range(
-                "2020-03-28",
+                "2020-03-29",
                 "2020-03-30",
-                freq="H",
+                freq="15T",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+        ),
+        (  # Check for days incl ST->WT.
+            np.random.random(100),
+            pd.date_range(
+                "2020-10-25",
+                "2020-10-26",
+                freq="15T",
                 inclusive="left",
                 tz="Europe/Berlin",
             ),
@@ -131,15 +48,19 @@ def test_convert_timezone(s, tz, tz_in, expected_s, as_dataframe):
     ],
 )
 def test_settsindex_1(
-    values: Iterable, i: pd.DatetimeIndex, bound: str, do_localize: bool, tz_in: str
+    values: Iterable,
+    i: pd.DatetimeIndex,
+    bound: str,
+    do_localize: bool,
+    tz_in: str,
+    series_or_df: str,
 ):
     """Test if dataframes and series are correctly standardized."""
-    expected_df = pd.DataFrame({"a": values}, index=i.rename("ts_left"))
-    expected_s = pd.Series(values, i.rename("ts_left"))
-
-    # Using expected frame: should stay the same.
-    pd.testing.assert_frame_equal(frames.set_ts_index(expected_df), expected_df)
-    pd.testing.assert_series_equal(frames.set_ts_index(expected_s), expected_s)
+    # Prepare input frame.
+    if series_or_df == "df":
+        expected = pd.DataFrame({"a": values}, index=i.rename("ts_left"))
+    else:
+        expected = pd.Series(values, i.rename("ts_left"))
 
     i = i.tz_convert(tz_in)
     if not do_localize:
@@ -150,38 +71,55 @@ def test_settsindex_1(
         tz_in = "Europe/Berlin"
 
     if bound == "right":
-        i = i + pd.Timedelta("1H")
+        i = i + pd.Timedelta("15T")
 
-    # Dataframe with index.
-    result_df = frames.set_ts_index(
-        pd.DataFrame({"a": values}, i), bound=bound, tz_in=tz_in
-    )
-    pd.testing.assert_frame_equal(result_df, expected_df)
+    if series_or_df == "df":
+        # Using expected frame: should stay the same.
+        pd.testing.assert_frame_equal(frames.set_ts_index(expected), expected)
 
-    # Dataframe with column that must become index.
-    result_df = frames.set_ts_index(
-        pd.DataFrame({"a": values, "ts": i}), "ts", bound, tz_in
-    )
-    pd.testing.assert_frame_equal(result_df, expected_df)
+        # Dataframe with index.
+        result = frames.set_ts_index(
+            pd.DataFrame({"a": values}, i), bound=bound, tz_in=tz_in
+        )
+        pd.testing.assert_frame_equal(result, expected)
 
-    # Series.
-    result_s = frames.set_ts_index(pd.Series(values, i), bound=bound, tz_in=tz_in)
-    pd.testing.assert_series_equal(result_s, expected_s)
+        # Dataframe with column that must become index.
+        result = frames.set_ts_index(
+            pd.DataFrame({"a": values, "ts": i}), "ts", bound, tz_in
+        )
+        pd.testing.assert_frame_equal(result, expected)
+
+    else:
+        # Using expected frame: should stay the same.
+        pd.testing.assert_series_equal(frames.set_ts_index(expected), expected)
+
+        # Series.
+        result = frames.set_ts_index(pd.Series(values, i), bound=bound, tz_in=tz_in)
+        pd.testing.assert_series_equal(result, expected)
 
 
+@pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("removesome", [0, 1, 2])  # 0=none, 1=from end, 2=from middle
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("freq", [*pf.FREQUENCIES, "Q", "30T", "M", "AS-FEB"])
-def test_settsindex_2(freq, tz, removesome):
+def test_settsindex_2(freq, tz, removesome, series_or_df: str):
     """Test raising errors on incorrect frequencies or indices with gaps."""
+
+    must_raise = False
+
     # Get index.
     while True:
         i = dev.get_index(freq, tz)
-        if len(i) > 5:
+        if len(i) > 8:
             break
-    # If no timezone specified and below-daily values, the created index will have to few/many datapoints.
+    # If no timezone specified and below-daily values, the created index will have too few/many datapoints.
     if not tz and pf.freq_up_or_down(freq, "D") > 1:
-        return
+        return  # don't check this edge case
+
+    if tz == "Asia/Kolkata" and pf.freq_shortest(freq, "H") == "H":
+        # Kolkata and Berlin timezone only share 15T-boundaries. Therefore, any other
+        # frequency should raise an error.
+        must_raise = True
 
     for _ in range(1, 3):  # remove 1 or 2 values
         if removesome == 1:
@@ -190,19 +128,18 @@ def test_settsindex_2(freq, tz, removesome):
             i = i.delete(np.random.randint(1, len(i) - 1))
 
     # Add values.
-    s = dev.get_series(i)
-    df = dev.get_dataframe(i)
+    if series_or_df == "series":
+        fr = dev.get_series(i)
+    else:
+        fr = dev.get_dataframe(i)
 
     # See if error is raised.
-    if removesome == 2 or freq not in pf.FREQUENCIES:
+    if removesome == 2 or freq not in pf.FREQUENCIES or must_raise:
         with pytest.raises(ValueError):
-            frames.set_ts_index(s)
-        with pytest.raises(ValueError):
-            frames.set_ts_index(df)
+            frames.set_ts_index(fr, continuous=True)
         return
 
-    assert frames.set_ts_index(s).index.freq == freq
-    assert frames.set_ts_index(df).index.freq == freq
+    assert frames.set_ts_index(fr, tz_in="Europe/Berlin").index.freq == freq
 
 
 @pytest.mark.parametrize(

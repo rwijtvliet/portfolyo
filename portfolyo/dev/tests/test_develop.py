@@ -121,7 +121,7 @@ def test_singlemultipfline(freq, tz, start, kind):
     ],
 )
 def test_pfline(freq, tz, start, kind, max_nlevels):
-    """Test pfline creation."""
+    """Test that pfline can be created."""
     i = None if freq is None else dev.get_index(freq, tz, start)
     pfl = dev.get_pfline(i, kind, max_nlevels)
     if max_nlevels == 1:
