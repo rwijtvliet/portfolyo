@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Portfolyo
+portfolyo
 =========
 
 .. image:: https://img.shields.io/pypi/v/portfolyo
@@ -22,8 +22,8 @@ Portfolyo
    :target: https://app.codecov.io/gh/rwijtvliet/portfolyo
    :alt: Codecov
 
-Portfolyo is a Python package to analyse and manipulate **timeseries** related to power 
-and gas offtake portfolios.
+Portfolyo is a Python package to analyse and manipulate **timeseries** related to **power 
+and gas offtake portfolios**.
 
 
 Installation

@@ -13,8 +13,12 @@ portfolyo
    :target: https://github.com/rwijtvliet/portfolyo/actions/workflows/pre-commit.yaml
    :alt: Github - Pre-commit
 
-Analysing and manipulating timeseries related to power and gas offtake portfolios.
+.. image:: https://img.shields.io/codecov/c/gh/rwijtvliet/portfolyo
+   :target: https://app.codecov.io/gh/rwijtvliet/portfolyo
+   :alt: Codecov
 
+Portfolyo is a Python package to analyse and manipulate **timeseries** related to **power 
+and gas offtake portfolios**.
 
 Installation
 ------------
