@@ -3,3 +3,4 @@
 omit =
     setup.py
     versioneer.py
+    portfolyo/_version.py
