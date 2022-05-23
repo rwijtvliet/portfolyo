@@ -2,10 +2,9 @@
 Visualize portfolio lines, etc.
 """
 
-import pint
 from ..tools import stamps, nits
 
-from typing import List, Optional, Iterable, Tuple
+from typing import List, Optional, Iterable
 from collections import namedtuple
 from matplotlib import pyplot as plt
 import matplotlib as mpl
@@ -60,12 +59,14 @@ class Color(namedtuple("RGB", ["r", "g", "b"])):
     """Class to create an rgb color tuple, with additional methods."""
 
     def lighten(self, value):
-        """Lighten the color by fraction `value`. If `value` < 0, darken."""
-        h, l, s = np.array(colorsys.rgb_to_hls(*mpl.colors.to_rgb(self)))
-        l += value * ((1 - l) if value > 0 else l)
-        return Color(*[min(max(comp, 0), 1) for comp in colorsys.hls_to_rgb(h, l, s)])
+        """Lighten the color by fraction ``value`` (between 0 and 1). If < 0, darken."""
+        hu, li, sa = np.array(colorsys.rgb_to_hls(*mpl.colors.to_rgb(self)))
+        li += value * ((1 - li) if value > 0 else li)
+        return Color(*[min(max(p, 0), 1) for p in colorsys.hls_to_rgb(hu, li, sa)])
 
-    darken = lambda self, value: self.lighten(self, -value)
+    def darken(self, value):
+        """Darken the color by fraction ``value`` (between 0 and 1)."""
+        return self.lighten(self, -value)
 
     light = property(lambda self: self.lighten(0.3))
     xlight = property(lambda self: self.lighten(0.6))
@@ -133,7 +134,7 @@ def _categories(ax: plt.Axes, s: pd.Series, cat: bool = None) -> Optional[Iterab
         create = True  # ...ax already has category axis; or
     elif cat is None and stamps.freq_shortest(s.index.freq, "MS") == "MS":
         create = True  # ...it's the default for the given frequency; or
-    elif cat == True:
+    elif cat is True:
         create = True  # ...user wants it.
     return _index2labels(s.index) if create else None
 
@@ -144,9 +145,9 @@ Other parameters
 labelfmt : str, optional (default: '')
     Labels are added to each datapoint in the specified format. ('' to add no labels)
 cat : bool, optional
-    If False, plots x-axis as timeline with timestamps spaced according to their 
-    duration. If True, plots x-axis categorically, with timestamps spaced equally. 
-    Disregarded if ``ax`` already has values (then: use whatever is already set). 
+    If False, plots x-axis as timeline with timestamps spaced according to their
+    duration. If True, plots x-axis categorically, with timestamps spaced equally.
+    Disregarded if ``ax`` already has values (then: use whatever is already set).
     Default: use True if ``s`` has a monthly frequency or longer, False if the frequency
     is shorter than monthly.
 **kwargs : any formatting are passed to the Axes plot method being used."""

@@ -34,8 +34,8 @@ import pandas as pd
 
 
 if TYPE_CHECKING:
-    from .single import SinglePfLine
-    from .multi import MultiPfLine
+    from .single import SinglePfLine  # noqa
+    from .multi import MultiPfLine  # noqa
 
 
 class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
@@ -266,7 +266,7 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
 
 
 # Must be at end, because they depend on PfLine existing.
-from . import single, multi, enable_arithmatic, enable_hedging
+from . import single, multi, enable_arithmatic, enable_hedging  # noqa
 
 enable_arithmatic.apply()
 enable_hedging.apply()

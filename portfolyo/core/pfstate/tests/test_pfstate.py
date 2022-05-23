@@ -1,8 +1,6 @@
-from portfolyo.core.pfstate import PfState, pfstate_helper
+from portfolyo.core.pfstate import PfState
 from portfolyo import dev
-from portfolyo.tools.frames import set_ts_index
 import pandas as pd
-import numpy as np
 import pytest
 
 # Assert correct working of _make_pflines

@@ -43,7 +43,7 @@ def _makelen(txt: str, goal: int, rjust: bool = True, from_middle: bool = False)
         return " " * to_add + txt if rjust else txt + " " * to_add
     txt = _remove_styles(txt)  # TODO: retain styles also when shortening
     if from_middle:
-        return txt[: goal // 2] + "…" + txt[-(goal - 1) // 2 :]
+        return txt[: goal // 2] + "…" + txt[-(goal - 1) // 2 :]  # noqa
     else:
         return txt[: goal - 1] + "…"
 
@@ -80,7 +80,7 @@ def _treegraphs(drawprev: List[bool], has_children: bool, is_last: bool) -> Tupl
     """Return 2-element list with tree lines and coloring. One for first row,
     and one for all subsequent rows."""
     # continuation of parent lines
-    base = "".join([_style(l) + ("│ ", "  ")[p] for l, p in enumerate(drawprev)])
+    base = "".join([_style(line) + ("│ ", "  ")[p] for line, p in enumerate(drawprev)])
     # current level
     level = len(drawprev)
     # make the lines for current level
@@ -285,7 +285,7 @@ def _time_as_cols(pfs: PfState, cols="qp", colorful: bool = True) -> str:
     width = _width(2, False, len(stamps))
     if 2 in width["cols"]:
         i = width["cols"].index(2)
-        stamps = [*stamps[:i], "…", *stamps[(i - len(width["cols"]) + 1) :]]
+        stamps = [*stamps[:i], "…", *stamps[(i - len(width["cols"]) + 1) :]]  # noqa
 
     # Header.
     pfs_headers = [_style(-1) + " " * (width["tree"] + width["index"])] * 3
@@ -322,6 +322,7 @@ def top_level_datablock(pfl: PfLine) -> str:
     datalines = df.to_string(
         formatters=ffuncs, max_rows=20, index_names=False, header=False
     )
+    return datalines
 
 
 def df_of_strings(df) -> pd.DataFrame:

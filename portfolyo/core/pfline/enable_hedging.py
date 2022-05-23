@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from . import base, single, multi
+from . import base, single
 from ...prices import hedge
 
-from typing import List, Callable, Dict, Tuple, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 
 if TYPE_CHECKING:  # needed to avoid circular imports

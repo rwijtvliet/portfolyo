@@ -52,7 +52,7 @@ def _hedge(df: pd.DataFrame, how: str, po: bool) -> pd.Series:
             w_hedge = (df.w * df.dur * df.p).sum() / (df.dur * df.p).sum()
         return pd.Series({"w": w_hedge, "p": p_hedge})
     else:
-        apply_f = lambda df: _hedge(df, how, po=False)
+        apply_f = lambda df: _hedge(df, how, po=False)  # noqa
         s = df.groupby(is_peak_hour).apply(apply_f)
         return s.rename(index={True: "peak", False: "offpeak"}).stack()
 

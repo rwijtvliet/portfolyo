@@ -1,5 +1,4 @@
 import datetime as dt
-import numpy as np
 from portfolyo.tools import nits
 from portfolyo.prices import utils
 import pandas as pd

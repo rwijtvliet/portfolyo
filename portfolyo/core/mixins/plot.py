@@ -325,9 +325,12 @@ def draw_horizontal_lines(fig, axes):
 
     # Get the bounding boxes of the axes including text decorations
     r = fig.canvas.get_renderer()
-    get_bbox = lambda ax: ax.get_tightbbox(r).transformed(fig.transFigure.inverted())
     bboxes = np.array(
-        list(map(get_bbox, axes.flat)), matplotlib.transforms.Bbox
+        [
+            ax.get_tightbbox(r).transformed(fig.transFigure.inverted())
+            for ax in axes.flat
+        ],
+        matplotlib.transforms.Bbox,
     ).reshape(axes.shape)
 
     """TO CORRECT: the horizontal line is not exactly in the middle of two graphs.

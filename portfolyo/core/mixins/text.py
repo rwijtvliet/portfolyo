@@ -1,8 +1,7 @@
 """String representation of PfLine and PfState objects."""
 from __future__ import annotations
-from typing import TYPE_CHECKING, Any, Callable, Hashable, Iterable, Tuple, Dict
+from typing import TYPE_CHECKING, Iterable, Dict
 import pandas as pd
-import numpy as np
 import colorama
 
 
@@ -157,7 +156,8 @@ def pfs_as_string(pfs: PfState, num_of_ts: int, color: bool) -> str:
 
 
 class PfLineText:
-    __repr__ = lambda self: pfl_as_string(self, True, 20, False)
+    def __repr__(self):
+        return pfl_as_string(self, True, 20, False)
 
     def print(
         self: PfLine, flatten: bool = False, num_of_ts: int = 5, color: bool = True
@@ -182,7 +182,8 @@ class PfLineText:
 
 
 class PfStateText:
-    __repr__ = lambda self: pfs_as_string(self, 5, False)
+    def __repr__(self):
+        return pfs_as_string(self, 5, False)
 
     def print(self: PfState, num_of_ts: int = 5, color: bool = True) -> None:
         """Treeview of the portfolio state.

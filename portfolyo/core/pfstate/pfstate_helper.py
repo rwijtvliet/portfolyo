@@ -2,7 +2,7 @@
 
 
 from typing import Iterable
-from ..pfline import PfLine, SinglePfLine, MultiPfLine
+from ..pfline import PfLine, SinglePfLine, MultiPfLine  # noqa
 import pandas as pd
 import warnings
 

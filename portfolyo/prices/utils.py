@@ -1,9 +1,8 @@
 """Utilities for calculating / manipulating price data."""
 
 from ..tools import stamps
-from ..tools.types import Stamp
 from ..tools.nits import Q_
-from typing import Tuple, Iterable, Type, Union, Optional
+from typing import Tuple, Union
 import pandas as pd
 
 
