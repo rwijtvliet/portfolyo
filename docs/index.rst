@@ -36,12 +36,19 @@ Installation
 
 
 
-Welcome to portfolyo's documentation!
-=====================================
+Contents
+========
 
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
+
+   gettingstarted
+   core/objects
+   core/pfline
+   core/pfstate
+   tutorial/index
+   full_reference
 
 
 
