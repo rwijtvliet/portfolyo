@@ -16,48 +16,48 @@ import numpy as np
 FREQUENCIES = ["AS", "QS", "MS", "D", "H", "15T"]
 
 
-def force_tzaware(
-    i: pd.DatetimeIndex, tz: str, floating: bool = False
-) -> pd.DatetimeIndex:
-    """_summary_
+# def force_tzaware(
+#     i: pd.DatetimeIndex, tz: str, floating: bool = False
+# ) -> pd.DatetimeIndex:
+#     """_summary_
 
-    Parameters
-    ----------
-    i : pd.DatetimeIndex
-        Index that needs a timezone set to it.
-    tz : str
-        target timezone
-    floating : bool, optional (default: False)
-        Only used if ``i`` is already timezone-aware, but its timezone is not ``tz``.
-        - False: fix timestamps on universal time axis and find new local time in target timezone.
-          '2020-03-01 12:00+0530 Asia/Kolkata' --> '2020-03-01 07:30+0100 Europe/Berlin'
-        - True: move timestamp on universal time axis to same local time in target timezone.
-          '2020-03-01 12:00+0530 Asia/Kolkata' --> '2020-03-01 12:00+0100 Europe/Berlin'
+#     Parameters
+#     ----------
+#     i : pd.DatetimeIndex
+#         Index that needs a timezone set to it.
+#     tz : str
+#         target timezone
+#     floating : bool, optional (default: False)
+#         Only used if ``i`` is already timezone-aware, but its timezone is not ``tz``.
+#         - False: fix timestamps on universal time axis and find new local time in target timezone.
+#           '2020-03-01 12:00+0530 Asia/Kolkata' --> '2020-03-01 07:30+0100 Europe/Berlin'
+#         - True: move timestamp on universal time axis to same local time in target timezone.
+#           '2020-03-01 12:00+0530 Asia/Kolkata' --> '2020-03-01 12:00+0100 Europe/Berlin'
 
-    Returns
-    -------
-    pd.DatetimeIndex
-        With wanted timezone (and with frequency set, if possible).
-    """
-    original_freq = i.freq
+#     Returns
+#     -------
+#     pd.DatetimeIndex
+#         With wanted timezone (and with frequency set, if possible).
+#     """
+#     original_freq = i.freq
 
-    # Do conversion.
-    if not i.tz:  # Tz-naive input.
-        i = i.tz_localize(tz)
-    else:  # Tz-aware input.
-        if floating:
-            i = i.tz_localize(None).tz_localize(tz)
-        else:
-            i = i.tz_convert(tz)
+#     # Do conversion.
+#     if not i.tz:  # Tz-naive input.
+#         i = i.tz_localize(tz)
+#     else:  # Tz-aware input.
+#         if floating:
+#             i = i.tz_localize(None).tz_localize(tz)
+#         else:
+#             i = i.tz_convert(tz)
 
-    # Set frequency, if possible.
-    if not i.freq:
-        if original_freq:
-            i.freq = original_freq
-        else:
-            i.freq = pd.infer_freq(i)
+#     # Set frequency, if possible.
+#     if not i.freq:
+#         if original_freq:
+#             i.freq = original_freq
+#         else:
+#             i.freq = pd.infer_freq(i)
 
-    return i
+#     return i
 
 
 def set_timezone(
@@ -246,8 +246,8 @@ def intersection(*indices: pd.DatetimeIndex) -> pd.DatetimeIndex:
             f"Indices must not have equal frequencies; got {distinct_freqs}."
         )
 
-    tznaive = sum(i.tz is None for i in indices)
-    if 0 < tznaive < len(indices):
+    tznaive = [i.tz is None for i in indices]
+    if any(tznaive) and not all(tznaive):
         raise ValueError(
             f"All indices must be either timezone-aware or timezone-naive; got {tznaive} naive from {len(indices)}."
         )

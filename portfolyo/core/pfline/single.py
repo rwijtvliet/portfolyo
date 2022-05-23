@@ -21,9 +21,21 @@ class SinglePfLine(PfLine):
     Parameters
     ----------
     data: Any
-        Generally: object with one or more attributes or items `w`, `q`, `r`, `p`; all
-        timeseries. Most commonly a DataFrame but may also be a dictionary or other
-        PfLine object.
+        Generally: object with one or more attributes or items ``w``, ``q``, ``r``, ``p``;
+        all timeseries. Most commonly a ``pandas.DataFrame`` or a dictionary of
+        ``pandas.Series``, but may also be e.g. another PfLine object. Any additional
+        attributes (e.g., additional columns) are ignored.
+
+    Returns
+    -------
+    SinglePfLine
+
+    Notes
+    -----
+    * If the timeseries in ``data`` do/does not have a ``pint`` data type, the standard
+    units are assumed (MW, MWh, Eur, Eur/MWh).
+    * If the timeseries in ``data`` do/does have a ``pint`` data type, they are converted
+    into the standard units.
     """
 
     def __new__(cls, data):
@@ -78,7 +90,7 @@ class SinglePfLine(PfLine):
     @property
     def kind(self) -> str:
         if "q" in self._df:
-            return "all" if ("r" in self._df or "p" in self._df) else "q"
+            return "all" if "r" in self._df else "q"
         if "p" in self._df:
             return "p"
         raise ValueError(f"Unexpected value for ._df: {self._df}.")
@@ -105,7 +117,7 @@ class SinglePfLine(PfLine):
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return self._df.equals(other._df)
+        return self._df.pint.to_base_units().equals(other._df.pint.to_base_units())
 
     def __bool__(self) -> bool:
         # False if all relevant timeseries are 0.
@@ -121,7 +133,7 @@ class SinglePfLine(PfLine):
 
     # Additional methods, unique to this class.
 
-    # (none)
+    # (no additional methods)
 
 
 class _LocIndexer:

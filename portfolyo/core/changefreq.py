@@ -1,7 +1,8 @@
 """Functions to change frequency of a pandas dataframe."""
 
-from ..tools.stamps import FREQUENCIES, freq_up_or_down
+from ..tools import stamps
 from pandas.core.frame import NDFrame
+import pandas as pd
 
 
 def _general(fr: NDFrame, freq: str = "MS", is_summable: bool = True):
@@ -14,16 +15,16 @@ def _general(fr: NDFrame, freq: str = "MS", is_summable: bool = True):
     # Some resampling labels are right-bound by default. Change to make left-bound.
     if freq in ["M", "A", "Q"]:
         freq += "S"
-    if freq not in FREQUENCIES:
+    if freq not in stamps.FREQUENCIES:
         raise ValueError(
-            f"Parameter ``freq`` must be one of {','.join(FREQUENCIES)}; got {freq}."
+            f"Parameter ``freq`` must be one of {','.join(stamps.FREQUENCIES)}; got {freq}."
         )
 
     # Empty frame.
     if len(fr) == 0:
         return fr.resample(freq).mean()  # empty frame.
 
-    up_or_down = freq_up_or_down(fr.index.freq, freq)
+    up_or_down = stamps.freq_up_or_down(fr.index.freq, freq)
 
     # Nothing more needed; portfolio already in desired frequency.
     if up_or_down == 0:
@@ -48,19 +49,29 @@ def _general(fr: NDFrame, freq: str = "MS", is_summable: bool = True):
             summable = fr.mul(fr.index.duration, axis=0)
             summable2 = _general(summable, freq, True)
             fr2 = summable2.div(summable2.index.duration, axis=0)
-            return fr2
+            return fr2 if isinstance(fr2, pd.DataFrame) else fr2.rename(fr.name)
 
     # Must upsample.
     else:
         if not is_summable:
             # Upsampling is easiest for averagable frames: simply duplicate parent value.
-            # Workaround to avoid missing final values:
-            fr = fr.copy()
+            # We cannot simply `.resample()`, because in that case the final value is not
+            # duplicated. We add a dummy value, which we eventually remove again.
+
+            # (original code to add additional row, does not work if SERIES and unit-aware. Maybe with future release of pint_pandas?)
+            # fr = fr.copy()
+            # if isinstance(fr, pd.Series):
+            #     fr.loc[fr.index.ts_right[-1]] = None
+            # else:
+            #     fr.loc[fr.index.ts_right[-1], :] = None
+
+            if isinstance(fr, pd.Series):
+                # Workaround: turn into dataframe, change frequency, and turn back into series.
+                return _general(pd.DataFrame(fr), freq, is_summable).iloc[:, 0]
+
+            fr = fr.copy()  # don't change incoming dataframe
             # first, add additional row...
-            try:  # fails if series
-                fr.loc[fr.index.ts_right[-1], :] = None
-            except TypeError:
-                fr.loc[fr.index.ts_right[-1]] = None
+            fr.loc[fr.index.ts_right[-1], :] = None
             # ... then do upsampling ...
             fr2 = fr.resample(freq).asfreq().ffill()  # duplicate value
             # ... and then remove final row.
@@ -70,7 +81,7 @@ def _general(fr: NDFrame, freq: str = "MS", is_summable: bool = True):
             avgable = fr.div(fr.index.duration, axis=0)
             avgable2 = _general(avgable, freq, False)
             fr2 = avgable2.mul(avgable2.index.duration, axis=0)
-            return fr2
+            return fr2 if isinstance(fr2, pd.DataFrame) else fr2.rename(fr.name)
 
 
 def summable(fr: NDFrame, freq: str = "MS") -> NDFrame:

@@ -141,8 +141,7 @@ class MultiPfLine(PfLine):
     def _qp_children(self) -> Optional[Dict]:
         """Helper method that returns the child providing the volume and the one providing the price."""
         qp_children = {child.kind: child for child in self._children.values()}
-        if "q" in qp_children and "p" in qp_children:
-            return qp_children
+        return qp_children if "q" in qp_children and "p" in qp_children else None
 
 
 class _LocIndexer:

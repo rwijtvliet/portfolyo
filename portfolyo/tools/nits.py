@@ -1,4 +1,4 @@
-"""Module with tools for dealing with units ("'nits" to keep "units" available in 
+"""Module with tools for dealing with units ("'nits" to keep "units" available in
 name space.) """
 
 from pathlib import Path
@@ -82,6 +82,7 @@ def set_unit(s: pd.Series, unit: Union[pint.Unit, str]) -> pd.Series:
     ----------
     s : pd.Series
     unit : Union[pint.Unit, str]
+        If None, remove the unit.
 
     Returns
     -------
@@ -111,7 +112,7 @@ def set_units(
     pd.DataFrame
         Same as input dataframe, but with specified units.
     """
-    df = df.copy()  # don't change dataframe
+    df = df.copy()  # don't change incoming dataframe
     for name, unit in units.items():
         df[name] = set_unit(df[name], unit)
     return df

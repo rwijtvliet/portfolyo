@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from . import multi
 from .base import PfLine
+from ...tools import stamps
 
 from typing import Counter, Mapping, Dict
 
@@ -76,10 +77,7 @@ def _intersect_indices(children: Dict[str, PfLine]) -> Dict[str, PfLine]:
         raise ValueError("PfLines have unequal frequency; resample first.")
 
     # Check/fix indices.
-
-    idx = indices[0]
-    for idx2 in indices[1:]:
-        idx = idx.intersection(idx2)
+    idx = stamps.intersection(*indices)  # workaround for pandas intersection (#46702)
     if len(idx) == 0:
         raise ValueError("PfLine indices describe non-overlapping periods.")
 

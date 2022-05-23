@@ -5,7 +5,7 @@ from __future__ import annotations
 from . import base
 from ...tools import frames, nits, stamps
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 import pandas as pd
 import numpy as np
 
@@ -18,18 +18,29 @@ def make_dataframe(data) -> pd.DataFrame:
     return df
 
 
-def _data_to_wqpr_series(data) -> pd.DataFrame:
-    """Turn data into 'standardized series'."""
+def _data_to_wqpr_series(data) -> Tuple[pd.Series]:
+    """Turn data into 'standardized series' for w, q, p, r, with standardized units.
+    Explicitly considers 4 input data types: PfLine, DataFrame, Series, Dict."""
 
-    # Turn data into object accessible by name.
-    if not isinstance(data, base.PfLine):
-        # Turn into dataframe...
-        if isinstance(data, Dict):
-            data = _dict_to_dataframe(data)
-        else:
-            data = pd.DataFrame(data)
-        # ... in certain standard form.
-        data = frames.set_ts_index(data)
+    # Shortcut if PfLine is passed.
+    if isinstance(data, base.PfLine):
+        # Works for SinglePfLine and MultiPfLine.
+        if data.kind == "q":
+            return None, data.q, None, None
+        elif data.kind == "p":
+            return None, None, data.p, None
+        else:  # data.kind == 'all'
+            return None, data.q, None, data.r
+
+    # Otherwise, turn into dataframe...
+    elif isinstance(data, Dict):
+        data = _dict_to_dataframe(data)
+
+    elif not isinstance(data, pd.DataFrame):  # e.g. if series
+        data = pd.DataFrame(data)
+
+    # ...in certain standard form.
+    data = frames.set_ts_index(data)
 
     # Get timeseries and add unit.
     def series_or_none(obj, col):  # remove series that are passed but only contain na

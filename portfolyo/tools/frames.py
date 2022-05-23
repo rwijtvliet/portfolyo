@@ -1,80 +1,227 @@
 """Module with tools to modify and standardize dataframes."""
 
 from . import stamps, zones
+
 from pandas.core.frame import NDFrame
 from typing import Iterable, Union, Any
 import pandas as pd
 import numpy as np
 import functools
 
-# TODO: rename 'standardize'
+
+"""
+========================
+Preprocessing input data
+========================
+
+``portfolyo`` mainly works with ``pandas series`` and ``pandas dataframe`` objects as
+input data. Let's say we have an object ``fr`` as input data, which may be either.
+``portfolyo`` expects and assumes ``fr`` to adhere to certain specifications,
+and depending on your data source, some cleanup or manipulation of the input data might
+be necessary.
+
+------------------------
+Left-bound DatetimeIndex
+------------------------
+The index of ``fr`` must be a ``pandas.DatetimeIndex``. Each timestamp in the index
+describes a *period* in time. (The reason a ``pandas.PeriodIndex`` is not used for
+this, is that these cannot handle timezones that use daylight-savings time.)
+
+The timestamps in the index must describe the *start* of the period they describe. E.g.,
+if we have hourly values, the timestamp with time '04:00' must describe the hour
+starting at 04:00 (i.e., 04:00-05:00) and not the hour ending at 04:00 (i.e.,
+03:00-04:00).
+
+These two criteria can be met by passing ``fr`` to the ``portfolyo.standardize_index``
+function. If the timestamps are right-bound, the frequency of the data must be known or
+be able to be inferred. If it is not (e.g. due to missing values), a guess is made from
+the median timedelta between consecutive timestamps.
+
+---------
+Frequency
+---------
+The index must have a frequency (``fr.index.freq``) set; it must be one of the ones in
+``portfolyo.FREQUENCIES``. The following abbreviations are used by ``pandas`` and
+throughout this package:
+* ``15T``: quarterhourly;
+* ``H``: hourly;
+* ``D``: daily;
+* ``MS``: monthly;
+* ``QS``: quarterly;
+* ``AS``: yearly.
+
+If the frequency is not set, and ``pandas.infer_freq(fr.index)`` returns ``None``, this
+is because of one or more of the following reasons:
+
+Too few datapoints
+------------------
+If there is only one timestamp in the index, e.g., '2020-01-01 0:00', it is impossible
+to know if this represents an hour, a day, or the entire year; ``pandas.infer_freq``
+needs at least 3 datapoints to infer the frequency. In this case, we can manually set
+the frequency with e.g. ``fr.index.freq = 'AS```.
+
+Gaps in data
+------------
+If the index has gaps - e.g., it has timestamps for April 1, April 2, April 3, and
+April 5, the frequency can also not be determined. In this case, April 4 needs to be
+inserted. If its value is not known, we can set in to ``numpy.nan`` and use the
+``portfolyo.fill_gaps()`` function to do a linear interpolation and replace the ``na``-
+values.
+
+Local timestamps
+----------------
+If the data:
+* applies to a timezone which does not have a fixed UTC-offset (e.g. if it observes
+daylight-savings time), and
+* contains hourly values (or shorter), and
+* has timestamps which are not timezone-aware (i.e., do not contain the UTC-offset),
+then there will be repeated or missing timestamps during a DST transition, and the
+frequency cannot be determined.
+
+E.g. in the 'Europe/Berlin' timezone, an hourly timeseries that is not timezone-aware
+will contain the timestamps '2020-03-29 00:00', '01:00', '03:00', ..., as well as
+'2020-10-25 00:00', '01:00', '02:00', '02:00', '03:00', ...
+
+In this case, the data must be localized, i.e., the timezone must be set to it. This can
+be done with the ``fr.tz_localize()`` method. Alternatively, we can pass any ``fr`` to
+the ``portfolyo.standardize_timezone()`` function to make sure it is always converted to
+the wanted timezone. Beware though, that this may involve lossy conversions, see ***
+Working with timezones***.
+"""
 
 
-def set_ts_index(
-    fr: NDFrame,
-    column: str = None,
-    bound: str = "left",
-    tz_in: str = None,
-    continuous: bool = True,
-) -> NDFrame:
-    """
-    Create and add a standardized, continuous timestamp index to a dataframe.
+def standardize_index(fr: NDFrame, column: str = None, bound: str = "left") -> NDFrame:
+    """Standardize the index of a series or dataframe.
 
     Parameters
     ----------
     fr : NDFrame
         Pandas series or dataframe.
     column : str, optional
-        Column to create the timestamp from. Used only if `fr` is DataFrame; ignored
+        Column to create the timestamp from. Used only if ``fr`` is DataFrame; ignored
         otherwise. Use existing index if none specified.
     bound : str, {'left' (default), 'right'}
         If 'left' ('right'), specifies that input timestamps are left-(right-)bound.
-    tz_in : str
-        Timezone to assume for input dataframe.
-        Only relevant for tz-naive input dataframes, that have the local time in a location
-        that has DST-transitions.
-    continuous : bool, optional (default: True)
-        If true, raise error if data has missing values (i.e., gaps).
 
     Returns
     -------
     NDFrame
-        Same type as `fr`, with left-bound timestamp index.
-        Column `column` (if applicable) is removed, and index renamed to 'ts_left'.
+        Same type as ``fr``, with left-bound timestamp index.
+        Column ``column`` (if applicable) is removed, and index renamed to 'ts_left'.
     """
-    # TODO: Move to documentation
-    # """
-    # Notes
-    # -----
-    # When only working with non-localized timestamps - meaning, the timezone is not
-    # relevant, and every day has 24h (there is no daylight-savings-time) - then ``tz_in``
-    # and ``tz_out`` must be set to None (= their default values).
-    # When working with localized timestamps, the input data may or may not be localized:
-    # - If the input data is localized, use the ``tz_out`` parameter to convert the time-
-    # stamps to the correct timezone. The ``tz_in`` parameter is disregarded.
-    # - If the input data is not localized, but rather contains local timestamps without
-    # timezone information, use the ``tz_in`` parameter to specify in which timezone they
-    # should be assumed to take place. If not specified, it is assumed that ``tz_in`` ==
-    # ``tz_out``.
-    # """
+    # Set index.
     if column and isinstance(fr, pd.DataFrame):
         fr = fr.set_index(column)
     else:
         fr = fr.copy()  # don't change passed-in fr
 
     # Make leftbound.
-
     i = pd.DatetimeIndex(fr.index)  # turn / try to turn into datetime
     if bound == "right":
         i = stamps.make_leftbound(i)
     i.name = "ts_left"
     fr.index = i
 
-    # Set Europe/Berlin timezone and set frequency.
-    fr = zones.force_tzaware(fr, "Europe/Berlin", tz_in=tz_in)
+    return fr
 
-    # Check frequency.
 
+def standardize_timezone(
+    fr: NDFrame,
+    force: str,
+    strict: bool = True,
+    tz: str = "Europe/Berlin",
+    floating: bool = True,
+) -> NDFrame:
+    """Standardize the timezone of a series or dataframe by changing index and/or
+    converting data.
+
+    Parameters
+    ----------
+    fr : NDFrame
+        Pandas series or dataframe.
+    force : {'aware', 'agnostic'}
+        Force ``fr`` to be timezone aware or timezone agnostic.
+    strict : bool, optional (default: True)
+        If True, raise ValueError if the frequency of the resulting frame cannot be
+        determined.
+    tz : str, optional (default: "Europe/Berlin")
+        The timezone in which to interpret non-localized values. If force == 'aware':
+        also the timezone to localize to.
+    floating : bool, optional (default: True)
+        If force == 'aware': how to convert to ``tz`` if ``fr`` has other timezone. Keep
+        local time (``floating`` == True) or keep universal time (``floating`` == False).
+        Ignored for force == 'agnostic'.
+
+    Returns
+    -------
+    NDFrame
+        Same type as ``fr``, with correct timezone.
+
+    Notes
+    -----
+    It is assumed that we are dealing with "time-averable" data, such as values in [MW]
+    or [Eur/MWh]. This is especially important when converting daily (and longer) values
+    between a tz-agnostic context and a tz-aware context with DST-transitions.
+
+    See also
+    --------
+    ``.force_tzaware``
+    ``.force_tzagnostic``
+    """
+    if force == "aware":
+        fr = zones.force_tzaware(fr, tz, floating=floating)
+    elif force == "agnostic" or force == "naive":
+        fr = zones.force_tzagnostic(fr, tz_in=tz)
+    else:
+        raise ValueError("Parameter ``force`` must be 'aware' or 'agnostic'.")
+
+    # After standardizing timezone, the frequency should be set.
+    return set_frequency(fr, strict=strict)
+
+
+def set_ts_index(
+    fr: NDFrame,
+    column: str = None,
+    bound: str = "left",
+    *,
+    continuous: bool = True,
+) -> NDFrame:
+    """
+    Create/add a standardized timestamp index to a dataframe.
+
+    Parameters
+    ----------
+    fr : NDFrame
+        Pandas series or dataframe.
+    column : str, optional
+        Column to create the timestamp from. Used only if ``fr`` is DataFrame; ignored
+        otherwise. Use existing index if none specified.
+    bound : str, {'left' (default), 'right'}
+        If 'left' ('right'), specifies that input timestamps are left-(right-)bound.
+    continuous : bool, optional (default: True)
+        If true, raise error if data has missing values (i.e., gaps).
+
+    Returns
+    -------
+    NDFrame
+        Same type as ``fr``, with left-bound timestamp index.
+        Column ``column`` (if applicable) is removed, and index renamed to 'ts_left'.
+    """
+
+    # Set index.
+    if column and isinstance(fr, pd.DataFrame):
+        fr = fr.set_index(column)
+    else:
+        fr = fr.copy()  # don't change passed-in fr
+
+    # Make leftbound.
+    i = pd.DatetimeIndex(fr.index)  # turn / try to turn into datetime
+    if bound == "right":
+        i = stamps.make_leftbound(i)
+    i.name = "ts_left"
+    fr.index = i
+
+    # Set and check frequency.
     if fr.index.freq is None:
         freq = stamps.guess_frequency((i[1:] - i[:-1]).median())
         fr2 = fr.resample(freq).asfreq()
@@ -97,75 +244,51 @@ def set_ts_index(
             )
 
     # Check boundaries.
-
     stamps.assert_boundary_ts(fr.index, fr.index.freq)
 
-    # if bound == "left":
-    #     pass
-    # elif bound.startswith("right"):
-    #     if bound == "right":
-    #         # At start of DST:
-    #         # . Rightbound timestamps (a) contain 3:00 but not 2:00, or (b) vice versa. Try both.
-    #         # . (Leftbound timestamps contain 3:00 but not 2:00.)
-    #         # At end of DST:
-    #         # . Rightbound timestamps contain two timestamps (a) 2:00 or (b) 3:00. Try both.
-    #         # . (Leftbound timestamps contain two timestamps 2:00.)
-    #         try:
-    #             return set_ts_index(fr, None, "right_a", tz_in)
-    #         except (NonExistentTimeError, AmbiguousTimeError):
-    #             return set_ts_index(fr, None, "right_b", tz_in)
-    #     minutes = (fr.index[1] - fr.index[0]).seconds / 60
-    #     if bound == "right_a":
-    #         fr.loc[fr.index[0] + pd.Timedelta(minutes=-minutes)] = np.nan
-    #         fr = pd.concat([fr.iloc[-1:], fr.iloc[:-1]]).shift(-1).dropna()
-    #     if bound == "right_b":
-    #         fr.index += pd.Timedelta(minutes=-minutes)
-    # else:
-    #     raise ValueError(
-    #         f"Parameter ``bound`` must be 'left' or 'right'; got '{bound}'."
-    #     )
-    # fr.index.name = "ts_left"
+    return fr
 
-    # # Set frequency.
 
-    # if fr.index.freq is None:
-    #     fr.index.freq = pd.infer_freq(fr.index)
-    # if fr.index.freq is None:
-    #     # (infer_freq does not always work, e.g. during summer-to-wintertime changeover)
-    #     tdelta = (fr.index[1:] - fr.index[:-1]).median()
-    #     if pd.Timedelta(hours=23) <= tdelta <= pd.Timedelta(hours=25):
-    #         freq = "D"
-    #     elif pd.Timedelta(days=27) <= tdelta <= pd.Timedelta(days=32):
-    #         freq = "MS"
-    #     elif pd.Timedelta(days=89) <= tdelta <= pd.Timedelta(days=93):
-    #         freq = "QS"
-    #     elif pd.Timedelta(days=364) <= tdelta <= pd.Timedelta(days=367):
-    #         freq = "AS"
-    #     else:
-    #         freq = tdelta
-    #     fr2 = fr.resample(freq).asfreq()
-    #     # If the new dataframe has additional rows, the original dataframe was not gapless.
-    #     if continuous and len(fr2) > len(fr):
-    #         missing = [i for i in fr2.index if i not in fr.index]
-    #         raise ValueError(
-    #             f"`fr` does not have continuous data; missing data for: {missing}."
-    #         )
-    #     fr = fr2
+def set_frequency(fr: NDFrame, wanted: str = None, strict: bool = False) -> NDFrame:
+    """Try to read, infer, and force frequency of frame's index.
 
-    # # Check if frequency all ok.
+    Parameters
+    ----------
+    fr : NDFrame
+        Pandas series or dataframe.
+    wanted : str, optional
+        Suggestion for the frequency to set, if it cannot be inferred.
+    strict : bool, optional (default: False)
+        If True, raise ValueError if a valid frequency is not found.
 
-    # if fr.index.freq is None:
-    #     raise ValueError("Cannot find a frequency in `fr`.")
-    # elif fr.index.freq not in stamps.FREQUENCIES:
-    #     for freq in ["MS", "QS"]:  # Edge case: month-/quarterly but starting != Jan.
-    #         if freq_up_or_down(fr.index.freq, freq) == 0:
-    #             fr.index.freq = freq
-    #             break
-    #     else:
-    #         raise ValueError(
-    #             f"Found unsupported frequency ({fr.index.freq}). Must be one of: {stamps.FREQUENCIES}."
-    #         )
-
+    Returns
+    -------
+    NDFrame
+        Same type as ``fr``, with, if possible, a valid value for ``fr.index.freq``.
+    """
+    # Find frequency.
+    fr = fr.copy()
+    if fr.index.freq:
+        pass
+    elif freq := pd.infer_freq(fr.index):
+        fr.index.freq = freq
+    elif wanted:
+        fr.index.freq = wanted
+    # Correct if necessary.
+    freq = fr.index.freq
+    if not freq and strict:  # No frequency found.
+        raise ValueError("The data does not seem to have a regular frequency.")
+    elif freq and freq not in stamps.FREQUENCIES:
+        # Edge case: month-/quarterly but starting != Jan.
+        if stamps.freq_up_or_down(freq, "AS") == 0:
+            fr.index.freq = "AS"
+        elif stamps.freq_up_or_down(freq, "QS") == 0:
+            fr.index.freq = "QS"
+        elif strict:
+            raise ValueError(
+                "The data has a non-allowed frequency. Must be one of "
+                f"{', '.join(stamps.FREQUENCIES)}; found '{freq}'."
+            )
     return fr
 
 

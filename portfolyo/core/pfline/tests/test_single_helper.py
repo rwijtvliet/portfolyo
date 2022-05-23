@@ -1,6 +1,6 @@
 from portfolyo import testing, dev
 from portfolyo.core.pfline import single_helper
-from portfolyo.tools.frames import set_ts_index
+from portfolyo.tools import frames
 from portfolyo.tools.nits import Q_
 from portfolyo.tools.stamps import FREQUENCIES
 import pandas as pd
@@ -56,6 +56,7 @@ def test_makedataframe_freqtz(freq, tz):
         )
 
 
+@pytest.mark.parametrize("inputtype", ["dict", "df"])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("freq", ["MS", "D"])
 @pytest.mark.parametrize(
@@ -78,22 +79,29 @@ def test_makedataframe_freqtz(freq, tz):
         "wqpr",
     ],
 )
-def test_makedataframe_consistency(tz, freq, columns):
+def test_makedataframe_consistency(tz, freq, columns, inputtype):
     """Test if conversions are done correctly and inconsistent data raises error."""
 
     i = dev.get_index(freq, tz)
     df = dev.get_dataframe(i, columns)
-    # dic = {key: df[key] for key in choice}
+    dic = {key: df[key] for key in columns}
 
     if columns in ["r", "wq", "wqp", "wqr", "wpr", "qpr", "wqpr"]:  # error cases
         with pytest.raises(ValueError):
-            result = single_helper.make_dataframe(df)
-        # with pytest.raises(ValueError):
-        #     result = single_helper.make_dataframe(dic)
+            if inputtype == "dict":
+                _ = single_helper.make_dataframe(dic)
+            else:
+                _ = single_helper.make_dataframe(df)
         return
 
-    result = single_helper.make_dataframe(df)
-    df = set_ts_index(df)
+    # Actual result.
+    if inputtype == "dict":
+        result = single_helper.make_dataframe(dic)
+    else:
+        result = single_helper.make_dataframe(df)
+
+    # Expected result.
+    df = frames.set_ts_index(df)
 
     if columns == "p":  # kind == "p"
         expected = df[["p"]]

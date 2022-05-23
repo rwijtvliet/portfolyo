@@ -1,5 +1,6 @@
 from portfolyo import testing, dev
 from portfolyo.core.pfline import multi_helper
+from portfolyo.tools import stamps
 import pandas as pd
 import pytest
 
@@ -17,7 +18,7 @@ def test_makedataframe_consistency(freq, kind1, kind2, kind3):
     for k, kind in enumerate([kind1, kind2, kind3]):
         if kind is not None:
             kinds.append(kind)
-            dic[f"part_{k}"].append(dev.get_singlepfline(i, kind))
+            dic[f"part_{k}"] = dev.get_singlepfline(i, kind)
 
     if len(dic) == 1:
         pass
@@ -85,7 +86,7 @@ def test_pfline_unequaltimeperiods(freq, overlap):
     spfl2 = dev.get_singlepfline(i2, "all")
     dic = {"PartA": spfl1, "PartB": spfl2}
 
-    intersection = spfl1.index.intersection(spfl2.index)
+    intersection = stamps.intersection(spfl1.index, spfl2.index)
 
     if not overlap:
         # raise ValueError("The two portfoliolines do not have anything in common.")

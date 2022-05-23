@@ -6,7 +6,9 @@ from . import base, single, multi
 from ...tools.nits import Q_, unit2name
 
 from typing import TYPE_CHECKING, Union
+from pandas.core.frame import NDFrame
 import pandas as pd
+import warnings
 
 if TYPE_CHECKING:  # needed to avoid circular imports
     from .base import PfLine
@@ -78,9 +80,10 @@ def _prep_data(value, ref: PfLine) -> Union[pd.Series, PfLine]:
 
     # Series.
     if isinstance(value, pd.Series):
+        # TODO: let PfLine.__init__ handle data
+
         if not hasattr(value, "pint"):  # has no unit
             return value
-
         try:
             name = unit2name(value.pint.units)
         except ValueError:
@@ -90,6 +93,10 @@ def _prep_data(value, ref: PfLine) -> Union[pd.Series, PfLine]:
             return value  # has known unit, but none from which PfLine can be made
 
         return single.SinglePfLine({name: value})
+
+    # DataFrame.
+    if isinstance(value, pd.DataFrame):
+        return single.SinglePfLine(value)  # try to turn into useful form.
 
     # Just a single value.
     if isinstance(value, int) or isinstance(value, float):
@@ -153,10 +160,13 @@ def _multiply_pflines(pfl1: PfLine, pfl2: PfLine):
 
 def _add_pfline_and_dimensionlessseries(pfl: PfLine, s: pd.Series):
     """Add pfline and dimensionless series."""
-    if not isinstance(pfl, single.SinglePfLine) or pfl.kind != "p":
+    if pfl.kind != "p":
         raise NotImplementedError(
-            "Value(s) without unit can only be added to a single portfolio line with price information."
+            "Cannot add value(s) without unit to portfolio line with kind 'q' or 'all'."
         )
+    if isinstance(pfl, multi.MultiPfLine):
+        warnings.warn("Multi-PfLine is flattened before adding value without unit.")
+        pfl = pfl.flatten()
 
     # Cast to price, keep only common rows, and resample to keep freq (possibly re-adds gaps in middle).
     df = pd.DataFrame({"p": pfl.p + s.astype("pint[Eur/MWh]")})
@@ -210,7 +220,7 @@ class PfLineArithmatic:
         return single.SinglePfLine(df)
 
     def __add__(self: PfLine, other) -> PfLine:
-        if not other:
+        if not isinstance(other, NDFrame) and not other:
             return self
 
         other = _prep_data(other, self)  # other is now a PfLine or Series.
@@ -230,7 +240,13 @@ class PfLineArithmatic:
     __radd__ = __add__
 
     def __sub__(self: PfLine, other):
-        return self + -other if other else self  # defer to mul and neg
+        if not isinstance(other, NDFrame) and not other:
+            return self
+        # return self + -other  # defer to add and neg -> not implemented in pint
+        elif isinstance(other, base.PfLine):
+            return self + -other
+        else:
+            return self + -1 * other  # workaround because neg not implemented in pint
 
     def __rsub__(self: PfLine, other):
         return other + -self  # defer to mul and neg

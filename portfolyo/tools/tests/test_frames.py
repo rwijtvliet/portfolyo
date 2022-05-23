@@ -9,11 +9,11 @@ import pytest
 
 
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("tz_in", ["Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("do_localize", [True, False])
+@pytest.mark.parametrize("tz", ["Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize("tz_aware", [True, False])
 @pytest.mark.parametrize("bound", ["right", "left"])
 @pytest.mark.parametrize(
-    ("values", "i"),
+    ("values", "i", "dst_transition"),
     [
         (
             np.random.random(96),
@@ -24,6 +24,7 @@ import pytest
                 inclusive="left",
                 tz="Europe/Berlin",
             ),
+            False,
         ),
         (  # Check for days incl WT->ST.
             np.random.random(92),
@@ -34,6 +35,7 @@ import pytest
                 inclusive="left",
                 tz="Europe/Berlin",
             ),
+            True,
         ),
         (  # Check for days incl ST->WT.
             np.random.random(100),
@@ -44,57 +46,57 @@ import pytest
                 inclusive="left",
                 tz="Europe/Berlin",
             ),
+            True,
         ),
     ],
 )
-def test_settsindex_1(
+def test_settsindex_15T(
     values: Iterable,
     i: pd.DatetimeIndex,
     bound: str,
-    do_localize: bool,
-    tz_in: str,
+    tz_aware: bool,
+    dst_transition: bool,
+    tz: str,
     series_or_df: str,
 ):
-    """Test if dataframes and series are correctly standardized."""
-    # Prepare input frame.
-    if series_or_df == "df":
-        expected = pd.DataFrame({"a": values}, index=i.rename("ts_left"))
-    else:
-        expected = pd.Series(values, i.rename("ts_left"))
-
-    i = i.tz_convert(tz_in)
-    if not do_localize:
+    """Test if index of dataframes and series is correctly standardized for quarterhour
+    timeseries with/without DST."""
+    # Prepare index.
+    i = i.tz_convert(tz).rename("ts_left")
+    if not tz_aware:
         i = i.tz_localize(None)
-    else:
-        # If supplied timezone is not 'Europe/Berlin', this value is contradictory to
-        # what is in the index. Test if timezone in Index is given preference.
-        tz_in = "Europe/Berlin"
+    i.freq = pd.infer_freq(i)
 
+    # Prepare expected output frame.
+    if series_or_df == "df":
+        expected = pd.DataFrame({"a": values}, i)
+    else:
+        expected = pd.Series(values, i)
+
+    # Prepare expected input frame.
+    i = i.rename("the_time_stamp")
     if bound == "right":
         i = i + pd.Timedelta("15T")
 
+    # Prepare input frame, calculate result and compared to expected.
+    continuous = not dst_transition or tz != "Europe/Berlin" or tz_aware
+    kwargs = {"continuous": continuous, "bound": bound}
     if series_or_df == "df":
-        # Using expected frame: should stay the same.
-        pd.testing.assert_frame_equal(frames.set_ts_index(expected), expected)
-
-        # Dataframe with index.
-        result = frames.set_ts_index(
-            pd.DataFrame({"a": values}, i), bound=bound, tz_in=tz_in
-        )
+        # 1: Using expected frame: should stay the same.
+        result = frames.set_ts_index(expected, continuous=continuous)
         pd.testing.assert_frame_equal(result, expected)
-
-        # Dataframe with column that must become index.
-        result = frames.set_ts_index(
-            pd.DataFrame({"a": values, "ts": i}), "ts", bound, tz_in
-        )
+        # 2: Dataframe with index.
+        result = frames.set_ts_index(pd.DataFrame({"a": values}, i), **kwargs)
         pd.testing.assert_frame_equal(result, expected)
-
+        # 3: Dataframe with column that must become index.
+        result = frames.set_ts_index(pd.DataFrame({"a": values, "t": i}), "t", **kwargs)
+        pd.testing.assert_frame_equal(result, expected)
     else:
-        # Using expected frame: should stay the same.
-        pd.testing.assert_series_equal(frames.set_ts_index(expected), expected)
-
-        # Series.
-        result = frames.set_ts_index(pd.Series(values, i), bound=bound, tz_in=tz_in)
+        # 1: Using expected frame: should stay the same.
+        result = frames.set_ts_index(expected, continuous=continuous)
+        pd.testing.assert_series_equal(result, expected)
+        # 2: Series.
+        result = frames.set_ts_index(pd.Series(values, i), **kwargs)
         pd.testing.assert_series_equal(result, expected)
 
 
