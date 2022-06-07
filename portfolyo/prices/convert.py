@@ -16,6 +16,7 @@ from ..core import changefreq
 from ..tools.types import Value, Stamp
 from ..tools.stamps import freq_up_or_down
 from ..tools.frames import trim_frame
+from ..tools import nits
 import pandas as pd
 import numpy as np
 import warnings
@@ -230,7 +231,7 @@ def tseries2singlebpo(s: pd.Series, prefix: str = "") -> pd.Series:
 
     # Handle possible units.
     if units is not None:
-        sout = sout.astype(f"pint[{units}]")
+        sout = sout.astype(nits.pintunit(units))
     return sout
 
 
@@ -298,7 +299,7 @@ def tseries2bpoframe(s: pd.Series, freq: str = "MS", prefix: str = "") -> pd.Dat
 
     # Handle possible units.
     if units is not None:
-        sout = sout.astype(f"pint[{units}]")
+        sout = sout.astype(nits.pintunit(units))
     return sout.unstack()
 
 
@@ -423,7 +424,7 @@ def tseries2tseries(s: pd.Series, freq: str = "MS") -> pd.Series:
 
     # Handle possible units.
     if units is not None:
-        sout = sout.astype(f"pint[{units}]")
+        sout = sout.astype(nits.pintunit(units))
     return sout
 
 

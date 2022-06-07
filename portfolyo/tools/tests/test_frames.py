@@ -1,4 +1,3 @@
-from typing import Iterable
 from portfolyo import dev, testing
 from portfolyo.tools import frames
 from numpy import nan
@@ -9,102 +8,96 @@ import pytest
 
 
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("tz", ["Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("tz_aware", [True, False])
 @pytest.mark.parametrize("bound", ["right", "left"])
 @pytest.mark.parametrize(
-    ("values", "i", "dst_transition"),
-    [
-        (
-            np.random.random(96),
-            pd.date_range(
-                "2020-03-01",
-                "2020-03-02",
-                freq="15T",
-                inclusive="left",
-                tz="Europe/Berlin",
-            ),
-            False,
-        ),
-        (  # Check for days incl WT->ST.
-            np.random.random(92),
-            pd.date_range(
-                "2020-03-29",
-                "2020-03-30",
-                freq="15T",
-                inclusive="left",
-                tz="Europe/Berlin",
-            ),
-            True,
-        ),
-        (  # Check for days incl ST->WT.
-            np.random.random(100),
-            pd.date_range(
-                "2020-10-25",
-                "2020-10-26",
-                freq="15T",
-                inclusive="left",
-                tz="Europe/Berlin",
-            ),
-            True,
-        ),
-    ],
+    ("in_vals_num_specialconditions", "start"),  # normal, WT->ST, ST->WT
+    [(96, "2020-03-01"), (92, "2020-03-29"), (100, "2020-10-25")],
 )
-def test_settsindex_15T(
-    values: Iterable,
-    i: pd.DatetimeIndex,
+@pytest.mark.parametrize("in_aware", [True, False])
+@pytest.mark.parametrize("in_tz", ["Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize("force", ["agnostic", "aware"])
+@pytest.mark.parametrize("freq", ["15T", "D"])
+def test_standardize(
+    in_vals_num_specialconditions: int,
+    start: str,
     bound: str,
-    tz_aware: bool,
-    dst_transition: bool,
-    tz: str,
+    in_aware: bool,
+    in_tz: str,
     series_or_df: str,
+    force: str,
+    freq: str,
 ):
-    """Test if index of dataframes and series is correctly standardized for quarterhour
-    timeseries with/without DST."""
-    # Prepare index.
-    i = i.tz_convert(tz).rename("ts_left")
-    if not tz_aware:
-        i = i.tz_localize(None)
-    i.freq = pd.infer_freq(i)
+    """Test if series and dataframes are correctly standardized to tz-aware, for
+    quarterhour timeseries with/without DST."""
+
+    if not in_aware and in_tz != "Europe/Berlin":
+        return  # cannot convert tz-naive fr to different timezone
+
+    if freq == "D":
+        in_vals_num = 200
+    elif force == "agnostic" and in_tz != "Europe/Berlin":
+        in_vals_num = 96
+    else:
+        in_vals_num = in_vals_num_specialconditions
+    in_vals = np.random.random(in_vals_num)
 
     # Prepare expected output frame.
+    out_tz = "Europe/Berlin" if force == "aware" else None
+    if force == "aware" or freq == "D":
+        out_vals = in_vals
+    else:  # always return 96 values
+        a, b = (12, -84) if in_vals_num_specialconditions == 100 else (8, -88)
+        out_vals = [*in_vals[:a], *in_vals[b:]]
+    iout = pd.date_range(start, freq=freq, periods=len(out_vals), tz=out_tz)
+    expected = pd.Series(out_vals, iout.rename("ts_left"))
     if series_or_df == "df":
-        expected = pd.DataFrame({"a": values}, i)
-    else:
-        expected = pd.Series(values, i)
+        expected = pd.DataFrame({"a": expected})
 
-    # Prepare expected input frame.
-    i = i.rename("the_time_stamp")
+    # Prepare input frame.
+    if force == "aware":
+        out_tz = "Europe/Berlin"
+    else:
+        out_tz = in_tz
+    iin = pd.date_range(start, freq=freq, periods=len(in_vals), tz=out_tz)
+    if out_tz != in_tz and freq == "D":
+        return  # cannot test because not at day boundary.
+    iin = iin.tz_convert(in_tz).rename("the_time_stamp")
+    if not in_aware:
+        iin = iin.tz_localize(None)
     if bound == "right":
-        i = i + pd.Timedelta("15T")
+        td = pd.Timedelta(hours=24 if freq == "D" else 0.25)
+        iin = pd.DatetimeIndex([*iin[1:], iin[-1] + td])
+    kw = {"bound": bound, "floating": False, "tz": out_tz}
 
-    # Prepare input frame, calculate result and compared to expected.
-    continuous = not dst_transition or tz != "Europe/Berlin" or tz_aware
-    kwargs = {"continuous": continuous, "bound": bound}
-    if series_or_df == "df":
+    # Do actual tests.
+    if isinstance(expected, pd.Series):
         # 1: Using expected frame: should stay the same.
-        result = frames.set_ts_index(expected, continuous=continuous)
-        pd.testing.assert_frame_equal(result, expected)
-        # 2: Dataframe with index.
-        result = frames.set_ts_index(pd.DataFrame({"a": values}, i), **kwargs)
-        pd.testing.assert_frame_equal(result, expected)
-        # 3: Dataframe with column that must become index.
-        result = frames.set_ts_index(pd.DataFrame({"a": values, "t": i}), "t", **kwargs)
-        pd.testing.assert_frame_equal(result, expected)
-    else:
-        # 1: Using expected frame: should stay the same.
-        result = frames.set_ts_index(expected, continuous=continuous)
+        result = frames.standardize(expected, force)
         pd.testing.assert_series_equal(result, expected)
         # 2: Series.
-        result = frames.set_ts_index(pd.Series(values, i), **kwargs)
+        result = frames.standardize(pd.Series(in_vals, iin), force, **kw)
         pd.testing.assert_series_equal(result, expected)
+    else:
+        # 1: Using expected frame: should stay the same.
+        result = frames.standardize(expected, force)
+        pd.testing.assert_frame_equal(result, expected)
+        # 2: Dataframe with index.
+        result = frames.standardize(pd.DataFrame({"a": in_vals}, iin), force, **kw)
+        pd.testing.assert_frame_equal(result, expected)
+        # 3: Dataframe with column that must become index.
+        result = frames.standardize(
+            pd.DataFrame({"a": in_vals, "t": iin}), force, index_col="t", **kw
+        )
+        pd.testing.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("removesome", [0, 1, 2])  # 0=none, 1=from end, 2=from middle
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize("floating", [True, False])
+@pytest.mark.parametrize("bound", ["left", "right"])
 @pytest.mark.parametrize("freq", [*pf.FREQUENCIES, "Q", "30T", "M", "AS-FEB"])
-def test_settsindex_2(freq, tz, removesome, series_or_df: str):
+def test_standardizeawere_error(freq, tz, removesome, floating, series_or_df, bound):
     """Test raising errors on incorrect frequencies or indices with gaps."""
 
     must_raise = False
@@ -112,22 +105,23 @@ def test_settsindex_2(freq, tz, removesome, series_or_df: str):
     # Get index.
     while True:
         i = dev.get_index(freq, tz)
-        if len(i) > 8:
+        if len(i) > 10:
             break
     # If no timezone specified and below-daily values, the created index will have too few/many datapoints.
     if not tz and pf.freq_up_or_down(freq, "D") > 1:
         return  # don't check this edge case
 
-    if tz == "Asia/Kolkata" and pf.freq_shortest(freq, "H") == "H":
+    if tz == "Asia/Kolkata" and pf.freq_shortest(freq, "H") == "H" and not floating:
         # Kolkata and Berlin timezone only share 15T-boundaries. Therefore, any other
         # frequency should raise an error.
         must_raise = True
 
-    for _ in range(1, 3):  # remove 1 or 2 values
-        if removesome == 1:
-            i = i.delete(np.random.choice([0, len(i) - 1]))
-        elif removesome == 2:
-            i = i.delete(np.random.randint(1, len(i) - 1))
+    # remove timestamp from index.
+    if removesome == 1:  # remove one from end or start
+        i = i.delete(np.random.choice([0, len(i) - 1]))
+    elif removesome == 2:  # remove max 3 from middle
+        i = i.delete(np.random.randint(2, len(i) - 2, 3))
+        must_raise = True
 
     # Add values.
     if series_or_df == "series":
@@ -136,12 +130,13 @@ def test_settsindex_2(freq, tz, removesome, series_or_df: str):
         fr = dev.get_dataframe(i)
 
     # See if error is raised.
-    if removesome == 2 or freq not in pf.FREQUENCIES or must_raise:
+    if freq not in pf.FREQUENCIES or must_raise:
         with pytest.raises(ValueError):
-            frames.set_ts_index(fr, continuous=True)
+            _ = frames.standardize(fr, "aware", bound, floating=floating)
         return
 
-    assert frames.set_ts_index(fr, tz_in="Europe/Berlin").index.freq == freq
+    result = frames.standardize(fr, "aware", bound, floating=floating)
+    assert result.index.freq == freq
 
 
 @pytest.mark.parametrize(

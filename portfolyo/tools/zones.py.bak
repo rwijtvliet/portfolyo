@@ -1,7 +1,9 @@
 """Tools to deal with timezones."""
 
-from . import frames, stamps
+from pytz import AmbiguousTimeError, NonExistentTimeError
 import pytz
+from . import frames, stamps
+from typing import Union
 from pandas.core.frame import NDFrame
 import pandas as pd
 
@@ -60,11 +62,11 @@ def force_tzaware(fr: NDFrame, tz: str, *, floating: bool = True) -> NDFrame:
     Parameters
     ----------
     fr : NDFrame
-        Pandas Series or Dataframe with tz-aware or (standardized) tz-agnostic index.
+        pandas Series or Dataframe
     tz : str
-        Target timezone.
+        target timezone
     floating : bool, optional (default: True)
-        Ignored if ``fr`` is tz-agnostic. How to handle conversion to *another*
+        Ignored if ``fr`` is not tz-aware. How to handle conversion to *another*
         timezone.
         - True: move timestamp on universal time axis to same local time in target
           timezone.
@@ -84,109 +86,109 @@ def force_tzaware(fr: NDFrame, tz: str, *, floating: bool = True) -> NDFrame:
 
     Notes
     -----
-    The frequency of ``fr``'s index must be set (or inferrable). Common reasons why this
-    is not possible:
-    * Timestamps are missing from the index; add them with ``fr.resample().asfreq()``
-    * The index is not tz-aware but implies a certain timezone; localize it with
-      ``fr.tz_localize()``.
+    If ``fr`` is not tz-aware, there are two accepted forms for its index:
+    - The index may be the local time in the timezone ``tz``. In that case, if e.g.
+    'Europe/Berlin', the index is missing the 2:00 timestamp on the last Sunday in March
+    (if it has hourly values).
+    - The index may be 'standardized', i.e., having exactly 24h per day and no DST-
+    transitions.
 
     It is assumed that we are dealing with "time-averable" data, such as values in [MW]
     or [Eur/MWh]. This is especially important when converting daily (and longer) values
     between a tz-agnostic context and a tz-aware context with DST-transitions; see the
     first example:
     * Daily values: 10 [MW] on 2020-10-25 (which has 24h in a standardized context) is
-      converted into 10 [MW] on 2020-10-25 in the Europe/Berlin timezone (which has
-      25h). Note that this conversion is probably not what we want if we have values in
-      units of [MWh] or [Eur].
+    converted into 10 [MW] on 2020-10-25 in the Europe/Berlin timezone (which has 25h).
+    Note that this conversion is probably not what we want if we have values in [MWh].
     * Hourly values: a value of 4 [MW] on 2020-10-25 02:00-03:00 (standardized) is
-      duplicated to TWO values of 4 [MW] each in the Europe/Berlin timezone. Note that
-      this conversion is probably what we want, regardless of the unit.
+    duplicated to TWO values of 4 [MW] each in the Europe/Berlin timezone. Note that
+    this conversion is probably what we want, regardless of the unit.
     """
 
     if not tz:
         raise ValueError(
-            "No timezone was specified. To convert to standardized timezone-agnostic frame, use ``force_tzagnostic`` instead."
+            "No timezone was specified. To convert to standardized timezone-agnostic "
+            "frame, use ``force_tzagnostic`` instead."
         )
 
     # Copy, try to set freq, and store original attributes.
     fr = frames.set_frequency(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
-    if not freq_input:
-        raise ValueError(
-            "A frequency could not be determined for this data. Localize the index (with ``fr.tz_localize``) or add missing datapoints (with ``fr.resample().asfreq()``), or both."
-        )
-
     # Do conversion.
-    if tz_input:  # input is tz-aware but maybe not in the correct timezone
+    if tz_input:  # input is tz-aware
         fr_out = _A_to_A(fr, tz=tz, floating=floating)
 
-    else:  # input is standardized tz-agnostic
-        fr_out = _B_to_A(fr, tz=tz)
+    else:  # input is tz-naive and may be standardized
+
+        try:
+            fr_out = _C_to_A(fr, tz=tz)
+        except AmbiguousTimeError:
+            fr_out = _B_to_A(fr, tz=tz)
 
     # Return: set frequency, and if succesful, check if all timestamps are valid for it.
     fr_out = frames.set_frequency(fr_out, freq_input)
-    stamps.assert_boundary_ts(fr_out.index, freq_input)
+    if freq := fr_out.index.freq:
+        stamps.assert_boundary_ts(fr_out.index, freq)
     return fr_out
 
 
-def force_tzagnostic(fr: NDFrame) -> NDFrame:
+def force_tzagnostic(fr: NDFrame, tz: Union[str, None] = None) -> NDFrame:
     """Turn a frame (series or dataframe) into timezone-agnostic frame.
 
     Parameters
     ----------
     fr : NDFrame
-        Pandas Series or Dataframe with tz-aware or (standardized) tz-agnostic index.
+        pandas Series or Dataframe
+    tz : Union[str, None], optional (default: None)
+        The timezone in which the timestamps in the index of ``fr`` must be interpreted.
+        Ignored for tz-aware ``fr``. Also ignored if ``fr`` seems already standardized.
+        - str: if e.g. 'Europe/Berlin', the index should be missing the 2:00 timestamp
+          on the last Sunday in March (if it has hourly values) and is it is assumed
+          that that Sunday is only 23h long (if it has daily values).
+        - None: index is already "standardized", i.e., does not descibre a timezone with
+          DST-transitions.
 
     Returns
     -------
     NDFrame
-        With standardize tz-agnostic index, i.e., 24h in each day and no DST transitions.
+        With tz-agnostic index, i.e., 24h in each day and no DST transitions.
 
     Notes
     -----
-    The frequency of ``fr``'s index must be set (or inferrable). Common reasons why this
-    is not possible:
-    * Timestamps are missing from the index; add them with ``fr.resample().asfreq()``
-    * The index is not tz-aware but implies a certain timezone; localize it with
-      ``fr.tz_localize()``.
-
     It is assumed that we are dealing with "time-averable" data, such as values in [MW]
     or [Eur/MWh]. This is especially important when converting daily (and longer) values
     between a tz-agnostic context and a tz-aware context with DST-transitions; see the
     first example:
     * Daily values: 10 [MW] on 2020-10-25 (which has 24h in a standardized context) is
-      converted into 10 [MW] on 2020-10-25 in the Europe/Berlin timezone (which has
-      25h). Note that this conversion is probably not what we want if we have values in
-      units of [MWh] or [Eur].
+    converted into 10 [MW] on 2020-10-25 in the Europe/Berlin timezone (which has 25h).
+    Note that this conversion is probably not what we want if we have values in [MWh].
     * Hourly values: a value of 4 [MW] on 2020-10-25 02:00-03:00 (standardized) is
-      duplicated to TWO values of 4 [MW] each in the Europe/Berlin timezone. Note that
-      this conversion is probably what we want, regardless of the unit.
+    duplicated to TWO values of 4 [MW] each in the Europe/Berlin timezone. Note that
+    this conversion is probably what we want, regardless of the unit.
     """
     # Copy, try to set freq, and store original attributes.
     fr = frames.set_frequency(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
-    if not freq_input:
-        raise ValueError(
-            "A frequency could not be determined for this data. Localize the index (with ``fr.tz_localize``) or add missing datapoints (with ``fr.resample().asfreq()``), or both."
-        )
-
-    # Do conversion.
-    if tz_input:  # input is tz-aware
+    if tz_input:  # input is tz-aware: ignore tz
         fr_out = _A_to_B(fr)
 
-    else:  # input is already standardized tz-agnostic
+    elif freq_input:  # input is tz-naive and apparently already standardized: ignore tz
         fr_out = fr
+
+    else:  # input is tz-naive and must/may be interpreted in this timezone
+        fr_out = _C_to_B(fr, tz=tz)
 
     # Return: set frequency, and if succesful, check if all timestamps are valid for it.
     fr_out = frames.set_frequency(fr_out, freq_input)
-    stamps.assert_boundary_ts(fr_out.index, freq_input)
+    if freq := fr_out.index.freq:
+        stamps.assert_boundary_ts(fr_out.index, freq)
     return fr_out
 
 
 def _A_to_A(fr: NDFrame, *, tz, floating) -> NDFrame:
-    if isinstance(tz, str):  # convert to make comparison (below) possible
+    if isinstance(tz, str):  # convert or else comparison at next if statement fails
         tz = pytz.timezone(tz)
 
     if fr.index.tz == tz:
@@ -211,13 +213,13 @@ def _B_to_A(fr: NDFrame, *, tz) -> NDFrame:
     return _agnostic_to_aware(fr, tz)
 
 
-# def _C_to_A(fr: NDFrame, *, tz) -> NDFrame:
-#     return fr.tz_localize(tz, ambiguous="infer")
+def _C_to_A(fr: NDFrame, *, tz) -> NDFrame:
+    return fr.tz_localize(tz, ambiguous="infer")
 
 
-# def _C_to_B(fr: NDFrame, *, tz) -> NDFrame:
-#     # Defer to C -> A -> B
-#     return _A_to_B(_C_to_A(fr, tz=tz))
+def _C_to_B(fr: NDFrame, *, tz) -> NDFrame:
+    # Defer to C -> A -> B
+    return _A_to_B(_C_to_A(fr, tz=tz))
 
 
 def _idx_after_conversion(fr: NDFrame, tz) -> pd.DatetimeIndex:

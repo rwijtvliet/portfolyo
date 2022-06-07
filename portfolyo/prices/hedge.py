@@ -2,7 +2,7 @@
 
 from .utils import is_peak_hour
 from . import convert
-from ..tools import frames
+from ..tools import frames, nits
 import pandas as pd
 
 
@@ -127,6 +127,6 @@ def hedge(
 
     # Handle possible units.
     if wunits or punits:
-        df = df.astype({"w": f"pint[{wunits}]", "p": f"pint[{punits}]"})
+        df = df.astype({"w": nits.pintunit(wunits), "p": nits.pintunit(punits)})
 
     return df["w"], df["p"]

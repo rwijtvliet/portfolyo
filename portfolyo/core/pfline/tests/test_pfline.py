@@ -5,13 +5,13 @@ from portfolyo import dev
 import pytest
 
 
-@pytest.mark.parametrize("inputtype", ["df", "dict", "pfline"])
-@pytest.mark.parametrize("outputtype", [SinglePfLine, MultiPfLine, None])
 @pytest.mark.parametrize("kind", ["all", "p", "q"])
-def test_pfline_init(inputtype, outputtype, kind):
+@pytest.mark.parametrize("inputtype", ["df", "dict", "pfline"])
+@pytest.mark.parametrize("expected_type", [SinglePfLine, MultiPfLine, None])
+def test_pfline_init(inputtype, expected_type, kind):
     """Test if object can be initialized correctly."""
 
-    if outputtype is SinglePfLine:
+    if expected_type is SinglePfLine:
         spfl = dev.get_singlepfline(kind=kind)
         if inputtype == "df":
             data_in = spfl.df()
@@ -19,7 +19,7 @@ def test_pfline_init(inputtype, outputtype, kind):
             data_in = {name: s for name, s in spfl.df().items()}
         else:  # inputtype == 'pfline'
             data_in = spfl
-    elif outputtype is MultiPfLine:
+    elif expected_type is MultiPfLine:
         mpfl = dev.get_multipfline(kind=kind)
         if inputtype == "df":
             return  # no way to call with dataframe
@@ -40,9 +40,10 @@ def test_pfline_init(inputtype, outputtype, kind):
         else:  # inputtype == 'pfline'
             return
 
-    if outputtype is None:  # expect error
+    if expected_type is None:  # expect error
         with pytest.raises(NotImplementedError):
             _ = PfLine(data_in)
-    else:
-        result = PfLine(data_in)
-        assert type(result) is outputtype
+        return
+
+    result = PfLine(data_in)
+    assert type(result) is expected_type

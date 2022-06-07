@@ -144,14 +144,15 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
         if isinstance(val, float) or isinstance(val, int):
             val = pd.Series(val, self.index)
         elif isinstance(val, Quantity):
-            val = pd.Series(val.magnitude, self.index).astype(f"pint[{val.u}]")
+            val = pd.Series(val.magnitude, self.index, dtype=nits.g(val.units))
 
         if self.kind == "all" and col == "r":
             raise NotImplementedError(
                 "Cannot set `r`; first select `.volume` or `.price` before applying `.set_r()`."
             )
         # Create pd.DataFrame.
-        data = {col: val.astype(f"pint[{nits.name2unit(col)}]")}
+        # TODO: Use InOp
+        data = {col: val.astype(nits.pintunit(nits.name2unit(col)))}
         if col in ["w", "q", "r"] and self.kind in ["p", "all"]:
             data["p"] = self["p"]
         elif col in ["p", "r"] and self.kind in ["q", "all"]:

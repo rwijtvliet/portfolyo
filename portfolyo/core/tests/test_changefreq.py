@@ -260,11 +260,11 @@ def get_testframes(
 
 
 @pytest.mark.parametrize("with_units", [True, False])
-@pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
+@pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("source_freq", stamps.FREQUENCIES)
 @pytest.mark.parametrize("target_freq", stamps.FREQUENCIES)
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 def test_changefreq(source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units):
     """Test if frequency of series or dataframe can be correctly changed."""
     if source_freq == target_freq:
@@ -283,11 +283,11 @@ def test_changefreq(source_freq, target_freq, tz, avg_or_sum, series_or_df, with
 
 
 @pytest.mark.parametrize("with_units", [True, False])
-@pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
+@pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("source_freq", stamps.FREQUENCIES)
 @pytest.mark.parametrize("target_freq", stamps.FREQUENCIES)
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 def test_changefreq_fullonly(
     source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
 ):
@@ -298,14 +298,21 @@ def test_changefreq_fullonly(
     if stamps.freq_longest(source_freq, target_freq) == source_freq:
         return  # only test downsampling
 
+    testfn = changefreq.averagable if avg_or_sum == "avg" else changefreq.summable
+
     source, expected = get_testframes(
         source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
     )
-    source, expected = source.iloc[1:-1], expected.iloc[1:-1]
-    if len(source) == 0:
-        return  # only test if we have some data
 
-    testfn = changefreq.averagable if avg_or_sum == "avg" else changefreq.summable
+    # Remove some data, so that source contains partial periods
+    source, expected = source.iloc[1:-1], expected.iloc[1:-1]
+
+    # Error if no data to be returned.
+    if len(expected) == 0:
+        with pytest.raises(ValueError):
+            _ = testfn(source, target_freq)
+        return
+
     result = testfn(source, target_freq)
     if series_or_df == "series":
         assertfn = testing.assert_series_equal

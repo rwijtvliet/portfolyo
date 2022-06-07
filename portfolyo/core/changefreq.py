@@ -5,11 +5,9 @@ from pandas.core.frame import NDFrame
 import pandas as pd
 
 
-def _general(fr: NDFrame, freq: str = "MS", is_summable: bool = True):
-    """Change frequency of a Series or DataFrame, depending on the type of data it
-    contains."""
+def _general(s: pd.Series, freq: str = "MS", is_summable: bool = True):
+    """Change frequency of a Series, depending on the type of data it contains."""
 
-    # TODO: Make sure result has correct dtype (currently float -> object sometimes)
     # TODO: Add tests with multiindex columns
 
     # Some resampling labels are right-bound by default. Change to make left-bound.
@@ -19,69 +17,64 @@ def _general(fr: NDFrame, freq: str = "MS", is_summable: bool = True):
         raise ValueError(
             f"Parameter ``freq`` must be one of {','.join(stamps.FREQUENCIES)}; got {freq}."
         )
+    if pd.api.types.is_integer_dtype(s.dtype):
+        s = s.astype(float)
 
-    # Empty frame.
-    if len(fr) == 0:
-        return fr.resample(freq).mean()  # empty frame.
+    # s is now a Series with an allowed frequency and a 'float' or 'pint' dtype.
 
-    up_or_down = stamps.freq_up_or_down(fr.index.freq, freq)
+    # Empty series.
+    if len(s) == 0:
+        return s.resample(freq).mean()  # empty frame.
+
+    up_or_down = stamps.freq_up_or_down(s.index.freq, freq)
 
     # Nothing more needed; portfolio already in desired frequency.
     if up_or_down == 0:
-        return fr
+        return s
 
     # Must downsample.
     elif up_or_down == -1:
         if is_summable:
-            # Downsampling is easiest for summable frames: simply sum child values.
-            fr2 = fr.resample(freq).sum()
-            # Discard rows in new frame that are only partially present in original.
-            fr2 = fr2[
-                (fr2.index >= fr.index[0])
-                & (fr2.index.ts_right <= fr.index.ts_right[-1])
-            ]
-            # Return if any values found
-            if not len(fr2):
+            # Downsampling is easiest for summable series: simply sum child values.
+            s2 = s.resample(freq).sum()
+            # Discard rows in new series that are only partially present in original.
+            msk = (s2.index >= s.index[0]) & (s2.index.ts_right <= s.index.ts_right[-1])
+            s2 = s2[msk]
+            # Return if any values found.
+            if not len(s2):
                 raise ValueError("There are no 'full' time periods at this frequency.")
-            return fr2
+            return s2
         else:
             # For averagable frames: first make summable.
-            summable = fr.mul(fr.index.duration, axis=0)
+            summable = s.mul(s.index.duration, axis=0)  # now has a pint dtype
             summable2 = _general(summable, freq, True)
-            fr2 = summable2.div(summable2.index.duration, axis=0)
-            return fr2 if isinstance(fr2, pd.DataFrame) else fr2.rename(fr.name)
+            s2 = summable2.div(summable2.index.duration, axis=0)
+            return s2.astype(s.dtype).rename(s.name)
 
     # Must upsample.
-    else:
+    else:  # up_or_down == 1
         if not is_summable:
             # Upsampling is easiest for averagable frames: simply duplicate parent value.
             # We cannot simply `.resample()`, because in that case the final value is not
             # duplicated. We add a dummy value, which we eventually remove again.
 
-            # (original code to add additional row, does not work if SERIES and unit-aware. Maybe with future release of pint_pandas?)
-            # fr = fr.copy()
-            # if isinstance(fr, pd.Series):
-            #     fr.loc[fr.index.ts_right[-1]] = None
-            # else:
-            #     fr.loc[fr.index.ts_right[-1], :] = None
-
-            if isinstance(fr, pd.Series):
-                # Workaround: turn into dataframe, change frequency, and turn back into series.
-                return _general(pd.DataFrame(fr), freq, is_summable).iloc[:, 0]
-
-            fr = fr.copy()  # don't change incoming dataframe
-            # first, add additional row...
-            fr.loc[fr.index.ts_right[-1], :] = None
+            # First, add additional row...
+            # (original code to add additional row, does not work if unit-aware. Maybe with future release of pint_pandas?)
+            # s = s.copy()
+            # s.loc[s.index.ts_right[-1]] = None
+            # (Workaround: turn into dataframe, change frequency, and turn back into series.)
+            df = pd.DataFrame(s)
+            df.loc[s.index.ts_right[-1], :] = None
             # ... then do upsampling ...
-            fr2 = fr.resample(freq).asfreq().ffill()  # duplicate value
-            # ... and then remove final row.
-            return fr2.iloc[:-1]
+            df2 = df.resample(freq).asfreq().ffill()  # duplicate value
+            # ... and then remove final row (and turn back into series).
+            return df2.iloc[:-1, 0]
         else:
             # For summable frames: first make averagable.
-            avgable = fr.div(fr.index.duration, axis=0)
+            avgable = s.div(s.index.duration, axis=0)  # now has a pint dtype
             avgable2 = _general(avgable, freq, False)
-            fr2 = avgable2.mul(avgable2.index.duration, axis=0)
-            return fr2 if isinstance(fr2, pd.DataFrame) else fr2.rename(fr.name)
+            s2 = avgable2.mul(avgable2.index.duration, axis=0)
+            return s2.astype(s.dtype).rename(s.name)
 
 
 def summable(fr: NDFrame, freq: str = "MS") -> NDFrame:
@@ -107,6 +100,10 @@ def summable(fr: NDFrame, freq: str = "MS") -> NDFrame:
     value, like revenue [Eur] or energy [MWh]. Prices [Eur/MWh] and powers [MW]
     are not time-summable.
     """
+    if isinstance(fr, pd.DataFrame):
+        # Turn into series, change frequency, and turn back into dataframe.
+        return pd.DataFrame({key: summable(value, freq) for key, value in fr.items()})
+
     return _general(fr, freq, True)
 
 
@@ -132,4 +129,8 @@ def averagable(fr: NDFrame, freq: str = "MS") -> NDFrame:
     A 'time-averagable' quantity is one that can be averaged to an aggregate value,
     like power [MW]. When downsampling, the values are weighted with their duration.
     """
+    if isinstance(fr, pd.DataFrame):
+        # Turn into series, change frequency, and turn back into dataframe.
+        return pd.DataFrame({key: averagable(value, freq) for key, value in fr.items()})
+
     return _general(fr, freq, False)

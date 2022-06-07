@@ -24,6 +24,11 @@ PA_ = pint_pandas.PintArray
 Q_ = ureg.Quantity
 
 
+def pintunit(u: pint.Unit) -> str:
+    units = f"{u}" or "dimensionless"
+    return f"pint[{units}]"
+
+
 # def to_pref_unit(self: pint.Quantity):
 #     for unit in (ureg.MW, ureg.euro_per_MWh):
 #         if self.dimensionality == unit.dimensionality:
@@ -41,6 +46,7 @@ NAMES_AND_UNITS = {
     "r": ureg.euro,
     "duration": ureg.hour,
     "t": ureg.degC,
+    "nodim": ureg.dimensionless,
 }
 
 
@@ -60,11 +66,12 @@ def to_compact(value: Union[pint.Quantity, pd.Series, pd.DataFrame]):
 
 
 def unit2name(unit: pint.Unit) -> str:
-    """Find the standard column name belonging to unit `unit`. Checks on dimensionality, not exact unit."""
+    """Find the standard column name belonging to unit `unit`. Checks on dimensionality,
+    not exact unit."""
     for name, u in NAMES_AND_UNITS.items():
         if u.dimensionality == unit.dimensionality:
             return name
-    return ValueError(f"No standard name found for unit '{unit}'.")
+    raise pint.UndefinedUnitError(f"No standard name found for unit '{unit}'.")
 
 
 def name2unit(name: str) -> pint.Unit:
@@ -91,8 +98,8 @@ def set_unit(s: pd.Series, unit: Union[pint.Unit, str]) -> pd.Series:
     """
     if not isinstance(unit, pint.Unit):
         unit = ureg.Unit(unit)
-    dtype = f"pint[{unit}]"
-    return s.astype(dtype)  # sets unit if none set yet, otherwise converts if possible
+    # sets unit if none set yet, otherwise converts if possible
+    return s.astype(pintunit(unit))
 
 
 def set_units(
@@ -125,9 +132,8 @@ def drop_units(fr: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.DataFr
     If ``fr`` is not unit-aware, return as-is.
     """
     if isinstance(fr, pd.Series):
-        try:
+        if hasattr(fr, "pint"):
             return fr.pint.to_base_units().pint.m
-        except AttributeError:
-            return fr
+        return fr
     else:
         return pd.DataFrame({col: drop_units(s) for col, s in fr.items()})

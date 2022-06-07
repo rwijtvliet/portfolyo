@@ -13,7 +13,10 @@ terra- = 1e12 = T-
 
 ### Base dimensions and their units. Base unit without prefix. ###
 
-# Duration / Time
+# Dimensionless
+fraction = []
+
+# Duration (Time)
 hour = [time] = h = hr
 minute = hour / 60 = min
 second = minute / 60 = s = sec
@@ -22,9 +25,9 @@ second = minute / 60 = s = sec
 watthour = [energy] = Wh
 joule = watt * second = J
 
-# Revenue / Currency
+# Revenue (Currency)
 euro = [currency] = Eur = €
-eurocent = Eur / 100 = cEur = cent = ct = c€ = ct€ 
+eurocent = Eur / 100 = cEur = cent = ct = c€ = ct€ = ctEur
 
 # Temperature
 degC = [temperature] = degC
