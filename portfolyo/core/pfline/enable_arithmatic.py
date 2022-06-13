@@ -64,7 +64,7 @@ if TYPE_CHECKING:  # needed to avoid circular imports
 #               + dimensionless, dimension                          = error
 #               - anything                                          => * and neg
 #               * p-PfLine, q-PfLine                                => see above
-#               * dimensionless                                     = all-PfLine (keep p)
+#               * dimensionless                                     = error
 #               * dimension, all-PfLine                             = error
 #               / dimensionless, dimension                          => *
 #               / p-PfLine, q-PfLine, all-PfLine                    = error
@@ -74,7 +74,7 @@ def _prep_data(value, ref: PfLine, agn_default: str = None) -> Union[pd.Series, 
     """Turn ``value`` into PfLine if dimension-aware. If not, turn into Series."""
 
     # Already a PfLine.
-    if isinstance(value, PfLine):
+    if isinstance(value, base.PfLine):
         return value
 
     # Turn into InOp object with timeseries. If
@@ -172,13 +172,15 @@ def _multiply_pflines(pfl1: PfLine, pfl2: PfLine):
 @_assert_freq_compatibility
 def _multiply_pfline_and_dimensionlessseries(pfl: PfLine, s: pd.Series):
     """Multiply pfline and dimensionless series."""
-    if not isinstance(pfl, single.SinglePfLine) or pfl.kind == "all":
+    if pfl.kind == "all":
         raise NotImplementedError(
-            "Value(s) without unit can only be multiplied with a single portfolio line "
-            "with price-only or volume-only information."
+            "Value(s) without unit can only be multiplied with a portfolio line with "
+            "price-only or volume-only information."
         )
 
     # Scale the price p (kind == 'p') or the volume q (kind == 'q'), returning PfLine of same kind.
+    if isinstance(pfl, multi.MultiPfLine):
+        return multi.MultiPfLine({name: child * s for name, child in pfl.items()})
     df = pfl.df(pfl.summable).mul(s, axis=0)  # multiplication with index-alignment
     df = df.dropna().resample(pfl.index.freq).asfreq()
     return single.SinglePfLine(df)
@@ -217,30 +219,10 @@ class PfLineArithmatic:
 
         if other is None:
             return self
-        elif isinstance(other, PfLine):
+        elif isinstance(other, base.PfLine):
             return _add_pflines(self, other)
         else:
             raise NotImplementedError("This addition is not defined.")
-
-    # def __add__2(self: PfLine, other) -> PfLine:
-    #     if not isinstance(other, NDFrame) and not other:
-    #         return self
-
-    #     other = _prep_data(
-    #         other, self
-    #     )  # other is now None, a PfLine, or dimless Series.
-    #     _assert_freq_compatibility(self, other)
-
-    #     # Other is a PfLine.
-    #     if isinstance(other, PfLine):
-    #         return _add_pflines(self, other)
-
-    #     # Other is a Series (but not containing [power], [energy] or [price]).
-    #     if isinstance(other, pd.Series):
-    #         if not hasattr(other, "pint"):  # no unit information
-    #             return _add_pfline_and_dimensionlessseries(self, other)
-
-    #     raise NotImplementedError("This addition is not defined.")
 
     __radd__ = __add__
 
@@ -252,19 +234,10 @@ class PfLineArithmatic:
 
         if other is None:
             return self
-        elif isinstance(other, PfLine):
+        elif isinstance(other, base.PfLine):
             return _add_pflines(self, -other)
         else:
             raise NotImplementedError("This subtraction is not defined.")
-
-    # def __sub__2(self: PfLine, other):
-    #     if not isinstance(other, NDFrame) and not other:
-    #         return self
-    #     # return self + -other  # defer to add and neg -> not implemented in pint
-    #     elif isinstance(other, PfLine):
-    #         return self + -other
-    #     else:
-    #         return self + -1 * other  # workaround because neg not implemented in pint
 
     def __rsub__(self: PfLine, other):
         return -self + other  # defer to add and neg
@@ -277,26 +250,10 @@ class PfLineArithmatic:
 
         if other is None:
             raise NotImplementedError("This multiplication is not defined.")
-        elif isinstance(other, PfLine):
+        elif isinstance(other, base.PfLine):
             return _multiply_pflines(self, other)
         else:
             return _multiply_pfline_and_dimensionlessseries(self, other)
-
-    # def __mul__2(self: PfLine, other) -> PfLine:
-
-    #     other = _prep_data(other, self)  # other is now a PfLine or Series.
-    #     _assert_freq_compatibility(self, other)
-
-    #     # Other is a PfLine.
-    #     if isinstance(other, PfLine):
-    #         return _multiply_pflines(self, other)
-
-    #     # Other is a Series (but not containing [power], [energy] or [price]).
-    #     if isinstance(other, pd.Series):
-    #         if not hasattr(other, "pint"):  # no unit information
-    #             return _multiply_pfline_and_dimensionlessseries(self, other)
-
-    #     raise NotImplementedError("This multiplication is not defined.")
 
     __rmul__ = __mul__
 
@@ -308,7 +265,7 @@ class PfLineArithmatic:
 
         if other is None:
             raise NotImplementedError("This division is not defined.")
-        elif isinstance(other, PfLine):
+        elif isinstance(other, base.PfLine):
             return _divide_pflines(self, other)
         else:
             return self * (1 / other)  # defer to mul

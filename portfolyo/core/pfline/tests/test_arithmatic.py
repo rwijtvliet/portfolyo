@@ -14,7 +14,7 @@ def id_fn(data: Any):
         return str({key: id_fn(val) for key, val in data.items()})
     elif isinstance(data, pd.Series):
         if isinstance(data.index, pd.DatetimeIndex):
-            return "TimeSeries"
+            return f"Timeseries (dtype: {data.dtype})"
         return f"Series (idx: {''.join(str(i) for i in data.index)})"
     elif isinstance(data, pd.DataFrame):
         return f"Df (columns: {''.join(str(c) for c in data.columns)})"
@@ -22,7 +22,11 @@ def id_fn(data: Any):
         return f"Singlepfline_{data.kind}"
     elif isinstance(data, MultiPfLine):
         return f"Multipfline_{data.kind}"
-    elif type(data) is type:
+    elif isinstance(data, str):
+        return data
+    elif isinstance(data, pf.Q_):
+        return f"Quantity ({data.units})"
+    elif isinstance(data, type):
         return data.__name__
     return type(data).__name__
 
@@ -208,11 +212,19 @@ def test_pfl_addsub_kind(
             PfLine,
             "q",
         ),
-        (i, "q", dev.get_dataframe(i, "f"), PfLine, "q", PfLine, "q"),
         (
             i,
             "q",
-            dev.get_dataframe(i, "f").astype("pint[dimensionless]"),
+            dev.get_dataframe(i, ["nodim"]),
+            PfLine,
+            "q",
+            PfLine,
+            "q",
+        ),
+        (
+            i,
+            "q",
+            dev.get_dataframe(i, ["nodim"]).astype("pint[dimensionless]"),
             PfLine,
             "q",
             PfLine,
@@ -283,11 +295,19 @@ def test_pfl_addsub_kind(
             PfLine,
             "p",
         ),
-        (i, "p", dev.get_dataframe(i, "f"), PfLine, "p", PfLine, "p"),
         (
             i,
             "p",
-            dev.get_dataframe(i, "f").astype("pint[dimensionless]"),
+            dev.get_dataframe(i, ["nodim"]),
+            PfLine,
+            "p",
+            PfLine,
+            "p",
+        ),
+        (
+            i,
+            "p",
+            dev.get_dataframe(i, ["nodim"]).astype("pint[dimensionless]"),
             PfLine,
             "p",
             PfLine,
@@ -345,28 +365,84 @@ def test_pfl_addsub_kind(
         # Multiplying 'complete' pfline.
         # . Multiply with dimensionless value
         # . . single value
-        (i, "all", 8.1, PfLine, "all", PfLine, "all"),
-        (i, "all", Q_(8.1, ""), PfLine, "all", PfLine, "all"),
+        (
+            i,
+            "all",
+            8.1,
+            Exception,
+            None,
+            Exception,
+            None,
+            # PfLine,
+            # "all",
+            # PfLine,
+            # "all",
+        ),
+        (
+            i,
+            "all",
+            Q_(8.1, ""),
+            Exception,
+            None,
+            Exception,
+            None,
+            # PfLine,
+            # "all",
+            # PfLine,
+            # "all",
+        ),
         # . . timeseries (series, df)
-        (i, "all", dev.get_series(i, "f"), PfLine, "all", PfLine, "all"),
+        (
+            i,
+            "all",
+            dev.get_series(i, "f"),
+            Exception,
+            None,
+            Exception,
+            None,
+            # PfLine,
+            # "all",
+            # PfLine,
+            # "all",
+        ),
         (
             i,
             "all",
             dev.get_series(i, "f").astype("pint[dimensionless]"),
-            PfLine,
-            "all",
-            PfLine,
-            "all",
+            Exception,
+            None,
+            Exception,
+            None
+            # PfLine,
+            # "all",
+            # PfLine,
+            # "all",
         ),
-        (i, "all", dev.get_dataframe(i, "f"), PfLine, "all", PfLine, "all"),
         (
             i,
             "all",
-            dev.get_dataframe(i, "f").astype("pint[dimensionless]"),
-            PfLine,
+            dev.get_dataframe(i, ["nodim"]),
+            Exception,
+            None,
+            Exception,
+            None
+            # PfLine,
+            # "all",
+            # PfLine,
+            # "all",
+        ),
+        (
+            i,
             "all",
-            PfLine,
-            "all",
+            dev.get_dataframe(i, ["nodim"]).astype("pint[dimensionless]"),
+            Exception,
+            None,
+            Exception,
+            None
+            # PfLine,
+            # "all",
+            # PfLine,
+            # "all",
         ),
     ],
     ids=id_fn,
@@ -391,6 +467,9 @@ def test_pfl_muldiv_kind(
 
     returntype = returntype_mul if operation == "mul" else returntype_div
     returnkind = returnkind_mul if operation == "mul" else returnkind_div
+
+    # if returntype is PfLine:
+    #     returntype = SinglePfLine if pfl_in_single_or_multi == "single" else MultiPfLine
 
     if issubclass(returntype, Exception):
         with pytest.raises(returntype):
@@ -420,7 +499,7 @@ series2 = {
     "w": pd.Series([15.0, -20, 4], i),
     "p": pd.Series([400.0, 50, 50], i),
     "r": pd.Series([4464000.0, -696000, 148600], i),
-    "dimless": pd.Series([2, -1.5, 10], i),
+    "nodim": pd.Series([2, -1.5, 10], i),
 }
 pflset2 = {
     "q": pf.SinglePfLine({"w": series2["w"]}),
@@ -447,10 +526,10 @@ mul_volume2_price1 = pf.SinglePfLine({"w": series2["w"], "p": series1["p"]})
 div_volume1_volume2 = (series1["w"] / series2["w"]).astype("pint[dimensionless]")
 div_price1_price2 = (series1["p"] / series2["p"]).astype("pint[dimensionless]")
 mul_all1_dimless2 = pf.SinglePfLine(
-    {"w": series1["w"] * series2["dimless"], "p": series1["p"]}
+    {"w": series1["w"] * series2["nodim"], "p": series1["p"]}
 )
 div_all1_dimless2 = pf.SinglePfLine(
-    {"w": series1["w"] / series2["dimless"], "p": series1["p"]}
+    {"w": series1["w"] / series2["nodim"], "p": series1["p"]}
 )
 
 
@@ -1075,27 +1154,35 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset1["all"],
             6,
-            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+            Exception,
+            Exception,
+            # SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            # SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
         ),
         # . Explicitly dimensionless constant.
         (
             pflset1["all"],
             Q_(6, ""),
-            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+            Exception,
+            Exception,
+            # SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            # SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
         ),
         (
             pflset1["all"],
-            {"dimless": 6},
-            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+            {"nodim": 6},
+            Exception,
+            Exception,
+            # SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            # SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
         ),
         (
             pflset1["all"],
-            pd.Series([6], ["dimless"]),
-            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+            pd.Series([6], ["nodim"]),
+            Exception,
+            Exception,
+            # SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            # SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
         ),
         # . Incorrect constant.
         (
@@ -1131,33 +1218,43 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         # . Dim-agnostic or dimless series.
         (
             pflset1["all"],
-            series2["dimless"],  # dim-agnostic
-            mul_all1_dimless2,
-            mul_all1_dimless2,
+            series2["nodim"],  # dim-agnostic
+            Exception,
+            Exception,
+            # mul_all1_dimless2,
+            # mul_all1_dimless2,
         ),
         (
             pflset1["all"],
-            series2["dimless"].astype("pint[dimensionless]"),  # dimless
-            mul_all1_dimless2,
-            mul_all1_dimless2,
+            series2["nodim"].astype("pint[dimensionless]"),  # dimless
+            Exception,
+            Exception,
+            # mul_all1_dimless2,
+            # mul_all1_dimless2,
         ),
         (
             pflset1["all"],
-            {"dimless": series2["dimless"]},
-            mul_all1_dimless2,
-            mul_all1_dimless2,
+            {"nodim": series2["nodim"]},
+            Exception,
+            Exception,
+            # mul_all1_dimless2,
+            # mul_all1_dimless2,
         ),
         (
             pflset1["all"],
-            pd.DataFrame({"dimless": series2["dimless"]}),
-            mul_all1_dimless2,
-            mul_all1_dimless2,
+            pd.DataFrame({"nodim": series2["nodim"]}),
+            Exception,
+            Exception,
+            # mul_all1_dimless2,
+            # mul_all1_dimless2,
         ),
         (
             pflset1["all"],
-            pd.DataFrame({"dimless": series2["dimless"].astype("pint[dimensionless]")}),
-            mul_all1_dimless2,
-            mul_all1_dimless2,
+            pd.DataFrame({"nodim": series2["nodim"].astype("pint[dimensionless]")}),
+            Exception,
+            Exception,
+            # mul_all1_dimless2,
+            # mul_all1_dimless2,
         ),
         # . Incorrect series, dataframe or pfline.
         (
