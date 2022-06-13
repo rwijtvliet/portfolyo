@@ -101,11 +101,11 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
         """Kind of data that is stored in the instance. Possible values:
         - 'q': volume data only; properties .q [MWh] and .w [MW] are available.
         - 'p': price data only; property .p [Eur/MWh] is available.
-        - 'all': price and volume data; properties .q [MWh], .w [MW], .p [Eur/MWh], .r
-          [Eur] are available.
+        - 'all': price and volume data; properties .q [MWh], .w [MW], .p [Eur/MWh], .r [Eur] are available.
         """
         ...
 
+    @abstractmethod
     def __bool__(self) -> bool:
         """Return True if object (i.e., its children) contains any non-zero data."""
         ...

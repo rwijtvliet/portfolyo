@@ -23,8 +23,8 @@ class SinglePfLine(PfLine):
     data: Any
         Generally: object with one or more attributes or items ``w``, ``q``, ``r``, ``p``;
         all timeseries. Most commonly a ``pandas.DataFrame`` or a dictionary of
-        ``pandas.Series``, but may also be e.g. another PfLine object. Any additional
-        attributes (e.g., additional columns) are ignored.
+        ``pandas.Series``, but may also be e.g. another PfLine object.
+
 
     Returns
     -------
@@ -32,10 +32,12 @@ class SinglePfLine(PfLine):
 
     Notes
     -----
-    * If the timeseries in ``data`` do/does not have a ``pint`` data type, the standard
-    units are assumed (MW, MWh, Eur, Eur/MWh).
-    * If the timeseries in ``data`` do/does have a ``pint`` data type, they are converted
-    into the standard units.
+    * If the timeseries or values in ``data`` do/does not have a ``pint`` data type, the
+    standard units are assumed (MW, MWh, Eur, Eur/MWh).
+    * If the timeseries or values in ``data`` do/does have a ``pint`` data type, they are
+    converted into the standard units.
+    * If the timeseries or values in ``data`` do/does have a ``pint`` data type, they are
+    converted into the standard units.
     """
 
     def __new__(cls, data):

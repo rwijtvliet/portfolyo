@@ -2,7 +2,14 @@
 PfLine
 ======
 
-A ``PfLine`` object stores a timeseries containing volume information, price information, or both.
+.. toctree::
+   :maxdepth: 1
+   :caption: Contents:
+
+   ./singlepfline
+   ./multipfline
+
+The basic building block of the ``portfolyo`` package is the "portfolio line" (``PfLine``). Instances of this class store a timeseries containing volume information, price information, or both.
 
 For example: 
 
@@ -13,6 +20,9 @@ For example:
 * The sourced volume of the same portfolio, again for the coming calender year but in monthly resolution. This is a ``PfLine`` that, for each timestamp, contains a volume (the contracted volume, both as energy and as power), a price (for which the volume was contracted) and a revenue (in Eur, being the multiplication of the energy and the price).
 
 Under the hood, not all information that can be retrieved by the user is stored; redundant information is discarded and recalculated whenever necessary. For the volume, for example, only the energy is stored. The power can be calculated by dividing the energy (in MWh) by the duration of the timestamp (in h).
+
+Two classes exist that implement a portfolio line: :doc:`../core/singlepfline` and :doc:`../core/multipfline`.
+
 
 .. autoclass:: portfolyo.PfLine
    :members:

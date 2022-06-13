@@ -50,7 +50,6 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
     procurement : PfLine ('all')
         The expected costs needed to source the offtake volume; the sum of the sourced
         and unsourced positions.
-
     index : pandas.DateTimeIndex
         Left timestamp of row.
 
