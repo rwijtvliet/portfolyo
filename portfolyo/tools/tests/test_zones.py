@@ -22,7 +22,7 @@ class TzType(Enum):
     floating = property(lambda self: "_Floating" in self.columnname)  # noqa
 
 
-@functools.cache
+@functools.lru_cache()
 def get_df_fromexcel(aggfreq, tzt_in: TzType, tzt_out: TzType) -> pd.DataFrame:
     path = Path(__file__).parent / "test_zones_data.xlsx"
 

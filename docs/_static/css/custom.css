@@ -1,0 +1,6 @@
+dl:not(.docutils) dl.field-list.simple dt {
+    background: #E6E6E6;
+    color: #2D2D2D;
+    border-left: none;
+    padding: 0.25em;
+  }

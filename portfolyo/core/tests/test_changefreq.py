@@ -18,7 +18,7 @@ freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS
 # freq1 = freq2 = freq
 
 
-# @functools.lru_cache
+# @functools.lru_cache()
 # def aggdata():
 #     # Sample data
 #     i_15T = pd.date_range(
@@ -87,7 +87,7 @@ freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS
 #     return agg_data
 
 
-# @functools.lru_cache
+# @functools.lru_cache()
 # def combis_downsampling():
 #     # series-pairs, where one can be turned into the other by downsampling
 #     agg_data = aggdata()
@@ -116,7 +116,7 @@ freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS
 #     return sumcombis, avgcombis
 
 
-# @functools.lru_cache
+# @functools.lru_cache()
 # def combis_upsampling():
 #     # series-pairs, where one can be turned into the other by upsampling.
 #     agg_data = aggdata()
@@ -224,7 +224,7 @@ freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS
 #         testing.assert_frame_equal(testfr, fr2)
 
 
-@functools.cache
+@functools.lru_cache()
 def get_df_from_excel(freq, tz):
     tzname = {None: "None", "Europe/Berlin": "Berlin"}[tz]
     path = Path(__file__).parent / f"test_changefreq_data_{tzname}.xlsx"

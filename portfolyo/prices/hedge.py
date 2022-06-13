@@ -3,6 +3,7 @@
 from .utils import is_peak_hour
 from . import convert
 from ..tools import frames, nits
+from typing import Tuple
 import pandas as pd
 
 
@@ -63,7 +64,7 @@ def hedge(
     how: str = "val",
     freq: str = "MS",
     po: bool = None,
-) -> tuple[pd.Series]:
+) -> Tuple[pd.Series]:
     """
     Make hedge of power timeseries, for given price timeseries.
 

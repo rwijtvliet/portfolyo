@@ -85,7 +85,7 @@ def test_completebpoframe_explicit(bpoframe, testcol: str, withunits: bool):
     testing.assert_frame_equal(bpoframe, result)
 
 
-@functools.cache
+@functools.lru_cache()
 def get_df_fromexcel(tz, aggfreq) -> pd.DataFrame:
     path = Path(__file__).parent / "test_convert_data.xlsx"
     sheetname = f'{aggfreq}_{"None" if tz is None else tz.replace("/", "")}'
