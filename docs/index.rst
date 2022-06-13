@@ -47,7 +47,11 @@ Contents
    core/objects
    core/pfline
    core/pfstate
+   core/interoperability
    tutorial/index
+   specialized_topics/dataprep
+   specialized_topics/dimensions
+   specialized_topics/timezones
    full_reference
 
 

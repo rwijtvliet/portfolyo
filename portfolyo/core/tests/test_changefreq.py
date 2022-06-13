@@ -244,7 +244,10 @@ def get_testframes(
     with_units: bool,
 ) -> Tuple[Union[pd.DataFrame, pd.Series]]:
     source_s = get_df_from_excel(source_freq, tz)[source_freq]
-    target_s = get_df_from_excel(target_freq, tz)[f"{source_freq}_{avg_or_sum}"]
+    if target_freq is None:
+        target_s = source_s
+    else:
+        target_s = get_df_from_excel(target_freq, tz)[f"{source_freq}_{avg_or_sum}"]
 
     if with_units:
         source_s = source_s.astype("pint[MW]")
@@ -260,55 +263,66 @@ def get_testframes(
 
 
 @pytest.mark.parametrize("with_units", [True, False])
-@pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("source_freq", stamps.FREQUENCIES)
-@pytest.mark.parametrize("target_freq", stamps.FREQUENCIES)
+@pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize("target_freq", stamps.FREQUENCIES)
+@pytest.mark.parametrize("source_freq", stamps.FREQUENCIES)
 def test_changefreq(source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units):
     """Test if frequency of series or dataframe can be correctly changed."""
-    if source_freq == target_freq:
-        return
-
-    source, expected = get_testframes(
-        source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
-    )
+    # Get test data.
     testfn = changefreq.averagable if avg_or_sum == "avg" else changefreq.summable
+    if source_freq != target_freq:
+        source, expected = get_testframes(
+            source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
+        )
+    else:
+        source, expected = get_testframes(
+            source_freq, None, tz, avg_or_sum, series_or_df, with_units
+        )
+
+    # Get and assert result.
     result = testfn(source, target_freq)
     if series_or_df == "series":
-        assertfn = testing.assert_series_equal
+        testing.assert_series_equal(result, expected, check_dtype=False)
     else:
-        assertfn = testing.assert_frame_equal
-    assertfn(result, expected, check_dtype=False)
+        testing.assert_frame_equal(result, expected, check_dtype=False)
 
 
 @pytest.mark.parametrize("with_units", [True, False])
-@pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("source_freq", stamps.FREQUENCIES)
-@pytest.mark.parametrize("target_freq", stamps.FREQUENCIES)
+@pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize("target_freq", stamps.FREQUENCIES)
+@pytest.mark.parametrize("source_freq", stamps.FREQUENCIES)
 def test_changefreq_fullonly(
     source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
 ):
     """Test if, when downsampling, only the periods are returned that are fully present in the source."""
-    if source_freq == target_freq:
-        return  # only test unequal frequencies
-
     if stamps.freq_longest(source_freq, target_freq) == source_freq:
-        return  # only test downsampling
+        pytest.skip("Only test downsampling.")
+        return
 
+    # Get test data.
+    testfn = changefreq.averagable if avg_or_sum == "avg" else changefreq.summable
     source, expected = get_testframes(
         source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
     )
-    source, expected = source.iloc[1:-1], expected.iloc[1:-1]
-    if len(source) == 0:
-        return  # only test if we have some data
+    if source_freq == target_freq:
+        expected = source  # no change in frequency: expect no change.
 
-    testfn = changefreq.averagable if avg_or_sum == "avg" else changefreq.summable
+    # Remove some data, so that source contains partial periods
+    source, expected = source.iloc[1:-1], expected.iloc[1:-1]
+
+    # Error if no data to be returned.
+    if len(expected) == 0:
+        with pytest.raises(ValueError):
+            _ = testfn(source, target_freq)
+        return
+
+    # Get and assert result.
     result = testfn(source, target_freq)
     if series_or_df == "series":
-        assertfn = testing.assert_series_equal
+        testing.assert_series_equal(result, expected, check_dtype=False)
     else:
-        assertfn = testing.assert_frame_equal
-    assertfn(result, expected, check_dtype=False)
+        testing.assert_frame_equal(result, expected, check_dtype=False)

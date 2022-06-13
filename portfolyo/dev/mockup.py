@@ -2,6 +2,7 @@
 from typing import Tuple
 import pandas as pd
 import numpy as np
+from ..tools import nits
 from ..prices.utils import is_peak_hour
 
 
@@ -145,10 +146,10 @@ def wp_sourced(
         Sourced volume timeseries and sourced price timeseries.
     """
     # Prepare series for resampling.
-    try:
+    if hasattr(w_offtake, "pint"):
         w_unit = w_offtake.pint.units
         sin = -1 * w_offtake.pint.magnitude
-    except AttributeError:
+    else:
         w_unit = None
         sin = -1 * w_offtake
 
@@ -166,7 +167,7 @@ def wp_sourced(
 
     # Add unit if wanted.
     if has_unit:
-        wunit = f"pint[{w_unit}]" if w_unit is not None else "pint[MW]"
+        wunit = nits.pintunit(w_unit) if w_unit is not None else "pint[MW]"
         w = w.astype(wunit)
         p = p.astype("pint[Eur/MWh]")
     return w, p

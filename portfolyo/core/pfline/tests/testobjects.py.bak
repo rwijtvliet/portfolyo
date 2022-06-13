@@ -1,0 +1,167 @@
+"""List of objects to use in tests."""
+
+import portfolyo as pf
+import pandas as pd
+
+
+def index(tz):
+    return pd.date_range("2020", freq="MS", periods=3, tz=tz)
+
+
+def series(index, wvals, pvals, rvals, dimlessvals):
+    return {
+        "w": pd.Series(wvals, index),
+        "q": pd.Series(wvals, index),
+        "p": pd.Series(pvals, index),
+        "r": pd.Series(rvals, index),
+        "dimless": pd.Series(dimlessvals, index),
+    }
+
+
+def pfline(series, kind):
+    if kind == "q":
+        return pf.SinglePfLine({"w": series["w"]})
+    elif kind == "p":
+        return pf.SinglePfLine({"p": series["p"]})
+    else:
+        return pf.SinglePfLine({"p": series["p"], "w": series["w"]})
+
+
+_Berlin_A = index("Europe/Berlin")
+Berlin_A1 = series(
+    _Berlin_A,
+    [3.0, 5, -4],
+    [3.0, 5, -4],
+    [200.0, 100, 50],
+    [446400.0, 348000, -148600],
+    [0.52, 1.20, -2.2],
+)
+Berlin_A2 = series(
+    _Berlin_A,
+    [15.0, -20, 4],
+    [15.0, -20, 4],
+    [400.0, 50, 50],
+    [4464000.0, -696000, 148600],
+    [2, -1.5, 10],
+)
+_None_A = pd.date_range('2020', freq='MS', periods=3, tz=None)
+None_A1 = series(
+    _None_A,
+    [15.0, -20, 4],
+    [15.0, -20, 4],
+    [400.0, 50, 50],
+    [4464000.0, -696000, 148600],
+    [2, -1.5, 10],
+)
+        # Adding to volume pfline.
+        # . Add constant.
+        (
+            pfline(s1_Berlin, "q"),
+            Q_(12.0, "MW"),
+            pf.SinglePfLine({"w": s1_Berlin['w']+12}),
+            pf.SinglePfLine({"w": s1_Berlin['w']-12}),
+        ),
+        (
+            pflset1["q"],
+            {"w": Q_(12.0, "MW")},
+            pf.SinglePfLine({"w": pd.Series([15.0, 17, 8], i)}),
+            pf.SinglePfLine({"w": pd.Series([-9.0, -7, -16], i)}),
+        ),
+        (
+            pflset1["q"],
+            {"w": 12.0},
+            pf.SinglePfLine({"w": pd.Series([15.0, 17, 8], i)}),
+            pf.SinglePfLine({"w": pd.Series([-9.0, -7, -16], i)}),
+        ),
+        # . Add constant in different unit
+        (
+            pflset1["q"],
+            Q_(0.012, "GW"),
+            pf.SinglePfLine({"w": pd.Series([15.0, 17, 8], i)}),
+            pf.SinglePfLine({"w": pd.Series([-9.0, -7, -16], i)}),
+        ),
+        # . Add constant in different dimension.
+        (
+            pflset1["q"],
+            Q_(12.0, "MWh"),
+            pf.SinglePfLine({"q": pd.Series([2244.0, 3492, -2960], i)}),
+            pf.SinglePfLine({"q": pd.Series([2220.0, 3468, -2984], i)}),
+        ),
+        # . Add series without unit.
+        (
+            pflset1["q"],
+            series2["w"],
+            ValueError,
+            ValueError,
+        ),
+        # . Add series without name.
+        (
+            pflset1["q"],
+            series2["w"].astype("pint[MW]"),
+            add_volume_pfl,
+            sub_volume_pfl,
+        ),
+        # . Add series with useless name.
+        (
+            pflset1["q"],
+            series2["w"].rename("the_volume").astype("pint[MW]"),
+            add_volume_pfl,
+            sub_volume_pfl,
+        ),
+        # . Add series without name and with different unit
+        (
+            pflset1["q"],
+            (series2["w"] * 1000).astype("pint[kW]"),
+            add_volume_pfl,
+            sub_volume_pfl,
+        ),
+        # . Add series out of order.
+        (
+            pflset1["q"],
+            pd.Series([15.0, 4, -20], [i[0], i[2], i[1]]).astype("pint[MW]"),
+            ValueError,
+            ValueError,
+        ),
+        # . Add dataframe without unit.
+        (
+            pflset1["q"],
+            pd.DataFrame({"w": series2["w"]}),
+            add_volume_pfl,
+            sub_volume_pfl,
+        ),
+        # . Add other pfline.
+        (
+            pflset1["q"],
+            pflset2["q"],
+            add_volume_pfl,
+            sub_volume_pfl,
+        ),
+        # Adding to price pfline.
+        # . Add constant without unit.
+        (
+            pflset1["p"],
+            12.0,
+            pf.SinglePfLine({"p": pd.Series([212.0, 112, 62], i)}),
+            pf.SinglePfLine({"p": pd.Series([188.0, 88, 38], i)}),
+        ),
+        # . Add constant with default unit.
+        (
+            pflset1["p"],
+            Q_(12.0, "Eur/MWh"),
+            pf.SinglePfLine({"p": pd.Series([212.0, 112, 62], i)}),
+            pf.SinglePfLine({"p": pd.Series([188.0, 88, 38], i)}),
+        ),
+        # . Add constant with non-default unit.
+        (
+            pflset1["p"],
+            Q_(1.2, "ct/kWh"),
+            pf.SinglePfLine({"p": pd.Series([212.0, 112, 62], i)}),
+            pf.SinglePfLine({"p": pd.Series([188.0, 88, 38], i)}),
+        ),
+        # . Add other pfline.
+        (
+            pflset1["p"],
+            pflset2["p"],
+            add_price_pfl,
+            sub_price_pfl,
+        ),

@@ -1,8 +1,7 @@
-"""Add arithmatic to PfLine classes."""
+"""Add arithmatic to PfState classes."""
 
 from __future__ import annotations
-from ...tools.nits import Q_, unit2name
-from ...tools.frames import wavg
+from ...tools import nits, frames
 from .. import pfline
 from . import pfstate
 from typing import TYPE_CHECKING, Union
@@ -32,7 +31,7 @@ def _prep_data(value, ref: PfState) -> Union[pd.Series, PfLine, PfState]:
             return value
 
         try:
-            name = unit2name(value.pint.units)
+            name = nits.unit2name(value.pint.units)
         except ValueError:
             return value  # has unit, but unknown
 
@@ -45,8 +44,8 @@ def _prep_data(value, ref: PfState) -> Union[pd.Series, PfLine, PfState]:
     if isinstance(value, int) or isinstance(value, float):
         s = pd.Series(value, ref.index)
         return _prep_data(s, ref)
-    elif isinstance(value, Q_):
-        s = pd.Series(value.magnitude, ref.index).astype(f"pint[{value.units}]")
+    elif isinstance(value, nits.Q_):
+        s = pd.Series(value.magnitude, ref.index, dtype=nits.pintunit(value.units))
         return _prep_data(s, ref)
 
     raise TypeError(f"Cannot handle inputs of this type; got {type(value)}.")
@@ -60,7 +59,7 @@ def _add_pfstates(pfs1: pfstate.PfState, pfs2: pfstate.PfState) -> pfstate.PfSta
         {"s": pfs1.unsourcedprice.p, "o": pfs2.unsourcedprice.p}
     ).astype(float)
     weights = pd.DataFrame({"s": pfs1.unsourced.q, "o": pfs2.unsourced.q}).astype(float)
-    unsourcedprice = wavg(values, weights, axis=1).rename("p")
+    unsourcedprice = frames.wavg(values, weights, axis=1).rename("p")
 
     sourced = pfs1.sourced + pfs2.sourced
     return pfstate.PfState(offtakevolume, unsourcedprice, sourced)

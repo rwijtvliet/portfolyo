@@ -1,6 +1,5 @@
 from portfolyo import testing, dev
 from portfolyo.core.pfline import single_helper
-from portfolyo.tools import frames
 from portfolyo.tools.nits import Q_
 from portfolyo.tools.stamps import FREQUENCIES
 import pandas as pd
@@ -42,8 +41,6 @@ def test_makedataframe_freqtz(freq, tz):
     result1 = single_helper.make_dataframe({"q": q})
 
     expected = pd.DataFrame({"q": q})
-    if tz is None:
-        expected = expected.tz_localize("Europe/Berlin")
     expected.index.freq = freq
 
     testing.assert_frame_equal(result1, expected, check_names=False)
@@ -101,8 +98,7 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
         result = single_helper.make_dataframe(df)
 
     # Expected result.
-    df = frames.set_ts_index(df)
-
+    expected = df.rename_axis("ts_left")
     if columns == "p":  # kind == "p"
         expected = df[["p"]]
 
@@ -161,32 +157,22 @@ def test_makedataframe_unequalfrequencies(freq1, freq2, columns):
         _ = single_helper.make_dataframe(dic)
 
 
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("freq", ["15T", "H", "D", "MS"])
 @pytest.mark.parametrize("overlap", [True, False])
-def test_pfline_unequaltimeperiods(freq, overlap):
+def test_makedataframe_unequaltimeperiods(freq, overlap, tz):
     """Test if only intersection is kept for overlapping series, and error is raised
     for non-overlapping series."""
 
-    i1 = pd.date_range(
-        start="2020-01-01",
-        end="2020-06-01",
-        freq=freq,
-        inclusive="left",
-        tz="Europe/Berlin",
-    )
-    start = "2020-03-01" if overlap else "2020-07-01"
-    i2 = pd.date_range(
-        start=start,
-        end="2020-09-01",
-        freq=freq,
-        inclusive="left",
-        tz="Europe/Berlin",
-    )
+    kwargs = {"freq": freq, "inclusive": "left", "tz": tz}
+    start2 = "2020-03-01" if overlap else "2020-07-01"
+    i1 = pd.date_range(start="2020-01-01", end="2020-06-01", **kwargs)
+    i2 = pd.date_range(start=start2, end="2020-09-01", **kwargs)
     s1 = dev.get_series(i1, "q")
     s2 = dev.get_series(i2, "r")
 
     intersection_values = [i for i in s1.index if i in s2.index]
-    intersection = pd.Index(intersection_values, freq=freq, name="ts_left")
+    intersection = pd.DatetimeIndex(intersection_values, freq=freq, name="ts_left")
 
     if not overlap:
         # raise ValueError("The two timeseries do not have anything in common.")

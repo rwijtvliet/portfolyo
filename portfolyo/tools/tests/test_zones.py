@@ -92,7 +92,6 @@ def do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn):
         (TzType.A_NONFLOAT, TzType.A),
         (TzType.A_FLOAT, TzType.A),
         (TzType.B, TzType.A),
-        (TzType.C, TzType.A),
     ],
 )
 def test_forceaware_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
@@ -110,15 +109,15 @@ def test_forceaware_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
     ("tzt_in", "tzt_out"),
     [
         (TzType.A, TzType.B),
+        (TzType.A_FLOAT, TzType.B),
         (TzType.B, TzType.B),
-        (TzType.C, TzType.B),
     ],
 )
 def test_forceagnostic_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
     """Test if frames can be correctly converted to tz-agnostic"""
 
     def conversion_fn(fr):
-        return zones.force_tzagnostic(fr, tz_in=tzt_in.implicit)
+        return zones.force_tzagnostic(fr)
 
     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 
@@ -174,117 +173,27 @@ def test_conversionBtoA_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 
 
-@pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
-@pytest.mark.parametrize(("tzt_in", "tzt_out"), [(TzType.C, TzType.A)])
-def test_conversionCtoA_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
-    """Test if frames can be correctly converted from type C to type A."""
+# @pytest.mark.parametrize("series_or_df", ["series", "df"])
+# @pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
+# @pytest.mark.parametrize(("tzt_in", "tzt_out"), [(TzType.C, TzType.A)])
+# def test_conversionCtoA_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
+#     """Test if frames can be correctly converted from type C to type A."""
 
-    def conversion_fn(fr):
-        fr_out = zones._C_to_A(fr, tz=tzt_in.implicit)
-        return frames.set_frequency(fr_out, aggfreq)
+#     def conversion_fn(fr):
+#         fr_out = zones._C_to_A(fr, tz=tzt_in.implicit)
+#         return frames.set_frequency(fr_out, aggfreq)
 
-    do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
-
-
-@pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
-@pytest.mark.parametrize(("tzt_in", "tzt_out"), [(TzType.C, TzType.B)])
-def test_conversionCtoB_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
-    """Test if frames can be correctly converted from type C to type B."""
-
-    def conversion_fn(fr):
-        fr_out = zones._C_to_B(fr, tz_in=tzt_in.implicit)
-        return frames.set_frequency(fr_out, aggfreq)
-
-    do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
+#     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 
 
 # @pytest.mark.parametrize("series_or_df", ["series", "df"])
-# @pytest.mark.parametrize("tz_in", ["Europe/Berlin", "Asia/Kolkata"])
-# @pytest.mark.parametrize("do_localize", [True, False])
-# @pytest.mark.parametrize("bound", ["right", "left"])
-# @pytest.mark.parametrize(
-#     ("values", "i"),
-#     [
-#         (
-#             np.random.random(96),
-#             pd.date_range(
-#                 "2020-03-01",
-#                 "2020-03-02",
-#                 freq="15T",
-#                 inclusive="left",
-#                 tz="Europe/Berlin",
-#             ),
-#         ),
-#         (  # Check for days incl WT->ST.
-#             np.random.random(92),
-#             pd.date_range(
-#                 "2020-03-29",
-#                 "2020-03-30",
-#                 freq="15T",
-#                 inclusive="left",
-#                 tz="Europe/Berlin",
-#             ),
-#         ),
-#         (  # Check for days incl ST->WT.
-#             np.random.random(100),
-#             pd.date_range(
-#                 "2020-10-25",
-#                 "2020-10-26",
-#                 freq="15T",
-#                 inclusive="left",
-#                 tz="Europe/Berlin",
-#             ),
-#         ),
-#     ],
-# )
-# def test_settsindex_1(
-#     values: Iterable,
-#     i: pd.DatetimeIndex,
-#     bound: str,
-#     do_localize: bool,
-#     tz_in: str,
-#     series_or_df: str,
-# ):
-#     """Test if index of dataframes and series is correctly standardized."""
-#     # Prepare input frame.
-#     if series_or_df == "df":
-#         expected = pd.DataFrame({"a": values}, index=i.rename("ts_left"))
-#     else:
-#         expected = pd.Series(values, i.rename("ts_left"))
+# @pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
+# @pytest.mark.parametrize(("tzt_in", "tzt_out"), [(TzType.C, TzType.B)])
+# def test_conversionCtoB_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
+#     """Test if frames can be correctly converted from type C to type B."""
 
-#     i = i.tz_convert(tz_in)
-#     if not do_localize:
-#         i = i.tz_localize(None)
-#     else:
-#         # If supplied timezone is not 'Europe/Berlin', this value is contradictory to
-#         # what is in the index. Test if timezone in Index is given preference.
-#         tz_in = "Europe/Berlin"
+#     def conversion_fn(fr):
+#         fr_out = zones._C_to_B(fr, tz_in=tzt_in.implicit)
+#         return frames.set_frequency(fr_out, aggfreq)
 
-#     if bound == "right":
-#         i = i + pd.Timedelta("15T")
-
-#     if series_or_df == "df":
-#         # Using expected frame: should stay the same.
-#         pd.testing.assert_frame_equal(frames.set_ts_index(expected), expected)
-
-#         # Dataframe with index.
-#         result = frames.set_ts_index(
-#             pd.DataFrame({"a": values}, i), bound=bound, tz_in=tz_in
-#         )
-#         pd.testing.assert_frame_equal(result, expected)
-
-#         # Dataframe with column that must become index.
-#         result = frames.set_ts_index(
-#             pd.DataFrame({"a": values, "ts": i}), "ts", bound, tz_in
-#         )
-#         pd.testing.assert_frame_equal(result, expected)
-
-#     else:
-#         # Using expected frame: should stay the same.
-#         pd.testing.assert_series_equal(frames.set_ts_index(expected), expected)
-
-#         # Series.
-#         result = frames.set_ts_index(pd.Series(values, i), bound=bound, tz_in=tz_in)
-#         pd.testing.assert_series_equal(result, expected)
+#     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)

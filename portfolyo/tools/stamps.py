@@ -16,143 +16,6 @@ import numpy as np
 FREQUENCIES = ["AS", "QS", "MS", "D", "H", "15T"]
 
 
-# def force_tzaware(
-#     i: pd.DatetimeIndex, tz: str, floating: bool = False
-# ) -> pd.DatetimeIndex:
-#     """_summary_
-
-#     Parameters
-#     ----------
-#     i : pd.DatetimeIndex
-#         Index that needs a timezone set to it.
-#     tz : str
-#         target timezone
-#     floating : bool, optional (default: False)
-#         Only used if ``i`` is already timezone-aware, but its timezone is not ``tz``.
-#         - False: fix timestamps on universal time axis and find new local time in target timezone.
-#           '2020-03-01 12:00+0530 Asia/Kolkata' --> '2020-03-01 07:30+0100 Europe/Berlin'
-#         - True: move timestamp on universal time axis to same local time in target timezone.
-#           '2020-03-01 12:00+0530 Asia/Kolkata' --> '2020-03-01 12:00+0100 Europe/Berlin'
-
-#     Returns
-#     -------
-#     pd.DatetimeIndex
-#         With wanted timezone (and with frequency set, if possible).
-#     """
-#     original_freq = i.freq
-
-#     # Do conversion.
-#     if not i.tz:  # Tz-naive input.
-#         i = i.tz_localize(tz)
-#     else:  # Tz-aware input.
-#         if floating:
-#             i = i.tz_localize(None).tz_localize(tz)
-#         else:
-#             i = i.tz_convert(tz)
-
-#     # Set frequency, if possible.
-#     if not i.freq:
-#         if original_freq:
-#             i.freq = original_freq
-#         else:
-#             i.freq = pd.infer_freq(i)
-
-#     return i
-
-
-def set_timezone(
-    i: pd.DatetimeIndex, tz: Union[str, None], tz_in: str = None
-) -> pd.DatetimeIndex:
-    """Change or set the timezone of an index.
-
-    Parameters
-    ----------
-    i : pd.DatetimeIndex
-        The index that needs its timezone changed/set.
-    tz : str
-        Wanted localization (e.g. 'Europe/Berlin'); all timestamps in the returned
-        index are specified with this timezone. 'None' to remove timezone information
-        and get local (i.e., tz-naive) datetime values.
-    tz_in : str, optional (default: None)
-        Timezone that should be assumed for the input index. Only relevant if input
-        index is not yet timezone aware and timestamps should be understood to be in a
-        different timezone than ``tz``.
-        - If input index is already tz-aware (i.e., already has timezone information),
-        this value is disregarded.
-        - If input index is not tz-aware, and ``tz_in`` is not specified, ``tz`` is
-        assumed.
-
-    Returns
-    -------
-    pd.DatetimeIndex
-        With wanted timezone.
-
-    Notes
-    -----
-    - When specifying ``tz = None``, and the input frame is tz-aware, the resulting
-    frame might have gaps (start of DST) or repeated values (end of DST).
-    - The values are kept as-is.
-    """
-    # Possible situations:
-    # . 'Complete' indices.
-    #   . If index is tz-aware:
-    #     The duration of each timestamp is correct
-    #     Freq is set (or can be inferred).
-    #   . If index is tz-naive, the DST-transitions cause an incorrect duration of some timestamps.
-    #   . . For hourly (and shorter):
-    #       There seem to be timestamps with a duration of -1h and 2h, when it is actually 1h.
-    #       Freq is not set (and cannot be inferred).
-    #   . . For daily (and longer):
-    #       There seem to be timestamps with a duration of 24h, when it is actually 23h or 25h.
-    #       Freq is set (or can be inferred).
-    # . 'Incomplete' indices, i.e., with gaps due to missing values.
-    #   . If index is tz-aware and also if index in tz-naive:
-    #     The duration of some timestamps is incorrect.
-    #     Freq is not set (and cannot be inferred).
-    # Challenge for tz-naive index: distinguish between index where duration *seems*
-    # incorrect due to DST-transition, and index where duration *is* incorrect due to
-    # missing values.
-    #
-    #
-    original_freq = i.freq
-
-    def set_freq_and_assert_boundary(i):
-        freq = i.freq
-        if not freq:
-            freq = pd.infer_freq(i)
-            if not freq:
-                freq = original_freq
-            if not freq:
-                return i
-            try:
-                i.freq = freq
-            except ValueError:
-                pass
-        assert_boundary_ts(i, freq)
-        return i
-
-    # Edge case.
-    if i.tz is None and tz_in is None and tz is None:
-        return set_freq_and_assert_boundary(i)  # set and check frequency
-
-    # Localize if not yet tz-aware.
-    if i.tz is None:
-        if tz_in is None:
-            i = i.tz_localize(tz, ambiguous="infer")
-        else:  # tz_in is not None
-            i = i.tz_localize(tz_in, ambiguous="infer")
-        # i = set_freq_and_assert_boundary(i)  # set and check frequency
-
-    # Turn into correct timezone.
-    if tz is None:
-        i = i.tz_localize(None)
-    else:  # tz is not None
-        i = i.tz_convert(tz)
-        i = set_freq_and_assert_boundary(i)  # set and check frequency again
-
-    return i
-
-
 def guess_frequency(tdelta: pd.Timedelta) -> str:
     f"""Guess the frequency from a time delta.
 
@@ -185,13 +48,18 @@ def guess_frequency(tdelta: pd.Timedelta) -> str:
         )
 
 
-def make_leftbound(i: pd.DatetimeIndex) -> pd.DatetimeIndex:
+def make_leftbound(i: pd.DatetimeIndex, how: str = "A") -> pd.DatetimeIndex:
     """Turn an index with right-bound timestamps into one with left-bound timestamps.
 
     Parameters
     ----------
     i : pd.DatetimeIndex
         The index that needs its timestamps changed.
+    how : {'A', 'B'}, optional (default: 'A')
+        If ``i`` is not localized, and contains a DST-transition, there are two ways
+        in which it may be right-bound. E.g. at start of DST: (A) contains 2:00 but not
+        3:00 (like left-bound timestamps do); or (B) contains 3:00 but not 2:00.
+        Ignored for timezone-aware ``i``.
 
     Returns
     -------
@@ -200,24 +68,28 @@ def make_leftbound(i: pd.DatetimeIndex) -> pd.DatetimeIndex:
 
     Notes
     -----
-    - If frequency is not set, guess from the spacing of the timestamps.
-    - When dealing with an index that has local timestamps (i.e., tz-naive), but which
-    contains a DST-transition so that timestamps are missing (start of DST) or double
-    (end of DST), first use the `set_timezone` function before calling this function.
-    Otherwise, the returned index will have incorrect timestamps that are missing/double.
+    If frequency is not set, guess from the spacing of the timestamps. Assumes values
+    are in order. Does no error checking to see if index actually makes sense. Does not
+    assess if 'A' or 'B' makes most sense for tz-naive ``i``.
     """
     # Must be able to handle cases where .freq is not set. A tz-naive index that contains
     # a DST-changeover will have missing or repeated timestamps.
 
-    freq = i.freq
+    freq, tz = i.freq, i.tz
 
+    # Get frequency.
     if freq is None:
         freq = pd.infer_freq(i)
 
     if freq is None:  # Couldn't infer frequency. Try from median timedelta.
         freq = guess_frequency((i[1:] - i[:-1]).median())
 
-    return i - timedelta(freq)
+    # Make leftbound.
+    td = timedelta(freq)
+    if tz or how == "A":  # if tz-aware, only one way to make leftbound.
+        return i - td
+    else:  # how == "B"
+        return pd.DatetimeIndex([i[0] - td, *i[:-1]])
 
 
 def intersection(*indices: pd.DatetimeIndex) -> pd.DatetimeIndex:
@@ -413,14 +285,14 @@ def assert_boundary_ts(ts: Union[pd.Timestamp, pd.DatetimeIndex], freq: str) -> 
 
     if isinstance(ts, pd.DatetimeIndex):
         if (floor_ts(ts, freq) != ts).any():
-            raise ValueError(
+            raise AssertionError(
                 f"Not all values in ``ts`` are a valid boundary timestamp for the frequency {freq}."
             )
         return
 
     # Assume it's a single timestamp.
     if floor_ts(ts, freq) != ts:
-        raise ValueError(
+        raise AssertionError(
             f"Timestamp {ts} is not a valid boundary timestamp for the frequency {freq}."
         )
 
@@ -639,7 +511,7 @@ def ts_leftright(left=None, right=None) -> Tuple:
     return left, right
 
 
-def freq_up_or_down(freq_source, freq_target) -> int:
+def freq_up_or_down(freq_source, freq_target, common_ts=None) -> int:
     """
     Compare source frequency with target frequency to see if it needs up- or downsampling.
 
@@ -649,6 +521,8 @@ def freq_up_or_down(freq_source, freq_target) -> int:
     Parameters
     ----------
     freq_source, freq_target : frequencies to compare.
+    common_ts : timestamp, optional
+        Timestamp to use as anchor from which to compare the two.
 
     Returns
     -------
@@ -670,14 +544,20 @@ def freq_up_or_down(freq_source, freq_target) -> int:
     >>> freq_up_or_down('MS', 'MS')
     0
     """
-    common_ts = pd.Timestamp("2020-01-01 0:00")
+    standard_common_ts = pd.Timestamp("2020-01-01 0:00")
+    backup_common_ts = pd.Timestamp("2020-02-03 04:05:06")
+    if common_ts is None:
+        common_ts = standard_common_ts
     ts1 = common_ts + pd.tseries.frequencies.to_offset(freq_source)
     ts2 = common_ts + pd.tseries.frequencies.to_offset(freq_target)
     if ts1 > ts2:
         return 1
     elif ts1 < ts2:
         return -1
-    return 0
+    if common_ts == standard_common_ts:
+        # If they are the same, try with another timestamp.
+        return freq_up_or_down(freq_source, freq_target, backup_common_ts)
+    return 0  # only if both give the same answer.
 
 
 def _freq_longestshortest(shortest: bool, *freqs):

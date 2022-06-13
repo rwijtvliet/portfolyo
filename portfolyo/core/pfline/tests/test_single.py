@@ -1,59 +1,43 @@
-from portfolyo import testing, dev
-from portfolyo.core.pfline.single import SinglePfLine
-from portfolyo.core.pfline.multi import MultiPfLine
-from portfolyo.tools.frames import set_ts_index
-from portfolyo.tools.stamps import FREQUENCIES
+from portfolyo import testing, dev, SinglePfLine, MultiPfLine, FREQUENCIES  # noqa
 import pandas as pd
 import numpy as np
 import pytest
 
 
-@pytest.mark.parametrize("freq", FREQUENCIES[::2])
-@pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
-@pytest.mark.parametrize("inputtype", ["df", "dict", "singlepfline", "multipfline"])
-def test_singlepfline_init(freq, columns, inputtype):
-    """Test if object can be initialized correctly, and attributes return correct values."""
+# @dataclass
+# class InteropTestObject:
+#     value: Any
+#     has_name: bool
+#     has_unit: bool
+#     in_defunit: Any  # None if conversion impossible
+#     error_name_unit_compatible: bool = False  # True if name and unit don't fit together
+#     error_unit_unknown: bool = False
 
-    i = dev.get_index(freq, "Europe/Berlin")
-    df = dev.get_dataframe(i, columns)
-    if inputtype == "df":
-        data_in = df
-    elif inputtype == "dict":
-        data_in = {name: s for name, s in df.items()}
-    elif inputtype == "singlepfline":
-        data_in = SinglePfLine(df)
-    else:  # inputtype multipfline
-        if columns in ["w", "q", "p", "qr", "wr"]:
-            df1 = 0.4 * df
-            df2 = 0.6 * df
-        else:  # has price column
-            othercol = columns.replace("p", "")
-            df1 = df.mul({"p": 1, othercol: 0.4})
-            df2 = df.mul({"p": 1, othercol: 0.6})
-        data_in = MultiPfLine({"a": SinglePfLine(df1), "b": SinglePfLine(df2)})
 
-    result = SinglePfLine(data_in)
-    result_df = result.df(columns)
-    expected_df = set_ts_index(df)
-    if columns in ["w", "q"]:  # kind == 'q'
-        expectedkind = "q"
-        expectedavailable = "wq"
-        expectedsummable = "q"
-    elif columns in ["p"]:  # kind == 'p'
-        expectedkind = "p"
-        expectedavailable = "p"
-        expectedsummable = "p"
-    else:  # kind == 'all'
-        expectedkind = "all"
-        expectedavailable = "wqpr"
-        expectedsummable = "qr"
-
-    assert type(result) is SinglePfLine
-    testing.assert_frame_equal(result_df, expected_df)
-    assert result.kind == expectedkind
-    assert set(list(result.available)) == set(list(expectedavailable))
-    assert set(list(result.summable)) == set(list(expectedsummable))
-    assert result.children == {}
+# def interoperability_test_object_generator():
+#     # first unit is the default one.
+#     name_unit = {
+#         "": [(1, "")],
+#         "w": [(1, "MW"), (1e6, "W"), (3.6e9, "J/h"), (1e-3, "GW"), (None, "Eur/MW")],
+#         "q": [(1, "MWh"), (1e6, "Wh"), (3.6e9, "J"), (1e-3, "GWh"), (None, "MW")],
+#         "p": [(1, "Eur/MWh"), (0.1, "ct/kWh"), (1 / 3.6e3, "Eur/MJ"), (None, "Eur")],
+#         "r": [(1, "Eur"), (100, "ctEur"), (1e-3, "kEur"), (None, "Eur*MW")],
+#     }
+#     values = []
+#     # Single float
+#     values.append((50, False, False, None))
+#     # Single quantity
+#     for name, units in name_unit.items():
+#         defunit = units[0][1]
+#         for factor, unit in units:
+#             if factor:
+#                 indef, unitunknown = Q_(50 * factor, defunit), False
+#             else:
+#                 indef, unitunknown = None, True
+#             values.append(
+#                 InteropTestObject(Q_(50, unit), False, True, indef, False, unitunknown)
+#             )
+#     # Dictionary and Series of values
 
 
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
@@ -61,23 +45,23 @@ def test_singlepfline_access(columns):
     """Test if core data can be accessed by item and attribute."""
 
     df = dev.get_dataframe(columns=columns)
-    df["na"] = np.nan  # add nancolumn
     result = SinglePfLine(df)
 
     testing.assert_index_equal(result.index, df.index)
     testing.assert_index_equal(result["index"], df.index)
 
-    def test_series_equal(col, expected):
-        testing.assert_series_equal(getattr(result, col), expected)
-        testing.assert_series_equal(result[col], expected)
-        testing.assert_series_equal(getattr(result.df(col), col), expected)
-        testing.assert_series_equal(result.df(col)[col], expected)
-
     for col in list("wqpr"):
         if col in columns:
-            test_series_equal(col, df[col])
+            expected = df[col]
+            testing.assert_series_equal(getattr(result, col), expected)
+            testing.assert_series_equal(result[col], expected)
+            testing.assert_series_equal(getattr(result.df(col), col), expected)
+            testing.assert_series_equal(result.df(col)[col], expected)
         elif col not in result.available:
-            test_series_equal(col, df.na.rename(col))
+            assert getattr(result, col).isna().all()
+            assert result[col].isna().all()
+            assert getattr(result.df(col), col).isna().all()
+            assert result.df(col)[col].all()
 
 
 idx = [
@@ -86,7 +70,7 @@ idx = [
 ]
 pp = [pd.Series(50, i) for i in idx]
 ww = [pd.Series(20, i) for i in idx]
-qq = [w * w.index.duration for w in ww]
+qq = [w * w.index.duration.pint.m for w in ww]
 rr = [p * q for p, q in zip(pp, qq)]
 
 
@@ -109,10 +93,11 @@ def test_singlepfline_asfreqcorrect1(pfls):
 
 
 # . check correct working of attributes .asfreq().
-@pytest.mark.parametrize("freq", ["H", "D", "MS", "QS", "AS"])  # not do all (many!)
-@pytest.mark.parametrize("newfreq", ["H", "D", "MS", "QS", "AS"])  # not do all (many!)
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize("freq", ["H", "D", "MS", "QS", "AS"])
+@pytest.mark.parametrize("newfreq", ["H", "D", "MS", "QS", "AS"])
 @pytest.mark.parametrize("columns", ["pr", "qr", "pq", "wp", "wr"])
-def test_singlepfline_asfreqcorrect2(freq, newfreq, columns):
+def test_singlepfline_asfreqcorrect2(freq, newfreq, columns, tz):
     """Test if changing frequency is done correctly (when it's possible)."""
 
     # Includes at 2 full years
@@ -121,7 +106,7 @@ def test_singlepfline_asfreqcorrect2(freq, newfreq, columns):
     a, (m, d) = a + 3, np.array([1, 1]) + np.random.randint(0, 12, 2)  # each + 0..11
     end = f"{a}-{m}-{d}"
 
-    i = pd.date_range(start, end, freq=freq, tz="Europe/Berlin")
+    i = pd.date_range(start, end, freq=freq, tz=tz)
     df = dev.get_dataframe(i, columns)
     pfl1 = SinglePfLine(df)
     pfl2 = pfl1.asfreq(newfreq)
@@ -142,7 +127,7 @@ def test_singlepfline_asfreqcorrect2(freq, newfreq, columns):
     if df2.empty or df1.empty:
         return
 
-    testing.assert_series_equal(df1.apply(sum), df2.apply(sum))
+    testing.assert_series_equal(df1.apply(np.sum), df2.apply(np.sum))
 
 
 @pytest.mark.parametrize("freq", ["15T", "H", "D"])

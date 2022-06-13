@@ -1,7 +1,4 @@
-from portfolyo.core.pfstate import PfState
-from portfolyo import dev
-import pandas as pd
-import pytest
+from portfolyo import dev, testing, PfState  # noqa
 
 # Assert correct working of _make_pflines
 # . check unsourced and offtake are specified.
@@ -25,17 +22,8 @@ def test_pfstate_consistency():
 
 
 # . initialisation with pfstate returns identical pfstate.
-@pytest.mark.parametrize("tz", ["Europe/Berlin", None])
-@pytest.mark.parametrize("freq", ["MS", "D"])
-def test_pfline_init(tz, freq):
-
-    i = dev.get_index(tz, freq)
-    pfstate = dev.get_pfstate(i)
-    expected_pfstate = PfState(pfstate)
-
-    pd.testing.assert_frame_equal(
-        pfstate.df(), expected_pfstate.df(), check_names=False
-    )
+def test_init_from_pfstate():
+    pass
 
 
 # # . check correct working of attributes .df().

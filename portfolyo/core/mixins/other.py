@@ -13,6 +13,7 @@ if TYPE_CHECKING:  # needed to avoid circular imports
 
 
 def _prepare_df(pfl_or_pfs: Union[PfLine, PfState]) -> pd.DataFrame:
+    """Prepare dataframe so it can easily be saved to excel or copied to clipboard."""
     return pfl_or_pfs.df(flatten=False).pint.dequantify().tz_localize(None)
 
 
