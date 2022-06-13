@@ -160,7 +160,7 @@ def test_makedataframe_unequalfrequencies(freq1, freq2, columns):
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("freq", ["15T", "H", "D", "MS"])
 @pytest.mark.parametrize("overlap", [True, False])
-def test_pfline_unequaltimeperiods(freq, overlap, tz):
+def test_makedataframe_unequaltimeperiods(freq, overlap, tz):
     """Test if only intersection is kept for overlapping series, and error is raised
     for non-overlapping series."""
 

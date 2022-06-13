@@ -285,14 +285,14 @@ def assert_boundary_ts(ts: Union[pd.Timestamp, pd.DatetimeIndex], freq: str) -> 
 
     if isinstance(ts, pd.DatetimeIndex):
         if (floor_ts(ts, freq) != ts).any():
-            raise ValueError(
+            raise AssertionError(
                 f"Not all values in ``ts`` are a valid boundary timestamp for the frequency {freq}."
             )
         return
 
     # Assume it's a single timestamp.
     if floor_ts(ts, freq) != ts:
-        raise ValueError(
+        raise AssertionError(
             f"Timestamp {ts} is not a valid boundary timestamp for the frequency {freq}."
         )
 

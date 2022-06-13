@@ -66,7 +66,8 @@ if TYPE_CHECKING:  # needed to avoid circular imports
 #               * p-PfLine, q-PfLine                                => see above
 #               * dimensionless                                     = all-PfLine (keep p)
 #               * dimension, all-PfLine                             = error
-#               / dimensionless, dimension, p-PfLine, q-PfLine, all-PfLine = error
+#               / dimensionless, dimension                          => *
+#               / p-PfLine, q-PfLine, all-PfLine                    = error
 
 
 def _prep_data(value, ref: PfLine, agn_default: str = None) -> Union[pd.Series, PfLine]:

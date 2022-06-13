@@ -5,6 +5,7 @@ Code to quickly get objects for testing.
 from typing import Dict
 from ..core.pfline import PfLine, SinglePfLine, MultiPfLine
 from ..core.pfstate import PfState
+from ..tools import nits
 from . import mockup
 import pandas as pd
 import numpy as np
@@ -27,8 +28,18 @@ def get_index(freq="D", tz="Europe/Berlin", start=None) -> pd.DatetimeIndex:
     return pd.date_range(start, freq=freq, periods=periods, tz=tz)
 
 
+def get_value(name: str = "w", has_unit: bool = True):
+    """Get a single value."""
+    magn = np.random.random() * 200
+    if not has_unit:
+        return magn
+    else:
+        unit = nits.name2unit(name)
+        return nits.Q_(magn, unit)
+
+
 def get_series(
-    i: pd.DatetimeIndex = None, name="w", has_unit: bool = True
+    i: pd.DatetimeIndex = None, name: str = "w", has_unit: bool = True
 ) -> pd.Series:
     """Get Series with index `i` and name `name`. Values from mock-up functions (if in
     'wqpr') or random between 100 and 200."""

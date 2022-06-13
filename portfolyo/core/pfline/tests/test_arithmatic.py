@@ -1,29 +1,32 @@
 from portfolyo.core.pfline import PfLine, SinglePfLine, MultiPfLine  # noqa
 from portfolyo.tools.nits import Q_
 from portfolyo import dev, testing
-from typing import Dict
+from typing import Dict, Any
 import portfolyo as pf
 import pandas as pd
 import pytest
 
 # TODO: Multipfline
+# TODO: various timezones
 
 
-def id_fn(data):
+def id_fn(data: Any):
+    """Readable id of test case"""
     if isinstance(data, Dict):
         return str({key: id_fn(val) for key, val in data.items()})
-    if isinstance(data, pd.Series):
+    elif isinstance(data, pd.Series):
         if isinstance(data.index, pd.DatetimeIndex):
-            return "ts"
-        else:
-            return f"series (idx: {''.join(str(i) for i in data.index)})"
-    if isinstance(data, pd.DataFrame):
-        return f"df (columns: {''.join(str(c) for c in data.columns)})"
-    if isinstance(data, SinglePfLine):
-        return f"singlepfline_{data.kind}"
-    if isinstance(data, MultiPfLine):
-        return f"multipfline_{data.kind}"
-    return str(data)
+            return "TimeSeries"
+        return f"Series (idx: {''.join(str(i) for i in data.index)})"
+    elif isinstance(data, pd.DataFrame):
+        return f"Df (columns: {''.join(str(c) for c in data.columns)})"
+    elif isinstance(data, SinglePfLine):
+        return f"Singlepfline_{data.kind}"
+    elif isinstance(data, MultiPfLine):
+        return f"Multipfline_{data.kind}"
+    elif type(data) is type:
+        return data.__name__
+    return type(data).__name__
 
 
 tz = "Europe/Berlin"
@@ -36,13 +39,13 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
 # i4 = pd.date_range("2020", periods=8, freq="QS", tz=tz)  # longer freq, part overlap
 
 
-# . check correct working of dunder methods. E.g. assert correct addition:
+# TODO: check correct working of dunder methods. E.g. assert correct addition:
 # . . pflines having same or different kind
 # . . pflines having same or different frequency
 # . . pflines covering same or different time periods
 
 
-@pytest.mark.parametrize("operation", ["plus", "minus"])
+@pytest.mark.parametrize("operation", ["add", "sub"])
 @pytest.mark.parametrize(
     ("pfl_in_i", "pfl_in_kind", "value", "returntype", "returnkind"),
     [
@@ -75,24 +78,24 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         (i, "q", dev.get_multipfline(i, "q"), PfLine, "q"),
         # . Add something else.
         # . . single value
-        (i, "q", 8.1, None, None),
-        (i, "q", Q_(8.1, ""), None, None),
-        (i, "q", Q_(8.1, "Eur/MWh"), None, None),
-        (i, "q", Q_(8.1, "Eur"), None, None),
-        (i, "q", Q_(8.1, "h"), None, None),
-        (i, "q", {"the_volume": Q_(8.1, "MWh")}, None, None),
+        (i, "q", 8.1, Exception, None),
+        (i, "q", Q_(8.1, ""), Exception, None),
+        (i, "q", Q_(8.1, "Eur/MWh"), Exception, None),
+        (i, "q", Q_(8.1, "Eur"), Exception, None),
+        (i, "q", Q_(8.1, "h"), Exception, None),
+        (i, "q", {"the_volume": Q_(8.1, "MWh")}, Exception, None),
         # . . timeseries (series, df, pfline)
-        (i, "q", pd.DataFrame({"the_volume": dev.get_series(i, "w")}), None, None),
-        (i, "q", dev.get_series(i, "q").pint.magnitude, None, None),
-        (i, "q", dev.get_series(i, "p"), None, None),
-        (i, "q", dev.get_series(i, "r"), None, None),
-        (i, "q", dev.get_dataframe(i, "p"), None, None),
-        (i, "q", dev.get_dataframe(i, "qr"), None, None),
-        (i, "q", dev.get_dataframe(i, "qp"), None, None),
-        (i, "q", dev.get_singlepfline(i, "p"), None, None),
-        (i, "q", dev.get_multipfline(i, "p"), None, None),
-        (i, "q", dev.get_singlepfline(i, "all"), None, None),
-        (i, "q", dev.get_multipfline(i, "all"), None, None),
+        (i, "q", pd.DataFrame({"the_volume": dev.get_series(i, "w")}), Exception, None),
+        (i, "q", dev.get_series(i, "q").pint.magnitude, Exception, None),
+        (i, "q", dev.get_series(i, "p"), Exception, None),
+        (i, "q", dev.get_series(i, "r"), Exception, None),
+        (i, "q", dev.get_dataframe(i, "p"), Exception, None),
+        (i, "q", dev.get_dataframe(i, "qr"), Exception, None),
+        (i, "q", dev.get_dataframe(i, "qp"), Exception, None),
+        (i, "q", dev.get_singlepfline(i, "p"), Exception, None),
+        (i, "q", dev.get_multipfline(i, "p"), Exception, None),
+        (i, "q", dev.get_singlepfline(i, "all"), Exception, None),
+        (i, "q", dev.get_multipfline(i, "all"), Exception, None),
         # Adding to price pfline.
         # . Add dimension-agnostic.
         (i, "p", 12, PfLine, "p"),
@@ -105,21 +108,21 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         (i, "p", dev.get_singlepfline(i, "p"), PfLine, "p"),
         (i, "p", dev.get_multipfline(i, "p"), PfLine, "p"),
         # . Add something else.
-        (i, "p", Q_(12.0, ""), None, None),  # explicitly dimensionless
-        (i, "p", Q_(12.0, "Eur"), None, None),
-        (i, "p", Q_(12.0, "MWh"), None, None),
-        (i, "p", Q_(12.0, "h"), None, None),
-        (i, "p", dev.get_series(i, "q"), None, None),
-        (i, "p", dev.get_singlepfline(i, "q"), None, None),
-        (i, "p", dev.get_multipfline(i, "q"), None, None),
-        (i, "p", dev.get_singlepfline(i, "all"), None, None),
-        (i, "p", dev.get_multipfline(i, "all"), None, None),
+        (i, "p", Q_(12.0, ""), Exception, None),  # explicitly dimensionless
+        (i, "p", Q_(12.0, "Eur"), Exception, None),
+        (i, "p", Q_(12.0, "MWh"), Exception, None),
+        (i, "p", Q_(12.0, "h"), Exception, None),
+        (i, "p", dev.get_series(i, "q"), Exception, None),
+        (i, "p", dev.get_singlepfline(i, "q"), Exception, None),
+        (i, "p", dev.get_multipfline(i, "q"), Exception, None),
+        (i, "p", dev.get_singlepfline(i, "all"), Exception, None),
+        (i, "p", dev.get_multipfline(i, "all"), Exception, None),
         # Adding to 'complete' pfline.
         # . Add dimension-agnostic.
-        (i, "all", 5.9, None, None),
-        (i, "all", dev.get_series(i, "q").pint.magnitude, None, None),
-        (i, "all", {"nodim": 5.9}, None, None),
-        (i, "all", {"nodim": Q_(5.9, "")}, None, None),
+        (i, "all", 5.9, Exception, None),
+        (i, "all", dev.get_series(i, "q").pint.magnitude, Exception, None),
+        (i, "all", {"nodim": 5.9}, Exception, None),
+        (i, "all", {"nodim": Q_(5.9, "")}, Exception, None),
         # . Add other 'all' pfline.
         (i, "all", dev.get_dataframe(i, "qr"), PfLine, "all"),
         (i, "all", dev.get_dataframe(i, "qp"), PfLine, "all"),
@@ -127,29 +130,29 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         (i, "all", dev.get_singlepfline(i, "all"), PfLine, "all"),
         (i, "all", dev.get_multipfline(i, "all"), PfLine, "all"),
         # . Add something else.
-        (i, "all", Q_(6.0, "Eur"), None, None),
-        (i, "all", Q_(6.0, "Eur/MWh"), None, None),
-        (i, "all", Q_(6.0, "MW"), None, None),
-        (i, "all", Q_(6.0, "MWh"), None, None),
-        (i, "all", Q_(6.0, "h"), None, None),
-        (i, "all", dev.get_series(i, "p"), None, None),
-        (i, "all", dev.get_series(i, "r"), None, None),
-        (i, "all", dev.get_series(i, "q"), None, None),
-        (i, "all", dev.get_series(i, "w"), None, None),
-        (i, "all", dev.get_dataframe(i, "p"), None, None),
-        (i, "all", dev.get_dataframe(i, "r"), None, None),
-        (i, "all", dev.get_dataframe(i, "q"), None, None),
-        (i, "all", dev.get_dataframe(i, "w"), None, None),
-        (i, "all", dev.get_dataframe(i, "wq"), None, None),
-        (i, "all", dev.get_singlepfline(i, "p"), None, None),
-        (i, "all", dev.get_multipfline(i, "p"), None, None),
-        (i, "all", dev.get_singlepfline(i, "q"), None, None),
-        (i, "all", dev.get_multipfline(i, "q"), None, None),
+        (i, "all", Q_(6.0, "Eur"), Exception, None),
+        (i, "all", Q_(6.0, "Eur/MWh"), Exception, None),
+        (i, "all", Q_(6.0, "MW"), Exception, None),
+        (i, "all", Q_(6.0, "MWh"), Exception, None),
+        (i, "all", Q_(6.0, "h"), Exception, None),
+        (i, "all", dev.get_series(i, "p"), Exception, None),
+        (i, "all", dev.get_series(i, "r"), Exception, None),
+        (i, "all", dev.get_series(i, "q"), Exception, None),
+        (i, "all", dev.get_series(i, "w"), Exception, None),
+        (i, "all", dev.get_dataframe(i, "p"), Exception, None),
+        (i, "all", dev.get_dataframe(i, "r"), Exception, None),
+        (i, "all", dev.get_dataframe(i, "q"), Exception, None),
+        (i, "all", dev.get_dataframe(i, "w"), Exception, None),
+        (i, "all", dev.get_dataframe(i, "wq"), Exception, None),
+        (i, "all", dev.get_singlepfline(i, "p"), Exception, None),
+        (i, "all", dev.get_multipfline(i, "p"), Exception, None),
+        (i, "all", dev.get_singlepfline(i, "q"), Exception, None),
+        (i, "all", dev.get_multipfline(i, "q"), Exception, None),
     ],
     ids=id_fn,
 )
 @pytest.mark.parametrize("pfl_in_single_or_multi", ["single", "multi"])
-def test_pfl_addition_errorandreturntype(
+def test_pfl_addsub_kind(
     pfl_in_i,
     pfl_in_kind,
     pfl_in_single_or_multi,
@@ -158,7 +161,7 @@ def test_pfl_addition_errorandreturntype(
     returnkind,
     operation,
 ):
-    """Test if error is raised on impossible addition and subtraction."""
+    """Test if addition and subtraction return correct object type and kind."""
     if pfl_in_single_or_multi == "single":
         pfl_in = dev.get_singlepfline(pfl_in_i, pfl_in_kind)
     else:
@@ -166,24 +169,241 @@ def test_pfl_addition_errorandreturntype(
 
     # Check error is raised.
     # (Not working due to implementation issue in pint and numpy: value + pfl_in, value - pfl_in)
-    if returntype is None:
-        allowed_errors = (NotImplementedError, ValueError, KeyError, TypeError)
-        if allowed_errors:
-            with pytest.raises(allowed_errors):
-                if operation == "plus":
-                    _ = pfl_in + value
-                else:
-                    _ = pfl_in - value
-            return
+    if issubclass(returntype, Exception):
+        with pytest.raises(returntype):
+            _ = (pfl_in + value) if operation == "add" else (pfl_in - value)
+        return
 
     # Check return type.
     # (Not working due to implementation issue in pint and numpy: value + pfl_in, value - pfl_in)
-    if operation == "plus":
-        result = pfl_in + value
-    else:
-        result = pfl_in - value
+    result = (pfl_in + value) if operation == "add" else (pfl_in - value)
     assert isinstance(result, returntype)
     if returntype is PfLine:
+        assert result.kind == returnkind
+
+
+@pytest.mark.parametrize("operation", ["mul", "div"])
+@pytest.mark.parametrize(
+    (
+        "pfl_in_i",
+        "pfl_in_kind",
+        "value",
+        "returntype_mul",
+        "returnkind_mul",
+        "returntype_div",
+        "returnkind_div",
+    ),
+    [
+        # Multiplying volume pfline.
+        # . Multiply with dimensionless value
+        # . . single value
+        (i, "q", 8.1, PfLine, "q", PfLine, "q"),
+        (i, "q", Q_(8.1, ""), PfLine, "q", PfLine, "q"),
+        # . . timeseries (series, df)
+        (i, "q", dev.get_series(i, "f"), PfLine, "q", PfLine, "q"),
+        (
+            i,
+            "q",
+            dev.get_series(i, "f").astype("pint[dimensionless]"),
+            PfLine,
+            "q",
+            PfLine,
+            "q",
+        ),
+        (i, "q", dev.get_dataframe(i, "f"), PfLine, "q", PfLine, "q"),
+        (
+            i,
+            "q",
+            dev.get_dataframe(i, "f").astype("pint[dimensionless]"),
+            PfLine,
+            "q",
+            PfLine,
+            "q",
+        ),
+        # . Multiply with volume
+        # . . single val
+        (i, "q", Q_(8.1, "Wh"), Exception, None, pd.Series, None),
+        (i, "q", Q_(8.1, "kWh"), Exception, None, pd.Series, None),
+        (i, "q", Q_(8.1, "MWh"), Exception, None, pd.Series, None),
+        (i, "q", Q_(8.1, "GWh"), Exception, None, pd.Series, None),
+        (i, "q", Q_(8.1, "W"), Exception, None, pd.Series, None),
+        (i, "q", Q_(8.1, "kW"), Exception, None, pd.Series, None),
+        (i, "q", Q_(8.1, "MW"), Exception, None, pd.Series, None),
+        (i, "q", Q_(8.1, "GW"), Exception, None, pd.Series, None),
+        (i, "q", {"w": Q_(8.1, "GW")}, Exception, None, pd.Series, None),
+        (i, "q", {"w": 8.1}, Exception, None, pd.Series, None),
+        (i, "q", Q_(8.1, "J"), Exception, None, pd.Series, None),
+        (i, "q", pd.Series([8.1], ["q"]), Exception, None, pd.Series, None),
+        (
+            i,
+            "q",
+            pd.Series([8.1], ["q"]).astype("pint[MWh]"),
+            Exception,
+            None,
+            pd.Series,
+            None,
+        ),
+        (i, "q", pd.Series([Q_(8.1, "MWh")], ["q"]), Exception, None, pd.Series, None),
+        (i, "q", pd.Series([8.1], ["w"]), Exception, None, pd.Series, None),
+        (
+            i,
+            "q",
+            pd.Series([8.1], ["w"]).astype("pint[MW]"),
+            Exception,
+            None,
+            pd.Series,
+            None,
+        ),
+        (i, "q", pd.Series([Q_(8.1, "MW")], ["w"]), Exception, None, pd.Series, None),
+        # . . timeseries (series, df, pfline)
+        (i, "q", dev.get_dataframe(i, "q"), Exception, None, pd.Series, None),
+        (i, "q", dev.get_pfline(i, "q"), Exception, None, pd.Series, None),
+        (i, "q", dev.get_singlepfline(i, "q"), Exception, None, pd.Series, None),
+        (i, "q", dev.get_multipfline(i, "q"), Exception, None, pd.Series, None),
+        # . Multiply with price
+        # . . single val
+        (i, "q", Q_(8.1, "Eur/MWh"), PfLine, "all", Exception, None),
+        (i, "q", Q_(8.1, "ctEur/kWh"), PfLine, "all", Exception, None),
+        # . . timeseries (series, df, pfline)
+        (i, "q", dev.get_series(i, "p"), PfLine, "all", Exception, None),
+        (i, "q", dev.get_dataframe(i, "p"), PfLine, "all", Exception, None),
+        (i, "q", dev.get_singlepfline(i, "p"), PfLine, "all", Exception, None),
+        (i, "q", dev.get_multipfline(i, "p"), PfLine, "all", Exception, None),
+        # Multiplying price pfline.
+        # . Multiply with dimensionless value
+        # . . single value
+        (i, "p", 8.1, PfLine, "p", PfLine, "p"),
+        (i, "p", Q_(8.1, ""), PfLine, "p", PfLine, "p"),
+        # . . timeseries (series, df)
+        (i, "p", dev.get_series(i, "f"), PfLine, "p", PfLine, "p"),
+        (
+            i,
+            "p",
+            dev.get_series(i, "f").astype("pint[dimensionless]"),
+            PfLine,
+            "p",
+            PfLine,
+            "p",
+        ),
+        (i, "p", dev.get_dataframe(i, "f"), PfLine, "p", PfLine, "p"),
+        (
+            i,
+            "p",
+            dev.get_dataframe(i, "f").astype("pint[dimensionless]"),
+            PfLine,
+            "p",
+            PfLine,
+            "p",
+        ),
+        # . Multiply with volume
+        # . . single val
+        (i, "p", Q_(8.1, "Wh"), PfLine, "all", Exception, None),
+        (i, "p", Q_(8.1, "kWh"), PfLine, "all", Exception, None),
+        (i, "p", Q_(8.1, "MWh"), PfLine, "all", Exception, None),
+        (i, "p", Q_(8.1, "GWh"), PfLine, "all", Exception, None),
+        (i, "p", Q_(8.1, "W"), PfLine, "all", Exception, None),
+        (i, "p", Q_(8.1, "kW"), PfLine, "all", Exception, None),
+        (i, "p", Q_(8.1, "MW"), PfLine, "all", Exception, None),
+        (i, "p", Q_(8.1, "GW"), PfLine, "all", Exception, None),
+        (i, "p", {"w": Q_(8.1, "GW")}, PfLine, "all", Exception, None),
+        (i, "p", {"w": 8.1}, PfLine, "all", Exception, None),
+        (i, "p", Q_(8.1, "J"), PfLine, "all", Exception, None),
+        (i, "p", pd.Series([8.1], ["q"]), PfLine, "all", Exception, None),
+        (
+            i,
+            "p",
+            pd.Series([8.1], ["q"]).astype("pint[MWh]"),
+            PfLine,
+            "all",
+            Exception,
+            None,
+        ),
+        (i, "p", pd.Series([Q_(8.1, "MWh")], ["q"]), PfLine, "all", Exception, None),
+        (i, "p", pd.Series([8.1], ["w"]), PfLine, "all", Exception, None),
+        (
+            i,
+            "p",
+            pd.Series([8.1], ["w"]).astype("pint[MW]"),
+            PfLine,
+            "all",
+            Exception,
+            None,
+        ),
+        (i, "p", pd.Series([Q_(8.1, "MW")], ["w"]), PfLine, "all", Exception, None),
+        # . . timeseries (series, df, pfline)
+        (i, "p", dev.get_dataframe(i, "q"), PfLine, "all", Exception, None),
+        (i, "p", dev.get_pfline(i, "q"), PfLine, "all", Exception, None),
+        (i, "p", dev.get_singlepfline(i, "q"), PfLine, "all", Exception, None),
+        (i, "p", dev.get_multipfline(i, "q"), PfLine, "all", Exception, None),
+        # . Multiply with price
+        # . . single val
+        (i, "p", Q_(8.1, "Eur/MWh"), Exception, None, pd.Series, None),
+        (i, "p", Q_(8.1, "ctEur/kWh"), Exception, None, pd.Series, None),
+        # . . timeseries (series, df, pfline)
+        (i, "p", dev.get_series(i, "p"), Exception, None, pd.Series, None),
+        (i, "p", dev.get_dataframe(i, "p"), Exception, None, pd.Series, None),
+        (i, "p", dev.get_singlepfline(i, "p"), Exception, None, pd.Series, None),
+        (i, "p", dev.get_multipfline(i, "p"), Exception, None, pd.Series, None),
+        # Multiplying 'complete' pfline.
+        # . Multiply with dimensionless value
+        # . . single value
+        (i, "all", 8.1, PfLine, "all", PfLine, "all"),
+        (i, "all", Q_(8.1, ""), PfLine, "all", PfLine, "all"),
+        # . . timeseries (series, df)
+        (i, "all", dev.get_series(i, "f"), PfLine, "all", PfLine, "all"),
+        (
+            i,
+            "all",
+            dev.get_series(i, "f").astype("pint[dimensionless]"),
+            PfLine,
+            "all",
+            PfLine,
+            "all",
+        ),
+        (i, "all", dev.get_dataframe(i, "f"), PfLine, "all", PfLine, "all"),
+        (
+            i,
+            "all",
+            dev.get_dataframe(i, "f").astype("pint[dimensionless]"),
+            PfLine,
+            "all",
+            PfLine,
+            "all",
+        ),
+    ],
+    ids=id_fn,
+)
+@pytest.mark.parametrize("pfl_in_single_or_multi", ["single", "multi"])
+def test_pfl_muldiv_kind(
+    pfl_in_i,
+    pfl_in_kind,
+    pfl_in_single_or_multi,
+    value,
+    returntype_mul,
+    returnkind_mul,
+    returntype_div,
+    returnkind_div,
+    operation,
+):
+    """Test if multiplication and division return correct object type and kind."""
+    if pfl_in_single_or_multi == "single":
+        pfl_in = dev.get_singlepfline(pfl_in_i, pfl_in_kind)
+    else:
+        pfl_in = dev.get_multipfline(pfl_in_i, pfl_in_kind)
+
+    returntype = returntype_mul if operation == "mul" else returntype_div
+    returnkind = returnkind_mul if operation == "mul" else returnkind_div
+
+    if issubclass(returntype, Exception):
+        with pytest.raises(returntype):
+            _ = (pfl_in * value) if operation == "mul" else (pfl_in / value)
+        return
+
+    # Check return type.
+    # (Not working due to implementation issue in pint and numpy: value + pfl_in, value - pfl_in)
+    result = (pfl_in * value) if operation == "mul" else (pfl_in / value)
+    assert isinstance(result, returntype)
+    if returntype_mul is PfLine:
         assert result.kind == returnkind
 
 
@@ -202,6 +422,7 @@ series2 = {
     "w": pd.Series([15.0, -20, 4], i),
     "p": pd.Series([400.0, 50, 50], i),
     "r": pd.Series([4464000.0, -696000, 148600], i),
+    "dimless": pd.Series([2, -1.5, 10], i),
 }
 pflset2 = {
     "q": pf.SinglePfLine({"w": series2["w"]}),
@@ -226,6 +447,13 @@ sub_all_pfl = pf.SinglePfLine({"w": sub_all_series["w"], "r": sub_all_series["r"
 mul_volume1_price2 = pf.SinglePfLine({"w": series1["w"], "p": series2["p"]})
 mul_volume2_price1 = pf.SinglePfLine({"w": series2["w"], "p": series1["p"]})
 div_volume1_volume2 = (series1["w"] / series2["w"]).astype("pint[dimensionless]")
+div_price1_price2 = (series1["p"] / series2["p"]).astype("pint[dimensionless]")
+mul_all1_dimless2 = pf.SinglePfLine(
+    {"w": series1["w"] * series2["dimless"], "p": series1["p"]}
+)
+div_all1_dimless2 = pf.SinglePfLine(
+    {"w": series1["w"] / series2["dimless"], "p": series1["p"]}
+)
 
 
 @pytest.mark.parametrize(
@@ -242,9 +470,9 @@ def test_pfl_neg(pfl_in, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize("operation", ["plus", "minus"])
+@pytest.mark.parametrize("operation", ["add", "sub"])
 @pytest.mark.parametrize(
-    ("pfl_in", "value", "expected_plus", "expected_minus"),
+    ("pfl_in", "value", "expected_add", "expected_sub"),
     [
         # Adding to volume pfline.
         # . Add constant.
@@ -359,6 +587,20 @@ def test_pfl_neg(pfl_in, expected):
             sub_price_pfl,
         ),
         # Adding to full pfline.
+        # . Add constant without unit.
+        (
+            pflset1["all"],
+            12.0,
+            ValueError,
+            ValueError,
+        ),
+        # . Add series without unit.
+        (
+            pflset1["all"],
+            series2["w"],
+            ValueError,
+            ValueError,
+        ),
         # . Add dataframe.
         (
             pflset1["all"],
@@ -383,16 +625,16 @@ def test_pfl_neg(pfl_in, expected):
     ],
     ids=id_fn,
 )
-def test_pfl_addition(pfl_in, value, expected_plus, expected_minus, operation):
-    """Test if portfolio lines of equal lengths can be added and subtracted and give correct result."""
-    expected = expected_plus if operation == "plus" else expected_minus
+def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
+    """Test if portfolio lines can be added and subtracted and give correct result."""
+    expected = expected_add if operation == "add" else expected_sub
 
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
-            _ = (pfl_in + value) if operation == "plus" else (pfl_in - value)
+            _ = (pfl_in + value) if operation == "add" else (pfl_in - value)
         return
 
-    result = (pfl_in + value) if operation == "plus" else (pfl_in - value)
+    result = (pfl_in + value) if operation == "add" else (pfl_in - value)
     assert result == expected
 
 
@@ -719,24 +961,243 @@ def test_pfl_addition(pfl_in, value, expected_plus, expected_minus, operation):
             ValueError,
         ),
         # . Dim-agnostic or dimless series.
+        (
+            pflset1["p"],
+            series2["w"],  # has no unit
+            pf.SinglePfLine({"p": series1["p"] * series2["w"]}),
+            pf.SinglePfLine({"p": series1["p"] / series2["w"]}),
+        ),
+        (
+            pflset1["p"],
+            series2["w"].astype("pint[dimensionless]"),  # dimensionless
+            pf.SinglePfLine({"p": series1["p"] * series2["w"]}),
+            pf.SinglePfLine({"p": series1["p"] / series2["w"]}),
+        ),
         # . Price series, dataframe, or PfLine
+        (
+            pflset1["p"],
+            series2["p"].astype("pint[Eur/MWh]"),  # series
+            Exception,
+            div_price1_price2,
+        ),
+        (
+            pflset1["p"],
+            pflset2["p"],  # pfline
+            Exception,
+            div_price1_price2,
+        ),
+        (
+            pflset1["p"],
+            pflset2["p"].p,  # series
+            Exception,
+            div_price1_price2,
+        ),
+        (
+            pflset1["p"],
+            {"p": series2["p"]},  # dict of series
+            Exception,
+            div_price1_price2,
+        ),
+        (
+            pflset1["p"],
+            pd.DataFrame({"p": series2["p"]}),  # dataframe
+            Exception,
+            div_price1_price2,
+        ),
+        (
+            pflset1["p"],
+            pflset2["p"],  # other pfline
+            Exception,
+            div_price1_price2,
+        ),
         # . Volume series, dataframe, or pfline
+        (
+            pflset1["p"],
+            series2["w"].astype("pint[MW]"),
+            mul_volume2_price1,
+            Exception,
+        ),
+        (
+            pflset1["p"],
+            (series2["w"] / 1000).astype("pint[GW]"),
+            mul_volume2_price1,
+            Exception,
+        ),
+        (
+            pflset1["p"],
+            series2["w"].rename("the_volume").astype("pint[MW]"),
+            mul_volume2_price1,
+            Exception,
+        ),
+        (
+            pflset1["p"],
+            pd.DataFrame({"w": series2["w"]}),
+            mul_volume2_price1,
+            Exception,
+        ),
+        (
+            pflset1["p"],
+            pd.DataFrame({"w": (series2["w"] / 1000).astype("pint[GW]")}),
+            mul_volume2_price1,
+            Exception,
+        ),
+        (
+            pflset1["p"],
+            pflset2["q"],
+            mul_volume2_price1,
+            Exception,
+        ),
         # . Incorrect series, dataframe or pfline.
-        # Multiplying volume pfline.
+        (
+            pflset1["p"],
+            series2["r"].astype("pint[Eur]"),
+            Exception,
+            Exception,
+        ),
+        (
+            pflset1["p"],
+            pd.DataFrame({"r": series2["r"]}),
+            Exception,
+            Exception,
+        ),
+        (
+            pflset1["p"],
+            pd.DataFrame({"the_price": series2["p"].astype("pint[Eur/MWh]")}),
+            KeyError,
+            KeyError,
+        ),
+        (
+            pflset1["p"],
+            pflset2["all"],
+            Exception,
+            Exception,
+        ),
+        # Multiplying 'complete' pfline.
         # . (dimension-agnostic) constant.
+        (
+            pflset1["all"],
+            6,
+            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+        ),
         # . Explicitly dimensionless constant.
-        # . Fixed price constant.
-        # . Fixed volume constant.
+        (
+            pflset1["all"],
+            Q_(6, ""),
+            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+        ),
+        (
+            pflset1["all"],
+            {"dimless": 6},
+            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+        ),
+        (
+            pflset1["all"],
+            pd.Series([6], ["dimless"]),
+            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+        ),
         # . Incorrect constant.
+        (
+            pflset1["all"],
+            {"r": 4.0},
+            Exception,
+            Exception,
+        ),
+        (
+            pflset1["all"],
+            {"q": 4.0, "w": 8.0},
+            Exception,
+            Exception,
+        ),
+        (
+            pflset1["all"],
+            Q_(4.0, "Eur"),
+            Exception,
+            Exception,
+        ),
+        (
+            pflset1["all"],
+            {"r": 4.0, "q": 12},
+            Exception,
+            Exception,
+        ),
+        (
+            pflset1["all"],
+            {"r": 4.0, "nodim": 4.0},
+            Exception,
+            Exception,
+        ),
         # . Dim-agnostic or dimless series.
-        # . Price series, dataframe, or PfLine
-        # . Volume series, dataframe, or pfline
+        (
+            pflset1["all"],
+            series2["dimless"],  # dim-agnostic
+            mul_all1_dimless2,
+            mul_all1_dimless2,
+        ),
+        (
+            pflset1["all"],
+            series2["dimless"].astype("pint[dimensionless]"),  # dimless
+            mul_all1_dimless2,
+            mul_all1_dimless2,
+        ),
+        (
+            pflset1["all"],
+            {"dimless": series2["dimless"]},
+            mul_all1_dimless2,
+            mul_all1_dimless2,
+        ),
+        (
+            pflset1["all"],
+            pd.DataFrame({"dimless": series2["dimless"]}),
+            mul_all1_dimless2,
+            mul_all1_dimless2,
+        ),
+        (
+            pflset1["all"],
+            pd.DataFrame({"dimless": series2["dimless"].astype("pint[dimensionless]")}),
+            mul_all1_dimless2,
+            mul_all1_dimless2,
+        ),
         # . Incorrect series, dataframe or pfline.
+        (
+            pflset1["all"],
+            {"r": series2["p"]},
+            Exception,
+            Exception,
+        ),
+        (
+            pflset1["all"],
+            series2["p"].astype("pint[Eur/MWh]"),
+            Exception,
+            Exception,
+        ),
+        (
+            pflset1["all"],
+            pflset2["p"],
+            Exception,
+            Exception,
+        ),
+        (
+            pflset1["all"],
+            pflset2["q"],
+            Exception,
+            Exception,
+        ),
+        (
+            pflset1["all"],
+            pflset2["all"],
+            Exception,
+            Exception,
+        ),
     ],
     ids=id_fn,
 )
-def test_pfl_multiplication(pfl_in, value, expected_mul, expected_div, operation):
-    """Test if portfolio lines of equal lengths can be multiplied and divided and give correct result."""
+def test_pfl_muldiv_full(pfl_in, value, expected_mul, expected_div, operation):
+    """Test if portfolio lines can be multiplied and divided and give correct result.
+    Includes partly overlapping indices."""
     expected = expected_mul if operation == "mul" else expected_div
 
     if isinstance(expected, type) and issubclass(expected, Exception):
