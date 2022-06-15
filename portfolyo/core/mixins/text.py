@@ -14,7 +14,7 @@ TREECOLORS = [colorama.Style.BRIGHT + getattr(colorama.Fore, f) for f in COLORS]
 _UNITS = {"w": "MW", "q": "MWh", "p": "Eur/MWh", "r": "Eur"}
 VALUEFORMAT = {"w": "{:,.1f}", "q": "{:,.0f}", "p": "{:,.2f}", "r": "{:,.0f}"}
 DATETIMEFORMAT = "%Y-%m-%d %H:%M:%S %z"
-COLWIDTHS_TAXIS0 = {"w": 12, "q": 11, "p": 11, "r": 13}
+COLWIDTHS_TAXIS0 = {"ts": 25, "w": 12, "q": 11, "p": 11, "r": 13}
 MAX_DEPTH = 6
 
 
@@ -40,7 +40,9 @@ def _df_with_strvalues(df: pd.DataFrame, units: Dict = _UNITS):
 
 def _df_with_strindex(df: pd.DataFrame, num_of_ts: int):
     """Turn datetime index of dataframe into text, and reduce number of rows."""
-    df.index = df.index.map(lambda ts: ts.strftime(DATETIMEFORMAT))
+    df.index = df.index.map(
+        lambda ts: ts.strftime(DATETIMEFORMAT).ljust(COLWIDTHS_TAXIS0["ts"])
+    )
     if len(df.index) > num_of_ts:
         i1, i2 = num_of_ts // 2, (num_of_ts - 1) // 2
         inter = pd.DataFrame([[".."] * len(df.columns)], [".."], df.columns)
@@ -102,6 +104,7 @@ def _pfl_flatdatablock_taxis0(
     df = _df_with_strvalues(pfl.flatten().df(cols))
     df = _df_with_strindex(df, num_of_ts)
     col_space = {k: v for k, v in COLWIDTHS_TAXIS0.items() if k in df}
+    # Turn into list of strings.
     df_str = df.to_string(col_space=col_space, index_names=False, header=False)
     return df_str.split("\n")
 

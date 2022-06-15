@@ -1,3 +1,40 @@
+/* contents */
+div.contents.local.topic {
+  border-left: 5px solid #ccc;
+  padding-left: 10px;
+  margin-bottom: 1.5em;
+  margin-bottom: 2em;
+}
+div.contents.local.topic p.topic-title {
+  margin-top: 0em;
+  font-weight: 400;
+  color: #666;
+  margin-bottom: 0.5em;
+}
+div.contents.local.topic ul {
+  list-style-type: square;
+  color: #ccc; /* color of bullets only*/
+  padding-left: 1em;
+  padding-bottom: 0;
+}
+div.contents.local.topic ul li p {
+  margin-bottom: 0;
+}
+div.contents.local.topic ul li p a {
+  font-weight: 400;
+  color: #666;
+}
+
+/* footnotes */
+a.footnote-reference {
+  position: relative; 
+  top: -0.5em; 
+  font-size: 80%; 
+}
+
+
+/* styling of API */
+
 dl:not(.docutils) dl.field-list.simple dt {
     background: #E6E6E6;
     color: #2D2D2D;

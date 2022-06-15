@@ -50,8 +50,9 @@ Contents
    core/interoperability
    tutorial/index
    specialized_topics/dataprep
-   specialized_topics/dimensions
    specialized_topics/timezones
+   specialized_topics/dimensions
+   specialized_topics/changefreq
    full_reference
 
 

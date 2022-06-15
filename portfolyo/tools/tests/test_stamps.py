@@ -394,13 +394,13 @@ def test_guessfrequency_dst(start, end, expected):
         ("2020-10-25 3:15", 96, "15T", "2020-10-25 3:00"),
     ],
 )
-def test_makeleftbound(start, periods, freq, expected_start, tz, remove_freq):
+def test_righttoleft(start, periods, freq, expected_start, tz, remove_freq):
     """Test if index of rightbound timestamps can be make leftbound."""
     i = pd.date_range(start, periods=periods, freq=freq, tz=tz)
     expected = pd.date_range(expected_start, periods=periods, freq=freq, tz=tz)
     if remove_freq:
         i.freq = None
-    result = stamps.make_leftbound(i)
+    result = stamps.right_to_left(i)
     testing.assert_index_equal(result, expected)
 
 
@@ -446,7 +446,7 @@ def test_makeleftbound_dst_tzaware(start, periods, freq, expected_start, remove_
     )
     if remove_freq:
         i.freq = None
-    result = stamps.make_leftbound(i)
+    result = stamps.right_to_left(i)
     testing.assert_index_equal(result, expected)
 
 
@@ -496,7 +496,7 @@ def test_makeleftbound_dst_tzaware(start, periods, freq, expected_start, remove_
     ],
 )
 def test_makeleftbound_dst_tznaive(i, expected):
-    result = stamps.make_leftbound(i)
+    result = stamps.right_to_left(i)
     testing.assert_index_equal(result, expected)
 
 

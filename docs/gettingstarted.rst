@@ -11,30 +11,23 @@ Initialising
 
 The most fundamental class is ``PfLine``, which is most commonly initialised with ``pandas`` ``Series`` or ``DataFrame`` objects. In real-life applications, input data can come from many sources, but ``portfolyo`` has the ``dev`` module that let's us get some mock-up data:
 
-.. code-block::
+.. code-block:: python
 
    >>> import portfolyo as pf
    >>> s = pf.dev.
 
 
 
-
-
-As a data source, Belvis is commonly used. We first need to authorize with its REST-API:
-   
-   >>> import lichtblyck as lb
-   >>> lb.belvis.auth_with_password('MyFirst.LastName', 'my_long_and_5tr0ng_password')
-
 Then, we can get portfolio state of several pre-defined portfolios. The available ones are found here:
 
-.. code-block::
+.. code-block:: python
 
    >>> lb.portfolios.PFNAMES
    {'power': ['PKG', 'NSP', 'WP', 'LUD_STG', 'LUD_NSP', 'LUD_WP', 'B2C_P2H', 'B2C_HH'], 'gas': []}
 
 And read the current portfolio state from Belvis using
 
-.. code-block::
+.. code-block:: python
 
    >>> pfs = lb.portfolios.pfstate('power', 'PKG', '2024', '2024-07')
    (...)
@@ -72,7 +65,7 @@ And read the current portfolio state from Belvis using
 
 From here, we can do various common operations. For example, we can aggregate the data (which is currently in 15-min frequency) to monthly values, and see what the current procurement cost is for the portfolio:
 
-.. code-block::
+.. code-block:: python
 
    >>> monthly = pfs.changefreq('MS')
    >>> monthly.pnl_cost
@@ -94,7 +87,7 @@ From here, we can do various common operations. For example, we can aggregate th
 
 The `.plot()` method allows us to see the same data visually:
 
-.. code-block::
+.. code-block:: python
 
    >>> monthly.pnl_cost.plot()
 
@@ -102,7 +95,7 @@ The `.plot()` method allows us to see the same data visually:
 
 We can analyse what happens, if market prices rise by 50%:
 
-.. code-block::
+.. code-block:: python
 
    >>> expensive = pfs.set_unsourcedprice(pfs.unsourcedprice * 1.5)
    >>> expensive.changefreq('MS').pnl_cost
@@ -124,13 +117,13 @@ We can analyse what happens, if market prices rise by 50%:
 
 If we want, we can export the data to Excel, in order to continue our analyses there:
 
-.. code-block::
+.. code-block:: python
 
    >>> pfs.to_excel('pkg_2024H1.xlsx')
 
 Or, if we have an excel workbook already open, we can copy-paste the data to-from the clipboard:
 
-.. code-block::
+.. code-block:: python
 
    >>> pfs.to_clipboard()
 

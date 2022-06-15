@@ -48,7 +48,7 @@ def guess_frequency(tdelta: pd.Timedelta) -> str:
         )
 
 
-def make_leftbound(i: pd.DatetimeIndex, how: str = "A") -> pd.DatetimeIndex:
+def right_to_left(i: pd.DatetimeIndex, how: str = "A") -> pd.DatetimeIndex:
     """Turn an index with right-bound timestamps into one with left-bound timestamps.
 
     Parameters

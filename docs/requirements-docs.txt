@@ -5,5 +5,6 @@ ipython
 matplotlib
 numpydoc
 sphinx-copybutton
+sphinx-exec-code
 sphinx_rtd_theme
 insegel

@@ -81,7 +81,7 @@ def standardize(
     if bound == "right":  # right -> left
         for how in ["A", "B"]:
             try:
-                fr_left = fr.set_axis(stamps.make_leftbound(fr.index, how))
+                fr_left = fr.set_axis(stamps.right_to_left(fr.index, how))
                 return standardize(fr_left, force, "left", tz=tz, floating=floating)
             except ValueError as e:
                 if how == "B":

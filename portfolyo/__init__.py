@@ -18,7 +18,7 @@ from .tools.stamps import (
     freq_longest,
     freq_shortest,
     freq_up_or_down,
-    make_leftbound,
+    right_to_left,
 )
 from .tools.frames import fill_gaps, wavg, standardize
 from .tools.nits import Q_

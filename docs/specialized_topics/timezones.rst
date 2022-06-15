@@ -1,24 +1,32 @@
 =========
 Timezones
 =========
-
+   
 Working with timezones can be a real headache. Here are some common scenarios and how to handle them.
 
+.. contents:: Page contents:
+   :depth: 1
+   :local:
+
+
 .. note:: In general, a lot of problems and ambiguity can be removed by **picking a timezone and sticking to it** - and converting all incoming timeseries into this timezone.
+
 
 ------------
 Preparations
 ------------
 
-The frequency must be set or inferrable. This means that gaps are filled (e.g. with ``fr.resample().asfreq()``) and, if necessary, timestamps are localized (with ``fr.tz_localize()``). In addition, each timestamp must fall at a period boundary, i.e., when dealing with daily values, the timestamps are all at midnight, and not at e.g. noon. This is all checked by the functions below.
+We assume our data is in ``fr``, which is a ``pandas.Series`` or ``pandas.DataFrame``. 
 
-Finally, the timestamps should be left-bound. This cannot be checked by the functions, so it is assumed.
+The frequency of the index must be set or inferrable. This means that gaps are filled (e.g. with ``fr.resample().asfreq()``) and, if necessary, timestamps are localized (with ``fr.tz_localize()``). In addition, each timestamp must fall at a period boundary, i.e., when dealing with daily values, the timestamps are all at midnight, and not at e.g. noon. This is all checked by the functions below.
+
+Finally, it is assumed that the timestamps are :ref:`left-bound<righttoleft>`.
 
 -------------------------
 Convert to timezone-aware
 -------------------------
 
-The most common case is where we have a timezone tied to a geographic location. In that case, we can do our conversions with the ``portfolyo.force_tzaware()`` function. In this example we will use the "Europe/Berlin" timezone. Here is how we can convert any timeseries (or dataframe) ``fr`` into this timezone:
+The most common case is where we have a timezone tied to a geographic location. In that case, we can do our conversions with the ``portfolyo.force_tzaware()`` function. In this example we will use the "Europe/Berlin" timezone. Here is how we can convert any timeseries (or dataframe) ``fr`` into this timezone, depending on the situation:
 
 * The index already has the correct timezone set. This can be checked with ``fr.index.tz``. In this case, nothing needs to be done (and if we pass it to ``portfolyo.force_tzaware()``, it is returned as-as).
 
