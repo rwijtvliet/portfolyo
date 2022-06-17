@@ -90,7 +90,7 @@ Or any other ``Mapping`` from (string) key values to ``pandas.Series``. The keys
 Timeseries with unit
 ====================
 
-To create a price-only or volume-only portfolio line, it is possible to use a ``pandas.Series`` with a valid unit for volume or price. It is automatically converted to the default unit.
+To create a price-only or volume-only portfolio line, we may provide a ``pandas.Series`` with a valid unit for volume or price. It is automatically converted to the default unit.
 
 .. exec_code::
 
@@ -118,7 +118,7 @@ Or any other ``Mapping`` from (string) key values to ``PfLine`` objects. The key
 
 Note that the sum values are shown. The individual children's portfolio lines may be accessed using their name as an index, e.g. ``pfl['southeast']``.  
 
-Nesting is not limited to one level, and instead of having each value be a ``PfLine`` objects, it is actually sufficient that each value can be used to initialise a ``PfLine`` object.
+Nesting is not limited to one level, and instead of having each value be a ``PfLine`` objects, it is actually sufficient that each value can be used to initialise a ``PfLine`` object. 
 
    
 

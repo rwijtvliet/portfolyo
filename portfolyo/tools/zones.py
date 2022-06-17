@@ -126,7 +126,10 @@ def force_tzaware(fr: NDFrame, tz: str, *, floating: bool = True) -> NDFrame:
 
     # Return: set frequency, and if succesful, check if all timestamps are valid for it.
     fr_out = frames.set_frequency(fr_out, freq_input)
-    stamps.assert_boundary_ts(fr_out.index, freq_input)
+    try:
+        stamps.assert_boundary_ts(fr_out.index, freq_input)
+    except AssertionError as e:
+        raise ValueError("The timestamps are not all at the start of a period.") from e
     return fr_out
 
 

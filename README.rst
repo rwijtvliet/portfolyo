@@ -17,8 +17,8 @@ portfolyo
    :target: https://app.codecov.io/gh/rwijtvliet/portfolyo
    :alt: Codecov
 
-Portfolyo is a Python package to analyse and manipulate **timeseries** related to **power 
-and gas offtake portfolios**.
+Portfolyo is a Python package to analyse and manipulate timeseries related to power 
+and gas offtake portfolios.
 
 Installation
 ------------
@@ -39,3 +39,18 @@ the commit hooks.
 
    $ pip install black flake8 pre-commit
    $ pre-commit install
+
+Repository
+----------
+
+The git repository is hosted on github:
+
+www.github.com/rwijtvliet/portfolyo
+
+
+Documentation
+-------------
+
+Documentation is hosted on readthedocs:
+
+portfolyo.rtfd.io

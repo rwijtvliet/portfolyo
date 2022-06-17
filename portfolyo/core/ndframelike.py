@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Iterable
 import pandas as pd
 
 
@@ -16,25 +15,6 @@ class NDFrameLike(ABC):
     @abstractmethod
     def index(self) -> pd.DatetimeIndex:
         """Left timestamp of time period corresponding to each data row."""
-        ...
-
-    @abstractmethod
-    def df(self, cols: Iterable[str] = None, flatten: bool = True) -> pd.DataFrame:
-        """DataFrame for this object.
-
-        Parameters
-        ----------
-        cols : str, optional (default: all that are available)
-            The columns to include in the dataframe.
-        flatten : bool, optional (default: True)
-            - If True, include only aggregated timeseries (4 or less; 1 per dimension).
-            - If False, include all timerseries and their (intermediate and final)
-              aggregations.
-
-        Returns
-        -------
-        pd.DataFrame
-        """
         ...
 
     @abstractmethod

@@ -876,7 +876,7 @@ def test_assertboundary(ts, freq, is_boundary, tz):
     if is_boundary:
         _ = stamps.assert_boundary_ts(ts, freq)
     else:
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             _ = stamps.assert_boundary_ts(ts, freq)
 
 
@@ -908,7 +908,7 @@ def test_assertboundary_asindex(tss, freq, are_boundary, tz):
     if are_boundary:
         _ = stamps.assert_boundary_ts(i, freq)
     else:
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             _ = stamps.assert_boundary_ts(i, freq)
 
 

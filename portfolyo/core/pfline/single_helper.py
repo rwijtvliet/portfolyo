@@ -53,7 +53,7 @@ def _dataframe_from_series(
     # Get price information.
     if p is not None and w is None and q is None and r is None:
         # We only have price information. Return immediately.
-        return pd.DataFrame({"p": p})  # kind == 'p'
+        return pd.DataFrame({"p": p.pint.to_base_units()})  # kind == 'p'
 
     # Get quantity information (and check consistency).
     if q is None and w is None:
@@ -67,7 +67,7 @@ def _dataframe_from_series(
 
     # Get revenue information (and check consistency).
     if p is None and r is None:
-        return pd.DataFrame({"q": q})  # kind == 'q'
+        return pd.DataFrame({"q": q.pint.to_base_units()})  # kind == 'q'
     if r is None:  # must calculate from p
         # Edge case: p==nan or p==inf. If q==0, assume r=0. If q!=0, raise error
         r = p * q
@@ -83,4 +83,6 @@ def _dataframe_from_series(
             r[~i], p[~i] * q[~i]
         ):
             raise ValueError("Passed values for `q`, `p` and `r` not consistent.")
-    return pd.DataFrame({"q": q, "r": r}).dropna()  # kind == 'all'
+    return pd.DataFrame(
+        {"q": q.pint.to_base_units(), "r": r.pint.to_base_units()}
+    ).dropna()  # kind == 'all'

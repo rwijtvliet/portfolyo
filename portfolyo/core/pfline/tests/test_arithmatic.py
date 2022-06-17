@@ -477,7 +477,7 @@ def test_pfl_muldiv_kind(
         return
 
     # Check return type.
-    # (Not working due to implementation issue in pint and numpy: value + pfl_in, value - pfl_in)
+    # (Not working due to implementation issue in pint and numpy: value * pfl_in, value / pfl_in)
     result = (pfl_in * value) if operation == "mul" else (pfl_in / value)
     assert isinstance(result, returntype)
     if returntype_mul is PfLine:

@@ -69,7 +69,7 @@ def do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn):
 
     # Conversion not possible.
     if df_out is None:
-        with pytest.raises(ValueError):
+        with pytest.raises((ValueError, AssertionError)):
             result = conversion_fn(fr_in)  # either conversion_fn raises error...
             stamps.assert_boundary_ts(result.index, aggfreq)  # ... or assertion does.
         return

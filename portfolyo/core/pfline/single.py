@@ -32,11 +32,9 @@ class SinglePfLine(PfLine):
 
     Notes
     -----
-    * If the timeseries or values in ``data`` do/does not have a ``pint`` data type, the
+    * If the timeseries or values in ``data`` do not have a ``pint`` data type, the
     standard units are assumed (MW, MWh, Eur, Eur/MWh).
-    * If the timeseries or values in ``data`` do/does have a ``pint`` data type, they are
-    converted into the standard units.
-    * If the timeseries or values in ``data`` do/does have a ``pint`` data type, they are
+    * If the timeseries or values in ``data`` do have a ``pint`` data type, they are
     converted into the standard units.
     """
 
@@ -97,11 +95,16 @@ class SinglePfLine(PfLine):
             return "p"
         raise ValueError(f"Unexpected value for ._df: {self._df}.")
 
-    def df(self, cols: Iterable[str] = None, *args, **kwargs) -> pd.DataFrame:
+    def df(
+        self, cols: Iterable[str] = None, *args, has_units: bool = True, **kwargs
+    ) -> pd.DataFrame:
         # *args, **kwargs needed because base class has this signature.
         if cols is None:
             cols = self.available
-        return pd.DataFrame({col: self[col] for col in cols})
+        series = {col: self[col] for col in cols}
+        if not has_units:
+            series = {col: s.pint.m for col, s in series.items()}
+        return pd.DataFrame(series)
 
     def asfreq(self, freq: str = "MS") -> SinglePfLine:
         if self.kind == "p":

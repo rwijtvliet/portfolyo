@@ -89,7 +89,14 @@ class MultiPfLine(PfLine):
             return "all"
         return next(iter(self._children.values())).kind
 
-    def df(self, cols: Iterable[str] = None, flatten: bool = True) -> pd.DataFrame:
+    def df(
+        self,
+        cols: Iterable[str] = None,
+        flatten: bool = True,
+        *arg,
+        has_units: bool = True,
+        **kwargs,
+    ) -> pd.DataFrame:
         if flatten:
             cols = self.available if cols is None else cols
             return pd.DataFrame({col: self[col] for col in cols})

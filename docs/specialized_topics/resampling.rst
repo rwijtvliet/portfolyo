@@ -46,7 +46,7 @@ If a price does *not* apply to a certain volume, e.g., when considering current 
 Upsampling example
 ------------------
 
-If, in the year 2024, a customer consumes an energy offtake of 1 GWh (`q = 1000`), i.e., has an average power of 0.11 MW (`w = 0.11`), and pays a price of 30 Eur/MWh (`p = 30`), then the revenue is 30 kEur (`r = 30000`). Let's say the average temperature in the year is 7.98 degC (`t = 7.98`):
+If, in the year 2024, a customer has an energy offtake of 1 GWh (``q = 1000``), i.e., with an average power of 0.11 MW (``w = 0.11``), and pays a price of 30 Eur/MWh (``p = 30``), then the revenue is 30 kEur (``r = 30000``). Let's say the average temperature in the year is 7.98 degC (``t = 7.98``):
 
 =========================  ========  ======  =======  =======  ====
 Yearly                            w       q        p        r     t
@@ -55,9 +55,9 @@ Yearly                            w       q        p        r     t
 2024-01-01 00:00:00+01:00  0.113843  1000.0     30.0  30000.0  7.98
 =========================  ========  ======  =======  =======  ====
 
-If we resample these values to a higher-frequency timeseries (e.g. quarteryearly), then the values of the summable dimensions (`q` and `r`) become smaller, as their values need to be "spread" over the resulting rows. If nothing more is known about how the energy is consumed, we assume that the consumption rate is constant throughout the period. This means we have to distribute the values over the new rows, **in proportion to their duration**. (Because the 3rd and 4th quarter have more days than the 1st and 2nd quarter, they get a larger fraction of the original value.)
+If we resample these values to a higher-frequency timeseries (e.g. quarteryearly), then the values of the summable dimensions (``q`` and ``r``) become smaller, as their values need to be "spread" over the resulting rows. If nothing more is known about how the energy is consumed, we assume that the consumption rate is constant throughout the period. This means we have to distribute the values over the new rows, **in proportion to their duration**. (Because the 3rd and 4th quarter have more days than the 1st and 2nd quarter, they get a larger fraction of the original value.)
 
-The values of the averagable dimensions (`w` and `t`) are **unchanged**, i.e., they are simply copies of the original value. Also the value of the derived quantity `p` turns out to be unchanged. The resulting values are therefore:
+The values of the averagable dimensions (``w`` and ``t``) are **unchanged**, i.e., they are simply copies of the original value. Also the value of the derived quantity ``p`` turns out to be unchanged. The resulting values are therefore:
 
 =========================  ========  ======  =======  =======  ====
 Upsampled to quarterly            w       q        p        r     t
@@ -69,7 +69,7 @@ Upsampled to quarterly            w       q        p        r     t
 2024-10-01 00:00:00+02:00  0.113843  251.48     30.0  7544.40  7.98
 =========================  ========  ======  =======  =======  ====
 
-This is the best guess we can make without using any additional information about how the values are distributed throughout the year. Note that each row is consistent, i.e., `q` equals `w` times the duration in hours, and `r` equals `p` times `q`. 
+This is the best guess we can make without using any additional information about how the values are distributed throughout the year. Note that each row is consistent, i.e., ``q`` equals ``w`` times the duration in hours, and ``r`` equals ``p`` times ``q``. 
 
 --------------------
 Downsampling example
@@ -87,11 +87,11 @@ Quarterly                         w       q        p        r     t
 2024-10-01 00:00:00+02:00  0.144862   320.0    30.80   9856.0   3.2
 =========================  ========  ======  =======  =======  ====
 
-If we resample to a lower-frequency timeseries (e.g. yearly), we need to **sum** the values of the summable dimensions `q` and `r` (the duration does not need to be considered). 
+If we resample to a lower-frequency timeseries (e.g. yearly), we need to **sum** the values of the summable dimensions ``q`` and ``r`` (the duration does not need to be considered). 
 
-For the time-averagable dimensions (`w` and `t`), the **average** of the individual values must be calculated, **weighted with the duration** of each row. (Alternatively, for the power `w`: this is always `q/duration` and can always be calculated from these values after *they* are downsampled.)
+For the time-averagable dimensions (``w`` and ``t``), the **average** of the individual values must be calculated, **weighted with the duration** of each row. (Alternatively, for the power ``w``: this is always ``q/duration`` and can always be calculated from these values after *they* are downsampled.)
 
-For the derived dimension `p`, this is also an average of the individual values, but weighted with the volume `q` of each row. (Alternatively: the price is always `r/q` and can always be calculated from these values after *they* are downsampled.)
+For the derived dimension ``p``, this is also an average of the individual values, but weighted with the volume ``q`` of each row. (Alternatively: the price is always ``r/q`` and can always be calculated from these values after *they* are downsampled.)
 
 The resulting downsampled values are:
 
@@ -108,7 +108,7 @@ Downsampled to yearly             w       q        p        r     t
 Downsampling example, price-only
 --------------------------------
 
-To illustrate the point that downsampling prices is different when we have "no volume information", consider the previous example, but let's assume we only have the prices, which represent the futures base price for each quarter:
+To illustrate the point that downsampling prices is different when we have "no volume information", consider the price values from the previous example, but let's assume they represent the futures base price for each quarter:
 
 =========================  =======
 Quarterly                        p
@@ -122,7 +122,7 @@ Quarterly                        p
 
 How high is the (arbitrage-free) base price for the entire year?
 
-In this case, price is treated as time-averagable and weighted with the *duration* of each period. We obtain a slightly lower value from before:
+In this case, price is treated as time-averagable and weighted with the *duration* of each period. We obtain a slightly lower value than before:
 
 =========================  =======
 Downsampled to yearly            p
@@ -131,4 +131,10 @@ Downsampled to yearly            p
 2024-01-01 00:00:00+01:00    28.78
 =========================  =======
 
-The reason that the price was higher in the previous example, is, that, there, it must be weighted with the *energy* in each period. Or, in other words: in the previous example, we had more energy in the expensive quarters, and less in the cheaper ones, which results in a higher price for the entire year.
+The reason for the higher price in the previous example, is that, there, it is weighted with the *energy* in each period. We had more energy in the expensive quarters, and less in the cheaper ones, which results in a higher price for the entire year.
+
+-----------------------------
+Resampling with ``portfolyo``
+-----------------------------
+
+When changing the frequency of a ``PfLine`` or ``PfState`` object, the considerations above are automatically taken into account. If you are in the situation of having to change the frequency of a ``pandas.Series`` with a ``DatetimeIndex``, however, the relevant functions are also available at the ``portfolyo.changefreq`` module.

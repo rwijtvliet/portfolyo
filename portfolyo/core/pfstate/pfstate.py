@@ -12,7 +12,7 @@ from ..pfline import PfLine, MultiPfLine
 from ..mixins import PfStateText, PfStatePlot, OtherOutput
 from ...tools import frames
 
-from typing import Optional, Union
+from typing import Iterable, Optional, Union
 import pandas as pd
 import warnings
 
@@ -145,17 +145,38 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
     def unsourcedfraction(self) -> pd.Series:
         return 1 - self.sourcedfraction
 
-    def df(self, flatten: bool = False, *args, **kwargs) -> pd.DataFrame:
-        """DataFrame for this PfState.
+    def df(
+        self,
+        cols: Iterable[str],
+        flatten: bool = False,
+        *args,
+        has_units: bool = True,
+        **kwargs,
+    ) -> pd.DataFrame:
+        """DataFrame for portfolio state in default units.
+
+        Parameters
+        ----------
+        cols : str, optional (default: all that are available)
+            The columns (w, q, p, r) to include in the dataframe.
+        flatten : bool, optional (default: True)
+            - If True, include only aggregated timeseries (4 or less; 1 per dimension).
+            - If False, include all children and their (intermediate and final)
+              aggregations.
+        has_units : bool, optional (default: True)
+            - If True, return dataframe with ``pint`` units. (The unit can be extracted
+              as a column level with ``.pint.dequantify()``).
+            - If False, return dataframe with float values.
 
         Returns
         -------
         pd.DataFrame
         """
+
         dfs = []
         for part in ("offtake", "pnl_cost", "sourced", "unsourced"):
             fl = True if part == "pnl_cost" else flatten  # always flatten pnl_cost
-            dfin = self[part].df(flatten=fl)
+            dfin = self[part].df(cols, fl, has_units=has_units)
             dfs.append(frames.add_header(dfin, part))
         return frames.concat(dfs, axis=1)
 

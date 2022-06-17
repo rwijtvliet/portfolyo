@@ -1,5 +1,5 @@
 """
-Abstract Base Classes for PfLine and PfState.
+Abstract Base Class for PfLine.
 """
 
 from __future__ import annotations
@@ -13,7 +13,7 @@ from ...tools import nits
 from ...tools.types import Quantity, Value
 
 from abc import abstractmethod
-from typing import Dict, Mapping, Union, TYPE_CHECKING
+from typing import Dict, Iterable, Mapping, Union, TYPE_CHECKING
 import pandas as pd
 
 # Developer notes: we would like to be able to handle 2 cases with volume AND financial
@@ -102,6 +102,31 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
         - 'q': volume data only; properties .q [MWh] and .w [MW] are available.
         - 'p': price data only; property .p [Eur/MWh] is available.
         - 'all': price and volume data; properties .q [MWh], .w [MW], .p [Eur/MWh], .r [Eur] are available.
+        """
+        ...
+
+    @abstractmethod
+    def df(
+        self, cols: Iterable[str], flatten: bool = True, has_units: bool = False
+    ) -> pd.DataFrame:
+        """DataFrame for portfolio line in default units.
+
+        Parameters
+        ----------
+        cols : str, optional (default: all that are available)
+            The columns (w, q, p, r) to include in the dataframe.
+        flatten : bool, optional (default: True)
+            - If True, include only aggregated timeseries (4 or less; 1 per dimension).
+            - If False, include all children and their (intermediate and final)
+              aggregations.
+        has_units : bool, optional (default: True)
+            - If True, return dataframe with ``pint`` units. (The unit can be extracted
+              as a column level with ``.pint.dequantify()``).
+            - If False, return dataframe with float values.
+
+        Returns
+        -------
+        pd.DataFrame
         """
         ...
 
