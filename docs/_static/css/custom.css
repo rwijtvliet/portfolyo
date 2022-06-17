@@ -32,6 +32,11 @@ a.footnote-reference {
   font-size: 80%; 
 }
 
+/* code blocks */ 
+div.highlight pre {
+  padding: 1em;
+  text-size-adjust: 50%;
+}
 
 /* styling of API */
 

@@ -50,7 +50,7 @@ If, in the year 2024, a customer has an energy offtake of 1 GWh (``q = 1000``), 
 
 =========================  ========  ======  =======  =======  ====
 Yearly                            w       q        p        r     t
-                                 MW     MWh  Eur/MWh      Eur  degC
+resolution                       MW     MWh  Eur/MWh      Eur  degC
 =========================  ========  ======  =======  =======  ====
 2024-01-01 00:00:00+01:00  0.113843  1000.0     30.0  30000.0  7.98
 =========================  ========  ======  =======  =======  ====
@@ -61,7 +61,7 @@ The values of the averagable dimensions (``w`` and ``t``) are **unchanged**, i.e
 
 =========================  ========  ======  =======  =======  ====
 Upsampled to quarterly            w       q        p        r     t
-                                 MW     MWh  Eur/MWh      Eur  degC
+resolution                       MW     MWh  Eur/MWh      Eur  degC
 =========================  ========  ======  =======  =======  ====
 2024-01-01 00:00:00+01:00  0.113843  248.52     30.0  7455.60  7.98
 2024-04-01 00:00:00+02:00  0.113843  248.63     30.0  7459.02  7.98
@@ -79,7 +79,7 @@ Something similar happens when going in the reverse direction, but a bit more in
 
 =========================  ========  ======  =======  =======  ====
 Quarterly                         w       q        p        r     t
-                                 MW     MWh  Eur/MWh      Eur  degC
+resolution                       MW     MWh  Eur/MWh      Eur  degC
 =========================  ========  ======  =======  =======  ====
 2024-01-01 00:00:00+01:00  0.137426   300.0    37.77  11330.1   1.3
 2024-04-01 00:00:00+02:00  0.082418   180.0    25.30   4554.0  12.3
@@ -97,7 +97,7 @@ The resulting downsampled values are:
 
 =========================  ========  ======  =======  =======  ====
 Downsampled to yearly             w       q        p        r     t
-                                 MW     MWh  Eur/MWh      Eur  degC
+resolution                       MW     MWh  Eur/MWh      Eur  degC
 =========================  ========  ======  =======  =======  ====
 2024-01-01 00:00:00+01:00  0.113843  1000.0     30.0  30000.0  7.98
 =========================  ========  ======  =======  =======  ====
@@ -112,7 +112,7 @@ To illustrate the point that downsampling prices is different when we have "no v
 
 =========================  =======
 Quarterly                        p
-                           Eur/MWh
+resolution                 Eur/MWh
 =========================  =======
 2024-01-01 00:00:00+01:00    37.77
 2024-04-01 00:00:00+02:00    25.30
@@ -126,7 +126,7 @@ In this case, price is treated as time-averagable and weighted with the *duratio
 
 =========================  =======
 Downsampled to yearly            p
-                           Eur/MWh
+resolution                 Eur/MWh
 =========================  =======
 2024-01-01 00:00:00+01:00    28.78
 =========================  =======
@@ -137,4 +137,4 @@ The reason for the higher price in the previous example, is that, there, it is w
 Resampling with ``portfolyo``
 -----------------------------
 
-When changing the frequency of a ``PfLine`` or ``PfState`` object, the considerations above are automatically taken into account. If you are in the situation of having to change the frequency of a ``pandas.Series`` with a ``DatetimeIndex``, however, the relevant functions are also available at the ``portfolyo.changefreq`` module.
+When changing the frequency of a ``PfLine`` or ``PfState`` object, the considerations above are automatically taken into account. If you are in the situation of having to change the frequency of a ``pandas.Series`` or ``DataFrame`` with a ``DatetimeIndex``, however, the relevant functions are also available at the ``portfolyo.changefreq`` module.

@@ -3,6 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
+=========
 portfolyo
 =========
 
@@ -25,7 +26,7 @@ portfolyo
 Portfolyo is a Python package to analyse and manipulate **timeseries** related to **power 
 and gas offtake portfolios**.
 
-
+------------
 Installation
 ------------
 
@@ -35,13 +36,13 @@ Installation
 
 
 
-
+--------
 Contents
-========
+--------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
+   :caption: Core functionality
 
    gettingstarted
    core/objects
@@ -49,17 +50,19 @@ Contents
    core/pfstate
    core/interoperability
    tutorial/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Specialized topics
+
    specialized_topics/dataprep
    specialized_topics/timezones
    specialized_topics/dimensions
-   specialized_topics/changefreq
+   specialized_topics/resampling
+
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Full reference
+
    full_reference
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
