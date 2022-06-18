@@ -30,7 +30,36 @@ a.footnote-reference {
   position: relative; 
   top: -0.5em; 
   font-size: 80%; 
+  background: #2D2D2D;
+  color: #EBEBEB;
 }
+dl.footnote dt.label {
+  background: #2D2D2D;
+  color: #EBEBEB;
+  padding-top: 0.2em;
+  padding-left: 0.2em;
+  padding-right: 0.2em;
+  padding-bottom: 0.2em;
+  margin-bottom: -1em;
+}
+
+/* table footnotes (definition lists) */
+table tbody tr td p a.reference.internal {
+  background: #2D2D2D;
+  color: #EBEBEB;
+  position: relative; 
+  top: -0.5em; 
+  font-size: 80%; 
+  padding: 0.2em 0.2em 0;
+}
+dl.simple dt {
+  background: #2D2D2D;
+  color: #EBEBEB;
+  padding: 0 0.4em 0.1em;
+  top: -0.5em; 
+  font-size: 80%;
+}
+
 
 /* code blocks */ 
 div.highlight pre {

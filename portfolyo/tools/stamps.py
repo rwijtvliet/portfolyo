@@ -121,7 +121,8 @@ def intersection(*indices: pd.DatetimeIndex) -> pd.DatetimeIndex:
     tznaive = [i.tz is None for i in indices]
     if any(tznaive) and not all(tznaive):
         raise ValueError(
-            f"All indices must be either timezone-aware or timezone-naive; got {tznaive} naive from {len(indices)}."
+            "All indices must be either timezone-aware or timezone-naive; got "
+            f"{len(tznaive)} naive (out of {len(indices)})."
         )
 
     freq, name, tz = indices[0].freq, indices[0].name, indices[0].tz

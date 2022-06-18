@@ -101,7 +101,7 @@ class SinglePfLine(PfLine):
         # *args, **kwargs needed because base class has this signature.
         if cols is None:
             cols = self.available
-        series = {col: self[col] for col in cols}
+        series = {col: getattr(self, col) for col in cols}
         if not has_units:
             series = {col: s.pint.m for col, s in series.items()}
         return pd.DataFrame(series)

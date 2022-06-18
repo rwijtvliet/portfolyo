@@ -1,5 +1,8 @@
 """String representation of PfLine and PfState objects."""
 from __future__ import annotations
+
+from .. import pfline
+
 from typing import TYPE_CHECKING, Iterable, Dict
 import pandas as pd
 import colorama
@@ -51,7 +54,11 @@ def _df_with_strindex(df: pd.DataFrame, num_of_ts: int):
 
 
 def _what(pfl) -> str:
-    return {"p": "price", "q": "volume", "all": "price and volume"}[pfl.kind]
+    return {
+        pfline.Kind.PRICE_ONLY: "price",
+        pfline.Kind.VOLUME_ONLY: "volume",
+        pfline.Kind.ALL: "price and volume",
+    }[pfl.kind]
 
 
 def _index_info(i: pd.DatetimeIndex) -> Iterable[str]:
@@ -64,7 +71,7 @@ def _index_info(i: pd.DatetimeIndex) -> Iterable[str]:
 
 def _children_info(pfl: PfLine) -> Iterable[str]:
     """Info about the children of the portfolio line."""
-    childtxt = [f"'{name}' ({_what(child)})" for name, child in pfl.children.items()]
+    childtxt = [f"'{name}' ({_what(child)})" for name, child in pfl.items()]
     return [". Children: " + ("none" if not childtxt else ", ".join(childtxt))]
 
 

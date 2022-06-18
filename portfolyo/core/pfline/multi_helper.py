@@ -6,10 +6,10 @@ from . import multi
 from .base import PfLine, Kind
 from ...tools import stamps
 
-from typing import Counter, Mapping, Dict
+from typing import Counter, Mapping, Dict, Union
 
 
-def make_childrendict(data) -> Dict[str, PfLine]:
+def make_childrendict(data: Union[Mapping, multi.MultiPfLine]) -> Dict[str, PfLine]:
     """From data, create a dictionary of PfLine instances. Also, do some data verification."""
     children = _data_to_childrendict(data)
     try:
@@ -20,7 +20,7 @@ def make_childrendict(data) -> Dict[str, PfLine]:
     return children
 
 
-def _data_to_childrendict(data) -> Dict[str, PfLine]:
+def _data_to_childrendict(data: Union[Mapping, multi.MultiPfLine]) -> Dict[str, PfLine]:
     """Check data, and turn into a dictionary."""
 
     if isinstance(data, multi.MultiPfLine):

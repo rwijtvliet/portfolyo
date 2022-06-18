@@ -48,15 +48,15 @@ def test_singlepfline_init(freq, columns, inputtype, has_unit):
     result = pf.SinglePfLine(data_in)
     result_df = result.df(columns)
     expected_df = df.rename_axis("ts_left")
-    if columns in ["w", "q"]:  # kind == 'q'
+    if columns in ["w", "q"]:
         expectedkind = pf.Kind.VOLUME_ONLY
         expectedavailable = "wq"
         expectedsummable = "q"
-    elif columns in ["p"]:  # kind == 'p'
+    elif columns in ["p"]:
         expectedkind = pf.Kind.PRICE_ONLY
         expectedavailable = "p"
         expectedsummable = "p"
-    else:  # kind == 'all'
+    else:
         expectedkind = pf.Kind.ALL
         expectedavailable = "wqpr"
         expectedsummable = "qr"

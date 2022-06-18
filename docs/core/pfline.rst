@@ -14,15 +14,15 @@ It is assumed that you are familiar with the following dimension abbrevations: `
 Kind
 ----
 
-An important characteristic of a ``PfLine`` is its "kind", which tells us which kind of information it contains. It is available as the property ``.kind`` and has one of 3 possible values: ``"p"``, ``"q"`` and ``"all"``.
+An important characteristic of a portfolio line is its "kind". The property ``PfLine.kind`` has a value from the ``portfolyo.Kind`` enumeration and tells us the type of information it contains:
 
-* ``.kind is Kind.PRICE_ONLY`` 
+* ``Kind.PRICE_ONLY``: "price-only" portfolio line.
 
   This is a portfolio line which only contains price information. 
   
   As an examples, consider the forward price curve for a certain market area, or the fixed offtake price that a customer is paying for a certain delivery period.
 
-* ``.kind is Kind.VOLUME_ONLY``
+* ``Kind.VOLUME_ONLY``: "volume-only" portfolio line.
 
   This is a portfolio line that only contains volume information. 
   
@@ -30,7 +30,7 @@ An important characteristic of a ``PfLine`` is its "kind", which tells us which 
 
   The volume in each timestamp can be retrieved by the user in units of energy (e.g., MWh) or in units of power (e.g., MW).
 
-* ``.kind is Kind.ALL``
+* ``Kind.ALL``: "price-and-volume" portfolio line.
 
   This a portfolio line that contains both price and volume information. 
   
@@ -51,7 +51,7 @@ In General
 
 ``portfolyo`` tries to determine the dimension of information (e.g., if it is a price or a volume) using its key (if it has one) and its unit (also, if it has one) - see the section on :ref:`Compatilibity of abbrevation and unit <nameunitcompatibility>`.
 
-To initialise a price-only portfolio line, we must only provide supply price timeseries. To initialise a volume-only portfolio line, we must only provide a volume timeseries. To initialise a price-and-volume portfolio line (i.e., with ``.kind is Kind.ALL``), we must supply at least 2 of the following timeseries: prices, volumes, revenues. 
+To initialise a price-only portfolio line, we must only provide a price timeseries. To initialise a volume-only portfolio line, we must only provide a volume timeseries. To initialise a price-and-volume portfolio line, we must supply at least 2 of the following timeseries: prices, volumes, revenues. 
 
 .. note::
    
@@ -65,14 +65,14 @@ DataFrame or dictionary of timeseries...
 
 or any other ``Mapping`` from (string) key values to ``pandas.Series``. 
 
-The keys (dataframe column names) must each be one of the following: ``w`` (power), ``q`` (energy), ``p`` (price), ``r`` (revenue). Depending on the keys, the ``.kind`` of the portfolio line is determined.
+The keys (or dataframe column names) must each be one of the following: ``w`` (power), ``q`` (energy), ``p`` (price), ``r`` (revenue). Depending on the keys, the ``.kind`` of the portfolio line is determined.
 
 .. exec_code::
    
    import portfolyo as pf
    import pandas as pd
    index = pd.date_range('2024', freq='AS', periods=3)
-   input_dict = {'w': pd.Series([200, 220, 300], index)}
+   input_dict = {'w': pd.Series([200, 220, 300.0], index)}
    pf.PfLine(input_dict)
    # --- hide: start ---
    print(repr(pf.PfLine(input_dict)))
@@ -80,7 +80,7 @@ The keys (dataframe column names) must each be one of the following: ``w`` (powe
 Timeseries with unit
 ====================
 
-Under the condition that a valid ``pint`` unit is present, we may also provide a single timeseries (``pandas.Series``), or an iterable of timeseries. They are automatically converted to the default unit as can be seen in this example:
+Under the condition that a valid ``pint`` unit is present, we may also provide a single timeseries (``pandas.Series``), or an iterable of timeseries. They are automatically converted to the default unit.
 
 .. exec_code::
 
@@ -115,7 +115,7 @@ The keys are used as the children names:
    # --- hide: start ---
    print(repr(pf.MultiPfLine(dict_of_children))) #TODO: change to pf.PfLine
 
-Note that the sum values are shown. 
+Note that the aggregate values are shown. 
 
 Nesting is not limited to one level, and, instead of having each value be a ``PfLine`` objects, it is actually sufficient that each value can be used to initialise a ``PfLine`` object. 
   
@@ -124,31 +124,44 @@ Nesting is not limited to one level, and, instead of having each value be a ``Pf
 With or without children
 ------------------------
 
-As seen in the final initialisation example, we can create a nested ``PfLine`` instance, which has named children that are also ``PfLine`` instances. This in contrast to the 'childless' instance we created in the first initialisation example. 
+As seen in the final initialisation example, we can create nested portfolio lines, is are named child within another portfolio line. This in contrast to the 'childless' or *'flat'* portfolio lines we created in the first initialisation example. 
 
-It is important to note that both instances contain the exact same methods and properties that are described in the rest of this document. 
+It is important to note that both types of portfolio line contain the exact same methods and properties that are described in the rest of this document. 
 
-.. note:: When checking the types, you will see that these are actually different classes. The childless portfolio line is an instance of the ``SinglePfLine`` class, whereas the other portfolio line is an instance of the ``MultiPfLine`` class. Both are descendents of the ``PfLine`` base class.  When initialising a ``PfLine``, the correct type will be returned based on the input data. 
+.. note:: When checking the types, you will see that these are actually different classes. The childless / flat portfolio line is an instance of the ``SinglePfLine`` class, whereas the other portfolio line is an instance of the ``MultiPfLine`` class. Both are descendents of the ``PfLine`` base class. When initialising a ``PfLine``, the correct type will be returned based on the input data. 
 
-For nested portfolio lines it is important to know that, unless explicitly stated by the user, we are looking at and working with the the top level, i.e., the sum/aggregate. 
-
-If we want to access the children, we can use their name as an index, e.g. ``pfl['southeast']``, or we can iterate over the object with ``for childname in pfl`` or ``for (name, child) in pfl.items()``.
+For nested portfolio lines it is important to know that, unless explicitly stated by the user, we are looking at and working with the the top level, i.e., the sum/aggregate.
 
 An example of where a nested portfolio line makes sense, is to combine procurement on the forward market and spot trade into a single "sourced" portfolio line. We can then easily work with the aggregate values, but the values of the individual markets are also still available.
 
-If we are no longer interested in the children, we can keep only the top-level information with the ``.flatten()`` method.
+Working with children
+=====================
+
+The following common operations on portfolio lines with children are implemented:
+
+* We can access a particular child by using its name as an index, e.g. ``pfl['southeast']``. If it does not collide with any of the attribute names, we can also access it by attribute, e.g. ``pfl.southeast``.
+
+* We can iterate over all children with ``for childname in pfl`` or ``for (name, child) in pfl.items()``.
+
+* We can add a new child to a portfolio - or overwrite an existing one - by setting it with ``pfl['southwest'] =``. 
+
+* Not yet implemented: We can delete a child from the portfolio with e.g. ``del pfl['southwest']``.
+
+* If we are no longer interested in the children, we can keep only the top-level information with the ``.flatten()`` method.
+
+  Note that a portfolio line may quietly be flattened whenever an operation is done that is ambiguous or undefined for a portfolio line with children. See the section on arithmatic_ below.
 
 
 --------------
 Accessing data
 --------------
 
-In order to get our data out of a ``PfLine`` instance, the following options are available.
+In order to get our data out of a portfolio line, the following options are available.
 
 Index
 =====
 
-The ``.index`` property returns the ``pandas.DatetimeIndex`` that applies to the data. This includes the frequency that tells us how long the time periods are that start at each of the timestamps in the index. 
+The ``PfLine.index`` property returns the ``pandas.DatetimeIndex`` that applies to the data. This includes the frequency that tells us how long the time periods are that start at each of the timestamps in the index. 
 
 .. exec_code::
 
@@ -163,7 +176,7 @@ The ``.index`` property returns the ``pandas.DatetimeIndex`` that applies to the
    # --- hide: start ---
    print(repr(pfl.index))
 
-For convenience, ``portfolyo`` adds a ``.duration`` and a ``ts_right`` property, which do as we would predict:
+For convenience, ``portfolyo`` adds a ``.duration`` and a ``ts_right`` property to the ``pandas.DatetimeIndex`` closs, which do as we would predict:
 
 .. exec_code::
 
@@ -179,11 +192,10 @@ For convenience, ``portfolyo`` adds a ``.duration`` and a ``ts_right`` property,
    print(repr(pfl.index.duration),'\n', repr(pfl.index.ts_right))
 
 
-
 Timeseries
 ==========
 
-The properties ``.w``, ``.q``, ``.p`` and ``.r`` always return the information as a ``pandas.Series``. These have a ``pint`` unit, which can be stripped using ``.pint.m`` (or ``.pint.magnitude``).
+The properties ``PfLine.w``, ``.q``, ``.p`` and ``.r`` always return the information as a ``pandas.Series``. These have a ``pint`` unit, which can be stripped using ``.pint.m`` (or ``.pint.magnitude``).
 
 .. exec_code::
 
@@ -205,7 +217,7 @@ The properties ``.w``, ``.q``, ``.p`` and ``.r`` always return the information a
 DataFrame
 =========
 
-If we want to get more than one timeseries out, we can use the ``.df()`` method, which has several options to control the exact format and contents of the dataframe. 
+If we want to extract more than one timeseries, we can use the ``.df()`` method, which has several options to control the exact format and contents of the dataframe. 
 
 .. exec_code::
 
@@ -224,10 +236,12 @@ If we want to get more than one timeseries out, we can use the ``.df()`` method,
 
 #TODO: Link to reference for more information
 
-Price- or Volume-only
-=====================
+Price-only or volume-only
+=========================
 
-With the ``.price`` and ``.volume`` properties, we are able to extract a ``"p"``- or ``"q"``-``PfLine``. The returned ``PfLine`` has no children, as this would lead to incorrect values in some situations (in case we want to get the price part of a ``"all"-PfLine`` - in that case, the aggregate price is the average of the children's prices, weighted with their volumes - which we lose if we keep only the prices).
+With the ``.price`` and ``.volume`` properties, we are able to extract a price-only or volume-only portfolio line. The returned ``PfLine`` has no children, as this would lead to incorrect values in some situations (in case we want to get the price part of a price-and-volume portfolio line - in that case, the aggregate price is the average of the children's prices, *weighted with their volumes* - which we lose if we keep only the prices).
+
+.. _arithmatic: 
 
 ----------------------
 Operations: Arithmatic
@@ -235,46 +249,57 @@ Operations: Arithmatic
 
 There are many ways to change and interact with ``PfLine`` instances. An intuitive way is through arithmatic. The following operations are currently defined/implemented. Unless specified otherwise, the returned object is of the same kind, and has the same children, as the original. 
 
-====================== ========================== ================== ================== ================== ================== ================== ==================
-Kind                                              Price-only porfolio line (``"p"``)    Volume-only portfolio line (``"q"``)  Price and volume portfolio line (``"all"``)
-------------------------------------------------- ------------------------------------- ------------------------------------- -------------------------------------
-Children                                          No                 Yes                No                 Yes                No                 Yes
-Operation              Operand
-====================== ========================== ================== ================== ================== ================== ================== ==================
-Negation          n/A  -``PfLine``                Yes                Yes                Yes                Yes                Yes                Yes
-Addition / subtraction ± float                    Yes; value is interpreted as price in No                 No                 No                 No
-                                                  default unit; returns ``PfLine`` 
-                                                  without children.
----------------------- -------------------------- ------------------------------------- ------------------ ------------------ ------------------ ------------------
-\                      ± price                    Yes; returns ``PfLine`` without       No                 No                 No                 No
-                                                  children.
----------------------- -------------------------- ------------------------------------- ------------------ ------------------ ------------------ ------------------
-\                      ± volume                   No                 No                 Yes; returns ``PfLine`` without       No                 No
-                                                                                        children.
----------------------- -------------------------- ------------------ ------------------ ------------------------------------- ------------------ ------------------
-\                      ± ``"all"``-Pfline         No                 No                 No                 No                 Yes; returns ``PfLine`` without
-                                                                                                                              children.
----------------------- -------------------------- ------------------ ------------------ ------------------ ------------------ -------------------------------------
-Multiplication         * float                    Yes                Yes                Yes                Yes                No                 No
-\                      * price                    No                 No                 Yes; returns ``PfLine`` without       No                 No
-                                                                                        children, of kind ``"all"``.
----------------------- -------------------------- ------------------ ------------------ ------------------------------------- ------------------ ------------------
-\                      * volume                   Yes; returns ``PfLine`` without       No                 No                 No                 No
-                                                  children, of kind ``"all"``.
----------------------- -------------------------- ------------------------------------- ------------------ ------------------ ------------------ ------------------
-\                      * ``"all"``-Pfline         No                 No                 No                 No                 No
-Division               / float                    Yes                Yes                Yes                Yes                No                 No
-\                      / price                    Yes; returns ``pandas.Series`` of     No                 No                 No                 No
-                                                  floats
----------------------- -------------------------- ------------------------------------- ------------------ ------------------ ------------------ ------------------
-\                      / volume                   No                 No                 Yes; returns ``pandas.Series`` of     No                 No            
-                                                                                        floats
----------------------- -------------------------- ------------------ ------------------ ------------------------------------- ------------------ ------------------
-====================== ========================== ================== ================== ================== ================== ================== ==================
+================================================= ========================= ========================= =========================
+Kind of portfolio line                            Price-only                Volume-only               Price-and-volume
+================================================= ========================= ========================= =========================
+``-PfLine`` (negation)                            ✅ c1_                     ✅ c1_                     ✅ c1_                 
+``PfLine ± float``                                ✅ p_                      ❌                         ❌                   
+``PfLine ± price``                                ✅ c2_                     ❌                         ❌                   
+``PfLine ± volume``                               ❌                         ✅ c2_                     ❌                   
+``PfLine ± price-and-volume``                     ❌                         ❌                         ✅ c2_                 
+``PfLine * float``                                ✅ c1_                     ✅ c1_                     ✅ c1_                 
+``PfLine * price``                                ❌                         ✅ pv_                     ❌                   
+``PfLine * volume``                               ✅ pv_                     ❌                         ❌                   
+``PfLine * price-and-volume``                     ❌                         ❌                         ❌                   
+``PfLine / float``                                ✅ c1_                     ✅ c1_                     ✅ c1_                  
+``PfLine / price``                                ✅ sf_                     ❌                         ❌                   
+``PfLine / volume``                               ❌                         ✅ sf_                     ❌                   
+``PfLine / price-and-volume``                     ❌                         ❌                         ❌                   
+================================================= ========================= ========================= =========================
+
+
+Notes:
+
+.. _c1:
+
+c1
+  If portfolio line has children, they are retained in the operation.
+
+.. _c2:
+
+c2
+  If portfolio line has children, they are retained in the operation, *IF* the other operand is also a portfolio line with children. (Both operands' children are in the returned portfolio line). Otherwise, it is flattened before the operation.
+
+.. _p:
+
+p
+  Value(s) interpreted as price in default unit.
+
+.. _pv:
+
+pv
+  Returns a price-and-volume portfolio line.
+
+.. _sf:
+
+sf
+  Returns ``pandas.Series`` of floats.
 
 Remarks:
 
-* The operands are defined liberally. E.g. "price" means any object that can be interpreted as a price: a single ``pint.Quantity`` with a valid price unit; a ``pandas.Series`` with a ``pint`` unit, a dictionary with a single key ``"p"``, a ``pandas.Dataframe`` with a single column ``"p"``, or a ``PfLine`` of kind ``"p"``; see :doc:`interoperability`. A single value is understood to apply to each timestamp in the index of the portfolio line.
+* A single value is understood to apply uniformly to each timestamp in the index of the portfolio line.
+
+* The operands are defined liberally. E.g. "price" means any object that can be interpreted as a price: a single ``pint.Quantity`` with a valid price unit; a ``pandas.Series`` with a ``pint`` unit, a dictionary with a single key ``"p"``, a ``pandas.Dataframe`` with a single column ``"p"``, or a price-only portfolio line; see :doc:`interoperability`. 
 
   The following code example shows a few equivalent operations.
 
@@ -291,29 +316,70 @@ Remarks:
      # --- hide: start ---
      print(repr(pfl_1 == pfl_2 == pfl_3 == pfl_4))
 
-* Notice how the multiplication of a ``"p"`` and ``"q"`` portfolio line results in a ``"all"`` portfolio line.
+* When doing arithmatic with a flat (i.e, childless) portfolio line, the result is again a flat portfolio line.
 
-  .. exec_code::
+* When doing arithmatic with a portfolio line that has children, the children are kept if it is possible. This is when:
+
+  - negating the portfolio line;
+
+  - adding or subtracting another portfolio line with children;
+
+  - multiplying with or dividing by a factor.
+
+  In all other cases, the portfolio line is flattened before the operation. This is when:
+
+  - adding or subtracting something else (i.e., a single value or a flat portfolio line); 
+
+  - multiplying with or dividing by something else (i.e., a single value or a flat portfolio line).
+
+  The reason for flattening, in these cases, is that there is no "natural"/"logical" way to define what the outcome should be. 
+
+Examples
+========
+
+The multiplication of a price-only and a volume-only portfolio line results in a price-and-volume portfolio line.
+
+.. exec_code::
      
-     import portfolyo as pf, pandas as pd
-     index = pd.date_range('2024', freq='AS', periods=3)
-     vol = pf.PfLine(pd.Series([2, 2.2, 3], index, dtype='pint[MW]')) 
-     pri = pf.PfLine(pd.Series([100, 150, 200.0], index, dtype='pint[Eur/MWh]')) 
-     vol * pri
-     # --- hide: start ---
-     print(repr(vol * pri))
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='AS', periods=3)
+   vol = pf.PfLine(pd.Series([2, 2.2, 3], index, dtype='pint[MW]')) 
+   pri = pf.PfLine(pd.Series([100, 150, 200.0], index, dtype='pint[Eur/MWh]')) 
+   vol * pri
+   # --- hide: start ---
+   print(repr(vol * pri))
 
-* There are not many operations in which a portfolio line with children is not flattened (i.e., in which its children are kept). The reason is due to ambiguity. E.g., if we have two children with a resulting volume of 40 MWh, there is no "natural" way to add 10 MWh to this - we could add it to one and nothing to the other; we could split it evenly, or proportionally; we could add a third child with the additional volume. For this reason, the object is flattened beforehand. 
+When adding (or subtracting) two portfolio lines with children, the children are merged: 
 
-* Only when multiplying with (dividing by) a float or dimensionless value, or when negating, are ``PfLine``'s children retained; the reason is that in those cases, applying the operation to each child seperately gives us the expected result.
+.. exec_code::
+     
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='AS', periods=3)
+   pf1 = pf.MultiPfLine({
+       'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
+       'B': pd.Series([1, -1.8, 1.9], index, dtype='pint[MW]')
+   }) 
+   pf2 = pf.MultiPfLine({
+       'B': pd.Series([0.5, 0.2, 1.9], index, dtype='pint[MW]'), 
+       'C': pd.Series([2, 2.2, 3.8], index, dtype='pint[MW]')
+   }) 
+   diff = pf1 - pf2
+
+   print([name for name in diff])
+   diff['B']
+   # --- hide: start ---
+   print(repr(diff['B'])) #todo: qmake sure init works with PfLine instead of MultiPfLine
+
 
 --------------------------
 Operations: set timeseries
 --------------------------
 
-Sometimes we may want to replace one part of a ``PfLine``, while keeping the others the same. For this we can use the ``.set_w()``, ``.set_q()``, ``.set_p()`` and ``.set_r()`` methods. These methods accept float values, ``pint.Quantity`` objects, and ``pandas.Series``, and return a new ``PfLine`` with the selected information replaced. The returned portfolio lines are flattened, i.e., without children. 
+Sometimes we may want to replace one part of a ``PfLine``, while keeping the others the same. For this we can use the ``.set_w()``, ``.set_q()``, ``.set_p()`` and ``.set_r()`` methods. These methods accept float values, ``pint.Quantity`` objects, and ``pandas.Series``, and return a new ``PfLine`` with the selected information replaced. 
 
-It is also possible to set a ``"p"``- or ``"q"``-``PfLine`` as the price or volume; for this we use the ``.set_price()`` and ``set_volume()`` methods.
+The returned portfolio lines are flattened, i.e., without children. 
+
+It is also possible to set a price-only or volume-only portfolio line as the price or volume; for this we use the ``.set_price()`` and ``set_volume()`` methods.
 
 
 

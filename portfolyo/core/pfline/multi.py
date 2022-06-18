@@ -100,8 +100,13 @@ class MultiPfLine(PfLine):
         **kwargs,
     ) -> pd.DataFrame:
         if flatten:
+            # TODO: just do self.flatten().df()?
             cols = self.available if cols is None else cols
-            return pd.DataFrame({col: self[col] for col in cols})
+            series = {col: getattr(self, col) for col in cols}
+            if not has_units:
+                series = {key: s.pint.m for key, s in series.items()}
+            return pd.DataFrame(series)
+
         # One big dataframe. First: collect constituent dataframes.
         dfs = [self.df(cols, True)]
         dfdicts = [{n: c.df(cols, False)} for n, c in self._children.items()]
@@ -154,6 +159,9 @@ class MultiPfLine(PfLine):
             return qp_children
         else:
             return None
+
+    def __setitem__(self, name: str, pfl: PfLine):
+        self._children = multi_helper.make_childrendict({**self, name: pfl})
 
 
 class _LocIndexer:

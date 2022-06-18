@@ -4,12 +4,12 @@ Abstract Base Class for PfLine.
 
 from __future__ import annotations
 
-# from . import single, multi  #<-- moved to end of file
+
+# from . import single, multi, interop  #<-- moved to end of file
 from ..ndframelike import NDFrameLike
 from ..mixins import PfLineText, PfLinePlot, OtherOutput
 from ...prices.utils import duration_bpo
 from ...prices import convert
-from ...tools import nits
 from ...tools.types import Quantity, Value
 
 from abc import abstractmethod
@@ -168,35 +168,56 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
     @property
     def volume(self) -> SinglePfLine:
         """Return (flattened) volume-only PfLine."""
+        # Design decision: could also be non-flattened.
+        # if isinstance(self, multi.MultiPfLine):
+        #     return multi.MultiPfLine({name: child.volume for name, child in self.items){}})
         return single.SinglePfLine({"q": self.q})
 
     @property
     def price(self) -> SinglePfLine:
         """Return (flattened) price-only PfLine."""
+        # Design decision: could also be non-flattened if self.kind is not ALL
         return single.SinglePfLine({"p": self.p})
 
     def _set_col_val(self, col: str, val: pd.Series | Value) -> SinglePfLine:
         """Set or update a timeseries and return the modified instance."""
 
-        # Get pd.Series of other, in correct unit.
-        if isinstance(val, float) or isinstance(val, int):
-            val = pd.Series(val, self.index)
-        elif isinstance(val, Quantity):
-            val = pd.Series(val.magnitude, self.index, dtype=nits.g(val.units))
-
-        if self.kind is Kind.ALL and col == "r":
+        if col == "r" and self.kind is Kind.ALL:
             raise NotImplementedError(
-                "Cannot set `r`; first select `.volume` or `.price` before applying `.set_r()`."
+                "Cannot set `r` on a price-and-volume portfolio line; first select `.volume` or `.price` before applying `.set_r()`."
             )
-        # Create pd.DataFrame.
-        # TODO: Use InOp
-        data = {col: val.astype(nits.pintunit(nits.name2unit(col)))}
-        if col in ["w", "q", "r"] and self.kind in [Kind.PRICE_ONLY, Kind.ALL]:
-            data["p"] = self["p"]
-        elif col in ["p", "r"] and self.kind in [Kind.VOLUME_ONLY, Kind.ALL]:
-            data["q"] = self["q"]
-        df = pd.DataFrame(data)
-        return single.SinglePfLine(df)
+
+        inop = interop.InOp(**{col: val}).to_timeseries(self.index)
+
+        # Create input data for new (flat) instance.
+        data = {col: getattr(inop, col)}
+        if col in ["w", "q", "r"] and "p" in self.available:
+            data["p"] = self.p
+        elif col in ["p", "r"] and "q" in self.available:
+            data["q"] = self.q
+        return single.SinglePfLine(data)
+
+        # # val is now None, a PfLine, or dimless Series.
+
+        # # Get pd.Series of other, in correct unit.
+        # if isinstance(val, float) or isinstance(val, int):
+        #     val = pd.Series(val, self.index)
+        # elif isinstance(val, Quantity):
+        #     val = pd.Series(val.magnitude, self.index, dtype=nits.g(val.units))
+
+        # if self.kind is Kind.ALL and col == "r":
+        #     raise NotImplementedError(
+        #         "Cannot set `r`; first select `.volume` or `.price` before applying `.set_r()`."
+        #     )
+        # # Create pd.DataFrame.
+        # # TODO: Use InOp
+        # data = {col: val.astype(nits.pintunit(nits.name2unit(col)))}
+        # if col in ["w", "q", "r"] and self.kind in [Kind.PRICE_ONLY, Kind.ALL]:
+        #     data["p"] = self.p
+        # elif col in ["p", "r"] and self.kind in [Kind.VOLUME_ONLY, Kind.ALL]:
+        #     data["q"] = self.q
+        # df = pd.DataFrame(data)
+        # return single.SinglePfLine(df)
 
     def set_w(self, w: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
         """Set or update power timeseries [MW]; returns modified (and flattened) instance."""
@@ -282,7 +303,7 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
         i = pd.MultiIndex.from_product([prods, ("duration", *self.available)])
         return df[i]
 
-    # Iterating over children.
+    # Working with children.
 
     def items(self):
         return self.children.items()
@@ -293,19 +314,22 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
     def __len__(self):
         return len(self.children)
 
-    def __getitem__(self, name):
-        return getattr(self, name)
+    def __getitem__(self, name: str):
+        if name in self.children:
+            return self.children[name]
+        raise KeyError(f"No child with this name '{name}' found.")
 
     # Dunder methods.
 
     def __getattr__(self, name):
-        if name in self.children:
-            return self.children[name]
-        raise AttributeError(f"No such attribute '{name}'.")
+        try:
+            return self[name]
+        except KeyError as e:
+            raise AttributeError(f"No such attribute '{name}'.") from e
 
 
 # Must be at end, because they depend on PfLine existing.
-from . import single, multi, enable_arithmatic, enable_hedging  # noqa
+from . import single, multi, interop, enable_arithmatic, enable_hedging  # noqa
 
 enable_arithmatic.apply()
 enable_hedging.apply()

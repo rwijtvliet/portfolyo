@@ -65,7 +65,7 @@ class PfLinePlot:
             raise ValueError(
                 f"For this PfLine, parameter ``col`` must be one of {', '.join(self.available)}; got {col}."
             )
-        vis.plot_timeseries(ax, self[col], how, labelfmt, **kwargs)
+        vis.plot_timeseries(ax, getattr(self, col), how, labelfmt, **kwargs)
 
     def plot(self: PfLine, cols: str = None) -> plt.Figure:
         """Plot one or more timeseries of the PfLine.

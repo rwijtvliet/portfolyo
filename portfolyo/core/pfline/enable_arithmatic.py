@@ -6,7 +6,7 @@ from __future__ import annotations
 from . import base, single, multi, interop
 from .base import Kind
 
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING
 import pandas as pd
 
 if TYPE_CHECKING:  # needed to avoid circular imports
@@ -37,73 +37,6 @@ if TYPE_CHECKING:  # needed to avoid circular imports
 #                 Eur/MWh                                          => p-PfLine
 #                 MW, MWh                                          => q-PfLine
 #                 other unit or dimensionless                      => pd.Series
-# Values and Series in other units are considered under 'dimension', below.
-#
-# self            other                                               return
-# -------------------------------------------------------------------------------
-# p-PfLine      + p-PfLine, dimensionless                           = p-PfLine
-#               + q-PfLine, all-PfLine, dimension                   = error
-#               - anything                                          => + and neg
-#               * dimensionless                                     = p-PfLine
-#               * q-PfLine                                          = all-PfLine
-#               * p-PfLine, all-PfLine, dimension                   = error
-#               / dimensionless, dimension                          => *
-#               / p-PfLine                                          = pd.Series
-#               / q-PfLine, all-PfLine                              = error
-# q-PfLine      + p-PfLine                                          => see above
-#               + q-PfLine                                          = q-PfLine
-#               + dimensionless, dimension, all-PfLine              = error
-#               - anything                                          => + and neg
-#               * p-PfLine                                          => see above
-#               * dimensionless                                     = q-PfLine
-#               * q-PfLine, all-PfLine, dimension                   = error
-#               / dimensionless, dimension                          => *
-#               / q-PfLine                                          = pd.Series
-#               / p-PfLine, all-PfLine                              = error
-# all-PfLine    + p-PfLine, q-PfLine                                => see above
-#               + all-PfLine                                        = all-PfLine
-#               + dimensionless, dimension                          = error
-#               - anything                                          => * and neg
-#               * p-PfLine, q-PfLine                                => see above
-#               * dimensionless                                     = error
-#               * dimension, all-PfLine                             = error
-#               / dimensionless, dimension                          => *
-#               / p-PfLine, q-PfLine, all-PfLine                    = error
-
-
-def _prep_data(value, ref: PfLine, agn_default: str = None) -> Union[pd.Series, PfLine]:
-    """Turn ``value`` into PfLine if dimension-aware. If not, turn into Series."""
-
-    # Already a PfLine.
-    if isinstance(value, base.PfLine):
-        return value
-
-    # Turn into InOp object with timeseries. If
-    inop = (
-        interop.InOp.from_data(value).assign_agn(agn_default).to_timeseries(ref.index)
-    )
-
-    if not inop:
-        return None
-
-    if inop.agn is not None:
-        raise ValueError(
-            "Cannot do this operation. If you meant to specify data of a certain dimension / unit, try making it more "
-            "explicit by specifying 'w', 'p', etc. as e.g. a dictionary key, or by setting the unit."
-        )
-
-    elif inop.nodim is None:
-        # Only dimension-aware data was supplied; must be able to turn into PfLine.
-        return single.SinglePfLine(inop)
-
-    elif inop.p is None and inop.q is None and inop.w is None and inop.r is None:
-        # Only dimensionless data was supplied; is Series of factors.
-        return inop.nodim
-
-    else:
-        raise NotImplementedError(
-            "Cannot do arithmatic; found a mix of dimension-aware and dimensionless values."
-        )
 
 
 def _flatten(fn):
@@ -173,12 +106,6 @@ def _multiply_pflines(pfl1: PfLine, pfl2: PfLine):
 @_assert_freq_compatibility
 def _multiply_pfline_and_dimensionlessseries(pfl: PfLine, s: pd.Series):
     """Multiply pfline and dimensionless series."""
-    if pfl.kind is Kind.ALL:
-        raise NotImplementedError(
-            "Value(s) without unit can only be multiplied with a portfolio line with "
-            "price-only or volume-only information."
-        )
-
     # Scale the price p (kind == 'p') or the volume q (kind == 'q'), returning PfLine of same kind.
     if isinstance(pfl, multi.MultiPfLine):
         return multi.MultiPfLine({name: child * s for name, child in pfl.items()})
@@ -207,14 +134,18 @@ class PfLineArithmatic:
     METHODS = ["neg", "add", "radd", "sub", "rsub", "mul", "rmul", "truediv"]
 
     def __neg__(self: PfLine):
+        if isinstance(self, multi.MultiPfLine):
+            return multi.MultiPfLine({name: -child for name, child in self.items()})
+
         # multiply price (kind == 'p'), volume (kind == 'q') or volume and revenue (kind == 'all') with -1
-        flat = self.flatten()
-        df = (-flat.df(flat.summable).pint.dequantify()).pint.quantify()  # workaround
+        # Workaround to make negation work for pint quantity
+        df = (-self.df(self.summable).pint.dequantify()).pint.quantify()
         return single.SinglePfLine(df)
 
     def __add__(self: PfLine, other) -> PfLine:
-        default = {"p": "p"}.get(self.kind)  # if price: interpret dim-agnostic as price
-        other = _prep_data(other, self, default)
+        # interpret dim-agnostic 'other' as price
+        default = "p" if self.kind is Kind.PRICE_ONLY else None
+        other = interop.pfline_or_nodimseries(other, self.index, default)
 
         # other is now None, a PfLine, or dimless Series.
 
@@ -228,8 +159,9 @@ class PfLineArithmatic:
     __radd__ = __add__
 
     def __sub__(self: PfLine, other):
-        default = {"p": "p"}.get(self.kind)  # if price: interpret dim-agnostic as price
-        other = _prep_data(other, self, default)
+        # interpret dim-agnostic 'other' as price
+        default = "p" if self.kind is Kind.PRICE_ONLY else None
+        other = interop.pfline_or_nodimseries(other, self.index, default)
 
         # other is now None, a PfLine, or dimless Series.
 
@@ -245,7 +177,7 @@ class PfLineArithmatic:
 
     def __mul__(self: PfLine, other) -> PfLine:
         default = "nodim"  # interpret dim-agnostic as dimless (i.e., factor)
-        other = _prep_data(other, self, default)
+        other = interop.pfline_or_nodimseries(other, self.index, default)
 
         # other is now None, a PfLine, or dimless Series.
 
@@ -260,7 +192,7 @@ class PfLineArithmatic:
 
     def __truediv__(self: PfLine, other):
         default = "nodim"  # interpret dim-agnostic as dimless (i.e., factor)
-        other = _prep_data(other, self, default)
+        other = interop.pfline_or_nodimseries(other, self.index, default)
 
         # other is now None, a PfLine, or dimless Series.
 

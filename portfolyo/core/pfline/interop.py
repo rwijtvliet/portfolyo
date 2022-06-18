@@ -1,12 +1,18 @@
 """Ensure interoperability by extracting power, energy, price, revenue, and
 dimensionless values/timeseries from data."""
 
+from __future__ import annotations
+
 from ... import testing
 from ...tools import nits, stamps, frames
-from pint import DimensionalityError
-from typing import Dict, Mapping, Union, Iterable
+from . import base, single
+
+from typing import Dict, Mapping, Union, Iterable, TYPE_CHECKING
 from dataclasses import dataclass
 import pandas as pd
+
+if TYPE_CHECKING:  # needed to avoid circular imports
+    from .single import SinglePfLine
 
 _ATTRIBUTES = ("w", "q", "p", "r", "nodim", "agn")
 
@@ -26,12 +32,12 @@ class InOp:
 
     def __post_init__(self):
         # Add correct units and check type.
-        self.w = _prepvalue(self.w, "MW")
-        self.q = _prepvalue(self.q, "MWh")
-        self.p = _prepvalue(self.p, "Eur/MWh")
-        self.r = _prepvalue(self.r, "Eur")
-        self.nodim = _prepvalue(self.nodim, "")
-        self.agn = _prepvalue(self.agn, None)
+        self.w = _set_unit(self.w, "w")
+        self.q = _set_unit(self.q, "q")
+        self.p = _set_unit(self.p, "p")
+        self.r = _set_unit(self.r, "r")
+        self.nodim = _set_unit(self.nodim, "nodim")
+        self.agn = _set_unit(self.agn, None)
 
     @classmethod
     def from_data(cls, data):
@@ -85,40 +91,63 @@ class InOp:
         return _equal(self, other)
 
 
-def _prepvalue(v, unit):
+def _set_unit(
+    v: Union[float, int, nits.Q_, pd.Series], attr: str
+) -> Union[float, nits.Q, pd.Series]:
     """Add unit (if no unit set yet) or convert to unit."""
     if v is None:
         return None
 
-    if unit is None:  # unit-agnostic
+    unit = nits.name2unit(attr) if attr else None
+
+    if unit is None:  # should be unit-agnostic
         if isinstance(v, int) or isinstance(v, float):
             return float(v)
         if isinstance(v, pd.Series) and isinstance(v.index, pd.DatetimeIndex):
-            v = _prep_timeseries(v)  # float or pint series
+            v = _timeseries_of_floats_or_pint(v)  # float-series or pint-series
             if hasattr(v, "pint"):
-                raise DimensionalityError(
+                raise ValueError(
                     "Agnostic timeseries should not have a dimension and should not be "
                     f"dimensionless. Should be plain number values; found {v.pint.units}."
                 )
-            _assert_standardized(v)
-            return v.astype(float)
+            return v
         raise TypeError(
             f"Value should be a number or timeseries of numbers; got {type(v)}."
         )
 
-    else:  # unit-aware
+    else:  # should be unit-aware
         if isinstance(v, float) or isinstance(v, int) or isinstance(v, nits.Q_):
             return nits.Q_(v, unit)  # add unit or convert to unit
         if isinstance(v, pd.Series) and isinstance(v.index, pd.DatetimeIndex):
-            v = _prep_timeseries(v)  # float or pint series
-            _assert_standardized(v)
+            v = _timeseries_of_floats_or_pint(v)  # float-series or pint-series
             return v.astype(nits.pintunit(unit))
         raise TypeError(
             f"Value should be a number, Quantity, or timeseries; got {type(v)}."
         )
 
 
-def _assert_standardized(s: pd.Series):
+def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
+    """Check if a timeseries is a series of objects, and if so, see if these objects are
+    actually Quantities."""
+
+    # Turn into floats-series or pint-series.
+
+    if s.dtype != object and not hasattr(s, "pint"):
+        s = s.astype(float)  # int to float
+
+    elif s.dtype == object:
+        # object -> maybe series of Quantitis -> convert to pint-series.
+        if not all(isinstance(val, nits.Q_) for val in s.values):
+            raise TypeError(f"Timeseries with unexpected data type: {s.dtype}.")
+        quantities = [val.to_base_units() for val in s.values]
+        magnitudes = [q.m for q in quantities]
+        units = list(set([q.u for q in quantities]))
+        if len(units) != 1:
+            raise ValueError(f"Timeseries needs uniform unit; found {','.join(units)}.")
+        s = pd.Series(magnitudes, s.index, dtype=nits.pintunit(units[0]))
+
+    # Check if all OK.
+
     try:
         frames.assert_standardized(s)
     except AssertionError as e:
@@ -126,25 +155,22 @@ def _assert_standardized(s: pd.Series):
             "Timeseries not in expected form. See ``portfolyo.standardize()`` for more information."
         ) from e
 
+    return s
 
-def _prep_timeseries(s: pd.Series) -> pd.Series:
-    """Check if a timeseries is a series of objects, and if so, see if these objects are
-    actually Quantities."""
+    # if s.dtype != object:  # float, int, or pint
+    #     return s if hasattr(s, "pint") else s.astype(float)  # float or pint
 
-    if s.dtype != object:  # float, int, or pint
-        return s if hasattr(s, "pint") else s.astype(float)  # float or pint
-
-    # object -> maybe series of Quantitis -> convert to pint-series.
-    if not all(isinstance(val, nits.Q_) for val in s.values):
-        raise TypeError(f"Timeseries with unexpected data type: {s.dtype}.")
-    quantities = [val.to_base_units() for val in s.values]
-    magnitudes = [q.m for q in quantities]
-    units = list(set([q.u for q in quantities]))
-    if len(units) != 1:
-        raise DimensionalityError(
-            f"Timeseries with inconsistent dimension; found {','.join(units)}."
-        )
-    return pd.Series(magnitudes, s.index, dtype=nits.pintunit(units[0]))
+    # # object -> maybe series of Quantitis -> convert to pint-series.
+    # if not all(isinstance(val, nits.Q_) for val in s.values):
+    #     raise TypeError(f"Timeseries with unexpected data type: {s.dtype}.")
+    # quantities = [val.to_base_units() for val in s.values]
+    # magnitudes = [q.m for q in quantities]
+    # units = list(set([q.u for q in quantities]))
+    # if len(units) != 1:
+    #     raise DimensionalityError(
+    #         f"Timeseries with inconsistent dimension; found {','.join(units)}."
+    #     )
+    # return pd.Series(magnitudes, s.index, dtype=nits.pintunit(units[0]))
 
 
 def _unit2attr(unit) -> str:
@@ -242,3 +268,38 @@ def _equal(interop1: InOp, interop2: InOp) -> InOp:
         elif val1 != val2:
             return False
     return True
+
+
+def pfline_or_nodimseries(
+    data, ref_index: pd.DatetimeIndex, agn_default: str = None
+) -> Union[pd.Series, SinglePfLine]:
+    """Turn ``data`` into PfLine if dimension-aware. If not, turn into Series."""
+
+    # Already a PfLine.
+    if isinstance(data, base.PfLine):
+        return data
+
+    # Turn into InOp object with timeseries.
+    inop = InOp.from_data(data).assign_agn(agn_default).to_timeseries(ref_index)
+
+    if not inop:
+        return None
+
+    elif inop.agn is not None:
+        raise ValueError(
+            "Cannot do this operation. If you meant to specify data of a certain dimension / unit, try making it more "
+            "explicit by specifying 'w', 'p', etc. as e.g. a dictionary key, or by setting the unit."
+        )
+
+    elif inop.nodim is None:
+        # Only dimension-aware data was supplied; must be able to turn into PfLine.
+        return single.SinglePfLine(inop)
+
+    elif inop.p is None and inop.q is None and inop.w is None and inop.r is None:
+        # Only dimensionless data was supplied; is Series of factors.
+        return inop.nodim
+
+    else:
+        raise NotImplementedError(
+            "Cannot do arithmatic; found a mix of dimension-aware and dimensionless data."
+        )

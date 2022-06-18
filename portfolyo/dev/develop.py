@@ -121,7 +121,7 @@ def get_pfline(
         return get_singlepfline(i, kind)
     # Gather information.
     if childcount == 2 and kind is Kind.ALL and np.random.rand() < 0.33:
-        kinds = ["p", "q"]
+        kinds = [Kind.PRICE_ONLY, Kind.VOLUME_ONLY]
     else:
         kinds = [kind] * childcount
     # Create multi PfLine.
