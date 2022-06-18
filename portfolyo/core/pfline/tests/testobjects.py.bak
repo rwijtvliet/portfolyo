@@ -19,9 +19,9 @@ def series(index, wvals, pvals, rvals, dimlessvals):
 
 
 def pfline(series, kind):
-    if kind == "q":
+    if kind is Kind.VOLUME_ONLY:
         return pf.SinglePfLine({"w": series["w"]})
-    elif kind == "p":
+    elif kind is Kind.PRICE_ONLY:
         return pf.SinglePfLine({"p": series["p"]})
     else:
         return pf.SinglePfLine({"p": series["p"], "w": series["w"]})

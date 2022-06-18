@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from . import base, single
+from .base import Kind
 from ...prices import hedge
 
 from typing import TYPE_CHECKING
@@ -42,7 +43,7 @@ class PfLineHedging:
         - If the PfLine contains prices, these are ignored.
         - If ``p`` contains volumes, these are ignored.
         """
-        if self.kind == "p":
+        if self.kind is Kind.PRICE_ONLY:
             raise ValueError(
                 "Cannot hedge a PfLine that does not contain volume information."
             )

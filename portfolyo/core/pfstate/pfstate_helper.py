@@ -2,7 +2,7 @@
 
 
 from typing import Iterable
-from ..pfline import PfLine, SinglePfLine, MultiPfLine  # noqa
+from ..pfline import PfLine, SinglePfLine, MultiPfLine, Kind  # noqa
 import pandas as pd
 import warnings
 
@@ -19,9 +19,9 @@ def make_pflines(offtakevolume, unsourcedprice, sourced) -> Iterable[PfLine]:
     if isinstance(offtakevolume, pd.Series) or isinstance(offtakevolume, pd.DataFrame):
         offtakevolume = PfLine(offtakevolume)  # using column names or series names
     if isinstance(offtakevolume, PfLine):
-        if offtakevolume.kind == "p":
+        if offtakevolume.kind is Kind.PRICE_ONLY:
             raise ValueError("Must specify offtake volume.")
-        elif offtakevolume.kind == "all":
+        elif offtakevolume.kind is Kind.ALL:
             warnings.warn("Offtake also contains price infomation; this is discarded.")
             offtakevolume = offtakevolume.volume
 
@@ -37,9 +37,9 @@ def make_pflines(offtakevolume, unsourcedprice, sourced) -> Iterable[PfLine]:
         unsourcedprice = PfLine(unsourcedprice)  # using column names or series names
 
     if isinstance(unsourcedprice, PfLine):
-        if unsourcedprice.kind == "q":
+        if unsourcedprice.kind is Kind.VOLUME_ONLY:
             raise ValueError("Must specify unsourced prices.")
-        elif unsourcedprice.kind == "all":
+        elif unsourcedprice.kind is Kind.ALL:
             warnings.warn(
                 "Unsourced also contains volume infomation; this is discarded."
             )

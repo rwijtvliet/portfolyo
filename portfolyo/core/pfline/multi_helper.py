@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from . import multi
-from .base import PfLine
+from .base import PfLine, Kind
 from ...tools import stamps
 
 from typing import Counter, Mapping, Dict
@@ -12,7 +12,10 @@ from typing import Counter, Mapping, Dict
 def make_childrendict(data) -> Dict[str, PfLine]:
     """From data, create a dictionary of PfLine instances. Also, do some data verification."""
     children = _data_to_childrendict(data)
-    _assert_pfline_kindcompatibility(children)
+    try:
+        _assert_pfline_kindcompatibility(children)
+    except AssertionError as e:
+        raise ValueError("The data is not suitable for creating a MultiPfLine.") from e
     children = _intersect_indices(children)
     return children
 
@@ -43,7 +46,7 @@ def _assert_pfline_kindcompatibility(children: Dict) -> None:
     """Check pflines in dictionary, and raise error if their kind is not compatible."""
 
     if len(children) == 0:
-        raise ValueError("Must provide at least 1 child.")
+        raise AssertionError("Must provide at least 1 child.")
 
     if len(children) == 1:
         return  # No possible compatibility errors if only 1 child.
@@ -55,11 +58,15 @@ def _assert_pfline_kindcompatibility(children: Dict) -> None:
     if len(kindcounter) == 1:
         return  # No compatibility error if all children of same kind.
 
-    if kindcounter["p"] == kindcounter["q"] == 1 and kindcounter["all"] == 0:
+    if (
+        kindcounter[Kind.VOLUME_ONLY] == kindcounter[Kind.PRICE_ONLY] == 1
+        and kindcounter[Kind.ALL] == 0
+    ):
         return  # Children of distinct can only be combined in this exact setting.
 
-    raise ValueError(
-        "All children must be of the same kind, or there must be exactly one volume-only child (i.e., with .kind == 'q') and one price-only child (i.e., with .kind == 'p')."
+    raise AssertionError(
+        "All children must be of the same kind, or there must be exactly one volume-only "
+        "child and one price-only child."
     )
 
 

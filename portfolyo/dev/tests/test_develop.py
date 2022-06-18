@@ -1,6 +1,6 @@
 """Simply test if functions don't raise an error"""
 
-from portfolyo import dev
+from portfolyo import dev, Kind
 import portfolyo as pf
 import pandas as pd
 import pytest
@@ -86,7 +86,7 @@ def test_dataframe(freq, tz, start, cols, name_has_unit, request_unit):
             _ = df.pint.dequantify()
 
 
-@pytest.mark.parametrize("kind", ["all", "p", "q"])
+@pytest.mark.parametrize("kind", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(
     ("freq", "start"),
@@ -107,7 +107,7 @@ def test_singlemultipfline(freq, tz, start, kind):
 
 
 @pytest.mark.parametrize("max_nlevels", [1, 2, 3])
-@pytest.mark.parametrize("kind", ["all", "p", "q"])
+@pytest.mark.parametrize("kind", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(
     ("freq", "start"),

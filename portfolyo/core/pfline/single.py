@@ -6,7 +6,7 @@ Dataframe-like class to hold general energy-related timeseries; either volume ([
 from __future__ import annotations
 
 from . import single_helper
-from .base import PfLine
+from .base import PfLine, Kind
 from .. import changefreq
 
 from typing import Dict, Iterable, Union
@@ -60,39 +60,39 @@ class SinglePfLine(PfLine):
 
     @property
     def w(self) -> pd.Series:
-        if self.kind == "p":
+        if self.kind is Kind.PRICE_ONLY:
             return pd.Series(np.nan, self.index, name="w", dtype="pint[MW]")
         else:
             return pd.Series(self.q / self.index.duration, name="w").pint.to("MW")
 
     @property
     def q(self) -> pd.Series:
-        if self.kind == "p":
+        if self.kind is Kind.PRICE_ONLY:
             return pd.Series(np.nan, self.index, name="q", dtype="pint[MWh]")
         else:
             return self._df["q"]
 
     @property
     def p(self) -> pd.Series:
-        if self.kind == "q":
+        if self.kind is Kind.VOLUME_ONLY:
             return pd.Series(np.nan, self.index, name="p", dtype="pint[Eur/MWh]")
-        elif self.kind == "all":
+        elif self.kind is Kind.ALL:
             return pd.Series(self.r / self.q, name="p").pint.to("Eur/MWh")
-        else:  # self.kind == 'p'
+        else:  # self.kind is Kind.PRICE_ONLY
             return self._df["p"]
 
     @property
     def r(self) -> pd.Series:
-        if self.kind != "all":
+        if self.kind is not Kind.ALL:
             return pd.Series(np.nan, self.index, name="r", dtype="pint[Eur]")
         return self._df["r"]
 
     @property
-    def kind(self) -> str:
+    def kind(self) -> Kind:
         if "q" in self._df:
-            return "all" if "r" in self._df else "q"
+            return Kind.ALL if "r" in self._df else Kind.VOLUME_ONLY
         if "p" in self._df:
-            return "p"
+            return Kind.PRICE_ONLY
         raise ValueError(f"Unexpected value for ._df: {self._df}.")
 
     def df(
@@ -107,11 +107,11 @@ class SinglePfLine(PfLine):
         return pd.DataFrame(series)
 
     def asfreq(self, freq: str = "MS") -> SinglePfLine:
-        if self.kind == "p":
+        if self.kind is Kind.PRICE_ONLY:
             df = changefreq.averagable(self.df("p"), freq)
-        elif self.kind == "q":
+        elif self.kind is Kind.VOLUME_ONLY:
             df = changefreq.summable(self.df("q"), freq)
-        else:  # self.kind == 'all'
+        else:  # self.kind is Kind.ALL
             df = changefreq.summable(self.df("qr"), freq)
         return SinglePfLine(df)
 
@@ -126,11 +126,11 @@ class SinglePfLine(PfLine):
 
     def __bool__(self) -> bool:
         # False if all relevant timeseries are 0.
-        if self.kind == "p":
+        if self.kind is Kind.PRICE_ONLY:
             return not np.allclose(self.p.pint.magnitude, 0)
-        elif self.kind == "q":
+        elif self.kind is Kind.VOLUME_ONLY:
             return not np.allclose(self.w.pint.magnitude, 0)
-        else:  # kind == 'all'
+        else:  # kind is Kind.ALL
             return not (
                 np.allclose(self.w.pint.magnitude, 0)
                 and np.allclose(self.r.pint.magnitude, 0)

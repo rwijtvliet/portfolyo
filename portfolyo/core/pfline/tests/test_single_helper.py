@@ -99,15 +99,15 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
 
     # Expected result.
     expected = df.rename_axis("ts_left")
-    if columns == "p":  # kind == "p"
+    if columns == "p":  # kind is Kind.PRICE_ONLY
         expected = df[["p"]]
 
-    elif columns in ["q", "w"]:  # kind == "q"
+    elif columns in ["q", "w"]:  # kind is Kind.VOLUME_ONLY
         if columns == "w":
             df["q"] = df.w * df.w.index.duration
         expected = df[["q"]]
 
-    elif columns in ["pr", "qp", "wp", "qr", "wr"]:  # kind == "all"
+    elif columns in ["pr", "qp", "wp", "qr", "wr"]:  # kind is Kind.ALL
         # fill dataframe first.
         if columns == "wp":
             df["q"] = df.w * df.w.index.duration

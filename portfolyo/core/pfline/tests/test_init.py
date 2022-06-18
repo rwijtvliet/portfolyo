@@ -1,11 +1,11 @@
-"""Test initialisation of PfLine, SinglePfLine, and MultiPfLine."""
+"""Test initialisation of PfLine, pf.SinglePfLine, and pf.MultiPfLine."""
 
-from portfolyo import FREQUENCIES, testing, PfLine, SinglePfLine, MultiPfLine  # noqa
+import portfolyo as pf
 from portfolyo import dev
 import pytest
 
 
-@pytest.mark.parametrize("freq", FREQUENCIES[::2])
+@pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
 @pytest.mark.parametrize(
     "inputtype", ["df", "dict", "series", "singlepfline", "multipfline"]
@@ -29,7 +29,7 @@ def test_singlepfline_init(freq, columns, inputtype, has_unit):
         if not has_unit:
             must_raise = True
     elif inputtype == "singlepfline":
-        data_in = SinglePfLine(df)
+        data_in = pf.SinglePfLine(df)
     else:  # inputtype multipfline
         if columns in ["w", "q", "p", "qr", "wr"]:
             df1 = 0.4 * df
@@ -38,38 +38,38 @@ def test_singlepfline_init(freq, columns, inputtype, has_unit):
             othercol = columns.replace("p", "")
             df1 = df.mul({"p": 1, othercol: 0.4})
             df2 = df.mul({"p": 1, othercol: 0.6})
-        data_in = MultiPfLine({"a": SinglePfLine(df1), "b": SinglePfLine(df2)})
+        data_in = pf.MultiPfLine({"a": pf.SinglePfLine(df1), "b": pf.SinglePfLine(df2)})
 
     if must_raise:
         with pytest.raises(ValueError):
-            _ = SinglePfLine(data_in)
+            _ = pf.SinglePfLine(data_in)
         return
 
-    result = SinglePfLine(data_in)
+    result = pf.SinglePfLine(data_in)
     result_df = result.df(columns)
     expected_df = df.rename_axis("ts_left")
     if columns in ["w", "q"]:  # kind == 'q'
-        expectedkind = "q"
+        expectedkind = pf.Kind.VOLUME_ONLY
         expectedavailable = "wq"
         expectedsummable = "q"
     elif columns in ["p"]:  # kind == 'p'
-        expectedkind = "p"
+        expectedkind = pf.Kind.PRICE_ONLY
         expectedavailable = "p"
         expectedsummable = "p"
     else:  # kind == 'all'
-        expectedkind = "all"
+        expectedkind = pf.Kind.ALL
         expectedavailable = "wqpr"
         expectedsummable = "qr"
 
-    assert type(result) is SinglePfLine
-    testing.assert_frame_equal(result_df, expected_df)
-    assert result.kind == expectedkind
+    assert type(result) is pf.SinglePfLine
+    pf.testing.assert_frame_equal(result_df, expected_df)
+    assert result.kind is expectedkind
     assert set(list(result.available)) == set(list(expectedavailable))
     assert set(list(result.summable)) == set(list(expectedsummable))
     assert result.children == {}
 
 
-@pytest.mark.parametrize("freq", FREQUENCIES[::2])
+@pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
 @pytest.mark.parametrize(
     "inputtype", ["df", "dict", "series", "singlepfline", "multipfline"]
@@ -80,14 +80,14 @@ def test_multipfline_init(freq, columns, inputtype, has_unit):
     pass  # TODO after clear, how multipfline can be initialised.
 
 
-@pytest.mark.parametrize("kind", ["all", "p", "q"])
+@pytest.mark.parametrize("kind", [pf.Kind.ALL, pf.Kind.PRICE_ONLY, pf.Kind.VOLUME_ONLY])
 @pytest.mark.parametrize("inputtype", ["df", "dict", "pfline"])
-@pytest.mark.parametrize("expected_type", [SinglePfLine, MultiPfLine, None])
+@pytest.mark.parametrize("expected_type", [pf.SinglePfLine, pf.MultiPfLine, None])
 def test_pfline_init(inputtype, expected_type, kind):
     """Test if pfline can be initialized correctly."""
     pass  # TODO after clear, how multipfline can be initialised.
 
-    # if expected_type is SinglePfLine:
+    # if expected_type is pf.SinglePfLine:
     #     spfl = dev.get_singlepfline(kind=kind)
     #     if inputtype == "df":
     #         data_in = spfl.df()
@@ -95,7 +95,7 @@ def test_pfline_init(inputtype, expected_type, kind):
     #         data_in = {name: s for name, s in spfl.df().items()}
     #     else:  # inputtype == 'pfline'
     #         data_in = spfl
-    # elif expected_type is MultiPfLine:
+    # elif expected_type is pf.MultiPfLine:
     #     mpfl = dev.get_multipfline(kind=kind)
     #     if inputtype == "df":
     #         return  # no way to call with dataframe
@@ -104,7 +104,7 @@ def test_pfline_init(inputtype, expected_type, kind):
     #     else:  # inputtype == 'pfline'
     #         data_in = mpfl
     # else:  # Expect error
-    #     cols = "pq" if kind == "all" else kind
+    #     cols = "pq" if kind is Kind.ALL else kind
     #     if inputtype == "df":
     #         # dataframe with columns that don't make sense
     #         data_in = dev.get_dataframe(columns=cols).rename(

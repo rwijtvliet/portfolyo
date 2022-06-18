@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from . import base
 from . import interop
+from .base import Kind
 from ...tools import frames
 
 import pandas as pd
@@ -17,9 +18,9 @@ def make_dataframe(data) -> pd.DataFrame:
     if isinstance(data, base.PfLine):
         # return data.flatten()._df  <-- don't use, causes infinite recursion due to __init__ calls.
         # Works for SinglePfLine and MultiPfLine.
-        if data.kind == "q":
+        if data.kind is Kind.VOLUME_ONLY:
             return pd.DataFrame({"q": data.q})
-        elif data.kind == "p":
+        elif data.kind is Kind.PRICE_ONLY:
             return pd.DataFrame({"p": data.p})
         else:  # data.kind == 'all'
             return pd.DataFrame({"q": data.q, "r": data.r})
@@ -53,7 +54,7 @@ def _dataframe_from_series(
     # Get price information.
     if p is not None and w is None and q is None and r is None:
         # We only have price information. Return immediately.
-        return pd.DataFrame({"p": p.pint.to_base_units()})  # kind == 'p'
+        return pd.DataFrame({"p": p.pint.to_base_units()})  # kind is PRICE_ONLY
 
     # Get quantity information (and check consistency).
     if q is None and w is None:
@@ -63,18 +64,20 @@ def _dataframe_from_series(
     if q is None:
         q = w * w.index.duration
     elif w is not None and not frames.series_allclose(q, w * w.index.duration):
-        raise ValueError("Passed values for `q` and `w` not consistent.")
+        raise ValueError("Passed values for ``q`` and ``w`` not consistent.")
 
     # Get revenue information (and check consistency).
     if p is None and r is None:
-        return pd.DataFrame({"q": q.pint.to_base_units()})  # kind == 'q'
+        return pd.DataFrame({"q": q.pint.to_base_units()})  # kind is VOLUME_ONLY
     if r is None:  # must calculate from p
         # Edge case: p==nan or p==inf. If q==0, assume r=0. If q!=0, raise error
         r = p * q
         i = r.isna() | np.isinf(r.pint.m)
         if i.any():
             if (abs(q.pint.m[i]) > 1e-5).any():
-                raise ValueError("Found timestamps with `p`==na, `q`!=0. Unknown `r`.")
+                raise ValueError(
+                    "Found timestamps with ``p``==na yet ``q``!=0. Unknown ``r``."
+                )
             r[i] = 0
     elif p is not None and not frames.series_allclose(r, p * q):
         # Edge case: remove lines where p==nan or p==inf and q==0 before judging consistency.
@@ -82,7 +85,6 @@ def _dataframe_from_series(
         if not (abs(q.pint.m[i]) < 1e-5).all() or not frames.series_allclose(
             r[~i], p[~i] * q[~i]
         ):
-            raise ValueError("Passed values for `q`, `p` and `r` not consistent.")
-    return pd.DataFrame(
-        {"q": q.pint.to_base_units(), "r": r.pint.to_base_units()}
-    ).dropna()  # kind == 'all'
+            raise ValueError("Passed values for ``q``, ``p`` and ``r`` not consistent.")
+    q, r = q.pint.to_base_units(), r.pint.to_base_units()
+    return pd.DataFrame({"q": q, "r": r}).dropna()  # kind is ALL

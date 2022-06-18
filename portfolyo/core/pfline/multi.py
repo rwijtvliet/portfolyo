@@ -7,7 +7,7 @@ their name.
 from __future__ import annotations
 
 from . import multi_helper
-from .base import PfLine
+from .base import PfLine, Kind
 
 from typing import Dict, Iterable, Mapping, Optional, Union
 import pandas as pd
@@ -48,14 +48,15 @@ class MultiPfLine(PfLine):
 
     @property
     def w(self) -> pd.Series:
-        if self.kind == "p":
+        if self.kind is Kind.PRICE_ONLY:
             return pd.Series(np.nan, self.index, name="w", dtype="pint[MW]")
         else:
             return pd.Series(self.q / self.index.duration, name="w").pint.to("MW")
 
     @property
     def q(self) -> pd.Series:
-        if self.kind == "p":
+        # TODO: simply flatten and then return volume-part?
+        if self.kind is Kind.PRICE_ONLY:
             return pd.Series(np.nan, self.index, name="q", dtype="pint[MWh]")
         elif (qp_children := self._qp_children) is not None:
             return qp_children["q"].q
@@ -64,18 +65,19 @@ class MultiPfLine(PfLine):
 
     @property
     def p(self) -> pd.Series:
-        if self.kind == "q":
+        # TODO: simply flatten and then return price-part?
+        if self.kind is Kind.VOLUME_ONLY:
             return pd.Series(np.nan, self.index, name="p", dtype="pint[Eur/MWh]")
         elif (qp_children := self._qp_children) is not None:
             return qp_children["p"].p
-        elif self.kind == "all":  # all children have .kind == 'all'
+        elif self.kind is Kind.ALL:  # all children have .kind == 'all'
             return pd.Series(self.r / self.q, name="p").pint.to("Eur/MWh")
         else:  # self.kind == 'p', all children have a sensible timeseries for .p
             return sum(child.p for child in self._children.values()).rename("p")
 
     @property
     def r(self) -> pd.Series:
-        if self.kind != "all":
+        if self.kind is not Kind.ALL:
             return pd.Series(np.nan, self.index, name="r", dtype="pint[Eur]")
         elif (qp_children := self._qp_children) is not None:
             q, p = qp_children["q"].q, qp_children["p"].p
@@ -84,9 +86,9 @@ class MultiPfLine(PfLine):
             return sum(child.r for child in self._children.values()).rename("r")
 
     @property
-    def kind(self) -> str:
+    def kind(self) -> Kind:
         if self._heterogeneous_children:
-            return "all"
+            return Kind.ALL
         return next(iter(self._children.values())).kind
 
     def df(
@@ -145,10 +147,13 @@ class MultiPfLine(PfLine):
         return bool(self._qp_children)
 
     @property
-    def _qp_children(self) -> Optional[Dict]:
+    def _qp_children(self) -> Optional[Dict[Kind, PfLine]]:
         """Helper method that returns the child providing the volume and the one providing the price."""
         qp_children = {child.kind: child for child in self._children.values()}
-        return qp_children if "q" in qp_children and "p" in qp_children else None
+        if Kind.VOLUME_ONLY in qp_children and Kind.PRICE_ONLY in qp_children:
+            return qp_children
+        else:
+            return None
 
 
 class _LocIndexer:

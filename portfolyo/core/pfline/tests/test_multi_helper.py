@@ -1,4 +1,4 @@
-from portfolyo import testing, dev
+from portfolyo import testing, dev, Kind
 from portfolyo.core.pfline import multi_helper
 from portfolyo.tools import stamps
 import pandas as pd
@@ -6,9 +6,9 @@ import pytest
 
 
 @pytest.mark.parametrize("freq", ["MS", "D"])
-@pytest.mark.parametrize("kind1", ["p", "q", "all"])
-@pytest.mark.parametrize("kind2", ["p", "q", "all", None])
-@pytest.mark.parametrize("kind3", ["p", "q", "all", None])
+@pytest.mark.parametrize("kind1", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY])
+@pytest.mark.parametrize("kind2", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY, None])
+@pytest.mark.parametrize("kind3", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY, None])
 def test_makedataframe_consistency(freq, kind1, kind2, kind3):
     """Test if conversions are done correctly and inconsistent data raises error."""
 

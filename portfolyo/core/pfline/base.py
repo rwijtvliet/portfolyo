@@ -13,6 +13,7 @@ from ...tools import nits
 from ...tools.types import Quantity, Value
 
 from abc import abstractmethod
+from enum import Enum
 from typing import Dict, Iterable, Mapping, Union, TYPE_CHECKING
 import pandas as pd
 
@@ -36,6 +37,20 @@ import pandas as pd
 if TYPE_CHECKING:
     from .single import SinglePfLine  # noqa
     from .multi import MultiPfLine  # noqa
+
+
+class Kind(Enum):
+    """Enumerate what kind of information (which dimensions) is present in a PfLine."""
+
+    VOLUME_ONLY = "vol"
+    PRICE_ONLY = "pri"
+    ALL = "all"
+
+    def __repr__(self):
+        return f"<{self.value}>"
+
+    def __str__(self):
+        return self.value
 
 
 class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
@@ -97,12 +112,8 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
 
     @property
     @abstractmethod
-    def kind(self) -> str:
-        """Kind of data that is stored in the instance. Possible values:
-        - 'q': volume data only; properties .q [MWh] and .w [MW] are available.
-        - 'p': price data only; property .p [Eur/MWh] is available.
-        - 'all': price and volume data; properties .q [MWh], .w [MW], .p [Eur/MWh], .r [Eur] are available.
-        """
+    def kind(self) -> Kind:
+        """Kind of data that is stored in the instance."""
         ...
 
     @abstractmethod
@@ -141,12 +152,14 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
     def summable(self) -> str:
         """Which attributes/colums of this PfLine can be added to those of other PfLines
         to get consistent/correct new PfLine."""
-        return {"p": "p", "q": "q", "all": "qr"}[self.kind]
+        return {Kind.PRICE_ONLY: "p", Kind.VOLUME_ONLY: "q", Kind.ALL: "qr"}[self.kind]
 
     @property
     def available(self) -> str:  # which time series have values
         """Attributes/columns that are available. One of {'wq', 'p', 'wqpr'}."""
-        return {"p": "p", "q": "wq", "all": "wqpr"}[self.kind]
+        return {Kind.PRICE_ONLY: "p", Kind.VOLUME_ONLY: "wq", Kind.ALL: "wqpr"}[
+            self.kind
+        ]
 
     def flatten(self) -> SinglePfLine:
         """Return flat instance, i.e., without children."""
@@ -171,16 +184,16 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
         elif isinstance(val, Quantity):
             val = pd.Series(val.magnitude, self.index, dtype=nits.g(val.units))
 
-        if self.kind == "all" and col == "r":
+        if self.kind is Kind.ALL and col == "r":
             raise NotImplementedError(
                 "Cannot set `r`; first select `.volume` or `.price` before applying `.set_r()`."
             )
         # Create pd.DataFrame.
         # TODO: Use InOp
         data = {col: val.astype(nits.pintunit(nits.name2unit(col)))}
-        if col in ["w", "q", "r"] and self.kind in ["p", "all"]:
+        if col in ["w", "q", "r"] and self.kind in [Kind.PRICE_ONLY, Kind.ALL]:
             data["p"] = self["p"]
-        elif col in ["p", "r"] and self.kind in ["q", "all"]:
+        elif col in ["p", "r"] and self.kind in [Kind.VOLUME_ONLY, Kind.ALL]:
             data["q"] = self["q"]
         df = pd.DataFrame(data)
         return single.SinglePfLine(df)
@@ -203,17 +216,17 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
 
     def set_volume(self, other: PfLine) -> SinglePfLine:
         """Set or update volume information; returns modified (and flattened) instance."""
-        if not isinstance(other, PfLine) or other.kind != "q":
+        if not isinstance(other, PfLine) or other.kind is not Kind.VOLUME_ONLY:
             raise ValueError(
-                "Can only set volume from a PfLine instance with kind=='q'. Use .volume to obtain from given instance."
+                "Can only set volume equal to a volume-only PfLine. Use .volume to obtain such a PfLine."
             )
         return self.set_q(other.q)
 
     def set_price(self, other: PfLine) -> SinglePfLine:
         """Set or update price information; returns modified (and flattened) instance."""
-        if not isinstance(other, PfLine) or other.kind != "p":
+        if not isinstance(other, PfLine) or other.kind is not Kind.PRICE_ONLY:
             raise ValueError(
-                "Can only set price from a PfLine instance with kind=='p'. Use .price to obtain from given instance."
+                "Can only set price equal to a price-only PfLine. Use .price to obtain such a PfLine."
             )
         return self.set_p(other.p)
 

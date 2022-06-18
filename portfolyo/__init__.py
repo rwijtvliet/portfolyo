@@ -1,4 +1,4 @@
-from .core.pfline import PfLine, SinglePfLine, MultiPfLine
+from .core.pfline import PfLine, SinglePfLine, MultiPfLine, Kind
 from .core.pfstate import PfState
 from .core.mixins.plot import plot_pfstates
 from .core import changefreq

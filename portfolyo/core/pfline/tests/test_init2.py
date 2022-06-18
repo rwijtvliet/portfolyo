@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable
-from portfolyo import dev, PfLine, SinglePfLine, MultiPfLine, FREQUENCIES  # noqa
+from portfolyo import dev, PfLine, SinglePfLine, MultiPfLine, FREQUENCIES, Kind  # noqa
 from portfolyo.tools import stamps
 import pandas as pd
 import pytest
@@ -80,7 +80,7 @@ def multipfline_testcase(i: pd.DatetimeIndex, kind: str) -> MultiPfLine:
 class InitTestcase:
     id: str  # Id to show for this test when running pytest
     data_in: Any  # The data to use in the initialisation
-    expected_kind: str
+    expected_kind: Kind
 
 
 all_cases = [
@@ -105,19 +105,22 @@ def dict_testcases(i, has_unit, typ) -> Iterable[InitTestcase]:
                 # under special circumstances, a multipfline can be created from dictionary of timeseries
                 expectedkind = Exception
                 if variation == 1 and "r" not in keys:
-                    expectedkind = ""
+                    k = ""
                     if "w" in keys or "q" in keys:
-                        expectedkind += "q"
+                        k += "q"
                     if "p" in keys:
-                        expectedkind += "p"
-                    if len(expectedkind) == 2:
-                        expectedkind = "all"
+                        k += "p"
+                    expectedkind = {
+                        "p": Kind.PRICE_ONLY,
+                        "q": Kind.VOLUME_ONLY,
+                        "qp": Kind.ALL,
+                    }[k]
             elif keys in ["w", "q"]:
-                expectedkind = "q"
+                expectedkind = Kind.VOLUME_ONLY
             elif keys in ["p"]:
-                expectedkind = "p"
+                expectedkind = Kind.PRICE_ONLY
             elif keys in ["wp", "wr", "qp", "qr", "pr"]:
-                expectedkind = "all"
+                expectedkind = Kind.ALL
             else:
                 raise ValueError("Unexpected case")
             testcases.append(InitTestcase("data:dict", data_in, expectedkind))
@@ -134,11 +137,11 @@ def df_testcases(i, has_unit, typ) -> Iterable[InitTestcase]:
         elif cols in error_cases:
             expectedkind = Exception
         elif cols in ["w", "q"]:
-            expectedkind = "q"
+            expectedkind = Kind.VOLUME_ONLY
         elif cols in ["p"]:
-            expectedkind = "p"
+            expectedkind = Kind.PRICE_ONLY
         elif cols in ["wp", "wr", "qp", "qr", "pr"]:
-            expectedkind = "all"
+            expectedkind = Kind.ALL
         else:
             raise ValueError("Unexpected case")
         testcases.append(InitTestcase("data:df", data_in, expectedkind))
@@ -163,7 +166,7 @@ def timeseries_testcases(i, has_unit, typ) -> Iterable[InitTestcase]:
 def singlepfline_testcases(i, typ) -> Iterable[InitTestcase]:
     """Create several testcases with a singlepfline as input data."""
     testcases = []
-    for kind in ["q", "p", "all"]:
+    for kind in [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY]:
         data_in = singlepfline_testcase(i, kind)
         if typ is MultiPfLine:
             expectedkind = Exception
@@ -176,7 +179,7 @@ def singlepfline_testcases(i, typ) -> Iterable[InitTestcase]:
 def multipfline_testcases(i, typ) -> Iterable[InitTestcase]:
     """Create several testcases with a multipfline as input data."""
     testcases = []
-    for kind in ["q", "p", "all"]:
+    for kind in [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY]:
         data_in = multipfline_testcase(i, kind)
         expectedkind = kind
         testcases.append(InitTestcase("data:ts", data_in, expectedkind))
@@ -226,7 +229,7 @@ def test_singlepfline_init_2(itd: InitTestcase):
         return
 
     result = SinglePfLine(data_in)
-    assert result.kind == expected_kind
+    assert result.kind is expected_kind
 
 
 @pytest.mark.parametrize("itd", **data_in_function(MultiPfLine))

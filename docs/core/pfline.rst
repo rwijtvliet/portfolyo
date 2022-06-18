@@ -16,13 +16,13 @@ Kind
 
 An important characteristic of a ``PfLine`` is its "kind", which tells us which kind of information it contains. It is available as the property ``.kind`` and has one of 3 possible values: ``"p"``, ``"q"`` and ``"all"``.
 
-* ``.kind == "p"`` 
+* ``.kind is Kind.PRICE_ONLY`` 
 
   This is a portfolio line which only contains price information. 
   
   As an examples, consider the forward price curve for a certain market area, or the fixed offtake price that a customer is paying for a certain delivery period.
 
-* ``.kind == "q"``
+* ``.kind is Kind.VOLUME_ONLY``
 
   This is a portfolio line that only contains volume information. 
   
@@ -30,7 +30,7 @@ An important characteristic of a ``PfLine`` is its "kind", which tells us which 
 
   The volume in each timestamp can be retrieved by the user in units of energy (e.g., MWh) or in units of power (e.g., MW).
 
-* ``.kind == "all"``
+* ``.kind is Kind.ALL``
 
   This a portfolio line that contains both price and volume information. 
   
@@ -51,7 +51,7 @@ In General
 
 ``portfolyo`` tries to determine the dimension of information (e.g., if it is a price or a volume) using its key (if it has one) and its unit (also, if it has one) - see the section on :ref:`Compatilibity of abbrevation and unit <nameunitcompatibility>`.
 
-To initialise a price-only portfolio line, we must only provide supply price timeseries. To initialise a volume-only portfolio line, we must only provide a volume timeseries. To initialise a price-and-volume portfolio line (i.e., with ``.kind == "all"``), we must supply at least 2 of the following timeseries: prices, volumes, revenues. 
+To initialise a price-only portfolio line, we must only provide supply price timeseries. To initialise a volume-only portfolio line, we must only provide a volume timeseries. To initialise a price-and-volume portfolio line (i.e., with ``.kind is Kind.ALL``), we must supply at least 2 of the following timeseries: prices, volumes, revenues. 
 
 .. note::
    

@@ -43,7 +43,7 @@ class PfLineHedge:
         -----
         If the PfLine contains prices, these are ignored.
         """
-        if self.kind == "p":
+        if self.kind is Kind.PRICE_ONLY:
             raise ValueError(
                 "Cannot hedge a PfLine that does not contain volume information."
             )

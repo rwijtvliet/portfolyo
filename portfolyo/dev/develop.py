@@ -3,7 +3,7 @@ Code to quickly get objects for testing.
 """
 
 from typing import Dict
-from ..core.pfline import PfLine, SinglePfLine, MultiPfLine
+from ..core.pfline import PfLine, SinglePfLine, MultiPfLine, Kind
 from ..core.pfstate import PfState
 from ..tools import nits
 from . import mockup
@@ -84,14 +84,18 @@ def get_dataframe(
 # Portfolio line.
 
 
-def get_singlepfline(i: pd.DatetimeIndex = None, kind: str = "all") -> SinglePfLine:
+def get_singlepfline(i: pd.DatetimeIndex = None, kind: Kind = Kind.ALL) -> SinglePfLine:
     """Get single portfolio line, i.e. without children."""
-    columns = {"q": "q", "p": "p", "all": "qr"}[kind]
+    if not isinstance(kind, Kind):
+        kind = Kind(kind)
+    columns = {Kind.VOLUME_ONLY: "q", Kind.PRICE_ONLY: "p", Kind.ALL: "qr"}[kind]
     return SinglePfLine(get_dataframe(i, columns))
 
 
-def get_multipfline(i: pd.DatetimeIndex = None, kind: str = "all") -> MultiPfLine:
+def get_multipfline(i: pd.DatetimeIndex = None, kind: Kind = Kind.ALL) -> MultiPfLine:
     """Get multi portfolio line. With 2 (singlepfline) children of the same ``kind``."""
+    if not isinstance(kind, Kind):
+        kind = Kind(kind)
     if i is None:
         i = get_index()
     return MultiPfLine({"A": get_singlepfline(i, kind), "B": get_singlepfline(i, kind)})
@@ -99,13 +103,15 @@ def get_multipfline(i: pd.DatetimeIndex = None, kind: str = "all") -> MultiPfLin
 
 def get_pfline(
     i: pd.DatetimeIndex = None,
-    kind: str = "all",
+    kind: Kind = Kind.ALL,
     max_nlevels: int = 3,
     childcount: int = 2,
     prefix: str = "",
 ) -> PfLine:
     """Get portfolio line, without children or with children in random number of levels.
     (including the current level; max_nlevels must be >= 1.)"""
+    if not isinstance(kind, Kind):
+        kind = Kind(kind)
     # Gather information.
     if i is None:
         i = get_index()
@@ -114,7 +120,7 @@ def get_pfline(
     if nlevels == 0:
         return get_singlepfline(i, kind)
     # Gather information.
-    if childcount == 2 and kind == "all" and np.random.rand() < 0.33:
+    if childcount == 2 and kind is Kind.ALL and np.random.rand() < 0.33:
         kinds = ["p", "q"]
     else:
         kinds = [kind] * childcount
