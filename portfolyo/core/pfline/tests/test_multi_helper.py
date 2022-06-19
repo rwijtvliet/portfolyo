@@ -24,7 +24,8 @@ def test_makedataframe_consistency(freq, kind1, kind2, kind3):
         pass
 
     elif len(dic) == 2:
-        if len(set(kinds)) != 1 and set(kinds) != set(["p", "q"]):
+        kset = set(kinds)
+        if len(kset) != 1 and kset != set([Kind.PRICE_ONLY, Kind.VOLUME_ONLY]):
             # Can only combine 2 pflines if they have the same kind or are 'q' and 'p'
             with pytest.raises(ValueError):
                 _ = multi_helper.make_childrendict(dic)

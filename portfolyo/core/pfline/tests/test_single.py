@@ -48,7 +48,7 @@ def test_singlepfline_access(columns):
     result = SinglePfLine(df)
 
     testing.assert_index_equal(result.index, df.index)
-    testing.assert_index_equal(result["index"], df.index)
+    # testing.assert_index_equal(result["index"], df.index)# access by item is deprecated
 
     for col in list("wqpr"):
         if col in columns:
