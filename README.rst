@@ -45,7 +45,7 @@ Repository
 
 The git repository is hosted on github:
 
-www.github.com/rwijtvliet/portfolyo
+http://www.github.com/rwijtvliet/portfolyo
 
 
 Documentation
@@ -53,4 +53,4 @@ Documentation
 
 Documentation is hosted on readthedocs:
 
-portfolyo.rtfd.io
+https://portfolyo.readthedocs.io/

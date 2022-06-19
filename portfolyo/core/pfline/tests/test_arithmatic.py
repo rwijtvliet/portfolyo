@@ -28,6 +28,8 @@ def id_fn(data: Any):
         return f"Quantity ({data.units})"
     elif isinstance(data, type):
         return data.__name__
+    elif isinstance(data, Kind):
+        return str(data)
     return type(data).__name__
 
 
@@ -204,11 +206,11 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         (i, Kind.ALL, {"nodim": 5.9}, Exception, None),
         (i, Kind.ALL, {"nodim": Q_(5.9, "")}, Exception, None),
         # . Add other 'all' pfline.
-        (i, Kind.ALL, dev.get_dataframe(i, "qr"), PfLine, "all"),
-        (i, Kind.ALL, dev.get_dataframe(i, "qp"), PfLine, "all"),
-        (i, Kind.ALL, dev.get_dataframe(i, "pr"), PfLine, "all"),
-        (i, Kind.ALL, dev.get_singlepfline(i, Kind.ALL), PfLine, "all"),
-        (i, Kind.ALL, dev.get_multipfline(i, Kind.ALL), PfLine, "all"),
+        (i, Kind.ALL, dev.get_dataframe(i, "qr"), SinglePfLine, Kind.ALL),
+        (i, Kind.ALL, dev.get_dataframe(i, "qp"), SinglePfLine, Kind.ALL),
+        (i, Kind.ALL, dev.get_dataframe(i, "pr"), SinglePfLine, Kind.ALL),
+        (i, Kind.ALL, dev.get_singlepfline(i, Kind.ALL), SinglePfLine, Kind.ALL),
+        (i, Kind.ALL, dev.get_multipfline(i, Kind.ALL), PfLine, Kind.ALL),
         # . Add something else.
         (i, Kind.ALL, Q_(6.0, "Eur"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "Eur/MWh"), Exception, None),
@@ -663,80 +665,56 @@ def test_pfl_addsub_kind(
             i,
             Kind.ALL,
             8.1,
-            Exception,
-            None,
-            Exception,
-            None,
-            # PfLine,
-            # Kind.ALL
-            # PfLine,
-            # Kind.ALL
+            PfLine,
+            Kind.ALL,
+            PfLine,
+            Kind.ALL,
         ),
         (
             i,
             Kind.ALL,
             Q_(8.1, ""),
-            Exception,
-            None,
-            Exception,
-            None,
-            # PfLine,
-            # Kind.ALL
-            # PfLine,
-            # Kind.ALL
+            PfLine,
+            Kind.ALL,
+            PfLine,
+            Kind.ALL,
         ),
         # . . timeseries (series, df)
         (
             i,
             Kind.ALL,
             dev.get_series(i, "f"),
-            Exception,
-            None,
-            Exception,
-            None,
-            # PfLine,
-            # Kind.ALL
-            # PfLine,
-            # Kind.ALL
+            PfLine,
+            Kind.ALL,
+            PfLine,
+            Kind.ALL,
         ),
         (
             i,
             Kind.ALL,
             dev.get_series(i, "f").astype("pint[dimensionless]"),
-            Exception,
-            None,
-            Exception,
-            None
-            # PfLine,
-            # Kind.ALL
-            # PfLine,
-            # Kind.ALL
+            PfLine,
+            Kind.ALL,
+            PfLine,
+            Kind.ALL,
         ),
         (
             i,
             Kind.ALL,
             dev.get_dataframe(i, ["nodim"]),
-            Exception,
-            None,
-            Exception,
-            None
-            # PfLine,
-            # Kind.ALL
-            # PfLine,
-            # Kind.ALL
+            PfLine,
+            Kind.ALL,
+            PfLine,
+            Kind.ALL,
         ),
         (
             i,
             Kind.ALL,
             dev.get_dataframe(i, ["nodim"]).astype("pint[dimensionless]"),
-            Exception,
-            None,
-            Exception,
-            None
-            # PfLine,
-            # Kind.ALL
-            # PfLine,
-            # Kind.ALL
+            PfLine,
+            Kind.ALL,
+            PfLine,
+            Kind.ALL,
         ),
     ],
     ids=id_fn,
@@ -1448,35 +1426,27 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset1[Kind.ALL],
             6,
-            Exception,
-            Exception,
-            # SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            # SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
         ),
         # . Explicitly dimensionless constant.
         (
             pflset1[Kind.ALL],
             Q_(6, ""),
-            Exception,
-            Exception,
-            # SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            # SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
         ),
         (
             pflset1[Kind.ALL],
             {"nodim": 6},
-            Exception,
-            Exception,
-            # SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            # SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
         ),
         (
             pflset1[Kind.ALL],
             pd.Series([6], ["nodim"]),
-            Exception,
-            Exception,
-            # SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            # SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
+            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
         ),
         # . Incorrect constant.
         (
@@ -1513,42 +1483,32 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset1[Kind.ALL],
             series2["nodim"],  # dim-agnostic
-            Exception,
-            Exception,
-            # mul_all1_dimless2,
-            # mul_all1_dimless2,
+            mul_all1_dimless2,
+            div_all1_dimless2,
         ),
         (
             pflset1[Kind.ALL],
             series2["nodim"].astype("pint[dimensionless]"),  # dimless
-            Exception,
-            Exception,
-            # mul_all1_dimless2,
-            # mul_all1_dimless2,
+            mul_all1_dimless2,
+            div_all1_dimless2,
         ),
         (
             pflset1[Kind.ALL],
             {"nodim": series2["nodim"]},
-            Exception,
-            Exception,
-            # mul_all1_dimless2,
-            # mul_all1_dimless2,
+            mul_all1_dimless2,
+            div_all1_dimless2,
         ),
         (
             pflset1[Kind.ALL],
             pd.DataFrame({"nodim": series2["nodim"]}),
-            Exception,
-            Exception,
-            # mul_all1_dimless2,
-            # mul_all1_dimless2,
+            mul_all1_dimless2,
+            div_all1_dimless2,
         ),
         (
             pflset1[Kind.ALL],
             pd.DataFrame({"nodim": series2["nodim"].astype("pint[dimensionless]")}),
-            Exception,
-            Exception,
-            # mul_all1_dimless2,
-            # mul_all1_dimless2,
+            mul_all1_dimless2,
+            div_all1_dimless2,
         ),
         # . Incorrect series, dataframe or pfline.
         (

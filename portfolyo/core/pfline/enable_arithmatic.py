@@ -23,7 +23,7 @@ if TYPE_CHECKING:  # needed to avoid circular imports
 # dimensionless / unitA = 1/unitA
 #
 # In addition, accepted as true:
-# unitA + dimensionless = unitA
+# unitA + dimension-agnostic = unitA
 # Eur/MWh * MWh -> all-PfLine
 # Eur/MWh * MW -> all-PfLine
 #

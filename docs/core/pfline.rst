@@ -334,6 +334,8 @@ Remarks:
 
   The reason for flattening, in these cases, is that there is no "natural"/"logical" way to define what the outcome should be. 
 
+* The usual relationship between addition and multiplication holds. E.g., for a given portfolio line ``pfl``, the following two calculations have the same return value: ``pfl + pfl`` and ``2 * pfl``.
+
 Examples
 ========
 

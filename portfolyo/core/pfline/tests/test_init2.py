@@ -84,9 +84,12 @@ class InitTestcase:
 
 
 all_cases = [
-    case
-    for c in [f"{w}{q}{p}{r}" for w in "w " for q in "q " for p in "p " for r in "r "]
-    if len(case := c.replace(" ", ""))
+    f"{w}{q}{p}{r}".replace(" ", "")
+    for w in "w "
+    for q in "q "
+    for p in "p "
+    for r in "r "
+    if not w == q == p == r == " "
 ]  # all combinations of w, q, p, r
 error_cases = ["r", "wq", *[case for case in all_cases if len(case) >= 3]]
 
@@ -154,9 +157,9 @@ def timeseries_testcases(i, has_unit, typ) -> Iterable[InitTestcase]:
     for name in "wqpr":
         data_in = timeseries_testcase(i, has_unit, name)
         if typ is SinglePfLine and has_unit and name == "p":
-            expectedkind = "p"
+            expectedkind = Kind.PRICE_ONLY
         elif typ is SinglePfLine and has_unit and name in ["w", "q"]:
-            expectedkind = "q"
+            expectedkind = Kind.VOLUME_ONLY
         else:
             expectedkind = Exception
         testcases.append(InitTestcase("data:ts", data_in, expectedkind))
