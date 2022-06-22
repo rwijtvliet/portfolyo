@@ -7,4 +7,8 @@ numpydoc
 sphinx-copybutton
 sphinx-exec-code
 sphinx_rtd_theme
+
 insegel
+
+nbsphinx
+pandoc

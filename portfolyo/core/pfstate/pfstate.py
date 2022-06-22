@@ -102,7 +102,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         self,
         offtakevolume: Union[PfLine, pd.Series],
         unsourcedprice: Union[PfLine, pd.Series],
-        sourced: Optional[PfLine],
+        sourced: Optional[PfLine] = None,
     ):
         # The only internal data of this class is stored as PfLines.
         self._offtakevolume, self._unsourcedprice, self._sourced = make_pflines(
