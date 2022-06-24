@@ -4,9 +4,11 @@ from .core.mixins.plot import plot_pfstates
 from .core import changefreq
 from . import dev
 
-from .core import basics  # extend functionalty of pandas
+from .core import extendpandas  # extend functionalty of pandas
+from .core import suppresswarnings
 
-basics.apply()
+extendpandas.apply()
+suppresswarnings.apply()
 
 # Methods/attributes directly available at package root.
 
