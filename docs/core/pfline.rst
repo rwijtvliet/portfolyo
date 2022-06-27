@@ -4,7 +4,7 @@ PfLine
 
 The basic building block of the ``portfolyo`` package is the "portfolio line" (``PfLine``). Instances of this class store a timeseries containing volume information, price information, or both. This page discusses their most important properties, and how to use them.
 
-For a tutorial, :doc:`see here <../tutorial>`.
+For a tutorial, :doc:`see here <../tutorial/index>`.
 
 It is assumed that you are familiar with the following dimension abbrevations: ``w`` for power, ``q`` for energy, ``p`` for price, and ``r`` for revenue; see :doc:`this page for more information <../specialized_topics/dimensions>`.
 
