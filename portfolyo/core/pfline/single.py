@@ -16,8 +16,7 @@ import numpy as np
 
 
 class SinglePfLine(PfLine):
-    """Portfolio line without children. Has a single dataframe; .children is the empty
-    dictionary.
+    """Flat portfolio line, i.e., without children. Has a single dataframe.
 
     Parameters
     ----------
@@ -42,18 +41,16 @@ class SinglePfLine(PfLine):
     def __new__(cls, data):
         # Catch case where data is already a valid class instance.
         if isinstance(data, SinglePfLine):
-            return data  # TODO: return copy
+            return data
         # Otherwise, do normal thing.
         return super().__new__(cls, data)
 
     def __init__(self, data: Union[PfLine, Dict, pd.DataFrame, pd.Series]):
+        if self is data:
+            return  # don't continue initialisation, it's already the correct object
         self._df = single_helper.make_dataframe(data)
 
     # Implementation of ABC methods.
-
-    @property
-    def children(self) -> Dict:
-        return {}
 
     @property
     def index(self) -> pd.DatetimeIndex:
@@ -141,6 +138,15 @@ class SinglePfLine(PfLine):
                 np.allclose(self.w.pint.magnitude, 0)
                 and np.allclose(self.r.pint.magnitude, 0)
             )
+
+    def __setitem__(self, *args, **kwargs):
+        raise TypeError("Flat portfolio line; cannot add (or change) children.")
+
+    def __getitem__(self, *args, **kwargs):
+        raise TypeError("Flat portfolio line is not subscriptable (has no children).")
+
+    def __delitem__(self, name: str):
+        raise TypeError("Flat portfolio line; cannot remove children.")
 
     # Additional methods, unique to this class.
 
