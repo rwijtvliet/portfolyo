@@ -1,3 +1,5 @@
+@import 'syntax.css';
+
 /* contents */
 div.contents.local.topic {
   border-left: 5px solid #ccc;
@@ -75,12 +77,3 @@ dl:not(.docutils) dl.field-list.simple dt {
   border-left: none;
   padding: 0.25em;
 }
-
-span.nn {
-  color: #0000FF; 
-  font-weight: bold 
-} /* Name.Namespace */
- 
-/* color: yellow;
-  background-color: white;
-} */
