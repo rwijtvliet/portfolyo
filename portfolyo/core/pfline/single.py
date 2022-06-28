@@ -8,6 +8,7 @@ from __future__ import annotations
 from . import single_helper
 from .base import PfLine, Kind
 from .. import changefreq
+from ...testing import testing
 
 from typing import Dict, Iterable, Union
 import pandas as pd
@@ -122,7 +123,12 @@ class SinglePfLine(PfLine):
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return self._df.pint.to_base_units().equals(other._df.pint.to_base_units())
+        try:
+            testing.assert_frame_equal(self._df, other._df, rtol=1e-7)
+            return True
+        except AssertionError:
+            return False
+        # return self._df.pint.to_base_units().equals(other._df.pint.to_base_units())
 
     def __bool__(self) -> bool:
         # False if all relevant timeseries are 0.

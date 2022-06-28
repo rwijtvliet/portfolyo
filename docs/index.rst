@@ -44,12 +44,19 @@ Contents
    :maxdepth: 2
    :caption: Core functionality
 
-   gettingstarted
    core/objects
    core/pfline
    core/pfstate
    core/interoperability
-   tutorial/index
+
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials
+
+   tutorial/part1
+   tutorial/part2
+   tutorial/part3
+   tutorial/part4
 
 .. toctree::
    :maxdepth: 2

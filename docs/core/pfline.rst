@@ -2,7 +2,9 @@
 PfLine
 ======
 
-The basic building block of the ``portfolyo`` package is the "portfolio line" (``PfLine``). Instances of this class store a timeseries containing volume information, price information, or both. This page discusses their most important properties, and how to use them. 
+The basic building block of the ``portfolyo`` package is the "portfolio line" (``PfLine``). Instances of this class store a timeseries containing volume information, price information, or both. This page discusses their most important properties, and how to use them.
+
+For a tutorial, :doc:`see here <../tutorial/index>`.
 
 It is assumed that you are familiar with the following dimension abbrevations: ``w`` for power, ``q`` for energy, ``p`` for price, and ``r`` for revenue; see :doc:`this page for more information <../specialized_topics/dimensions>`.
 
@@ -120,11 +122,11 @@ Note that the aggregate values are shown.
 Nesting is not limited to one level, and, instead of having each value be a ``PfLine`` objects, it is actually sufficient that each value can be used to initialise a ``PfLine`` object. 
   
 
-------------------------
-With or without children
-------------------------
+--------------
+Flat or Nested
+--------------
 
-As seen in the final initialisation example, we can create nested portfolio lines, is are named child within another portfolio line. This in contrast to the 'childless' or *'flat'* portfolio lines we created in the first initialisation example. 
+As seen in the final initialisation example, we can create nested portfolio lines, as a named child within another portfolio line. This in contrast to the *'flat'* portfolio lines we created in the first initialisation example. 
 
 It is important to note that both types of portfolio line contain the exact same methods and properties that are described in the rest of this document. 
 
@@ -330,7 +332,7 @@ Remarks:
 
   - adding or subtracting something else (i.e., a single value or a flat portfolio line); 
 
-  - multiplying with or dividing by something else (i.e., a single value or a flat portfolio line).
+  - multiplying with or dividing by something else (i.e., a price or volume (value, timeseries, portfolio line)).
 
   The reason for flattening, in these cases, is that there is no "natural"/"logical" way to define what the outcome should be. 
 

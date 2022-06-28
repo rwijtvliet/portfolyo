@@ -48,7 +48,7 @@ class PfStateHedging:
             self._offtakevolume, self._unsourcedprice, self.sourced + tosource
         )
 
-    def m2m_of_sourced(self) -> PfLine:
+    def mtm_of_sourced(self) -> PfLine:
         """Mark-to-Market value of sourced volume."""
         return self.sourced.volume * (self.unsourcedprice - self.sourced.price)
 

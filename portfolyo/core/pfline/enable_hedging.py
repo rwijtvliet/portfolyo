@@ -51,7 +51,7 @@ class PfLineHedging:
             raise ValueError(
                 "Can only hedge a PfLine with daily or (quarter)hourly information."
             )
-        if not isinstance(p, PfLine):
+        if not isinstance(p, base.PfLine):
             raise TypeError(
                 f"Parameter ``p`` must be a PfLine instance; got {type(p)}."
             )

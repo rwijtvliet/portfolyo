@@ -8,6 +8,7 @@ from .base import Kind
 
 from typing import TYPE_CHECKING
 import pandas as pd
+import warnings
 
 if TYPE_CHECKING:  # needed to avoid circular imports
     from .base import PfLine
@@ -39,14 +40,8 @@ if TYPE_CHECKING:  # needed to avoid circular imports
 #                 other unit or dimensionless                      => pd.Series
 
 
-def _flatten(fn):
-    """Flatten the portfoliolines before calling the wrapped function."""
-
-    def wrapper(*pflines):
-        pflines = [pfl.flatten() for pfl in pflines]
-        return fn(*pflines)
-
-    return wrapper
+class PfLineFlattenedWarning(Warning):
+    pass
 
 
 def _assert_freq_compatibility(fn):
@@ -82,19 +77,32 @@ def _add_pflines(pfl1: PfLine, pfl2: PfLine):
                 children[name] = child2
         return multi.MultiPfLine(children)
 
-    else:  # at least one of them is a SinglePfLine.
-        # Get addition and keep only common rows, and resample to keep freq (possibly re-adds gaps in middle).
-        dfs = [pfl.df(pfl.summable) for pfl in [pfl1, pfl2]]
-        df = sum(dfs).dropna().resample(pfl1.index.freq).asfreq()
-        return single.SinglePfLine(df)
+    elif isinstance(pfl1, multi.MultiPfLine) or isinstance(pfl2, multi.MultiPfLine):
+        # ONE is MultiPfLine, ONE is SinglePfLine.
+        warnings.warn(
+            "When adding a SinglePfLine and MultiPfLine, the MultiPfLine is flattened.",
+            PfLineFlattenedWarning,
+        )
+
+    # at least one of them is a SinglePfLine.
+    # Get addition and keep only common rows, and resample to keep freq (possibly re-adds gaps in middle).
+    dfs = [pfl.df(pfl.summable, flatten=True) for pfl in [pfl1, pfl2]]
+    df = sum(dfs).dropna().resample(pfl1.index.freq).asfreq()
+    return single.SinglePfLine(df)
 
 
-@_flatten  # TODO: Decide if this should return a Single or Multi PfLine
+# TODO: Decide if this should return a Single or Multi PfLine
 @_assert_freq_compatibility
 def _multiply_pflines(pfl1: PfLine, pfl2: PfLine):
     """Multiply two pflines."""
     if set([pfl1.kind, pfl2.kind]) != {Kind.PRICE_ONLY, Kind.VOLUME_ONLY}:
         raise NotImplementedError("Can only multiply volume with price information.")
+
+    if isinstance(pfl1, multi.MultiPfLine) or isinstance(pfl2, multi.MultiPfLine):
+        warnings.warn(
+            "PfLine instances are flattened before multiplication.",
+            PfLineFlattenedWarning,
+        )
 
     if pfl1.kind is Kind.PRICE_ONLY:
         data = {"q": pfl2.q, "p": pfl1.p}
@@ -120,6 +128,11 @@ def _divide_pflines(pfl1: PfLine, pfl2: PfLine) -> pd.Series:
     if pfl1.kind is not pfl2.kind or pfl1.kind is Kind.ALL:
         raise NotImplementedError(
             "Can only divide portfolio lines if both contain price-only or both contain volume-only information."
+        )
+    if isinstance(pfl1, multi.MultiPfLine) or isinstance(pfl2, multi.MultiPfLine):
+        warnings.warn(
+            "PfLine instances are flattened before division.",
+            PfLineFlattenedWarning,
         )
 
     if pfl1.kind is Kind.PRICE_ONLY:
