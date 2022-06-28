@@ -2,43 +2,40 @@
 
 from __future__ import annotations
 
-from . import multi
 from .base import PfLine, Kind
 from ...tools import stamps
 
-from typing import Counter, Mapping, Dict, Union
+from typing import Counter, Mapping, Dict, Any
+import pandas as pd
 
 
-def make_childrendict(data: Union[Mapping, multi.MultiPfLine]) -> Dict[str, PfLine]:
-    """From data, create a dictionary of PfLine instances. Also, do some data verification."""
-    children = _data_to_childrendict(data)
+def make_mapping(data: Any) -> Mapping[Any, Any]:
+    """From data, create a mapping."""
+
+    if isinstance(data, Mapping):
+        return data
+
+    elif isinstance(data, pd.DataFrame):
+        children = {}
+        # Get all sub-dataframes (or series) and turn into dictionary.
+        for col in data.columns.get_level_values(0).unique():
+            children[col] = data[col]
+        return children
+
+    raise TypeError(
+        f"Parameter ``data`` must be dict (or other Mapping) or pandas.DataFrame; got {type(data)}."
+    )
+
+
+def verify_and_trim_dict(children: Dict[str, PfLine]) -> Dict[str, PfLine]:
+    """Do data checks on dictionary of children so that they fit well together."""
+    # Data check.
     try:
         _assert_pfline_kindcompatibility(children)
     except AssertionError as e:
         raise ValueError("The data is not suitable for creating a MultiPfLine.") from e
+    # Trim.
     children = _intersect_indices(children)
-    return children
-
-
-def _data_to_childrendict(data: Union[Mapping, multi.MultiPfLine]) -> Dict[str, PfLine]:
-    """Check data, and turn into a dictionary."""
-
-    if isinstance(data, multi.MultiPfLine):
-        return data.children
-    if not isinstance(data, Mapping):
-        raise TypeError(
-            "`data` must be dict or other Mapping (or a MultiPfLine instance)."
-        )
-
-    children = {}
-    for key, value in data.items():
-        if not isinstance(key, str):
-            raise TypeError("Keys must be strings.")
-        if isinstance(value, PfLine):
-            children[key] = value
-        else:
-            children[key] = PfLine(value)  # try to cast to PfLine instance
-
     return children
 
 
@@ -80,8 +77,12 @@ def _intersect_indices(children: Dict[str, PfLine]) -> Dict[str, PfLine]:
 
     # Check frequency.
 
-    if len(set([i.freq for i in indices])) != 1:
-        raise ValueError("PfLines have unequal frequency; resample first.")
+    freqs = set([i.freq for i in indices])
+    if len(freqs) != 1:
+        raise ValueError(
+            f"PfLines have unequal frequencies; found {', '.join(str(f) for f in freqs)}."
+            " Resample first to obtain equal frequencies."
+        )
 
     # Check/fix indices.
     idx = stamps.intersection(*indices)  # workaround for pandas intersection (#46702)

@@ -181,9 +181,10 @@ def _unit2attr(unit) -> str:
 
 
 def _from_data(
-    data: Union[float, nits.Q_, pd.Series, Dict, pd.DataFrame, Mapping]
+    data: Union[float, nits.Q_, pd.Series, Dict, pd.DataFrame, Iterable, Mapping]
 ) -> InOp:
     """Turn ``data`` into a InterOp object."""
+
     if isinstance(data, int) or isinstance(data, float):
         return InOp(agn=data)
 
@@ -217,32 +218,42 @@ def _from_data(
                     return da
             return None
 
-        ios = None
+        inops = []
         for key, value in data.items():
             if da := dimabbr(key):
-                ios |= InOp(**{da: value})
+                inops.append(InOp(**{da: value}))
             else:
                 raise KeyError(
                     f"Found item with unexpected key/name '{key}'. Should be one of {', '.join(_ATTRIBUTES)}."
                 )
-        if ios is None:
-            return InOp()  # raises Error
-        return ios
+        return _multiple_union(inops)
+
+    elif isinstance(data, Iterable):
+        return _multiple_union((InOp.from_data(element) for element in data))
 
     raise TypeError(
-        f"Expecting number, Quantity, timeseries, or Mapping (e.g. dict or DataFrame); got {type(data)}."
+        f"Expecting number, Quantity, timeseries, Mapping (e.g. dict or DataFrame), or Iterable; got {type(data)}."
     )
 
 
-def _union(interop1: InOp, interop2: InOp) -> InOp:
-    """Combine 2 ``InterOp`` objects, and raise error if same dimension is supplied twice."""
-    if interop2 is None:
-        return interop1
-    if not isinstance(interop2, InOp):
+def _multiple_union(inops) -> InOp:
+    inop_result = None
+    for inop in inops:
+        inop_result |= inop
+    if inop_result is None:
+        return InOp()  # raises Error
+    return inop_result
+
+
+def _union(inop1: InOp, inop2: InOp) -> InOp:
+    """Combine 2 ``InOp`` objects, and raise error if same dimension is supplied twice."""
+    if inop2 is None:
+        return inop1
+    if not isinstance(inop2, InOp):
         raise TypeError("Can only unite same object type.")
     kwargs = {}
     for attr in _ATTRIBUTES:
-        val1, val2 = getattr(interop1, attr), getattr(interop2, attr)
+        val1, val2 = getattr(inop1, attr), getattr(inop2, attr)
         if val1 is not None and val2 is not None:
             raise ValueError(f"Got two values for attribute '{attr}'.")
         elif val1 is not None:
@@ -252,12 +263,12 @@ def _union(interop1: InOp, interop2: InOp) -> InOp:
     return InOp(**kwargs)
 
 
-def _equal(interop1: InOp, interop2: InOp) -> InOp:
-    """2 ``InterOp`` objects are equal if they have the same attributes."""
-    if not isinstance(interop2, InOp):
+def _equal(inop1: InOp, inop2: InOp) -> InOp:
+    """2 ``InOp`` objects are equal if they have the same attributes."""
+    if not isinstance(inop2, InOp):
         return False
     for attr in _ATTRIBUTES:
-        val1, val2 = getattr(interop1, attr), getattr(interop2, attr)
+        val1, val2 = getattr(inop1, attr), getattr(inop2, attr)
         if type(val1) is not type(val2):
             return False
         if isinstance(val1, pd.Series):
