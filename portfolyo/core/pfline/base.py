@@ -314,7 +314,9 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
                 df[(prod, "q")] = df[(prod, "w")] * df[(prod, "duration")]
         if "r" in self.available:
             for prod in prods:
-                df[(prod, "r")] = df[(prod, "q")] * df[(prod, "p")]
+                df[(prod, "r")] = (
+                    df[(prod, "q")] * df[(prod, "p")]
+                ).pint.to_base_units()
         i = pd.MultiIndex.from_product([prods, ("duration", *self.available)])
         return df[i]
 
