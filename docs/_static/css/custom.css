@@ -68,7 +68,6 @@ div.highlight pre {
 }
 
 /* styling of API */
-
 dl:not(.docutils) dl.field-list.simple dt {
   background: #E6E6E6;
   color: #2D2D2D;
@@ -76,7 +75,4 @@ dl:not(.docutils) dl.field-list.simple dt {
   padding: 0.25em;
 }
 
-span.nn {
-  color: yellow;
-  background-color: white;
-}
+/* ---- */
