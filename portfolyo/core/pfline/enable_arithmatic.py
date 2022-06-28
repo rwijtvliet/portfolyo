@@ -65,16 +65,15 @@ def _add_pflines(pfl1: PfLine, pfl2: PfLine):
 
     if isinstance(pfl1, multi.MultiPfLine) and isinstance(pfl2, multi.MultiPfLine):
         # If BOTH are MultiPfLines, collect children and add those with same name.
-        names = set([*pfl1.children.keys(), *pfl2.children.keys()])
+        names = set([*[name for name in pfl1], *[name for name in pfl2]])
         children = {}
         for name in names:
-            child1, child2 = pfl1.children.get(name), pfl2.children.get(name)
-            if child1 is not None and child2 is not None:
-                children[name] = child1 + child2
-            elif child1 is not None:
-                children[name] = child1
+            if name in pfl1 and name in pfl2:
+                children[name] = pfl1[name] + pfl2[name]
+            elif name in pfl1:
+                children[name] = pfl1[name]
             else:
-                children[name] = child2
+                children[name] = pfl2[name]
         return multi.MultiPfLine(children)
 
     elif isinstance(pfl1, multi.MultiPfLine) or isinstance(pfl2, multi.MultiPfLine):

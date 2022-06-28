@@ -113,9 +113,9 @@ The keys are used as the children names:
    pfl1 = pf.PfLine(pd.Series([0.2, 0.22, 0.3], index, dtype='pint[GW]')) 
    pfl2 = pf.PfLine(pd.Series([100, 150, 200.0], index, dtype='pint[MW]')) 
    dict_of_children = {'southeast': pfl1, 'northwest': pfl2}
-   pfl = pf.MultiPfLine(dict_of_children)
+   pfl = pf.PfLine(dict_of_children)
    # --- hide: start ---
-   print(repr(pf.MultiPfLine(dict_of_children))) #TODO: change to pf.PfLine
+   print(repr(pf.PfLine(dict_of_children)))
 
 Note that the aggregate values are shown. 
 
@@ -126,30 +126,30 @@ Nesting is not limited to one level, and, instead of having each value be a ``Pf
 Flat or Nested
 --------------
 
-As seen in the final initialisation example, we can create nested portfolio lines, as a named child within another portfolio line. This in contrast to the *'flat'* portfolio lines we created in the first initialisation example. 
+As seen in the final initialisation example, we can create *nested* portfolio lines, where a portfolio line contains one or more named children (which are also portfolio lines). This in contrast to the *'flat'* portfolio lines we created in the first initialisation example. 
 
-It is important to note that both types of portfolio line contain the exact same methods and properties that are described in the rest of this document. 
+.. note:: When checking the types, you will see that these are actually different classes. The flat portfolio line is an instance of the ``SinglePfLine`` class, whereas the portfolio line which has nesting is an instance of the ``MultiPfLine`` class. Both are descendents of the ``PfLine`` base class. When initialising a ``PfLine``, the correct type will be returned based on the input data. 
 
-.. note:: When checking the types, you will see that these are actually different classes. The childless / flat portfolio line is an instance of the ``SinglePfLine`` class, whereas the other portfolio line is an instance of the ``MultiPfLine`` class. Both are descendents of the ``PfLine`` base class. When initialising a ``PfLine``, the correct type will be returned based on the input data. 
+For nested portfolio lines, we are always looking at and working with the the top level, i.e., the sum/aggregate - unless explicitly stated otherwise by the user.
 
-For nested portfolio lines it is important to know that, unless explicitly stated by the user, we are looking at and working with the the top level, i.e., the sum/aggregate.
+An example of where a nested portfolio line makes sense, is to combine procurement on the forward market and spot trade into a "sourced" portfolio line. We can then easily work with the aggregate values, but the values of the individual markets are also still available.
 
-An example of where a nested portfolio line makes sense, is to combine procurement on the forward market and spot trade into a single "sourced" portfolio line. We can then easily work with the aggregate values, but the values of the individual markets are also still available.
+It is important to note that both types of portfolio line contain the exact same methods and properties that are described in the rest of this document. The nested portfolio lines have a few additional methods which are now.
 
 Working with children
 =====================
 
-The following common operations on portfolio lines with children are implemented:
+The following common operations on nested portfolio lines are implemented:
 
 * We can access a particular child by using its name as an index, e.g. ``pfl['southeast']``. If it does not collide with any of the attribute names, we can also access it by attribute, e.g. ``pfl.southeast``.
 
-* We can iterate over all children with ``for childname in pfl`` or ``for (name, child) in pfl.items()``.
+* We can iterate over all children with ``for name in pfl`` or ``for (name, child) in pfl.items()``.
 
-* We can add a new child to a portfolio - or overwrite an existing one - by setting it with ``pfl['southwest'] =``. 
+* We can add a new child to a portfolio - or overwrite an existing one - by setting it with ``pfl['southwest'] = ...``. This is done in-place, meaning we change the object (``pfl`` in this example). We can also *keep* the original portfolio line and get a reference to the new object with ``pfl_new = pfl.set_child('southwest', ...)``.
 
-* Not yet implemented: We can delete a child from the portfolio with e.g. ``del pfl['southwest']``.
+* We can remove a child from the portfolio with e.g. ``del pfl['southeast']``. Again, this operation is done in-place; the corresponding method that leaves the original object unchanged is ``pfl_new = pfl.drop_child('southeast')``. At least one child should remain.
 
-* If we are no longer interested in the children, we can keep only the top-level information with the ``.flatten()`` method.
+* If we are no longer interested in the particulars of each child, we can keep only the top-level information with the ``.flatten()`` method, which returns a flattened copy of the object.
 
   Note that a portfolio line may quietly be flattened whenever an operation is done that is ambiguous or undefined for a portfolio line with children. See the section on arithmatic_ below.
 
@@ -160,40 +160,6 @@ Accessing data
 
 In order to get our data out of a portfolio line, the following options are available.
 
-Index
-=====
-
-The ``PfLine.index`` property returns the ``pandas.DatetimeIndex`` that applies to the data. This includes the frequency that tells us how long the time periods are that start at each of the timestamps in the index. 
-
-.. exec_code::
-
-   # --- hide: start --- 
-   # --- hide: stop ---
-   import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
-   pfl = pf.PfLine(input_df)
-
-   pfl.index
-   # --- hide: start ---
-   print(repr(pfl.index))
-
-For convenience, ``portfolyo`` adds a ``.duration`` and a ``ts_right`` property to the ``pandas.DatetimeIndex`` closs, which do as we would predict:
-
-.. exec_code::
-
-   # --- hide: start --- 
-   import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
-   pfl = pf.PfLine(input_df)
-   # --- hide: stop ---
-   # continuation from previous code example
-   pfl.index.duration, pfl.index.ts_right
-   # --- hide: start ---
-   print(repr(pfl.index.duration),'\n', repr(pfl.index.ts_right))
-
-
 Timeseries
 ==========
 
@@ -202,12 +168,12 @@ The properties ``PfLine.w``, ``.q``, ``.p`` and ``.r`` always return the informa
 .. exec_code::
 
    # --- hide: start --- 
+   # --- hide: stop ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='AS', periods=3)
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
-   # --- hide: stop ---
-   # continuation from previous code example
+   
    pfl.r
    # --- hide: start ---
    print(repr(pfl.r))
@@ -238,15 +204,71 @@ If we want to extract more than one timeseries, we can use the ``.df()`` method,
 
 #TODO: Link to reference for more information
 
+Index
+=====
+
+The ``PfLine.index`` property returns the ``pandas.DatetimeIndex`` that applies to the data. This includes the frequency that tells us how long the time periods are that start at each of the timestamps in the index. 
+
+.. exec_code::
+
+   # --- hide: start --- 
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='AS', periods=3)
+   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
+   pfl = pf.PfLine(input_df)
+   # --- hide: stop ---
+   # continuation from previous code example
+   pfl.index
+   # --- hide: start ---
+   print(repr(pfl.index))
+
+For convenience, ``portfolyo`` adds a ``.duration`` and a ``ts_right`` property to the ``pandas.DatetimeIndex`` closs, which do as we would predict:
+
+.. exec_code::
+
+   # --- hide: start --- 
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='AS', periods=3)
+   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
+   pfl = pf.PfLine(input_df)
+   # --- hide: stop ---
+   # continuation from previous code example
+   pfl.index.duration, pfl.index.ts_right
+   # --- hide: start ---
+   print(repr(pfl.index.duration),'\n', repr(pfl.index.ts_right))
+
+
+
 Price-only or volume-only
 =========================
 
-With the ``.price`` and ``.volume`` properties, we are able to extract a price-only or volume-only portfolio line. The returned ``PfLine`` has no children, as this would lead to incorrect values in some situations (in case we want to get the price part of a price-and-volume portfolio line - in that case, the aggregate price is the average of the children's prices, *weighted with their volumes* - which we lose if we keep only the prices).
+With the ``.price`` and ``.volume`` properties, we are able to extract a price-only or volume-only portfolio line. The returned ``PfLine`` is flat, as keeping the children would lead to incorrect values in some situations (in case we want to get the price part of a price-and-volume portfolio line - in that case, the aggregate price is the average of the children's prices, *weighted with their volumes* - which we lose if we keep only the prices).
+
+Index slice
+===========
+
+From ``pandas`` we know the ``.loc[]`` property which allows us to select a slice of the objects. This is implemented also for portfolio lines. Currently, it supports enering a slice of timestamps. The ``pandas`` convention is followed, with the end point being included in the result.
+
+.. exec_code::
+
+   # --- hide: start ---
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='AS', periods=3)
+   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
+   pfl = pf.PfLine(input_df)
+   # --- hide: stop ---
+   # continuation from previous code example
+   pfl.loc['2024':'2025']
+   # --- hide: start ---
+   print(pfl.loc['2024':'2025'])
+   # --- hide: stop ---
+
+
 
 .. _arithmatic: 
 
 ----------------------
-Operations: Arithmatic
+Operations: arithmatic
 ----------------------
 
 There are many ways to change and interact with ``PfLine`` instances. An intuitive way is through arithmatic. The following operations are currently defined/implemented. Unless specified otherwise, the returned object is of the same kind, and has the same children, as the original. 
@@ -275,12 +297,12 @@ Notes:
 .. _c1:
 
 c1
-  If portfolio line has children, they are retained in the operation.
+  For nested portfolio lines: the children are retained in the operation.
 
 .. _c2:
 
 c2
-  If portfolio line has children, they are retained in the operation, *IF* the other operand is also a portfolio line with children. (Both operands' children are in the returned portfolio line). Otherwise, it is flattened before the operation.
+  For nested portfolio lines: the children are retained in the operation *IF* the other operand is also a nested portfolio line. (Both operands' children are in the returned portfolio line). Otherwise, it is flattened before the operation.
 
 .. _p:
 
@@ -318,13 +340,13 @@ Remarks:
      # --- hide: start ---
      print(repr(pfl_1 == pfl_2 == pfl_3 == pfl_4))
 
-* When doing arithmatic with a flat (i.e, childless) portfolio line, the result is again a flat portfolio line.
+* When doing arithmatic with a flat portfolio line, the result is again a flat portfolio line.
 
-* When doing arithmatic with a portfolio line that has children, the children are kept if it is possible. This is when:
+* When doing arithmatic with a nested portfolio line, the children are kept if it is possible. This is when:
 
   - negating the portfolio line;
 
-  - adding or subtracting another portfolio line with children;
+  - adding or subtracting another nested portfolio line;
 
   - multiplying with or dividing by a factor.
 
@@ -341,59 +363,120 @@ Remarks:
 Examples
 ========
 
+When adding (or subtracting) two nested portfolio lines, the children are merged: 
+
+.. exec_code::
+     
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='AS', periods=3)
+   pfl_1 = pf.PfLine({
+       'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
+       'B': pd.Series([1, -1.8, 1.9], index, dtype='pint[MW]')
+   }) 
+   pfl_2 = pf.PfLine({
+       'B': pd.Series([0.5, 0.2, 1.9], index, dtype='pint[MW]'), 
+       'C': pd.Series([2, 2.2, 3.8], index, dtype='pint[MW]')
+   }) 
+   diff = pfl_1 - pfl_2
+
+   print([name for name in diff])
+   diff['B']
+   # --- hide: start ---
+   print(repr(diff['B']))
+
 The multiplication of a price-only and a volume-only portfolio line results in a price-and-volume portfolio line.
 
 .. exec_code::
      
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
-   vol = pf.PfLine(pd.Series([2, 2.2, 3], index, dtype='pint[MW]')) 
-   pri = pf.PfLine(pd.Series([100, 150, 200.0], index, dtype='pint[Eur/MWh]')) 
-   vol * pri
+   index = pd.date_range('2024', freq='MS', periods=3)
+   vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
+   pri = pf.PfLine(pd.Series([20, 22, 18], index, dtype='pint[Eur/MWh]')) 
+   pfl = vol * pri
+   pfl
    # --- hide: start ---
    print(repr(vol * pri))
 
-When adding (or subtracting) two portfolio lines with children, the children are merged: 
+----------------------
+Operations: resampling
+----------------------
+
+Using the ``.asfreq()`` method, we can quickly and correctly downsample our data, e.g. to monthly or yearly values. For price-and-volume portfolio lines, the prices are weighted with the energy as one would expect:
 
 .. exec_code::
-     
-   import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
-   pf1 = pf.MultiPfLine({
-       'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
-       'B': pd.Series([1, -1.8, 1.9], index, dtype='pint[MW]')
-   }) 
-   pf2 = pf.MultiPfLine({
-       'B': pd.Series([0.5, 0.2, 1.9], index, dtype='pint[MW]'), 
-       'C': pd.Series([2, 2.2, 3.8], index, dtype='pint[MW]')
-   }) 
-   diff = pf1 - pf2
 
-   print([name for name in diff])
-   diff['B']
    # --- hide: start ---
-   print(repr(diff['B'])) #todo: qmake sure init works with PfLine instead of MultiPfLine
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='MS', periods=3)
+   vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
+   pri = pf.PfLine(pd.Series([20, 22, 18], index, dtype='pint[Eur/MWh]')) 
+   pfl = vol * pri
+   # --- hide: stop ---
+   # continuation from previous code example
+   pfl.asfreq('QS')
+   # --- hide: start ---
+   print(repr(pfl.asfreq('QS')))
+
+For more information about resampling in general, see :doc:`this page<../specialized_topics/resampling>`.
+
+---------
+Exporting
+---------
+
+There are several ways to get data into other formats. 
+
+Plotting
+========
+
+The data can be shown graphically with the ``.plot()`` method:
+
+.. exec_code::
+
+   # --- hide: start ---
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='MS', periods=3)
+   vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
+   pri = pf.PfLine(pd.Series([20, 22, 18], index, dtype='pint[Eur/MWh]')) 
+   pfl = vol * pri
+   # --- hide: stop ---
+   # continuation from previous code example
+   pfl.plot()
+   # --- hide: start ---
+
+See the :doc:`tutorial <../tutorial/part1>` for an example of a few plots produced this way.
+   
+
+Excel and clipboard
+===================
+
+Often, further data analyses are done in Excel. If you have a Workbook open, the easiest way is to copy the portfolio line data to the clipboard with the ``.to_clipboard()`` method. From there, it can be pasted onto a worksheet.
+
+Alternatively, the data can be saved as an Excel workbook with the ``.to_excel()`` method.
+
+.. code-block::
+
+   # continuation from previous code example
+   pfl.to_clipboard()
+   pfl.to_excel("sourced_volume.xlsx")
+
+.. image:: ../savefig/excel_output_pfl.png
 
 
---------------------------
-Operations: set timeseries
---------------------------
+--------------
+Set timeseries
+--------------
 
 Sometimes we may want to replace one part of a ``PfLine``, while keeping the others the same. For this we can use the ``.set_w()``, ``.set_q()``, ``.set_p()`` and ``.set_r()`` methods. These methods accept float values, ``pint.Quantity`` objects, and ``pandas.Series``, and return a new ``PfLine`` with the selected information replaced. 
 
-The returned portfolio lines are flattened, i.e., without children. 
+The returned portfolio lines are flattened.
 
 It is also possible to set a price-only or volume-only portfolio line as the price or volume; for this we use the ``.set_price()`` and ``set_volume()`` methods.
-
-
 
 
 
 ---
 API
 ---
-
-
 
 .. autoclass:: portfolyo.PfLine
    :members:

@@ -76,7 +76,7 @@ def _children_info(pfl: PfLine) -> Iterable[str]:
 
 
 def _treedict(depth: int, is_last_child: bool, has_children: bool) -> Dict[str, str]:
-    """Dictionary with 4 strings that are used in drawing the tree."""
+    """Dictionary with 4 strings ('00', '01', '10', '11') that are used in drawing the tree."""
     colors = {"0": TREECOLORS[depth], "1": TREECOLORS[depth + 1]}
     tree = {}
     # 00 = first chars on header text line, #10 = first chars on other text lines
@@ -93,9 +93,7 @@ def _treedict(depth: int, is_last_child: bool, has_children: bool) -> Dict[str, 
     return tree
 
 
-def _pfl_dataheader_taxis0(
-    cols: Iterable[str] = "wqpr", units: Dict = _UNITS
-) -> Iterable[str]:
+def _dataheader_0(cols: Iterable[str] = "wqpr", units: Dict = _UNITS) -> Iterable[str]:
     out = [" " * 25] * 2  # width of timestamps
     for c in cols:
         width = COLWIDTHS_TAXIS0[c] + 1
@@ -104,9 +102,38 @@ def _pfl_dataheader_taxis0(
     return out
 
 
-def _pfl_flatdatablock_taxis0(
-    pfl: PfLine, cols: Iterable[str], num_of_ts: int
+# Main 3 functions that recursively call each other.
+
+
+def _nestedtree_0(
+    name: str,
+    pfl: PfLine,
+    cols: Iterable[str],
+    num_of_ts: int,
+    depth: int = 0,
+    is_last: bool = True,
+    is_only: bool = False,
 ) -> Iterable[str]:
+    """Treeview of the portfolio line."""
+    out = []
+    tree = _treedict(depth, is_last, isinstance(pfl, pfline.MultiPfLine))
+    # Name.
+    out.append(tree["00"] + tree["01"] + name)
+    # Top-level body block.
+    if is_only and depth > 0:
+        txtlines = ["(only contributor to parent data; has same values)"]
+    else:
+        txtlines = _flatdatablock_0(pfl, cols, num_of_ts)
+    for txtline in txtlines:
+        out.append(tree["10"] + tree["11"] + colorama.Style.RESET_ALL + txtline)
+    # Add children if any.
+    for txtline in _childrenlines_0(pfl, cols, num_of_ts, depth):
+        out.append(tree["10"] + txtline)
+    return out
+
+
+def _flatdatablock_0(pfl: PfLine, cols: Iterable[str], num_of_ts: int) -> Iterable[str]:
+    """The timestamps and data to be shown in a block, next to the tree."""
     # Obtain dataframe with index = timestamp as string and columns = one or more of 'qwpr'.
     df = _df_with_strvalues(pfl.flatten().df(cols))
     df = _df_with_strindex(df, num_of_ts)
@@ -116,38 +143,38 @@ def _pfl_flatdatablock_taxis0(
     return df_str.split("\n")
 
 
-def _pfl_nestedtree_taxis0(
-    pfl_dict: Dict[str, PfLine], cols: Iterable[str], num_of_ts: float, depth: int
+def _childrenlines_0(
+    pfl: PfLine, cols: Iterable[str], num_of_ts: int, depth: int
 ) -> Iterable[str]:
-    """Treeview of the portfolio line."""
+    """Treeview of only the children."""
     out = []
-    for c, (name, pfl) in enumerate(pfl_dict.items()):
-        tree = _treedict(depth, bool(c == len(pfl_dict) - 1), bool(pfl.children))
-        # Name.
-        out.append(tree["00"] + tree["01"] + name)
-        # Top-level body block.
-        for txtline in _pfl_flatdatablock_taxis0(pfl, cols, num_of_ts):
-            out.append(tree["10"] + tree["11"] + colorama.Style.RESET_ALL + txtline)
-        # Children.
-        for txtline in _pfl_nestedtree_taxis0(pfl.children, cols, num_of_ts, depth + 1):
-            out.append(tree["10"] + txtline)
+    if isinstance(pfl, pfline.SinglePfLine):
+        return out
+    for c, (name, child) in enumerate(pfl.items()):
+        is_last, is_only = (c == len(pfl) - 1), (len(pfl) == 1)
+        out.extend(
+            _nestedtree_0(name, child, cols, num_of_ts, depth + 1, is_last, is_only)
+        )
     return out
+
+
+# Highest-level functions.
 
 
 def pfl_as_string(pfl: PfLine, flatten: bool, num_of_ts: int, color: bool) -> str:
     lines = [f"PfLine object with {_what(pfl)} information."]
     lines.extend(_index_info(pfl.index))
-    lines.extend(_children_info(pfl))
-    lines.extend([""])
+    if isinstance(pfl, pfline.MultiPfLine):
+        lines.extend(_children_info(pfl))
     cols = pfl.available
     if flatten:
-        lines.extend(_pfl_dataheader_taxis0(cols))
+        lines.extend(_dataheader_0(cols))
         lines.extend([""])
-        lines.extend(_pfl_flatdatablock_taxis0(pfl, cols, num_of_ts))
+        lines.extend(_flatdatablock_0(pfl, cols, num_of_ts))
     else:
         spaces = " " * (MAX_DEPTH + 5)
-        lines.extend([spaces + txtline for txtline in _pfl_dataheader_taxis0(cols)])
-        lines.extend(_pfl_nestedtree_taxis0({"(this pfline)": pfl}, cols, num_of_ts, 0))
+        lines.extend([spaces + txtline for txtline in _dataheader_0(cols)])
+        lines.extend(_nestedtree_0("(this pfline)", pfl, cols, num_of_ts))
     txt = "\n".join(lines)
     return txt if color else _remove_color(txt)
 
@@ -156,11 +183,9 @@ def pfs_as_string(pfs: PfState, num_of_ts: int, color: bool) -> str:
     lines = ["PfState object."]
     lines.extend(_index_info(pfs.index))
     spaces = " " * (MAX_DEPTH + 5)
-    lines.extend([spaces + txtline for txtline in _pfl_dataheader_taxis0("wqpr")])
-    lines.extend(_pfl_nestedtree_taxis0({"offtake": pfs.offtake}, "wqpr", num_of_ts, 0))
-    lines.extend(
-        _pfl_nestedtree_taxis0({"pnl_cost": pfs.pnl_cost}, "wqpr", num_of_ts, 0)
-    )
+    lines.extend([spaces + txtline for txtline in _dataheader_0("wqpr")])
+    lines.extend(_nestedtree_0("offtake", pfs.offtake, "wqpr", num_of_ts))
+    lines.extend(_nestedtree_0("pnl_cost", pfs.pnl_cost, "wqpr", num_of_ts))
     txt = "\n".join(lines)
     return txt if color else _remove_color(txt)
 
