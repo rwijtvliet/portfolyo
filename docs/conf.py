@@ -62,8 +62,18 @@ html_css_files = ["css/custom.css", "css/syntax.css"]
 html_theme_options = {"navigation_depth": 1}
 
 
+def builder_inited(app):
+    app.add_css_file("css/syntax.css")
+    app.add_css_file("css/custom.css")
+
+
 def setup(app):
+    app.connect("builder-inited", builder_inited)
+
+
+""" def setup(app):
     app.add_css_file("custom.css")
     app.add_css_file("syntax.css", 1000)
     app.add_css_file("css/custom.css")
     app.add_css_file("css/syntax.css", 1000)
+ """

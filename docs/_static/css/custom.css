@@ -77,6 +77,10 @@ dl:not(.docutils) dl.field-list.simple dt {
 }
 
 span.nn {
-  color: yellow;
+  color: #0000FF; 
+  font-weight: bold 
+} /* Name.Namespace */
+ 
+/* color: yellow;
   background-color: white;
-}
+} */
