@@ -67,6 +67,7 @@ dl.simple dt {
 div.highlight > pre {
   padding: 1em !important;
   font-family: "consolas", monospace !important;
+  font-size: smaller !important;
 }
 
 /* code blocks jupyter */ 
