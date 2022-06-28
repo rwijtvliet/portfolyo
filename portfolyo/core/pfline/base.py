@@ -14,7 +14,7 @@ from ...tools.types import Quantity, Value
 
 from abc import abstractmethod
 from enum import Enum
-from typing import Dict, Iterable, Mapping, Union, TYPE_CHECKING
+from typing import Iterable, Union, TYPE_CHECKING
 import pandas as pd
 
 # Developer notes: we would like to be able to handle 2 cases with volume AND financial
@@ -53,38 +53,39 @@ class Kind(Enum):
         return self.value
 
 
-class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
+class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
     """Class to hold a related energy timeseries. This can be volume timeseries with q
     [MWh] and w [MW], a price timeseries with p [Eur/MWh] or both.
     """
 
     def __new__(cls, data):
-        # Catch case where user actually called PfLine().
-        if cls is PfLine:
-            subclasses = [single.SinglePfLine, multi.MultiPfLine]
-            # If data is instance of subclass: return copy of the object.
-            for subcls in subclasses:
-                if isinstance(data, subcls):
-                    return data  # TODO: make copy instead
+        if cls is not PfLine:
+            # User actually called a descendent class.
+            return super().__new__(cls)
+
+        # User actually called PfLine().
+
+        elif isinstance(data, PfLine):
+            # Data is already a valid instance and can directly be used.
+            return data
+
+        # User called PfLine and data must be processed by a descendent's __init__
+
+        subclasses = [single.SinglePfLine, multi.MultiPfLine]
+        errors = {}
+        for subcls in subclasses:
             # Try passing data to subclasses to see if they can handle it.
-            for subcls in subclasses:
-                try:
-                    return subcls(data)
-                except (ValueError, TypeError):
-                    pass
-            raise NotImplementedError(
-                f"None of the subclasses ({', '.join([subcls.__name__ for subcls in subclasses])}) knows how to handle this data."
-            )
-        # Otherwise, do normal thing.
-        return super().__new__(cls)
+            try:
+                return subcls(data)
+            except (ValueError, TypeError, KeyError) as e:
+                errors[subcls] = e
+                pass
+        errormsg = "\n".join(f"- {c.__name__}: {e.args[0]}" for c, e in errors.items())
+        raise NotImplementedError(
+            f"None of the subclasses can be created from this data, with the following reasons:\n{errormsg}"
+        )
 
     # Additional abstract methods to be implemented by descendents.
-
-    @property
-    @abstractmethod
-    def children(self) -> Dict[str, PfLine]:
-        """Children of this instance, if any."""
-        ...
 
     @property
     @abstractmethod
@@ -144,6 +145,20 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
     @abstractmethod
     def __bool__(self) -> bool:
         """Return True if object (i.e., its children) contains any non-zero data."""
+        ...
+
+    # Dunder methods.
+
+    @abstractmethod
+    def __setitem__(self, *args, **kwargs):  # Add or overwrite child
+        ...
+
+    @abstractmethod
+    def __getitem__(self, *args, **kwargs):  # Get child
+        ...
+
+    @abstractmethod
+    def __delitem__(self, *args, **kwargs):  # Remove child
         ...
 
     # Implemented directly here.
@@ -302,30 +317,6 @@ class PfLine(NDFrameLike, Mapping, PfLineText, PfLinePlot, OtherOutput):
                 df[(prod, "r")] = df[(prod, "q")] * df[(prod, "p")]
         i = pd.MultiIndex.from_product([prods, ("duration", *self.available)])
         return df[i]
-
-    # Working with children.
-
-    def items(self):
-        return self.children.items()
-
-    def __iter__(self):
-        return iter(self.children.keys())
-
-    def __len__(self):
-        return len(self.children)
-
-    def __getitem__(self, name: str):
-        if name in self.children:
-            return self.children[name]
-        raise KeyError(f"No child with this name '{name}' found.")
-
-    # Dunder methods.
-
-    def __getattr__(self, name):
-        try:
-            return self[name]
-        except KeyError as e:
-            raise AttributeError(f"No such attribute '{name}'.") from e
 
 
 # Must be at end, because they depend on PfLine existing.
