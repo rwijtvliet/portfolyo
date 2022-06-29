@@ -18,6 +18,7 @@ def standardize(
     tz: str = "Europe/Berlin",
     floating: bool = True,
     index_col: str = None,
+    force_freq: bool = True,
 ) -> NDFrame:
     """Standardize a series or dataframe.
 
@@ -42,6 +43,9 @@ def standardize(
     index_col : str, optional
         Column to create the timestamp from. Use existing index if none specified.
         Ignored if ``fr`` is not a DataFrame.
+    force_freq : bool, optional (default: True)
+        If False, don't raise Exception if frequency cannot be determined (e.g. due to
+        gaps.)
 
     Returns
     -------
@@ -101,7 +105,7 @@ def standardize(
 
     # All options to find frequency have been exhausted.
 
-    if not freq_input:
+    if force_freq and not freq_input:
         raise ValueError(
             "A frequency could not be determined for this data. Add missing datapoints (with ``fr.resample().asfreq()``) and/or localize manually (with ``fr.tz_localize()``)."
         )
@@ -118,8 +122,8 @@ def standardize(
 
     # Standardize index name.
     fr.index.name = "ts_left"
-    # After standardizing timezone, the frequency should be set.
-    return set_frequency(fr, freq_input, strict=True)
+    # After standardizing timezone, the frequency should have been set.
+    return set_frequency(fr, freq_input, strict=force_freq)
 
 
 def assert_standardized(fr: NDFrame):
