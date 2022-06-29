@@ -35,7 +35,7 @@ class MultiPfLine(PfLine, Mapping):
         # Otherwise, do normal thing.
         return super().__new__(cls, data)
 
-    def __init__(self, data: Union[MultiPfLine, Mapping[str, PfLine]]):
+    def __init__(self, data: Union[MultiPfLine, Mapping[str, PfLine], pd.DataFrame]):
         if self is data:
             return  # don't continue initialisation, it's already the correct object
         self._children = {}

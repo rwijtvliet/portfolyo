@@ -27,18 +27,20 @@ DEFAULTFMT = {
 }
 
 
-def defaultkwargs(col, cat):
+def defaultkwargs(col: str, is_cat: bool):
+    """Styling and type of graph, depending on column ``col`` and whether or not the x-axis
+    is a category axis (``is_cat``)."""
     kwargs = {}
     kwargs["alpha"] = 0.8
     # Add defaults for each column.
     kwargs["color"] = getattr(vis.Colors.Wqpr, col, "grey")
     kwargs["labelfmt"] = DEFAULTFMT.get(col, "{:.2f}")
     kwargs["how"] = DEFAULTHOW.get(col, "hline")
-    kwargs["cat"] = cat
+    kwargs["cat"] = is_cat
     # Override specific cases.
-    if not cat and col == "p":
+    if not is_cat and col == "p":
         kwargs["how"] = "step"
-    if cat and col == "f":
+    if is_cat and col == "f":
         kwargs["how"] = "bar"
     return kwargs
 
@@ -83,13 +85,13 @@ class PfLinePlot:
             The figure object to which the series was plotted.
         """
         # Plot on category axis if freq monthly or longer, else on time axis.
-        category = stamps.freq_shortest(self.index.freq, "MS") == "MS"
+        is_category = stamps.freq_shortest(self.index.freq, "MS") == "MS"
 
         # If columns are specified, plot these. Else: take defaults, based on what's available
         if cols is None:
             cols = ""
             if "q" in self.available:
-                cols += "q" if category else "w"
+                cols += "q" if is_category else "w"
             if "p" in self.available:
                 cols += "p"
         else:
@@ -104,7 +106,7 @@ class PfLinePlot:
         )
 
         for col, ax in zip(cols, axes.flatten()):
-            kwargs = defaultkwargs(col, category)
+            kwargs = defaultkwargs(col, is_category)
             s = getattr(self, col)
             vis.plot_timeseries(ax, s, **kwargs)
 
@@ -174,46 +176,51 @@ class PfStatePlot:
             2, 2, sharex=True, gridspec_kw=gridspec, figsize=(10, 6)
         )
         axes = axes.flatten()
+        axes[0].get_shared_y_axes().join(axes[0], axes[1])
 
         # If freq is MS or longer: use categorical axes. Plot volumes in MWh.
         # If freq is D or shorter: use time axes. Plot volumes in MW.
-        category = stamps.freq_shortest(self.index.freq, "MS") == "MS"
+        is_category = stamps.freq_shortest(self.index.freq, "MS") == "MS"
 
         # Volumes.
-        if category:
-            s, kwargs = -1 * self.offtake.q, defaultkwargs("q", category)
+        if is_category:
+            so, ss = -1 * self.offtake.q, self.sourced.q
+            kwargs = defaultkwargs("q", is_category)
         else:
-            s, kwargs = -1 * self.offtake.w, defaultkwargs("w", category)
-        vis.plot_timeseries(axes[0], s, **kwargs)
+            so, ss = -1 * self.offtake.w, self.sourced.w
+            kwargs = defaultkwargs("w", is_category)
+        vis.plot_timeseries(axes[0], so, **kwargs)
+        vis.plot_timeseries(axes[1], ss, **kwargs)
+
+        # Procurement Price.
+        vis.plot_timeseries(axes[2], self.pnl_cost.p, **defaultkwargs("p", is_category))
 
         # Sourced fraction.
         vis.plot_timeseries(
-            axes[1], self.sourcedfraction, **defaultkwargs("f", category)
+            axes[3], self.sourcedfraction, **defaultkwargs("f", is_category)
         )
-
-        # Procurement Price.
-        vis.plot_timeseries(axes[2], self.pnl_cost.p, **defaultkwargs("p", category))
 
         # Empty.
-        axes[3].axis("off")
 
         # Set titles.
-        axes[0].set_title("Offtake")
-        axes[1].set_title("Sourced fraction")
+        axes[0].set_title("Offtake volume")
+        axes[1].set_title("Sourced volume")
         axes[2].set_title("Procurement price")
+        axes[3].set_title("Sourced fraction")
 
         # Format tick labels.
-        axes[1].yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
-        axes[0].yaxis.set_major_formatter(
-            matplotlib.ticker.FuncFormatter(
-                lambda x, p: "{:,.0f}".format(x).replace(",", " ")
-            )
+        formatter = matplotlib.ticker.FuncFormatter(
+            lambda x, p: "{:,.0f}".format(x).replace(",", " ")
         )
+        axes[0].yaxis.set_major_formatter(formatter)
+        axes[1].yaxis.set_major_formatter(formatter)
+        axes[3].yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
 
         # Set ticks.
         axes[0].xaxis.set_tick_params(labeltop=False, labelbottom=True)
         axes[1].xaxis.set_tick_params(labeltop=False, labelbottom=True)
         axes[2].xaxis.set_tick_params(labeltop=False, labelbottom=False)
+        axes[3].xaxis.set_tick_params(labeltop=False, labelbottom=False)
 
         fig.tight_layout()
         return fig
@@ -253,7 +260,7 @@ def plot_pfstates(dic: Dict[str, PfState], freq: str = "MS") -> plt.Figure:
 
         # If freq is MS or longer: use categorical axes. Plot volumes in MWh.
         # If freq is D or shorter: use time axes. Plot volumes in MW.
-        category = stamps.freq_shortest(pfs.index.freq, "MS") == "MS"
+        is_category = stamps.freq_shortest(pfs.index.freq, "MS") == "MS"
 
         # Portfolio name.
         axes[0].text(
@@ -268,22 +275,22 @@ def plot_pfstates(dic: Dict[str, PfState], freq: str = "MS") -> plt.Figure:
         axes[0].axis("off")
 
         # Volumes.
-        if category:
-            s, kwargs = -1 * pfs.offtake.q, defaultkwargs("q", category)
+        if is_category:
+            s, kwargs = -1 * pfs.offtake.q, defaultkwargs("q", is_category)
         else:
-            s, kwargs = -1 * pfs.offtake.w, defaultkwargs("w", category)
+            s, kwargs = -1 * pfs.offtake.w, defaultkwargs("w", is_category)
         vis.plot_timeseries(axes[1], s, **kwargs)
 
         # Sourced fraction.
         vis.plot_timeseries(
-            axes[2], pfs.sourcedfraction, **defaultkwargs("f", category)
+            axes[2], pfs.sourcedfraction, **defaultkwargs("f", is_category)
         )
 
         # Empty.
         axes[3].axis("off")
 
         # Procurement Price.
-        vis.plot_timeseries(axes[4], pfs.pnl_cost.p, **defaultkwargs("p", category))
+        vis.plot_timeseries(axes[4], pfs.pnl_cost.p, **defaultkwargs("p", is_category))
 
         # Empty.
         axes[5].axis("off")

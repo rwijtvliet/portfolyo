@@ -64,9 +64,19 @@ dl.simple dt {
 
 
 /* code blocks */ 
-div.highlight pre {
-  padding: 1em;
-  text-size-adjust: 50%;
+div.highlight > pre {
+  padding: 1em !important;
+  font-family: "consolas", monospace !important;
+  font-size: smaller !important;
+}
+
+/* code blocks jupyter */ 
+div.nbinput.container {
+  padding-bottom: 1em !important;
+  padding-top: 1em !important;
+}
+div.nboutput.container {
+  padding-bottom: 2em !important;
 }
 
 /* styling of API */

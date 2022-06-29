@@ -4,6 +4,8 @@ from portfolyo.prices import utils
 import pandas as pd
 import pytest
 
+# TODO: where are the hedge and conversion tests?? --> check git history
+
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize(
