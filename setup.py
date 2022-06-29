@@ -9,7 +9,7 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     author="Ruud Wijtvliet",
     # packages=["portfolyo"],
-    packages=find_packages(),
+    packages=find_packages(exclude=["*tests*"]),
     description="Analysing and manipulating timeseries related to power and gas offtake portfolios.",
     long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
