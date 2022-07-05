@@ -18,7 +18,7 @@ def standardize(
     tz: str = "Europe/Berlin",
     floating: bool = True,
     index_col: str = None,
-    force_freq: bool = True,
+    force_freq: str = None,
 ) -> NDFrame:
     """Standardize a series or dataframe.
 
@@ -43,9 +43,9 @@ def standardize(
     index_col : str, optional
         Column to create the timestamp from. Use existing index if none specified.
         Ignored if ``fr`` is not a DataFrame.
-    force_freq : bool, optional (default: True)
-        If False, don't raise Exception if frequency cannot be determined (e.g. due to
-        gaps.)
+    force_freq : str, optional
+        If a frequency cannot be inferred from the data (e.g. due to gaps), it is
+        resampled at this frequency. Default: raise Exception.
 
     Returns
     -------
@@ -64,6 +64,8 @@ def standardize(
     ``portfolyo.force_tzaware``
     ``portfolyo.force_tzagnostic``
     """
+    kwargs = {"tz": tz, "floating": floating, "force_freq": force_freq}
+
     # Set index.
     if index_col and isinstance(fr, pd.DataFrame):
         fr = fr.set_index(index_col)
@@ -86,7 +88,7 @@ def standardize(
         for how in ["A", "B"]:
             try:
                 fr_left = fr.set_axis(stamps.right_to_left(fr.index, how))
-                return standardize(fr_left, force, "left", tz=tz, floating=floating)
+                return standardize(fr_left, force, "left", **kwargs)
             except ValueError as e:
                 if how == "B":
                     raise ValueError("Cannot make this frame left-bound.") from e
@@ -95,19 +97,37 @@ def standardize(
     # Now the data is left-bound.
     # If the frequency is not found, and it is tz-naive, the index may need to be localized.
 
-    if not freq_input and not tz_input:  # left -> tz-aware (try)
+    if not freq_input and not tz_input and tz:  # left -> tz-aware (try)
         try:
             fr_aware = fr.tz_localize(tz, ambiguous="infer")
         except (AmbiguousTimeError, NonExistentTimeError):
             pass  # fr did not need / cound not be localized. Continue with fr as-is.
         else:
-            return standardize(fr_aware, force, "left", tz=tz, floating=floating)
+            return standardize(fr_aware, force, "left", **kwargs)
 
-    # All options to find frequency have been exhausted.
+    # All options to infer frequency have been exhausted. One may or may not have been found.
+    # Does the user want to force a frequency?
 
-    if force_freq and not freq_input:
+    if (not freq_input) and force_freq:
+        # No freq has been found, but user specifies which freq it should be.
+        fr_withfreq = fr.asfreq(force_freq)
+        return standardize(fr_withfreq, force, "left", tz=tz, floating=floating)
+
+    elif (not freq_input) and (not force_freq):
+        # No freq has been bound, and user specifies no freq either.
         raise ValueError(
-            "A frequency could not be determined for this data. Add missing datapoints (with ``fr.resample().asfreq()``) and/or localize manually (with ``fr.tz_localize()``)."
+            "A frequency could not be inferred for this data. Force a frequency (by passing the"
+            " ``force_freq`` parameter), or localize the data in advance (with ``fr.tz_localize()``)."
+        )
+
+    elif freq_input and force_freq and force_freq != freq_input:
+        # Freq has been found, but user specifies it should be a different freq.
+        raise ValueError(
+            f"This data seems to have a frequency {freq_input}, which is different from the frequency"
+            f" the user wants to force on it {force_freq}. Note that the ``force_freq`` parameter is"
+            " for filling gaps in the input data. It should not be used for resampling! If the"
+            " data has e.g. daily values but you want monthly values, use ``force_freq='D'``, and"
+            " pass the return value to one of the functions in the ``portfolyo.changefreq`` module."
         )
 
     # Now the data has frequency set. It is tz-aware (possibly with wrong tz) or tz-agnostic.
@@ -117,8 +137,12 @@ def standardize(
         fr = zones.force_tzaware(fr, tz, floating=floating)
     elif force == "agnostic" or force == "naive":
         fr = zones.force_tzagnostic(fr)
-    else:  # don't try to fix timezone.
+    elif force is None:  # don't try to fix timezone.
         pass
+    else:
+        raise ValueError(
+            f"Parameter ``force`` must be one of 'aware', 'agnostic'; got {force}."
+        )
 
     # Standardize index name.
     fr.index.name = "ts_left"

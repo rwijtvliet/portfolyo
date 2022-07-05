@@ -28,17 +28,12 @@ Installation
    pip install portfolyo
 
 
-Developing
-----------
+Documentation
+-------------
 
-This project uses ``black`` to format code and ``flake8`` for linting. We also support ``pre-commit`` to ensure
-these have been run. To configure your local environment please install these development dependencies and set up
-the commit hooks.
+Documentation is hosted on readthedocs:
 
-.. code-block:: bash
-
-   $ pip install black flake8 pre-commit
-   $ pre-commit install
+https://portfolyo.readthedocs.io/
 
 Repository
 ----------
@@ -48,9 +43,16 @@ The git repository is hosted on github:
 http://www.github.com/rwijtvliet/portfolyo
 
 
-Documentation
--------------
+Developing
+----------
 
-Documentation is hosted on readthedocs:
+This project uses ``black`` to format code and ``flake8`` for linting. We also support ``pre-commit`` to ensure
+these have been run. To configure your local environment please install these development dependencies and set up
+the commit hooks.
 
-https://portfolyo.readthedocs.io/
+.. code-block:: bash
+
+   $ pip install -r requirements-dev.txt
+   $ pre-commit install
+
+

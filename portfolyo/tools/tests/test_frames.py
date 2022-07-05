@@ -17,7 +17,7 @@ import pytest
 @pytest.mark.parametrize("in_tz", ["Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("force", ["agnostic", "aware"])
 @pytest.mark.parametrize("freq", ["15T", "D"])
-def test_standardize(
+def test_standardize_DST(
     in_vals_num_specialconditions: int,
     start: str,
     bound: str,
@@ -27,8 +27,8 @@ def test_standardize(
     force: str,
     freq: str,
 ):
-    """Test if series and dataframes are correctly standardized to tz-aware, for
-    quarterhour timeseries with/without DST."""
+    """Test if series and dataframes are correctly standardized during DST-transition.
+    Using quarterhour and daily timeseries, without gaps."""
 
     if not in_aware and in_tz != "Europe/Berlin":
         return  # cannot convert tz-naive fr to different timezone
@@ -60,7 +60,7 @@ def test_standardize(
         out_tz = in_tz
     iin = pd.date_range(start, freq=freq, periods=len(in_vals), tz=out_tz)
     if out_tz != in_tz and freq == "D":
-        return  # cannot test because not at day boundary.
+        pytest.skip("Not at day boundary.")  # cannot test.
     iin = iin.tz_convert(in_tz).rename("the_time_stamp")
     if not in_aware:
         iin = iin.tz_localize(None)
@@ -92,51 +92,124 @@ def test_standardize(
 
 
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("removesome", [0, 1, 2])  # 0=none, 1=from end, 2=from middle
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize("in_tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize("out_tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("floating", [True, False])
 @pytest.mark.parametrize("bound", ["left", "right"])
-@pytest.mark.parametrize("freq", [*pf.FREQUENCIES, "Q", "30T", "M", "AS-FEB"])
-def test_standardizeawere_error(freq, tz, removesome, floating, series_or_df, bound):
-    """Test raising errors on incorrect frequencies or indices with gaps."""
-
-    must_raise = False
+@pytest.mark.parametrize("freq", pf.FREQUENCIES)
+def test_standardize_convert(freq, in_tz, floating, series_or_df, bound, out_tz):
+    """Test raising errors when conversing timezones."""
+    force = "aware" if out_tz else "agnostic"
 
     # Get index.
     while True:
-        i = dev.get_index(freq, tz)
+        i = dev.get_index(freq, in_tz)
         if len(i) > 10:
             break
     # If no timezone specified and below-daily values, the created index will have too few/many datapoints.
-    if not tz and pf.freq_up_or_down(freq, "D") > 1:
-        return  # don't check this edge case
+    if not in_tz and pf.freq_up_or_down(freq, "D") > 1:
+        pytest.skip("Edge case: too few/too many datapoints.")  # don't check edge case
 
-    if tz == "Asia/Kolkata" and pf.freq_shortest(freq, "H") == "H" and not floating:
+    # Add values.
+    fr = dev.get_series(i) if series_or_df == "series" else dev.get_dataframe(i)
+
+    # See if error is raised.
+    if (
+        in_tz == "Asia/Kolkata"
+        and out_tz == "Europe/Berlin"
+        and pf.freq_shortest(freq, "H") == "H"
+        and not floating
+    ):
         # Kolkata and Berlin timezone only share 15T-boundaries. Therefore, any other
         # frequency should raise an error.
-        must_raise = True
+        with pytest.raises(ValueError):
+            _ = frames.standardize(fr, force, bound, tz=out_tz, floating=floating)
+        return
+
+    result = frames.standardize(fr, force, bound, tz=out_tz, floating=floating)
+    assert result.index.freq == freq
+
+
+@pytest.mark.parametrize("series_or_df", ["series", "df"])
+@pytest.mark.parametrize("in_tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize("floating", [True, False])
+@pytest.mark.parametrize("force", ["agnostic", "aware"])
+@pytest.mark.parametrize("freq", [*pf.FREQUENCIES, "Q", "30T", "M", "AS-FEB"])
+def test_standardize_freq(freq, in_tz, floating, series_or_df, force):
+    """Test raising errors when passing invalid frequencies."""
+    out_tz = "Europe/Berlin"
+
+    # Get index.
+    while True:
+        i = dev.get_index(freq, in_tz)
+        if len(i) > 10:
+            break
+    # If no timezone specified and below-daily values, the created index will have too few/many datapoints.
+    if not in_tz and pf.freq_up_or_down(freq, "D") > 1:
+        pytest.skip("edge case: too few/too many datapoints.")  # don't check edge case
+
+    # Add values.
+    fr = dev.get_series(i) if series_or_df == "series" else dev.get_dataframe(i)
+
+    # See if error is raised.
+    if freq not in pf.FREQUENCIES:
+        with pytest.raises(ValueError):
+            _ = frames.standardize(fr, force, tz=out_tz, floating=floating)
+        return
+
+    result = frames.standardize(fr, force, tz=out_tz, floating=floating)
+    assert result.index.freq == freq
+
+
+@pytest.mark.parametrize("series_or_df", ["series", "df"])
+@pytest.mark.parametrize("removesome", [0, 1, 2])  # 0=none, 1=from end, 2=from middle
+@pytest.mark.parametrize("in_tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize("freq", pf.FREQUENCIES)
+@pytest.mark.parametrize(
+    "force_freq", [*pf.FREQUENCIES[::2], "30T", "M", "AS-FEB", None]
+)
+def test_standardize_gaps(freq, in_tz, removesome, series_or_df, force_freq):
+    """Test raising errors on index with gaps. Don't test timezone-conversion."""
+    force = "agnostic" if in_tz is None else "aware"
+    out_tz = in_tz
+
+    # Get index.
+    while True:
+        i = dev.get_index(freq, in_tz)
+        if len(i) > 10:
+            break
+
+    # If no timezone specified and below-daily values, the created index will have too few/many datapoints.
+    if not in_tz and pf.freq_up_or_down(freq, "D") > 1:
+        pytest.skip("edge case: too few/too many datapoints.")  # don't check edge case
 
     # remove timestamp from index.
     if removesome == 1:  # remove one from end or start
         i = i.delete(np.random.choice([0, len(i) - 1]))
     elif removesome == 2:  # remove max 3 from middle
         i = i.delete(np.random.randint(2, len(i) - 2, 3))
-        must_raise = True
 
     # Add values.
-    if series_or_df == "series":
-        fr = dev.get_series(i)
-    else:
-        fr = dev.get_dataframe(i)
+    fr = dev.get_series(i) if series_or_df == "series" else dev.get_dataframe(i)
 
     # See if error is raised.
-    if freq not in pf.FREQUENCIES or must_raise:
+    if (
+        # fr has frequency, but it's a forbidden frequency
+        (removesome != 2 and freq not in pf.FREQUENCIES)
+        # fr has frequency, but user wants to force a different frequency
+        or (removesome != 2 and freq != force_freq and force_freq is not None)
+        # fr does not have requency, and user does not specify a forced frequency
+        or (removesome == 2 and not force_freq)
+        # user wants to force a frequency, but it's a forbidden frequency
+        or (force_freq is not None and force_freq not in pf.FREQUENCIES)
+    ):
         with pytest.raises(ValueError):
-            _ = frames.standardize(fr, "aware", bound, floating=floating)
+            _ = frames.standardize(fr, force, tz=out_tz, force_freq=force_freq)
         return
 
-    result = frames.standardize(fr, "aware", bound, floating=floating)
-    assert result.index.freq == freq
+    result = frames.standardize(fr, force, tz=out_tz, force_freq=force_freq)
+    expected_freq = force_freq or freq
+    assert result.index.freq == expected_freq
 
 
 @pytest.mark.parametrize(
