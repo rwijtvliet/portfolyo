@@ -3,5 +3,6 @@ include LICENSE
 include requirements.txt
 graft portfolyo
 recursive-exclude * *.py[co]
+recursive-exclude tests *
 include versioneer.py
 include portfolyo/_version.py
