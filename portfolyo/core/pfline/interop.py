@@ -3,11 +3,13 @@ dimensionless values/timeseries from data."""
 
 from __future__ import annotations
 
+import numpy as np
+
 from ... import testing
 from ...tools import nits, stamps, frames
 from . import base, single
 
-from typing import Dict, Mapping, Union, Iterable, TYPE_CHECKING
+from typing import Any, Dict, Mapping, Union, Iterable, TYPE_CHECKING
 from dataclasses import dataclass
 import pandas as pd
 
@@ -73,6 +75,8 @@ class InOp:
         """Set dimension-agnostic part as specific dimension (unless it's None)."""
         if self.agn is None or da is None:
             return self
+        # keep = [a for a in _ATTRIBUTES if a != da]
+        # return InOp(**{**{a: getattr(self, a) for a in keep}, da: self.agn})
         return self.drop("agn") | InOp(**{da: self.agn})
 
     def drop(self, da: str):
@@ -157,21 +161,6 @@ def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
 
     return s
 
-    # if s.dtype != object:  # float, int, or pint
-    #     return s if hasattr(s, "pint") else s.astype(float)  # float or pint
-
-    # # object -> maybe series of Quantitis -> convert to pint-series.
-    # if not all(isinstance(val, nits.Q_) for val in s.values):
-    #     raise TypeError(f"Timeseries with unexpected data type: {s.dtype}.")
-    # quantities = [val.to_base_units() for val in s.values]
-    # magnitudes = [q.m for q in quantities]
-    # units = list(set([q.u for q in quantities]))
-    # if len(units) != 1:
-    #     raise DimensionalityError(
-    #         f"Timeseries with inconsistent dimension; found {','.join(units)}."
-    #     )
-    # return pd.Series(magnitudes, s.index, dtype=nits.pintunit(units[0]))
-
 
 def _unit2attr(unit) -> str:
     attr = nits.unit2name(unit)  # Error if dimension unknown
@@ -185,7 +174,10 @@ def _from_data(
 ) -> InOp:
     """Turn ``data`` into a InterOp object."""
 
-    if isinstance(data, int) or isinstance(data, float):
+    if data is None:
+        return InOp()
+
+    elif isinstance(data, int) or isinstance(data, float):
         return InOp(agn=data)
 
     elif isinstance(data, nits.Q_):
@@ -282,8 +274,8 @@ def _equal(inop1: InOp, inop2: InOp) -> InOp:
 
 
 def pfline_or_nodimseries(
-    data, ref_index: pd.DatetimeIndex, agn_default: str = None
-) -> Union[pd.Series, SinglePfLine]:
+    data: Any, ref_index: pd.DatetimeIndex, agn_default: str = None
+) -> Union[None, pd.Series, SinglePfLine]:
     """Turn ``data`` into PfLine if dimension-aware. If not, turn into Series."""
 
     # Already a PfLine.
@@ -293,7 +285,11 @@ def pfline_or_nodimseries(
     # Turn into InOp object with timeseries.
     inop = InOp.from_data(data).assign_agn(agn_default).to_timeseries(ref_index)
 
-    if not inop:
+    if inop.p is inop.q is inop.w is inop.r is inop.nodim is None and (
+        inop.agn is None or np.allclose(inop.agn, 0)
+    ):
+        # Data was None, or
+        # Data was dimension-agnostic 0.0 and shouldn't be interpreted as something else.
         return None
 
     elif inop.agn is not None:
@@ -306,7 +302,7 @@ def pfline_or_nodimseries(
         # Only dimension-aware data was supplied; must be able to turn into PfLine.
         return single.SinglePfLine(inop)
 
-    elif inop.p is None and inop.q is None and inop.w is None and inop.r is None:
+    elif inop.p is inop.q is inop.w is inop.r is None:
         # Only dimensionless data was supplied; is Series of factors.
         return inop.nodim
 
