@@ -1,4 +1,3 @@
-# from distutils.core import setup
 from setuptools import setup
 from setuptools import find_packages
 import versioneer
@@ -9,7 +8,7 @@ setup(
     cmdclass=versioneer.get_cmdclass(),
     author="Ruud Wijtvliet",
     # packages=["portfolyo"],
-    packages=find_packages(exclude=["*tests*"]),
+    packages=find_packages(exclude=["*tests.*", "*tests"]),
     description="Analysing and manipulating timeseries related to power and gas offtake portfolios.",
     long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
