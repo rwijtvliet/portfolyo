@@ -323,7 +323,7 @@ Remarks:
 
 * A single value is understood to apply uniformly to each timestamp in the index of the portfolio line.
 
-* The operands are defined liberally. E.g. "price" means any object that can be interpreted as a price: a single ``pint.Quantity`` with a valid price unit; a ``pandas.Series`` with a ``pint`` unit, a dictionary with a single key ``"p"``, a ``pandas.Dataframe`` with a single column ``"p"``, or a price-only portfolio line; see :doc:`interoperability`. 
+* The operands are defined liberally. E.g. "price" means any object that can be interpreted as a price: a single ``pint.Quantity`` with a valid price unit; a ``pandas.Series`` with a ``pint`` unit of price, a dictionary with a single key ``"p"``, a ``pandas.Dataframe`` with a single column ``"p"``, or a price-only portfolio line; see :doc:`interoperability`. 
 
   The following code example shows a few equivalent operations.
 
@@ -442,6 +442,9 @@ The data can be shown graphically with the ``.plot()`` method:
    # continuation from previous code example
    pfl.plot()
    # --- hide: start ---
+   pfl.plot().savefig('docs/savefig/fig_plot.png')
+
+.. image:: ../savefig/fig_plot.png
 
 See the :doc:`tutorial <../tutorial/part1>` for an example of a few plots produced this way.
    
@@ -461,6 +464,35 @@ Alternatively, the data can be saved as an Excel workbook with the ``.to_excel()
 
 .. image:: ../savefig/excel_output_pfl.png
 
+
+-------
+Hedging
+-------
+
+In general, hedging is the act of reducing the exposure to certain risks. In power and gas portfolios, it is common for customers to pay a fixed, pre-agreed price for the volume they consume. By sourcing volume on the market as soon as a customer is acquired, the open positions can be kept small, effectively hedging the portfolio result against market price changes.
+
+A perfect hedge would be to buy the exact offtake volume of a portfolio in every delivery period at the shortest time-scale, e.g., days for gas and (quarter) hours for power. This is usually not possible, and hedging is done with standard products instead. Depending on the time until delivery, these may be month, quarter, or year bands; in power these exists for base, peak, and offpeak. 
+
+Using the ``.hedge_with()`` method, the volume timeseries in a portfolio line is compared with a price timeseries (to be supplied by the user), and the corresponding portfolio line in standard products is returned. Parameters specify the length of the products (e.g. months), the hedge method (volume hedge or value hedge), and whether to use a base band or split in peak and offpeak values.
+
+.. exec_code::
+
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024-04-01', '2024-06-01', freq='H', inclusive='left')
+   offtake = pf.PfLine(pf.dev.w_offtake(index))  # mock offtake volumes
+   prices = pf.PfLine(pf.dev.p_marketprices(index)) # mock market prices
+   # Create hedge
+   hedge = offtake.hedge_with(prices)
+   # Compare the two:
+   (offtake * prices).plot()
+   hedge.plot()
+   # --- hide: start ---
+   (offtake * prices).plot().savefig('docs/savefig/fig_offtake.png')
+   hedge.plot().savefig('docs/savefig/fig_hedge.png')
+
+.. image:: ../savefig/fig_offtake.png
+   
+.. image:: ../savefig/fig_hedge.png
 
 --------------
 Set timeseries
