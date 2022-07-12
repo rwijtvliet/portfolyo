@@ -1,7 +1,7 @@
 """Add arithmatic to PfState classes."""
 
 from __future__ import annotations
-from ...tools import nits, frames
+from ...tools import nits
 from .. import pfline
 from . import pfstate
 from typing import TYPE_CHECKING, Union
@@ -53,22 +53,18 @@ def _prep_data(value, ref: PfState) -> Union[pd.Series, PfLine, PfState]:
 
 def _add_pfstates(pfs1: pfstate.PfState, pfs2: pfstate.PfState) -> pfstate.PfState:
     """Add two pfstates."""
-    offtakevolume = pfs1.offtake.volume + pfs2.offtake.volume
 
-    values = pd.DataFrame(
-        {"s": pfs1.unsourcedprice.p, "o": pfs2.unsourcedprice.p}
-    ).astype(float)
-    weights = pd.DataFrame({"s": pfs1.unsourced.q, "o": pfs2.unsourced.q}).astype(float)
-    unsourcedprice = frames.wavg(values, weights, axis=1).rename("p")
-
+    offtakevolume = pfs1.offtakevolume.volume + pfs2.offtakevolume.volume
+    unsourcedprice = (pfs1.unsourced + pfs2.unsourced).price
     sourced = pfs1.sourced + pfs2.sourced
+
     return pfstate.PfState(offtakevolume, unsourcedprice, sourced)
 
 
 def _multiply_pfstate_and_series(pfs: pfstate.PfState, s: pd.Series) -> pfstate.PfState:
     """Multiply pfstate and Series."""
     # Scale up volumes (and revenues), leave prices unchanged.
-    offtakevolume = pfs.offtake.volume * s
+    offtakevolume = pfs.offtakevolume.volume * s
     unsourcedprice = pfs.unsourcedprice
     sourced = pfs.sourced * s
     return pfstate.PfState(offtakevolume, unsourcedprice, sourced)
@@ -100,7 +96,7 @@ class PfStateArithmatic:
 
     def __neg__(self: PfState):
         # invert volumes and revenues, leave prices unchanged.
-        return self.__class__(-self.offtake.volume, self.unsourcedprice, -self.sourced)
+        return self.__class__(-self.offtakevolume, self.unsourcedprice, -self.sourced)
 
     def __add__(self: PfState, other):
         if not other:
