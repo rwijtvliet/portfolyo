@@ -49,8 +49,8 @@ Upsampling example
 If, in the year 2024, a customer has an energy offtake of 1 GWh (``q = 1000``), i.e., with an average power of 0.11 MW (``w = 0.11``), and pays a price of 30 Eur/MWh (``p = 30``), then the revenue is 30 kEur (``r = 30000``). Let's say the average temperature in the year is 7.98 degC (``t = 7.98``):
 
 =========================  ========  ======  =======  =======  ====
-Yearly                            w       q        p        r     t
-resolution                       MW     MWh  Eur/MWh      Eur  degC
+Yearly resolution                 w       q        p        r     t
+\                                MW     MWh  Eur/MWh      Eur  degC
 =========================  ========  ======  =======  =======  ====
 2024-01-01 00:00:00+01:00  0.113843  1000.0     30.0  30000.0  7.98
 =========================  ========  ======  =======  =======  ====
@@ -59,15 +59,15 @@ If we resample these values to a higher-frequency timeseries (e.g. quarteryearly
 
 The values of the averagable dimensions (``w`` and ``t``) are **unchanged**, i.e., they are simply copies of the original value. Also the value of the derived quantity ``p`` turns out to be unchanged. The resulting values are therefore:
 
-=========================  ========  ======  =======  =======  ====
-Upsampled to quarterly            w       q        p        r     t
-resolution                       MW     MWh  Eur/MWh      Eur  degC
-=========================  ========  ======  =======  =======  ====
-2024-01-01 00:00:00+01:00  0.113843  248.52     30.0  7455.60  7.98
-2024-04-01 00:00:00+02:00  0.113843  248.63     30.0  7459.02  7.98
-2024-07-01 00:00:00+02:00  0.113843  251.37     30.0  7540.98  7.98
-2024-10-01 00:00:00+02:00  0.113843  251.48     30.0  7544.40  7.98
-=========================  ========  ======  =======  =======  ====
+=================================  ========  ======  =======  =======  ====
+Upsampled to quarterly resolution         w       q        p        r     t
+\                                        MW     MWh  Eur/MWh      Eur  degC
+=================================  ========  ======  =======  =======  ====
+2024-01-01 00:00:00+01:00          0.113843  248.52     30.0  7455.60  7.98
+2024-04-01 00:00:00+02:00          0.113843  248.63     30.0  7459.02  7.98
+2024-07-01 00:00:00+02:00          0.113843  251.37     30.0  7540.98  7.98
+2024-10-01 00:00:00+02:00          0.113843  251.48     30.0  7544.40  7.98
+=================================  ========  ======  =======  =======  ====
 
 This is the best guess we can make without using any additional information about how the values are distributed throughout the year. Note that each row is consistent, i.e., ``q`` equals ``w`` times the duration in hours, and ``r`` equals ``p`` times ``q``. 
 
@@ -78,8 +78,8 @@ Downsampling example
 Something similar happens when going in the reverse direction, but a bit more intricate. Let's start with the following quarteryearly values:
 
 =========================  ========  ======  =======  =======  ====
-Quarterly                         w       q        p        r     t
-resolution                       MW     MWh  Eur/MWh      Eur  degC
+Quarterly resolution              w       q        p        r     t
+\                                MW     MWh  Eur/MWh      Eur  degC
 =========================  ========  ======  =======  =======  ====
 2024-01-01 00:00:00+01:00  0.137426   300.0    37.77  11330.1   1.3
 2024-04-01 00:00:00+02:00  0.082418   180.0    25.30   4554.0  12.3
@@ -95,12 +95,12 @@ For the derived dimension ``p``, this is also an average of the individual value
 
 The resulting downsampled values are:
 
-=========================  ========  ======  =======  =======  ====
-Downsampled to yearly             w       q        p        r     t
-resolution                       MW     MWh  Eur/MWh      Eur  degC
-=========================  ========  ======  =======  =======  ====
-2024-01-01 00:00:00+01:00  0.113843  1000.0     30.0  30000.0  7.98
-=========================  ========  ======  =======  =======  ====
+================================  ========  ======  =======  =======  ====
+Downsampled to yearly resolution         w       q        p        r     t
+\                                       MW     MWh  Eur/MWh      Eur  degC
+================================  ========  ======  =======  =======  ====
+2024-01-01 00:00:00+01:00         0.113843  1000.0     30.0  30000.0  7.98
+================================  ========  ======  =======  =======  ====
 
 (Note that the 'simple row-average' of the power, temperature, and price give us incorrect values.)
 
@@ -111,8 +111,8 @@ Downsampling example, price-only
 To illustrate the point that downsampling prices is different when we have "no volume information", consider the price values from the previous example, but let's assume they represent the futures base price for each quarter:
 
 =========================  =======
-Quarterly                        p
-resolution                 Eur/MWh
+Quarterly resolution             p
+\                          Eur/MWh
 =========================  =======
 2024-01-01 00:00:00+01:00    37.77
 2024-04-01 00:00:00+02:00    25.30
@@ -124,12 +124,12 @@ How high is the (arbitrage-free) base price for the entire year?
 
 In this case, price is treated as time-averagable and weighted with the *duration* of each period. We obtain a slightly lower value than before:
 
-=========================  =======
-Downsampled to yearly            p
-resolution                 Eur/MWh
-=========================  =======
-2024-01-01 00:00:00+01:00    28.78
-=========================  =======
+====================================  =======
+Downsampled to yearly resolution            p
+\                                     Eur/MWh
+====================================  =======
+2024-01-01 00:00:00+01:00               28.78
+====================================  =======
 
 The reason for the higher price in the previous example, is that, there, it is weighted with the *energy* in each period. We had more energy in the expensive quarters, and less in the cheaper ones, which results in a higher price for the entire year.
 

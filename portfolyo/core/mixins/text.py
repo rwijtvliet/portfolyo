@@ -184,7 +184,7 @@ def pfs_as_string(pfs: PfState, num_of_ts: int, color: bool) -> str:
     lines.extend(_index_info(pfs.index))
     spaces = " " * (MAX_DEPTH + 5)
     lines.extend([spaces + txtline for txtline in _dataheader_0("wqpr")])
-    lines.extend(_nestedtree_0("offtake", pfs.offtake, "wqpr", num_of_ts))
+    lines.extend(_nestedtree_0("offtake", pfs.offtakevolume, "wqpr", num_of_ts))
     lines.extend(_nestedtree_0("pnl_cost", pfs.pnl_cost, "wqpr", num_of_ts))
     txt = "\n".join(lines)
     return txt if color else _remove_color(txt)

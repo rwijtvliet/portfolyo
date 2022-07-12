@@ -184,10 +184,10 @@ class PfStatePlot:
 
         # Volumes.
         if is_category:
-            so, ss = -1 * self.offtake.q, self.sourced.q
+            so, ss = -1 * self.offtakevolume.q, self.sourced.q
             kwargs = defaultkwargs("q", is_category)
         else:
-            so, ss = -1 * self.offtake.w, self.sourced.w
+            so, ss = -1 * self.offtakevolume.w, self.sourced.w
             kwargs = defaultkwargs("w", is_category)
         vis.plot_timeseries(axes[0], so, **kwargs)
         vis.plot_timeseries(axes[1], ss, **kwargs)
@@ -276,9 +276,9 @@ def plot_pfstates(dic: Dict[str, PfState], freq: str = "MS") -> plt.Figure:
 
         # Volumes.
         if is_category:
-            s, kwargs = -1 * pfs.offtake.q, defaultkwargs("q", is_category)
+            s, kwargs = -1 * pfs.offtakevolume.q, defaultkwargs("q", is_category)
         else:
-            s, kwargs = -1 * pfs.offtake.w, defaultkwargs("w", is_category)
+            s, kwargs = -1 * pfs.offtakevolume.w, defaultkwargs("w", is_category)
         vis.plot_timeseries(axes[1], s, **kwargs)
 
         # Sourced fraction.

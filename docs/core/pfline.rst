@@ -180,7 +180,7 @@ The properties ``PfLine.w``, ``.q``, ``.p`` and ``.r`` always return the informa
 
 .. Comment: the output of the line above may contain a central dot "pint[MW·h]" which may cause some encoding problems for the output.
 
-#TODO: Link to reference for more information
+.. Comment: #TODO: Link to reference for more information
 
 DataFrame
 =========
@@ -198,11 +198,11 @@ If we want to extract more than one timeseries, we can use the ``.df()`` method,
    # continuation from previous code example
    pfl.df(units=False)
    # --- hide: start ---
-   print(f'\n{str(pfl.df(units=False))}')
+   print('\n' + repr(pfl.df(units=False)))
    # --- hide: stop ---
 
 
-#TODO: Link to reference for more information
+.. Comment: #TODO: Link to reference for more information
 
 Index
 =====
@@ -247,7 +247,7 @@ With the ``.price`` and ``.volume`` properties, we are able to extract a price-o
 Index slice
 ===========
 
-From ``pandas`` we know the ``.loc[]`` property which allows us to select a slice of the objects. This is implemented also for portfolio lines. Currently, it supports enering a slice of timestamps. The ``pandas`` convention is followed, with the end point being included in the result.
+From ``pandas`` we know the ``.loc[]`` property which allows us to select a slice of the objects. This is implemented also for portfolio lines. Currently, it supports enering a slice of timestamps. It is a wrapper around the ``pandas.DataFrame.loc[]`` property, and therefore follows the same convention, with the end point being included in the result.
 
 .. exec_code::
 
@@ -264,12 +264,73 @@ From ``pandas`` we know the ``.loc[]`` property which allows us to select a slic
    # --- hide: stop ---
 
 
+----------------------------
+Plotting / Excel / Clipboard
+----------------------------
+
+There are several ways to get data into other formats. 
+
+Plotting
+========
+
+The data can be shown graphically with the ``.plot()`` method:
+
+.. exec_code::
+
+   # --- hide: start ---
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='AS', periods=3)
+   pfl = pf.PfLine(pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index))
+   # --- hide: stop ---
+   # continuation from previous code example
+   pfl.plot()
+   # --- hide: start ---
+   pfl.plot().savefig('docs/savefig/fig_plot_pfl.png')
+
+.. image:: ../savefig/fig_plot_pfl.png
+
+
+Excel and clipboard
+===================
+
+Often, further data analyses are done in Excel. If you have a Workbook open, the easiest way is to copy the portfolio line data to the clipboard with the ``.to_clipboard()`` method. From there, it can be pasted onto a worksheet.
+
+Alternatively, the data can be saved as an Excel workbook with the ``.to_excel()`` method.
+
+.. code-block::
+
+   # continuation from previous code example
+   pfl.to_clipboard()
+   pfl.to_excel("sourced_volume.xlsx")
+
+.. image:: ../savefig/excel_output_pfl.png
+
+----------
+Resampling
+----------
+
+Using the ``.asfreq()`` method, we can quickly and correctly downsample our data, e.g. to monthly or yearly values. For price-and-volume portfolio lines, the prices are weighted with the energy as one would expect:
+
+.. exec_code::
+
+   # --- hide: start ---
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='AS', periods=3)
+   pfl = pf.PfLine(pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index))
+   # --- hide: stop ---
+   # continuation from previous code example
+   pfl.asfreq('QS')
+   # --- hide: start ---
+   print(repr(pfl.asfreq('QS')))
+
+For more information about resampling in general, see :doc:`this page<../specialized_topics/resampling>`.
+
 
 .. _arithmatic: 
 
-----------------------
-Operations: arithmatic
-----------------------
+----------
+Arithmatic
+----------
 
 There are many ways to change and interact with ``PfLine`` instances. An intuitive way is through arithmatic. The following operations are currently defined/implemented. Unless specified otherwise, the returned object is of the same kind, and has the same children, as the original. 
 
@@ -397,102 +458,6 @@ The multiplication of a price-only and a volume-only portfolio line results in a
    # --- hide: start ---
    print(repr(vol * pri))
 
-----------------------
-Operations: resampling
-----------------------
-
-Using the ``.asfreq()`` method, we can quickly and correctly downsample our data, e.g. to monthly or yearly values. For price-and-volume portfolio lines, the prices are weighted with the energy as one would expect:
-
-.. exec_code::
-
-   # --- hide: start ---
-   import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='MS', periods=3)
-   vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
-   pri = pf.PfLine(pd.Series([20, 22, 18], index, dtype='pint[Eur/MWh]')) 
-   pfl = vol * pri
-   # --- hide: stop ---
-   # continuation from previous code example
-   pfl.asfreq('QS')
-   # --- hide: start ---
-   print(repr(pfl.asfreq('QS')))
-
-For more information about resampling in general, see :doc:`this page<../specialized_topics/resampling>`.
-
----------
-Exporting
----------
-
-There are several ways to get data into other formats. 
-
-Plotting
-========
-
-The data can be shown graphically with the ``.plot()`` method:
-
-.. exec_code::
-
-   # --- hide: start ---
-   import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='MS', periods=3)
-   vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
-   pri = pf.PfLine(pd.Series([20, 22, 18], index, dtype='pint[Eur/MWh]')) 
-   pfl = vol * pri
-   # --- hide: stop ---
-   # continuation from previous code example
-   pfl.plot()
-   # --- hide: start ---
-   pfl.plot().savefig('docs/savefig/fig_plot.png')
-
-.. image:: ../savefig/fig_plot.png
-
-See the :doc:`tutorial <../tutorial/part1>` for an example of a few plots produced this way.
-   
-
-Excel and clipboard
-===================
-
-Often, further data analyses are done in Excel. If you have a Workbook open, the easiest way is to copy the portfolio line data to the clipboard with the ``.to_clipboard()`` method. From there, it can be pasted onto a worksheet.
-
-Alternatively, the data can be saved as an Excel workbook with the ``.to_excel()`` method.
-
-.. code-block::
-
-   # continuation from previous code example
-   pfl.to_clipboard()
-   pfl.to_excel("sourced_volume.xlsx")
-
-.. image:: ../savefig/excel_output_pfl.png
-
-
--------
-Hedging
--------
-
-In general, hedging is the act of reducing the exposure to certain risks. In power and gas portfolios, it is common for customers to pay a fixed, pre-agreed price for the volume they consume. By sourcing volume on the market as soon as a customer is acquired, the open positions can be kept small, effectively hedging the portfolio result against market price changes.
-
-A perfect hedge would be to buy the exact offtake volume of a portfolio in every delivery period at the shortest time-scale, e.g., days for gas and (quarter) hours for power. This is usually not possible, and hedging is done with standard products instead. Depending on the time until delivery, these may be month, quarter, or year bands; in power these exists for base, peak, and offpeak. 
-
-Using the ``.hedge_with()`` method, the volume timeseries in a portfolio line is compared with a price timeseries (to be supplied by the user), and the corresponding portfolio line in standard products is returned. Parameters specify the length of the products (e.g. months), the hedge method (volume hedge or value hedge), and whether to use a base band or split in peak and offpeak values.
-
-.. exec_code::
-
-   import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024-04-01', '2024-06-01', freq='H', inclusive='left')
-   offtake = pf.PfLine(pf.dev.w_offtake(index))  # mock offtake volumes
-   prices = pf.PfLine(pf.dev.p_marketprices(index)) # mock market prices
-   # Create hedge
-   hedge = offtake.hedge_with(prices)
-   # Compare the two:
-   (offtake * prices).plot()
-   hedge.plot()
-   # --- hide: start ---
-   (offtake * prices).plot().savefig('docs/savefig/fig_offtake.png')
-   hedge.plot().savefig('docs/savefig/fig_hedge.png')
-
-.. image:: ../savefig/fig_offtake.png
-   
-.. image:: ../savefig/fig_hedge.png
 
 --------------
 Set timeseries
@@ -504,7 +469,59 @@ The returned portfolio lines are flattened.
 
 It is also possible to set a price-only or volume-only portfolio line as the price or volume; for this we use the ``.set_price()`` and ``set_volume()`` methods.
 
+-------
+Hedging
+-------
 
+In general, hedging is the act of reducing the exposure to certain risks. In power and gas portfolios, it is common for customers to pay a fixed, pre-agreed price for the volume they consume. By sourcing volume on the market as soon as a customer is acquired, the open positions can be kept small, effectively hedging the portfolio's profit against market price changes.
+
+A perfect hedge would be to buy the exact offtake volume of a portfolio in every delivery period at the shortest time-scale, e.g., days for gas and (quarter) hours for power. This is usually not possible, and hedging is done with standard products instead. Depending on the time until delivery, these may be month, quarter, or year bands; in power these exists for base, peak, and offpeak. 
+
+Using the ``.hedge_with()`` method, the volume timeseries in a portfolio line is compared with a price timeseries, and the corresponding portfolio line in standard products is returned. Parameters specify the forward price curve, the length of the products (e.g. months), the hedge method (volume hedge or value hedge), and whether to use a base band or split in peak and offpeak values.
+
+.. exec_code::
+
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024-04-01', '2024-06-01', freq='H', inclusive='left')
+   offtake = pf.PfLine(pf.dev.w_offtake(index))  # mock offtake volumes
+   prices = pf.PfLine(pf.dev.p_marketprices(index)) # mock market prices
+   # Create hedge
+   hedge = offtake.hedge_with(prices, 'vol')
+   # Compare the two:
+   (offtake * prices).plot()
+   hedge.plot()
+   # --- hide: start ---
+   (offtake * prices).plot().savefig('docs/savefig/fig_offtake.png')
+   hedge.plot().savefig('docs/savefig/fig_hedge.png')
+
+.. image:: ../savefig/fig_offtake.png
+   
+.. image:: ../savefig/fig_hedge.png
+
+
+----------------
+Peak and offpeak
+----------------
+
+For portfolio lines with (quarter)hourly data, the ``.po()`` method splits the values in peak and offpeak. We can again specify if we want monthly, quarterly, or yearly values.
+
+.. exec_code::
+   
+   # --- hide: start ---
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024-04-01', '2024-06-01', freq='H', inclusive='left')
+   offtake = pf.PfLine(pf.dev.w_offtake(index))  # mock offtake volumes
+   prices = pf.PfLine(pf.dev.p_marketprices(index)) # mock market prices
+   hedge = offtake.hedge_with(prices, 'vol') # Create hedge
+   (offtake * prices).plot()
+   hedge.plot()
+   # --- hide: stop ---
+   # continuation from previous code example
+   offtake.po()
+   # --- hide: start ---
+   print(repr(offtake.po()))
+
+NB: be cautious in using the output of this method. The values in the "sub-dataframes" do not apply to the entire time period, so the usual relations (e.g. energy = power * duration) do not hold if the duration of the entire time period is used. For convenience, the relevant duration (of only the peak or only the offpeak hours) is included in the dataframe.
 
 ---
 API
