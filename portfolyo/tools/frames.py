@@ -1,10 +1,11 @@
 """Module with tools to modify and standardize dataframes."""
 
+from pint import DimensionalityError
 from pytz import AmbiguousTimeError, NonExistentTimeError
 from . import stamps, zones, nits
 
 from pandas.core.frame import NDFrame
-from typing import Iterable, Union, Any
+from typing import Iterable, Any, Union
 import pandas as pd
 import numpy as np
 import functools
@@ -21,8 +22,6 @@ def standardize(
     force_freq: str = None,
 ) -> NDFrame:
     """Standardize a series or dataframe.
-
-    The output has
 
     Parameters
     ----------
@@ -255,6 +254,15 @@ def set_frequency(fr: NDFrame, wanted: str = None, strict: bool = False) -> NDFr
     NDFrame
         Same type as ``fr``, with, if possible, a valid value for ``fr.index.freq``.
     """
+    # Handle non-datetime-indices.
+    if not isinstance(fr.index, pd.DatetimeIndex):
+        if strict:
+            raise ValueError(
+                "The data does not have a datetime index and can therefore not have a frequency."
+            )
+        else:
+            return fr
+
     # Find frequency.
     fr = fr.copy()
     if fr.index.freq:
@@ -387,13 +395,32 @@ def concat(dfs: Iterable, axis: int = 0, *args, **kwargs) -> pd.DataFrame:
     return pd.concat(dfs, axis=axis, *args, **kwargs)
 
 
+def trim_frame(fr: NDFrame, freq: str) -> NDFrame:
+    """Trim index of frame to only keep full periods of certain frequency.
+
+    Parameters
+    ----------
+    fr : NDFrame
+        The (untrimmed) pandas series or dataframe.
+    freq : str
+        Frequency to trim to. E.g. 'MS' to only keep full months.
+
+    Returns
+    -------
+    NDFrame
+        Subset of `fr`, with same frequency.
+    """
+    i = stamps.trim_index(fr.index, freq)
+    return fr.loc[i]
+
+
 def wavg(
     fr: Union[pd.Series, pd.DataFrame],
     weights: Union[Iterable, pd.Series, pd.DataFrame] = None,
     axis: int = 0,
 ) -> Union[pd.Series, float]:
     """
-    Weighted average of dataframe.
+    Weighted average of series or dataframe.
 
     Parameters
     ----------
@@ -413,52 +440,112 @@ def wavg(
         The weighted average. A single float if `fr` is a Series; a Series if
         `fr` is a Dataframe.
     """
-    # Orient so that we can always sum over rows.
-    if axis == 1:
-        if isinstance(fr, pd.DataFrame):
-            fr = fr.T
-        if isinstance(weights, pd.DataFrame):
-            weights = weights.T
-
-    if weights is None:
-        # Return normal average.
-        return fr.mean(axis=0)
-
-    # Turn weights into Series if it's an iterable.
-    if not isinstance(weights, pd.DataFrame) and not isinstance(weights, pd.Series):
-        weights = pd.Series(weights, fr.index)
-
-    summed = fr.mul(weights, axis=0).sum(skipna=False)  # float or float-Series
-    totalweight = weights.sum()  # float or float-Series
-    result = summed / totalweight
-
-    # Correction: if total weight is 0, and all original values are the same, keep the original value.
-    correctable = np.isclose(totalweight, 0) & (
-        fr.nunique() == 1
-    )  # bool or bool-Series
-    if isinstance(fr, pd.Series):
-        return result if not correctable else fr.iloc[0]
-    result[correctable] = fr.iloc[0, :][correctable]
-    return result
+    if isinstance(fr, pd.DataFrame):
+        return _wavg_df(fr, weights, axis)
+    elif isinstance(fr, pd.Series):
+        return _wavg_series(fr, weights)
+    else:
+        raise TypeError(
+            f"Parameter ``fr`` must be Series or DataFrame; got {type(fr)}."
+        )
 
 
-def trim_frame(fr: NDFrame, freq: str) -> NDFrame:
-    """Trim index of frame to only keep full periods of certain frequency.
+def _wavg_series(
+    s: pd.Series, weights: Union[Iterable, pd.Series] = None
+) -> Union[float, nits.Q_]:
+    """
+    Weighted average of series.
 
     Parameters
     ----------
-    fr : NDFrame
-        The (untrimmed) pandas series or dataframe.
-    freq : str
-        Frequency to trim to. E.g. 'MS' to only keep full months.
+    s : pd.Series
+        The input values.
+    weights : Union[Iterable, pd.Series], optional
+        The weights. If provided as a Series, the weights and values are aligned along
+        their indices. If no weights are provided, the normal (unweighted) average is
+        returned instead.
 
     Returns
     -------
-    NDFrame
-        Subset of `fr`, with same frequency.
+    Union[float, Quantity]
+        The weighted average.
+
+    Notes
+    -----
+    Will raise Error if values in ``s`` have distinct units.
     """
-    i = stamps.trim_index(fr.index, freq)
-    return fr.loc[i]
+    # Unweighted average if no weights provided.
+    if weights is None:
+        return s.mean()
+
+    # Prep: ensure weights is also a Series.
+    if not isinstance(weights, pd.Series):
+        weights = pd.Series(weights, s.index)
+
+    # Get multiplication factors as floats.
+    factors = (weights / weights.sum()).astype(float)
+    # Calculate the average.
+    result = s.mul(factors).sum(skipna=False)  # float or quantity
+
+    # Special case: if total weight is 0, but all original values are identical, return this value.
+    if np.isclose(weights.sum(), 0) and s.nunique() == 1:
+        return s.iloc[0]
+
+    return result
+
+
+def _wavg_df(
+    df: pd.DataFrame,
+    weights: Union[Iterable, pd.Series, pd.DataFrame] = None,
+    axis: int = 0,
+) -> pd.Series:
+    """
+    Weighted average of dataframe.
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        The input values.
+    weights : Union[Iterable, pd.Series, pd.DataFrame], optional
+        The weights. If provided as a Series, its index are is used for alignment (with
+        ``df``'s index if axis==0, or its columns if axis==1). If no weights are provided,
+        the normal (unweighted) average is returned instead.
+    axis : int, optional (default: 0)
+        - if 0, calculate average over all rows (for each column);
+        - if 1, calculate average over all columns (for each row).
+
+    Returns
+    -------
+    pd.Series
+        The weighted average.
+
+    Notes
+    -----
+    Will raise error if axis == 1 and columns have distinct unit-dimensions.
+    """
+    # Prep: orient so that we can always average over rows.
+    if axis == 1:
+        df = df.T
+
+    # Do averaging series-by-series.
+    if isinstance(weights, pd.DataFrame):
+        if axis == 1:
+            weights = weights.T
+        result = pd.Series({c: _wavg_series(s, weights[c]) for c, s in df.items()})
+    else:  # series or iterable or None
+        result = pd.Series({c: _wavg_series(s, weights) for c, s in df.items()})
+
+    # Correction: turn series of pint-Quantities into pint-series, if possible.
+    if pd.api.types.is_object_dtype(result):
+        firstval = result.iloc[0]
+        try:
+            result = result.astype(f"pint[{firstval.units}]")
+        except (AttributeError, DimensionalityError):
+            pass
+
+    # Correction: infer frequency (may be lost if axis==1).
+    result = set_frequency(result)
+    return result
 
 
 # TODO: move to testing folder
