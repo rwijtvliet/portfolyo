@@ -35,6 +35,7 @@ if TYPE_CHECKING:  # needed to avoid circular imports
 # a pd.Series. So, if other is single quantity, or pd.Series, in Eur/MWh, MW, or MWh,
 # this is turned into p-PfLine or q-PfLine.
 #                 other
+#                 0 or 0.0 or None                                 => return self
 #                 Eur/MWh                                          => p-PfLine
 #                 MW, MWh                                          => q-PfLine
 #                 other unit or dimensionless                      => pd.Series
@@ -171,7 +172,7 @@ class PfLineArithmatic:
     __radd__ = __add__
 
     def __sub__(self: PfLine, other):
-        # interpret dim-agnostic 'other' as price
+        # interpret non-zero, dim-agnostic 'other' as price
         default = "p" if self.kind is Kind.PRICE_ONLY else None
         other = interop.pfline_or_nodimseries(other, self.index, default)
 
@@ -188,7 +189,7 @@ class PfLineArithmatic:
         return -self + other  # defer to add and neg
 
     def __mul__(self: PfLine, other) -> PfLine:
-        default = "nodim"  # interpret dim-agnostic as dimless (i.e., factor)
+        default = "nodim"  # interpret non-zero, dim-agnostic as dimless (i.e., factor)
         other = interop.pfline_or_nodimseries(other, self.index, default)
 
         # other is now None, a PfLine, or dimless Series.

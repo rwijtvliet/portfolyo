@@ -7,6 +7,8 @@ import pytest
 # TODO: Multipfline
 # TODO: various timezones
 
+pf.dev.seed(0)  # make sure we always get the same random numbers
+
 
 def id_fn(data: Any):
     """Readable id of test case"""
@@ -56,6 +58,7 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         # Adding to volume pfline.
         # . Add volume.
         # . . single value
+        (i, Kind.VOLUME_ONLY, Q_(0, "MWh"), PfLine, Kind.VOLUME_ONLY),
         (i, Kind.VOLUME_ONLY, Q_(8.1, "Wh"), PfLine, Kind.VOLUME_ONLY),
         (i, Kind.VOLUME_ONLY, Q_(8.1, "kWh"), PfLine, Kind.VOLUME_ONLY),
         (i, Kind.VOLUME_ONLY, Q_(8.1, "MWh"), PfLine, Kind.VOLUME_ONLY),
@@ -104,13 +107,6 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_pfline(i, Kind.VOLUME_ONLY),
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
             dev.get_singlepfline(i, Kind.VOLUME_ONLY),
             PfLine,
             Kind.VOLUME_ONLY,
@@ -124,11 +120,15 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         ),
         # . Add something else.
         # . . single value
+        (i, Kind.VOLUME_ONLY, 0, PfLine, Kind.VOLUME_ONLY),
+        (i, Kind.VOLUME_ONLY, 0.0, PfLine, Kind.VOLUME_ONLY),
+        (i, Kind.VOLUME_ONLY, None, PfLine, Kind.VOLUME_ONLY),
         (i, Kind.VOLUME_ONLY, 8.1, Exception, None),
         (i, Kind.VOLUME_ONLY, Q_(8.1, ""), Exception, None),
         (i, Kind.VOLUME_ONLY, Q_(8.1, "Eur/MWh"), Exception, None),
         (i, Kind.VOLUME_ONLY, Q_(8.1, "Eur"), Exception, None),
         (i, Kind.VOLUME_ONLY, Q_(8.1, "h"), Exception, None),
+        (i, Kind.VOLUME_ONLY, Q_(0.0, "Eur/MWh"), Exception, None),
         (i, Kind.VOLUME_ONLY, {"the_volume": Q_(8.1, "MWh")}, Exception, None),
         # . . timeseries (series, df, pfline)
         (
@@ -165,6 +165,7 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
             Kind.PRICE_ONLY,
         ),
         # . Add price.
+        (i, Kind.PRICE_ONLY, Q_(0, "Eur/MWh"), PfLine, Kind.PRICE_ONLY),
         (i, Kind.PRICE_ONLY, Q_(12.0, "Eur/MWh"), PfLine, Kind.PRICE_ONLY),
         (i, Kind.PRICE_ONLY, Q_(12.0, "Eur/kWh"), PfLine, Kind.PRICE_ONLY),
         (i, Kind.PRICE_ONLY, Q_(12.0, "cent/kWh"), PfLine, Kind.PRICE_ONLY),
@@ -184,10 +185,14 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
             Kind.PRICE_ONLY,
         ),
         # . Add something else.
+        (i, Kind.PRICE_ONLY, 0, PfLine, Kind.PRICE_ONLY),
+        (i, Kind.PRICE_ONLY, 0.0, PfLine, Kind.PRICE_ONLY),
+        (i, Kind.PRICE_ONLY, None, PfLine, Kind.PRICE_ONLY),
         (i, Kind.PRICE_ONLY, Q_(12.0, ""), Exception, None),  # explicitly dimensionless
         (i, Kind.PRICE_ONLY, Q_(12.0, "Eur"), Exception, None),
         (i, Kind.PRICE_ONLY, Q_(12.0, "MWh"), Exception, None),
         (i, Kind.PRICE_ONLY, Q_(12.0, "h"), Exception, None),
+        (i, Kind.PRICE_ONLY, Q_(0.0, "MWh"), Exception, None),
         (i, Kind.PRICE_ONLY, dev.get_series(i, "q"), Exception, None),
         (
             i,
@@ -824,7 +829,26 @@ def test_pfl_neg(pfl_in, expected):
     ("pfl_in", "value", "expected_add", "expected_sub"),
     [
         # Adding to volume pfline.
-        # . Add constant.
+        # . Add constant without unit.
+        (
+            pflset1[Kind.VOLUME_ONLY],
+            0,
+            pflset1[Kind.VOLUME_ONLY],
+            pflset1[Kind.VOLUME_ONLY],
+        ),
+        (
+            pflset1[Kind.VOLUME_ONLY],
+            0.0,
+            pflset1[Kind.VOLUME_ONLY],
+            pflset1[Kind.VOLUME_ONLY],
+        ),
+        (
+            pflset1[Kind.VOLUME_ONLY],
+            None,
+            pflset1[Kind.VOLUME_ONLY],
+            pflset1[Kind.VOLUME_ONLY],
+        ),
+        # . Add constant with unit.
         (
             pflset1[Kind.VOLUME_ONLY],
             Q_(12.0, "MW"),
@@ -910,6 +934,24 @@ def test_pfl_neg(pfl_in, expected):
         # . Add constant without unit.
         (
             pflset1[Kind.PRICE_ONLY],
+            0,
+            pflset1[Kind.PRICE_ONLY],
+            pflset1[Kind.PRICE_ONLY],
+        ),
+        (
+            pflset1[Kind.PRICE_ONLY],
+            0.0,
+            pflset1[Kind.PRICE_ONLY],
+            pflset1[Kind.PRICE_ONLY],
+        ),
+        (
+            pflset1[Kind.PRICE_ONLY],
+            None,
+            pflset1[Kind.PRICE_ONLY],
+            pflset1[Kind.PRICE_ONLY],
+        ),
+        (
+            pflset1[Kind.PRICE_ONLY],
             12.0,
             pf.SinglePfLine({"p": pd.Series([212.0, 112, 62], i)}),
             pf.SinglePfLine({"p": pd.Series([188.0, 88, 38], i)}),
@@ -937,6 +979,24 @@ def test_pfl_neg(pfl_in, expected):
         ),
         # Adding to full pfline.
         # . Add constant without unit.
+        (
+            pflset1[Kind.ALL],
+            0,
+            pflset1[Kind.ALL],
+            pflset1[Kind.ALL],
+        ),
+        (
+            pflset1[Kind.ALL],
+            0.0,
+            pflset1[Kind.ALL],
+            pflset1[Kind.ALL],
+        ),
+        (
+            pflset1[Kind.ALL],
+            None,
+            pflset1[Kind.ALL],
+            pflset1[Kind.ALL],
+        ),
         (
             pflset1[Kind.ALL],
             12.0,
