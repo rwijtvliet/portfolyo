@@ -1,7 +1,7 @@
 """Add arithmatic to PfState classes."""
 
 from __future__ import annotations
-from ...tools import nits
+from ...tools import nits, frames
 from .. import pfline
 from . import pfstate
 from typing import TYPE_CHECKING, Union
@@ -53,10 +53,16 @@ def _prep_data(value, ref: PfState) -> Union[pd.Series, PfLine, PfState]:
 
 def _add_pfstates(pfs1: pfstate.PfState, pfs2: pfstate.PfState) -> pfstate.PfState:
     """Add two pfstates."""
-
     offtakevolume = pfs1.offtakevolume.volume + pfs2.offtakevolume.volume
-    unsourcedprice = (pfs1.unsourced + pfs2.unsourced).price
     sourced = pfs1.sourced + pfs2.sourced
+
+    # Unsourced price.
+    # . The following line works... but not if volume == 0.
+    # unsourcedprice = (pfs1.unsourced + pfs2.unsourced).price
+    # . Therefore, use weighted average.
+    values = pd.DataFrame({"s": pfs1.unsourcedprice.p, "o": pfs2.unsourcedprice.p})
+    weights = pd.DataFrame({"s": pfs1.unsourced.q, "o": pfs2.unsourced.q})
+    unsourcedprice = pfline.PfLine({"p": frames.wavg(values, weights, axis=1)})
 
     return pfstate.PfState(offtakevolume, unsourcedprice, sourced)
 
