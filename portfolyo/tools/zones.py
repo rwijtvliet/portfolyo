@@ -214,15 +214,6 @@ def _B_to_A(fr: NDFrame, *, tz) -> NDFrame:
     return _agnostic_to_aware(fr, tz)
 
 
-# def _C_to_A(fr: NDFrame, *, tz) -> NDFrame:
-#     return fr.tz_localize(tz, ambiguous="infer")
-
-
-# def _C_to_B(fr: NDFrame, *, tz) -> NDFrame:
-#     # Defer to C -> A -> B
-#     return _A_to_B(_C_to_A(fr, tz=tz))
-
-
 def _idx_after_conversion(fr: NDFrame, tz) -> pd.DatetimeIndex:
     fr = frames.set_frequency(fr)
     freq_input = fr.index.freq

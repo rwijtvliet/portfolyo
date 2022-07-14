@@ -114,6 +114,11 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         return self._offtakevolume.index
 
     @property
+    def offtake(self) -> PfLine:
+        # Future development: return not volume-only but price-and-volume. (by including offtake prices)
+        return self._offtakevolume
+
+    @property
     def offtakevolume(self) -> PfLine:
         return self._offtakevolume
 
