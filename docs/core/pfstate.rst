@@ -215,7 +215,7 @@ Notice how, for the unsourced volume, the prices are weighted with the energy in
 Arithmatic
 ----------
 
-Portfolio states can be added or subtracted, in which case the individual components - offtake volume, sourced and unsourced volumes and prices - are combined according to the rules descibed in the relevant section on arithmatic with :doc:`portfolio lines<./pfline>`.
+The following arithmetic operations are defined for portfolio states:
 
 ================================================= ==================
 \                                                 Operation possible
@@ -226,6 +226,24 @@ Portfolio states can be added or subtracted, in which case the individual compon
 ``PfState / float``                               ✅                   
 ================================================= ==================
 
+Addition and subtraction
+========================
+
+The most common operation is to add or subtract portfolio states. In this case the individual components - offtake volume, sourced and unsourced volumes and revenues - are added/subtracted (according to the rules descibed in the relevant section on arithmatic with :doc:`portfolio lines<./pfline>`) and used to create the resulting portfolio state.
+
+Negation
+========
+
+Negation is defined in such a way that it is consistent with ``pfs1 - pfs2 == pfs1 + -pfs2``. It is identical to negating the portfolio lines for the offtake volume and sourced price-and-volume.
+
+Multiplication and division
+===========================
+
+Multiplying with a factor means that the individual components are scaled. Specifically: the volumes (offtake, sourced, unsourced) are multiplied with the factor, while keeping the prices the same. This way, it is consistent with ``2 * pfs == pfs + pfs``.
+
+Division by a factor is multiplying with its reciprocal, i.e., ``pfs / 2 == pfs * (1/2)``.
+
+The factors do not have to be single values; we can also use a timeseries, in which case the multiplication/division are done on a per-timestamp basis.  
 
 
 
