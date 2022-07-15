@@ -332,8 +332,10 @@ def test_concat(dfs, axis, expected):
 
 @pytest.mark.parametrize("weightsas", ["none", "list", "series"])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_wavg_valuesasseries1(weightsas, axis):
+@pytest.mark.parametrize("with_units", [True, False])
+def test_wavg_valuesasseries1(weightsas: str, axis: int, with_units: bool):
     """Test if weighted average of a series is correctly calculated."""
+    # Starting values.
     values = pd.Series([100, 200, 300, -150])
     weights = [10, 10, 10, 20]
     if weightsas == "none":
@@ -344,13 +346,20 @@ def test_wavg_valuesasseries1(weightsas, axis):
     elif weightsas == "series":
         weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
         expected_result = 110
+    # Add units.
+    if with_units:
+        values = values.astype("pint[Eur/MWh]")
+        expected_result = pf.Q_(expected_result, "Eur/MWh")
+    # Test.
     assert np.isclose(frames.wavg(values, weights, axis), expected_result)
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series"])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_wavg_valuesasseries2(weightsas, axis):
+@pytest.mark.parametrize("with_units", [True, False])
+def test_wavg_valuesasseries2(weightsas: str, axis: int, with_units: bool):
     """Test if weighted average of a series is correctly calculated."""
+    # Starting values.
     values = pd.Series([100, 200, 300, -150])
     weights = [10, 0, 10, 20]
     if weightsas == "list":
@@ -358,38 +367,64 @@ def test_wavg_valuesasseries2(weightsas, axis):
     elif weightsas == "series":
         weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
         expected_result = 62.5
+    # Add units.
+    if with_units:
+        values = values.astype("pint[Eur/MWh]")
+        expected_result = pf.Q_(expected_result, "Eur/MWh")
+    # Test.
     assert np.isclose(frames.wavg(values, weights, axis), expected_result)
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series"])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_wavg_valuesasseries_na(weightsas, axis):
+@pytest.mark.parametrize("with_units", [True, False])
+def test_wavg_valuesasseries_na(weightsas: str, axis: int, with_units: bool):
     """Test if weighted average of a series is correctly identified as error,
     when all weights are 0 but not all values are equal."""
+    # Starting values.
     values = pd.Series([100, 200, 300, -150])
     weights = [0, 0, 0, 0]
     if weightsas == "series":
         weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
+    # Add units.
+    if with_units:
+        values = values.astype("pint[Eur/MWh]")
+        if weightsas == "series":
+            weights = weights.astype("pint[MWh]")
+    # Test.
     assert np.isnan(frames.wavg(values, weights, axis))
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series"])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_wavg_valuesasseries_0weights(weightsas, axis):
+@pytest.mark.parametrize("with_units", [True, False])
+def test_wavg_valuesasseries_0weights(weightsas: str, axis: int, with_units: bool):
     """Test if weighted average of a series is correctly calculated,
     when all weights are 0 and all values are equal."""
+    # Starting values.
     values = pd.Series([100, 100, 100, 100])
     weights = [0, 0, 0, 0]
+    expected_result = 100
     if weightsas == "series":
         weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
-    assert frames.wavg(values, weights, axis) == 100
+    # Add units.
+    if with_units:
+        values = values.astype("pint[Eur/MWh]")
+        expected_result = pf.Q_(expected_result, "Eur/MWh")
+        if weightsas == "series":
+            weights = weights.astype("pint[MWh]")
+    # Test.
+    assert frames.wavg(values, weights, axis) == expected_result
 
 
 @pytest.mark.parametrize("weightsas", ["none", "list", "series", "dataframe"])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_wavg_valuesasdataframe1(weightsas, axis):
+def test_wavg_valuesasdataframe1(weightsas: str, axis: int):
     """Test if weighted average of a dataframe is correctly calculated."""
-    values = pd.DataFrame({"a": [100, 200, 300, -150], "b": [100, -200, 300, -150]})
+    # Starting values.
+    series_a = pd.Series([100, 200, 300, -150])
+    series_b = pd.Series([100, -200, 300, -150])
+    values = pd.DataFrame({"a": series_a, "b": series_b})
     if weightsas == "none":
         weights = None
         if axis == 0:
@@ -416,6 +451,83 @@ def test_wavg_valuesasdataframe1(weightsas, axis):
             expected_result = pd.Series({"a": 60, "b": 160})
         else:
             expected_result = pd.Series([100, 0, 300, -150])
+    # Test.
+    pd.testing.assert_series_equal(
+        frames.wavg(values, weights, axis), expected_result, check_dtype=False
+    )
+
+
+@pytest.mark.parametrize("weightsas", ["none", "list", "series", "dataframe"])
+@pytest.mark.parametrize("axis", [0, 1])
+@pytest.mark.parametrize("same_units", [True, False])
+@pytest.mark.parametrize("weights_units", [True, False])
+def test_wavg_valuesasdataframe_units(
+    weightsas: str, axis: int, same_units: bool, weights_units: bool
+):
+    """Test if weighted average of a dataframe is correctly calculated if it has units.
+    Test with float weights and weights that have a unit."""
+    # Starting values.
+    series_a = pd.Series([100, 200, 300, -150]).astype("pint[Eur/MWh]")
+    unit_b = "Eur/MWh" if same_units else "MW"
+    series_b = pd.Series([100, -200, 300, -150]).astype(f"pint[{unit_b}]")
+    values = pd.DataFrame({"a": series_a, "b": series_b})
+
+    # Filter non-tests.
+    if weights_units and weightsas in ["none", "list"]:
+        pytest.skip(f"If weights is {weightsas}, it cannot have a unit.")
+
+    # Weights and exected results for 'non-error' cases (= not (axis == 1 and same_units) ).
+    if axis == 0:
+
+        def exp_res(val_a, val_b):
+            if same_units:
+                return pd.Series({"a": val_a, "b": val_b}, dtype="pint[Eur/MWh]")
+            return pd.Series({"a": pf.Q_(val_a, "Eur/MWh"), "b": pf.Q_(val_b, unit_b)})
+
+        if weightsas == "none":
+            weights = None
+            expected_result = exp_res(112.5, 12.5)
+        elif weightsas == "list":
+            weights = [10, 10, 10, 20]
+            expected_result = exp_res(60, -20)
+        elif weightsas == "series":
+            weights = pd.Series([10, 10, 10, 20], index=[3, 2, 1, 0])
+            if weights_units:
+                weights = weights.astype("pint[h]")  # any unit will do
+            expected_result = exp_res(110, 30)
+        elif weightsas == "dataframe":
+            weights = pd.DataFrame({"a": [10, 10, 10, 20], "b": [10, 10, 30, 0]})
+            if weights_units:
+                weights = pd.DataFrame(
+                    {c: s.astype("pint[h]") for c, s in weights.items()}
+                )
+            expected_result = exp_res(60, 160)
+
+    else:  # axis == 1
+        if weightsas == "none":
+            weights = None
+            expected_result = pd.Series([100, 0, 300, -150]).astype("pint[Eur/MWh]")
+        elif weightsas == "list":
+            weights = [10, 30]
+            expected_result = pd.Series([100, -100, 300, -150]).astype("pint[Eur/MWh]")
+        elif weightsas == "series":
+            weights = pd.Series({"b": 30, "a": 10})
+            if weights_units:
+                weights = weights.astype("pint[h]")
+            expected_result = pd.Series([100, -100, 300, -150]).astype("pint[Eur/MWh]")
+        elif weightsas == "dataframe":
+            weights = pd.DataFrame({"a": [10, 10, 10, 20], "b": [10, 10, 30, 0]})
+            if weights_units:
+                weights = pd.DataFrame(
+                    {c: s.astype("pint[h]") for c, s in weights.items()}
+                )
+            expected_result = pd.Series([100, 0, 300, -150]).astype("pint[Eur/MWh]")
+
+    # Test.
+    if axis == 1 and not same_units:  # error cases
+        with pytest.raises(Exception):
+            _ = frames.wavg(values, weights, axis)
+        return
     pd.testing.assert_series_equal(
         frames.wavg(values, weights, axis), expected_result, check_dtype=False
     )
