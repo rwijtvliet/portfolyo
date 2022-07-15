@@ -9,7 +9,6 @@ setup(
     author="Ruud Wijtvliet",
     zip_safe=False,
     packages=find_packages(exclude=["tests"]),
-    #packages=find_packages(exclude=["tests", "tests.*"]),
     description="Analysing and manipulating timeseries related to power and gas offtake portfolios.",
     long_description=open("README.rst").read(),
     long_description_content_type="text/x-rst",
