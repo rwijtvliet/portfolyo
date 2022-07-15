@@ -245,7 +245,7 @@ def set_frequency(fr: NDFrame, wanted: str = None, strict: bool = False) -> NDFr
     fr : NDFrame
         Pandas series or dataframe.
     wanted : str, optional
-        Suggestion for the frequency to set, if it cannot be inferred.
+        *Suggestion* for the frequency to set, if it cannot be inferred.
     strict : bool, optional (default: False)
         If True, raise ValueError if a valid frequency is not found.
 
@@ -267,20 +267,24 @@ def set_frequency(fr: NDFrame, wanted: str = None, strict: bool = False) -> NDFr
     fr = fr.copy()
     if fr.index.freq:
         pass
-    elif freq := pd.infer_freq(fr.index):
-        fr.index.freq = freq
     elif wanted:
         fr.index.freq = wanted
+    else:
+        try:
+            fr.index.freq = pd.infer_freq(fr.index)
+        except ValueError:
+            pass  # couldn't find one, e.g. because not enough values
+
     # Correct if necessary.
     freq = fr.index.freq
     if not freq and strict:  # No frequency found.
         raise ValueError("The data does not seem to have a regular frequency.")
     elif freq and freq not in stamps.FREQUENCIES:
-        # Edge case: month-/quarterly but starting != Jan.
+        # Edge case: year-/quarterly but starting != Jan.
         if stamps.freq_up_or_down(freq, "AS") == 0:
-            fr.index.freq = "AS"
+            fr.index.freq = "AS"  # will likely fail
         elif stamps.freq_up_or_down(freq, "QS") == 0:
-            fr.index.freq = "QS"
+            fr.index.freq = "QS"  # will only succeed if QS-APR, QS-JUL or QS-OCT
         elif strict:
             raise ValueError(
                 "The data has a non-allowed frequency. Must be one of "
