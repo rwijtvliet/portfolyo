@@ -17,7 +17,7 @@ TREECOLORS = [colorama.Style.BRIGHT + getattr(colorama.Fore, f) for f in COLORS]
 _UNITS = {"w": "MW", "q": "MWh", "p": "Eur/MWh", "r": "Eur"}
 VALUEFORMAT = {"w": "{:,.1f}", "q": "{:,.0f}", "p": "{:,.2f}", "r": "{:,.0f}"}
 DATETIMEFORMAT = "%Y-%m-%d %H:%M:%S %z"
-COLWIDTHS_TAXIS0 = {"ts": 25, "w": 12, "q": 11, "p": 11, "r": 13}
+COLWIDTHS = {"ts": 25, "w": 12, "q": 11, "p": 11, "r": 13}
 MAX_DEPTH = 6
 
 
@@ -44,7 +44,7 @@ def _df_with_strvalues(df: pd.DataFrame, units: Dict = _UNITS):
 def _df_with_strindex(df: pd.DataFrame, num_of_ts: int):
     """Turn datetime index of dataframe into text, and reduce number of rows."""
     df.index = df.index.map(
-        lambda ts: ts.strftime(DATETIMEFORMAT).ljust(COLWIDTHS_TAXIS0["ts"])
+        lambda ts: ts.strftime(DATETIMEFORMAT).ljust(COLWIDTHS["ts"])
     )
     if len(df.index) > num_of_ts:
         i1, i2 = num_of_ts // 2, (num_of_ts - 1) // 2
@@ -53,7 +53,7 @@ def _df_with_strindex(df: pd.DataFrame, num_of_ts: int):
     return df
 
 
-def _what(pfl) -> str:
+def _what(pfl: PfLine) -> str:
     return {
         pfline.Kind.PRICE_ONLY: "price",
         pfline.Kind.VOLUME_ONLY: "volume",
@@ -96,7 +96,7 @@ def _treedict(depth: int, is_last_child: bool, has_children: bool) -> Dict[str, 
 def _dataheader_0(cols: Iterable[str] = "wqpr", units: Dict = _UNITS) -> Iterable[str]:
     out = [" " * 25] * 2  # width of timestamps
     for c in cols:
-        width = COLWIDTHS_TAXIS0[c] + 1
+        width = COLWIDTHS[c] + 1
         out[0] += f"{c:>{width}}"
         out[1] += f"{units[c]:>{width}}"
     return out
@@ -135,9 +135,16 @@ def _nestedtree_0(
 def _flatdatablock_0(pfl: PfLine, cols: Iterable[str], num_of_ts: int) -> Iterable[str]:
     """The timestamps and data to be shown in a block, next to the tree."""
     # Obtain dataframe with index = timestamp as string and columns = one or more of 'qwpr'.
-    df = _df_with_strvalues(pfl.flatten().df(cols))
+    df = pfl.flatten().df(cols)
+    # . reduce number of timestamps to increase speed of conversion to strings.
+    if len(df.index) > num_of_ts * 2:
+        df = pd.concat([df.iloc[:num_of_ts, :], df.iloc[-num_of_ts:, :]], axis=0)
+    # . turn values into strings.
+    df = _df_with_strvalues(df)
+    # . turn index into strings and reduce to wanted number of datapoints
     df = _df_with_strindex(df, num_of_ts)
-    col_space = {k: v for k, v in COLWIDTHS_TAXIS0.items() if k in df}
+    # . column withs
+    col_space = {k: v for k, v in COLWIDTHS.items() if k in df}
     # Turn into list of strings.
     df_str = df.to_string(col_space=col_space, index_names=False, header=False)
     return df_str.split("\n")
@@ -184,7 +191,7 @@ def pfs_as_string(pfs: PfState, num_of_ts: int, color: bool) -> str:
     lines.extend(_index_info(pfs.index))
     spaces = " " * (MAX_DEPTH + 5)
     lines.extend([spaces + txtline for txtline in _dataheader_0("wqpr")])
-    lines.extend(_nestedtree_0("offtake", pfs.offtake, "wqpr", num_of_ts))
+    lines.extend(_nestedtree_0("offtake", pfs.offtakevolume, "wqpr", num_of_ts))
     lines.extend(_nestedtree_0("pnl_cost", pfs.pnl_cost, "wqpr", num_of_ts))
     txt = "\n".join(lines)
     return txt if color else _remove_color(txt)
