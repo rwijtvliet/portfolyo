@@ -523,6 +523,8 @@ def _wavg_df(
     -----
     Will raise error if axis == 1 and columns have distinct unit-dimensions.
     """
+    freq_input = df.index.freq
+
     # Prep: orient so that we can always average over rows.
     if axis == 1:
         df = df.T
@@ -544,7 +546,7 @@ def _wavg_df(
             pass
 
     # Correction: infer frequency (may be lost if axis==1).
-    result = set_frequency(result)
+    result = set_frequency(result, freq_input)
     return result
 
 
