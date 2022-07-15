@@ -43,6 +43,8 @@ class PfStateHedging:
         -------
         PfState
             which is fully hedged at time scales of `freq` or longer.
+
+        Note
         """
         tosource = self.hedge_of_unsourced(how, freq, po)
         return self.__class__(
