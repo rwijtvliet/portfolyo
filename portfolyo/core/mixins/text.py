@@ -136,8 +136,9 @@ def _flatdatablock_0(pfl: PfLine, cols: Iterable[str], num_of_ts: int) -> Iterab
     """The timestamps and data to be shown in a block, next to the tree."""
     # Obtain dataframe with index = timestamp as string and columns = one or more of 'qwpr'.
     df = pfl.flatten().df(cols)
-    # . reduce number of timestamps to increase conversion to strings.
-    df = pd.concat([df.iloc[:num_of_ts, :], df.iloc[-num_of_ts:, :]], axis=0)
+    # . reduce number of timestamps to increase speed of conversion to strings.
+    if len(df.index) > num_of_ts * 2:
+        df = pd.concat([df.iloc[:num_of_ts, :], df.iloc[-num_of_ts:, :]], axis=0)
     # . turn values into strings.
     df = _df_with_strvalues(df)
     # . turn index into strings and reduce to wanted number of datapoints
