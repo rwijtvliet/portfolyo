@@ -245,7 +245,7 @@ def set_frequency(fr: NDFrame, wanted: str = None, strict: bool = False) -> NDFr
     fr : NDFrame
         Pandas series or dataframe.
     wanted : str, optional
-        *Suggestion* for the frequency to set, if it cannot be inferred.
+        Frequency to set. If none provided, try to infer.
     strict : bool, optional (default: False)
         If True, raise ValueError if a valid frequency is not found.
 
