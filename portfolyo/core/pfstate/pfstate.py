@@ -29,25 +29,25 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     Attributes
     ----------
-    offtake : PfLine ('q')
+    offtakevolume : volume-only PfLine
         Offtake. Volumes are <0 for all timestamps (see 'Notes' below).
-    sourced : PfLine ('all')
+    sourced : price-and-volume PfLine
         Procurement. Volumes (and normally, revenues) are >0 for all timestamps (see
         'Notes' below).
-    unsourced : PfLine ('all')
+    unsourced : price-and-volume PfLine
         Procurement/trade that is still necessary until delivery. Volumes (and normally,
         revenues) are >0 if more volume must be bought, <0 if volume must be sold for a
         given timestamp (see 'Notes' below). NB: if volume for a timestamp is 0, its
         price is undefined (NaN) - to get the market prices in this portfolio, use the
         property `.unsourcedprice` instead.
-    unsourcedprice : PfLine ('p')
+    unsourcedprice : price-only PfLine
         Prices of the unsourced volume.
-    netposition : PfLine ('all')
+    netposition : price-and-volume PfLine
         Net portfolio positions. Convenience property for users with a "traders' view".
         Does not follow sign conventions (see 'Notes' below); volumes are <0 if
         portfolio is short and >0 if long. Identical to `.unsourced`, but with sign
         change for volumes and revenues (but not prices).
-    procurement : PfLine ('all')
+    procurement : price-and-volume PfLine
         The expected costs needed to source the offtake volume; the sum of the sourced
         and unsourced positions.
     index : pandas.DateTimeIndex
@@ -79,10 +79,10 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         ----------
         unsourced prices:
             `pu` [Eur/MWh]
-        offtake volume: one of
+        offtake volume: (at least) one of
             `qo` [MWh]
             `wo` [MW]
-        sourced volume and revenue: two of
+        sourced volume and revenue: (at least) two of
             (`qs` [MWh] or `ws` [MW])
             `rs` [Eur]
             `ps` [Eur/MWh]
@@ -92,7 +92,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         -------
         PfState
         """
-        if ws is not None or qs is not None or rs is not None or ps is not None:
+        if not (ws is qs is rs is ps is None):
             sourced = PfLine({"w": ws, "q": qs, "r": rs, "p": ps})
         else:
             sourced = None
@@ -115,6 +115,11 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     @property
     def offtake(self) -> PfLine:
+        # Future development: return not volume-only but price-and-volume. (by including offtake prices)
+        return self._offtakevolume
+
+    @property
+    def offtakevolume(self) -> PfLine:
         return self._offtakevolume
 
     @property
@@ -147,7 +152,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     def df(
         self,
-        cols: Iterable[str],
+        cols: Iterable[str] = None,
         flatten: bool = False,
         *args,
         has_units: bool = True,
@@ -174,7 +179,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         """
 
         dfs = []
-        for part in ("offtake", "pnl_cost", "sourced", "unsourced"):
+        for part in ("offtakevolume", "pnl_cost", "sourced", "unsourced"):
             fl = True if part == "pnl_cost" else flatten  # always flatten pnl_cost
             dfin = self[part].df(cols, fl, has_units=has_units)
             dfs.append(frames.add_header(dfin, part))
@@ -184,8 +189,8 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     def set_offtakevolume(self, offtakevolume: PfLine) -> PfState:
         warnings.warn(
-            "This changes the unsourced volume and causes inaccuracies in its price, if "
-            "the portfolio has a frequency that is longer than the spot market."
+            "This operation changes the unsourced volume. This causes inaccuracies in its price"
+            " if the portfolio has a frequency that is longer than the spot market."
         )
         return PfState(offtakevolume, self._unsourcedprice, self._sourced)
 
@@ -194,8 +199,8 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     def set_sourced(self, sourced: PfLine) -> PfState:
         warnings.warn(
-            "This changes the unsourced volume and causes inaccuracies in its price, if "
-            "the portfolio has a frequency that is longer than the spot market."
+            "This operation changes the unsourced volume. This causes inaccuracies in its price"
+            " if the portfolio has a frequency that is longer than the spot market."
         )
         return PfState(self._offtakevolume, self._unsourcedprice, sourced)
 
@@ -217,7 +222,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
             Resampled at wanted frequency.
         """
         # pu resampling is most important, so that prices are correctly weighted.
-        offtakevolume = self.offtake.asfreq(freq).volume
+        offtakevolume = self.offtakevolume.asfreq(freq).volume
         unsourcedprice = self.unsourced.asfreq(freq).price  # ensures weighted avg
         sourced = self.sourced.asfreq(freq)
         return PfState(offtakevolume, unsourcedprice, sourced)
