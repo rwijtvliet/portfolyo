@@ -60,7 +60,6 @@ Contents
    tutorial/part2
    tutorial/part3
    tutorial/part4
-   tutorial/part5
 
 .. toctree::
    :maxdepth: 2
@@ -77,3 +76,4 @@ Contents
    :caption: Full reference
 
    full_reference
+

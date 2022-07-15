@@ -53,15 +53,22 @@ Both initialisation methods are shown here:
 
 Note that in this portfolio, no sourcing has yet taken place.
 
+
+.. _unsourcedprice:
+
 ---------------
 Unsourced price
 ---------------
 
-One of the parameters of the initialisation is the ``unsouncedprice``, which needs a little bit of explanation. It is price that we expect to pay (/receive) for the volume that the portfolio is currently short (/long). This is intimately connected to the market prices, but they are not necessarily equal.
+One of the parameters of the initialisation is the ``unsouncedprice``, which needs a little bit of explanation. It is the price that we expect to pay (/receive) for the volume that the portfolio is currently short (/long). This is intimately connected to the market prices, but they are not necessarily equal.
 
-If the portfolio state is not aggregated, i.e., has the same frequency as the spot market on which any remaining open volume is eventually settled, the ``unsourcedprice`` can be set to the price-forward curve. It does not depend on the particulars of the portfolio we are considering - completely unhedged or nearly fully hedged; with its offtake predominantly during the day, during the night, during the week or during the weekend.
+If the portfolio state has the same frequency as the spot market on which any remaining open volume is eventually settled, the ``unsourcedprice`` can be set to the price-forward curve. It does not depend on the particulars of the portfolio we are considering - completely unhedged or nearly fully hedged; with its offtake predominantly during the day, during the night, during the week or during the weekend.
 
 If the portfolio state *is* aggregated, e.g. to monthly values, we need to supply as ``unsourcedprice`` the average value of the price-forward curve in eath month *weighted with the unsourced volume*. This obviously *does* depend on the particulars of the portfolio. When comparing two portfolios with identical monthly offtake volumes and identical sourced volumes, the monthly unsourced price will be higher for the portfolio that has its offtake predominantly in the peak hours, compared to the other portfolio which has it mainly in the offpeak hours.
+
+.. warning::
+
+   Some operations have as a consequence that the unsourced volume is changed, e.g., because they change the offtake or sourced volume. In this case, it is implicitly assumed that the *original* unsourced prices apply also to the *updated* unsourced volume. As explained, this assumption is not necessarily valid if the portfolio state is aggregated. A ``UserWarning`` is shown to alert the user to this possibility.
 
 For this reason, it is often best/easiest to initialise portfolio states at the shorter time resolution: it allows us to always use the same ``unsourcedprice`` timeseries for each. If another frequency is wanted, we can leave the correct resampling (including the weighting) to the ``.asfreq()`` method, see the :ref:`the section on resampling<Resampling>`.
 
@@ -226,25 +233,41 @@ The following arithmetic operations are defined for portfolio states:
 ``PfState / float``                               ✅                   
 ================================================= ==================
 
-Addition and subtraction
-========================
 
-The most common operation is to add or subtract portfolio states. In this case the individual components - offtake volume, sourced and unsourced volumes and revenues - are added/subtracted (according to the rules descibed in the relevant section on arithmatic with :doc:`portfolio lines<./pfline>`) and used to create the resulting portfolio state.
+Remarks:
 
-Negation
-========
+* The result of each of the operations above is another portfolio state.
 
-Negation is defined in such a way that it is consistent with ``pfs1 - pfs2 == pfs1 + -pfs2``. It is identical to negating the portfolio lines for the offtake volume and sourced price-and-volume.
+* The most common operation is to add or subtract portfolio states. In this case the individual components - offtake volume, sourced and unsourced volumes and revenues - are added/subtracted (according to the rules descibed in the relevant section on arithmatic with :doc:`portfolio lines<./pfline>`) and used to create the resulting portfolio state.
 
-Multiplication and division
-===========================
+* Negation is defined in such a way that it is consistent with ``pfs1 - pfs2 == pfs1 + -pfs2``. It is identical to negating the portfolio lines for the offtake volume and sourced price-and-volume.
 
-Multiplying with a factor means that the individual components are scaled. Specifically: the volumes (offtake, sourced, unsourced) are multiplied with the factor, while keeping the prices the same. This way, it is consistent with ``2 * pfs == pfs + pfs``.
+* Multiplying with a factor means that the individual components are scaled. Specifically: the volumes (offtake, sourced, unsourced) are multiplied with the factor, while keeping the prices the same. This way, it is consistent with ``2 * pfs == pfs + pfs``.
 
-Division by a factor is multiplying with its reciprocal, i.e., ``pfs / 2 == pfs * (1/2)``.
+* Division by a factor is multiplying with its reciprocal, i.e., ``pfs / 2 == pfs * (1/2)``.
 
-The factors do not have to be single values; we can also use a timeseries, in which case the multiplication/division are done on a per-timestamp basis.  
+* The multiplication or division factors do not have to be single values; we can also use a timeseries, in which case the multiplication/division are done on a per-timestamp basis.  
 
+
+-------------------
+Set portfolio lines
+-------------------
+
+To replace part of a portfolio state, we can use the ``.set_offtakevolume()``, ``.set_unsourcedprice()``, and ``.set_sourced()`` methods. These accept ``PfLine`` instances, and return a new portfolio state with the selected information replaced. Instead of setting the sourced price-and-volume, we can also *add* to the existing sourcing with the ``.add_sourced()`` method.
+
+Note that, when changing the sourced or offtake volume, the warning in :ref:`the section on unsourced prices<unsourcedprice>` applies.
+
+--------------
+Mark-to-Market
+--------------
+
+If we want to know the market value of only the sourced volumes, we can use the ``.mtm_of_sourced()`` method, which calculates the surplus value of the sourcing contracts at current market prices. It uses the unsourced prices for this, so here too, the warning in :ref:`the section on unsourced prices<unsourcedprice>` applies.
+
+-------
+Hedging
+-------
+
+The unsourced volume can be hedged with standard products - month, quarter, or year blocks. (See the :doc:`section on heding <./pfline#_hedging>` in the documentation on portfolio lines). The ``.hedge_of_unsourced()`` method returns the portfolio line of the volumes and prices of this hedge; the ``.source_unsourced()`` method returns what the portfolio state would be, if this volume was actually added to the currently sourced volume.
 
 
 ---

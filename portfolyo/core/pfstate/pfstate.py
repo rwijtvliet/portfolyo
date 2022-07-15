@@ -190,7 +190,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
     def set_offtakevolume(self, offtakevolume: PfLine) -> PfState:
         warnings.warn(
             "This operation changes the unsourced volume. This causes inaccuracies in its price"
-            " if the portfolio has a frequency that is longer than the spot market."
+            " if the portfolio state has a frequency that is longer than the spot market."
         )
         return PfState(offtakevolume, self._unsourcedprice, self._sourced)
 
@@ -200,12 +200,12 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
     def set_sourced(self, sourced: PfLine) -> PfState:
         warnings.warn(
             "This operation changes the unsourced volume. This causes inaccuracies in its price"
-            " if the portfolio has a frequency that is longer than the spot market."
+            " if the portfolio state has a frequency that is longer than the spot market."
         )
         return PfState(self._offtakevolume, self._unsourcedprice, sourced)
 
     def add_sourced(self, add_sourced: PfLine) -> PfState:
-        return self.set_sourced(self.sourced + add_sourced)
+        return self.set_sourced(self.sourced + add_sourced)  # warns
 
     def asfreq(self, freq: str = "MS") -> PfState:
         """Resample the Portfolio to a new frequency.
@@ -222,7 +222,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
             Resampled at wanted frequency.
         """
         # pu resampling is most important, so that prices are correctly weighted.
-        offtakevolume = self.offtakevolume.asfreq(freq).volume
+        offtakevolume = self.offtakevolume.asfreq(freq)
         unsourcedprice = self.unsourced.asfreq(freq).price  # ensures weighted avg
         sourced = self.sourced.asfreq(freq)
         return PfState(offtakevolume, unsourcedprice, sourced)
@@ -248,6 +248,8 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         return _LocIndexer(self)
 
     # Additional methods, unique to this class.
+
+    # (none)
 
 
 class _LocIndexer:

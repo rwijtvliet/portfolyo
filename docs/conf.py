@@ -60,3 +60,5 @@ html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
 
 html_theme_options = {"navigation_depth": 1}
+
+exec_code_stdout_encoding = "utf-8"
