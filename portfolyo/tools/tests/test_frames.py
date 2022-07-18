@@ -430,15 +430,19 @@ def test_wavg_valuesasseries1(weightsas: str, axis: int, with_units: bool):
 @pytest.mark.parametrize("weightsas", ["list", "series"])
 @pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("with_units", [True, False])
-def test_wavg_valuesasseries2(weightsas: str, axis: int, with_units: bool):
+@pytest.mark.parametrize("indextype", [int, pd.DatetimeIndex])
+def test_wavg_valuesasseries2(
+    weightsas: str, axis: int, with_units: bool, indextype: type
+):
     """Test if weighted average of a series is correctly calculated."""
     # Starting values.
-    values = pd.Series([100, 200, 300, -150])
+    i = range(4) if indextype is int else pd.date_range("2020", freq="D", periods=4)
+    values = pd.Series([100, 200, 300, -150], i)
     weights = [10, 0, 10, 20]
     if weightsas == "list":
         expected_result = 25
     elif weightsas == "series":
-        weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
+        weights = pd.Series(weights, [i[j] for j in [3, 2, 1, 0]])  # align by index
         expected_result = 62.5
     # Add units.
     if with_units:
@@ -607,55 +611,61 @@ def test_wavg_valuesasdataframe_units(
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series", "dataframe"])
+@pytest.mark.parametrize("indextype", [int, pd.DatetimeIndex])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_wavg_valuesasdataframe2(weightsas, axis):
+def test_wavg_valuesasdataframe2(weightsas: str, axis: int, indextype: type):
     """Test if weighted average of a dataframe is correctly calculated."""
-    values = pd.DataFrame({"a": [100, 200, 200, -150], "b": [100, -200, 300, -150]})
+    # Starting values.
+    i = range(4) if indextype is int else pd.date_range("2020", freq="D", periods=4)
+    values = pd.DataFrame({"a": [100, 200, 200, -150], "b": [100, -200, 300, -150]}, i)
     if weightsas == "list":
         if axis == 0:
             weights = [10, 10, 0, 20]
-            expected_result = pd.Series({"a": 0, "b": -100})
+            expected_result = pd.Series({"a": 0.0, "b": -100})
         else:
             weights = [10, 0]
-            expected_result = pd.Series([100, 200, 200, -150])
-    if weightsas == "series":
+            expected_result = pd.Series([100.0, 200, 200, -150], i)
+    elif weightsas == "series":
         if axis == 0:
-            weights = pd.Series([10, 10, 0, 20], index=[3, 2, 1, 0])
+            weights = pd.Series([10, 10, 0, 20], [i[j] for j in [3, 2, 1, 0]])
             expected_result = pd.Series({"a": 62.5, "b": 87.5})
         else:
             weights = pd.Series({"b": 0, "a": 10})
-            expected_result = pd.Series([100, 200, 200, -150])
-    if weightsas == "dataframe":
-        weights = pd.DataFrame({"a": [10, 10, 0, 20], "b": [10, 10, 30, 0]})
+            expected_result = pd.Series([100.0, 200, 200, -150], i)
+    elif weightsas == "dataframe":
+        weights = pd.DataFrame({"a": [10, 10, 0, 20], "b": [10, 10, 30, 0]}, i)
         if axis == 0:
-            expected_result = pd.Series({"a": 0, "b": 160})
+            expected_result = pd.Series({"a": 0.0, "b": 160})
         else:
-            expected_result = pd.Series([100, 0, 300, -150])
-    pd.testing.assert_series_equal(
-        frames.wavg(values, weights, axis), expected_result, check_dtype=False
-    )
+            expected_result = pd.Series([100.0, 0, 300, -150], i)
+    # Test.
+    pd.testing.assert_series_equal(frames.wavg(values, weights, axis), expected_result)
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series", "dataframe"])
+@pytest.mark.parametrize("indextype", [int, pd.DatetimeIndex])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_wavg_valuesasdataframe_na(weightsas, axis):
+def test_wavg_valuesasdataframe_na(weightsas: str, axis: int, indextype: type):
     """Test if weighted average of a dataframe is correctly is correctly identified as error,
     when all weights are 0 but not all values are equal."""
-    values = pd.DataFrame({"a": [130, 200, 200, -160], "b": [100, -200, 300, -150]})
+    # Starting values.
+    i = range(4) if indextype is int else pd.date_range("2020", freq="D", periods=4)
+    values = pd.DataFrame({"a": [130, 200, 200, -160], "b": [100, -200, 300, -150]}, i)
     if axis == 0:
         weights = [0, 0, 0, 0]
         expected_result = pd.Series({"a": np.nan, "b": np.nan})
     else:
         weights = [0, 0]
-        expected_result = pd.Series([np.nan, np.nan, np.nan, np.nan])
+        expected_result = pd.Series([np.nan, np.nan, np.nan, np.nan], i)
 
     if weightsas == "series":
         if axis == 0:
-            weights = pd.Series(weights, index=[3, 2, 1, 0])
+            weights = pd.Series(weights, [i[j] for j in [3, 2, 1, 0]])
         else:
-            weights = pd.Series(weights, index=["a", "b"])
-    if weightsas == "dataframe":
-        weights = pd.DataFrame({"a": [0, 0, 0, 0], "b": [0, 0, 0, 0]})
+            weights = pd.Series(weights, ["a", "b"])
+    elif weightsas == "dataframe":
+        weights = pd.DataFrame({"a": [0, 0, 0, 0], "b": [0, 0, 0, 0]}, i)
+    # Test.
     pd.testing.assert_series_equal(
         frames.wavg(values, weights, axis), expected_result, check_dtype=False
     )
@@ -663,10 +673,11 @@ def test_wavg_valuesasdataframe_na(weightsas, axis):
 
 @pytest.mark.parametrize("weightsas", ["list", "series", "dataframe"])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_wavg_valuesasdataframe_0weights(weightsas, axis):
+def test_wavg_valuesasdataframe_0weights(weightsas: str, axis: int):
     """Test if weighted average of a dataframe is correctly is correctly identified as error,
     when all weights are 0. Some averages are calculated from identical values and should
     result in that value."""
+    # Starting values.
     values = pd.DataFrame({"a": [100, 200, 200, -150], "b": [100, -200, 300, -150]})
     if axis == 0:
         weights = [0, 0, 0, 0]
@@ -677,11 +688,12 @@ def test_wavg_valuesasdataframe_0weights(weightsas, axis):
 
     if weightsas == "series":
         if axis == 0:
-            weights = pd.Series(weights, index=[3, 2, 1, 0])
+            weights = pd.Series(weights, [3, 2, 1, 0])
         else:
-            weights = pd.Series(weights, index=["a", "b"])
+            weights = pd.Series(weights, ["a", "b"])
     if weightsas == "dataframe":
         weights = pd.DataFrame({"a": [0, 0, 0, 0], "b": [0, 0, 0, 0]})
+    # Test.
     pd.testing.assert_series_equal(
         frames.wavg(values, weights, axis), expected_result, check_dtype=False
     )
