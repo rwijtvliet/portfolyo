@@ -1,6 +1,7 @@
 """Add hedging methods to PfLine classes."""
 
 from __future__ import annotations
+import warnings
 
 from . import pfstate
 from ..pfline import PfLine
@@ -42,6 +43,8 @@ class PfStateHedging:
         -------
         PfState
             which is fully hedged at time scales of `freq` or longer.
+
+        Note
         """
         tosource = self.hedge_of_unsourced(how, freq, po)
         return self.__class__(
@@ -50,6 +53,10 @@ class PfStateHedging:
 
     def mtm_of_sourced(self) -> PfLine:
         """Mark-to-Market value of sourced volume."""
+        warnings.warn(
+            "This operation values the sourced volume against the unsourced prices. This causes"
+            " inaccuracies if the portfolio state has a frequency that is longer than the spot market."
+        )
         return self.sourced.volume * (self.unsourcedprice - self.sourced.price)
 
 
