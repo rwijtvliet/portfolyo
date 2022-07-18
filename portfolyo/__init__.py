@@ -1,7 +1,5 @@
 """Package to analyse and manipulate timeseries related to power and gas offtake portfolios."""
 
-import pandas
-
 from .core.pfline import PfLine, SinglePfLine, MultiPfLine, Kind
 from .core.pfstate import PfState
 from .core.mixins.plot import plot_pfstates
@@ -29,9 +27,10 @@ from .tools.stamps import (
 
 from .tools.frames import fill_gaps, wavg, standardize
 from .tools.nits import Q_
+from .tools.zones import force_tzaware, force_tzagnostic
+
 from .prices.hedge import hedge
 from .prices.utils import is_peak_hour
-from .tools.zones import force_tzaware, force_tzagnostic
 
 from . import _version
 
