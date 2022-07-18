@@ -184,6 +184,8 @@ def test_init_A(
     result_df = result.df(columns)
 
     assert type(result) is expected_type
+    if type(itc.data_in) is type(testtype):
+        assert result is itc.data_in  # assert no copy but reference.
     pf.testing.assert_frame_equal(result_df, itc.expected_df.rename_axis("ts_left"))
     assert result.kind is itc.expected_kind
     if expected_type is MultiPfLine:

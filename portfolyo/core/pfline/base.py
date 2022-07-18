@@ -81,8 +81,8 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
                 errors[subcls] = e
                 pass
         errormsg = "\n".join(f"- {c.__name__}: {e.args[0]}" for c, e in errors.items())
-        raise NotImplementedError(
-            f"None of the subclasses can be created from this data, with the following reasons:\n{errormsg}"
+        raise ValueError(
+            f"Cannot create flat or nested PfLine, with the following reasons:\n{errormsg}"
         )
 
     # Additional abstract methods to be implemented by descendents.

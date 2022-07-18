@@ -51,7 +51,7 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
 # . . pflines covering same or different time periods
 
 
-@pytest.mark.parametrize("operation", ["add", "sub"])
+@pytest.mark.parametrize("operation", ["+", "-"])
 @pytest.mark.parametrize(
     ("pfl_in_i", "pfl_in_kind", "value", "returntype", "returnkind"),
     [
@@ -258,18 +258,18 @@ def test_pfl_addsub_kind(
     # (Not working due to implementation issue in pint and numpy: value + pfl_in, value - pfl_in)
     if issubclass(returntype, Exception):
         with pytest.raises(returntype):
-            _ = (pfl_in + value) if operation == "add" else (pfl_in - value)
+            _ = (pfl_in + value) if operation == "+" else (pfl_in - value)
         return
 
     # Check return type.
     # (Not working due to implementation issue in pint and numpy: value + pfl_in, value - pfl_in)
-    result = (pfl_in + value) if operation == "add" else (pfl_in - value)
+    result = (pfl_in + value) if operation == "+" else (pfl_in - value)
     assert isinstance(result, returntype)
     if returntype is PfLine:
         assert result.kind is returnkind
 
 
-@pytest.mark.parametrize("operation", ["mul", "div"])
+@pytest.mark.parametrize("operation", ["*", "/"])
 @pytest.mark.parametrize(
     (
         "pfl_in_i",
@@ -742,20 +742,20 @@ def test_pfl_muldiv_kind(
     else:
         pfl_in = dev.get_multipfline(pfl_in_i, pfl_in_kind)
 
-    returntype = returntype_mul if operation == "mul" else returntype_div
-    returnkind = returnkind_mul if operation == "mul" else returnkind_div
+    returntype = returntype_mul if operation == "*" else returntype_div
+    returnkind = returnkind_mul if operation == "*" else returnkind_div
 
     # if returntype is PfLine:
     #     returntype = SinglePfLine if pfl_in_single_or_multi == "single" else MultiPfLine
 
     if issubclass(returntype, Exception):
         with pytest.raises(returntype):
-            _ = (pfl_in * value) if operation == "mul" else (pfl_in / value)
+            _ = (pfl_in * value) if operation == "*" else (pfl_in / value)
         return
 
     # Check return type.
     # (Not working due to implementation issue in pint and numpy: value * pfl_in, value / pfl_in)
-    result = (pfl_in * value) if operation == "mul" else (pfl_in / value)
+    result = (pfl_in * value) if operation == "*" else (pfl_in / value)
     assert isinstance(result, returntype)
     if returntype_mul is PfLine:
         assert result.kind is returnkind
@@ -824,7 +824,7 @@ def test_pfl_neg(pfl_in, expected):
     assert result == expected
 
 
-@pytest.mark.parametrize("operation", ["add", "sub"])
+@pytest.mark.parametrize("operation", ["+", "-"])
 @pytest.mark.parametrize(
     ("pfl_in", "value", "expected_add", "expected_sub"),
     [
@@ -1036,18 +1036,18 @@ def test_pfl_neg(pfl_in, expected):
 )
 def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
     """Test if portfolio lines can be added and subtracted and give correct result."""
-    expected = expected_add if operation == "add" else expected_sub
+    expected = expected_add if operation == "+" else expected_sub
 
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
-            _ = (pfl_in + value) if operation == "add" else (pfl_in - value)
+            _ = (pfl_in + value) if operation == "+" else (pfl_in - value)
         return
 
-    result = (pfl_in + value) if operation == "add" else (pfl_in - value)
+    result = (pfl_in + value) if operation == "+" else (pfl_in - value)
     assert result == expected
 
 
-@pytest.mark.parametrize("operation", ["mul", "div"])
+@pytest.mark.parametrize("operation", ["*", "/"])
 @pytest.mark.parametrize(
     ("pfl_in", "value", "expected_mul", "expected_div"),
     [
@@ -1607,14 +1607,14 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
 def test_pfl_muldiv_full(pfl_in, value, expected_mul, expected_div, operation):
     """Test if portfolio lines can be multiplied and divided and give correct result.
     Includes partly overlapping indices."""
-    expected = expected_mul if operation == "mul" else expected_div
+    expected = expected_mul if operation == "*" else expected_div
 
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
-            _ = (pfl_in * value) if operation == "mul" else (pfl_in / value)
+            _ = (pfl_in * value) if operation == "*" else (pfl_in / value)
         return
 
-    result = (pfl_in * value) if operation == "mul" else (pfl_in / value)
+    result = (pfl_in * value) if operation == "*" else (pfl_in / value)
     if isinstance(expected, pd.Series):
         testing.assert_series_equal(result, expected, check_names=False)
     else:
