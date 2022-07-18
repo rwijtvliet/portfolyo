@@ -110,7 +110,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         )
 
     @property
-    def index(self) -> pd.DatetimeIndex:
+    def index(self) -> pd.DatetimeIndex:  # from ABC
         return self._offtakevolume.index
 
     @property
@@ -207,7 +207,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
     def add_sourced(self, add_sourced: PfLine) -> PfState:
         return self.set_sourced(self.sourced + add_sourced)
 
-    def asfreq(self, freq: str = "MS") -> PfState:
+    def asfreq(self, freq: str = "MS") -> PfState:  # from ABC
         """Resample the Portfolio to a new frequency.
 
         Parameters
@@ -227,13 +227,52 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         sourced = self.sourced.asfreq(freq)
         return PfState(offtakevolume, unsourcedprice, sourced)
 
+    def hedge_of_unsourced(
+        self: PfState, how: str = "val", freq: str = "MS", po: bool = None
+    ) -> PfLine:
+        """Hedge the unsourced volume, at unsourced prices in the portfolio.
+
+        See also
+        --------
+        PfLine.hedge
+
+        Returns
+        -------
+        PfLine
+            Hedge (volumes and prices) of unsourced volume.
+        """
+        return self.unsourced.volume.hedge_with(self.unsourcedprice, how, freq, po)
+
+    def source_unsourced(
+        self: PfState, how: str = "val", freq: str = "MS", po: bool = None
+    ) -> PfState:
+        """Simulate PfState if unsourced volume is hedged and sourced at market prices.
+
+        See also
+        --------
+        .hedge_of_unsourced()
+
+        Returns
+        -------
+        PfState
+            which is fully hedged at time scales of `freq` or longer.
+        """
+        tosource = self.hedge_of_unsourced(how, freq, po)
+        return self.__class__(
+            self._offtakevolume, self._unsourcedprice, self.sourced + tosource
+        )
+
+    def mtm_of_sourced(self) -> PfLine:
+        """Mark-to-Market value of sourced volume."""
+        return self.sourced.volume * (self.unsourcedprice - self.sourced.price)
+
     # Dunder methods.
 
     def __getitem__(self, name):
         if hasattr(self, name):
             return getattr(self, name)
 
-    def __eq__(self, other):
+    def __eq__(self, other):  # from ABC
         if not isinstance(other, PfState):
             return False
         return all(
@@ -244,10 +283,8 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         return True
 
     @property
-    def loc(self) -> _LocIndexer:
+    def loc(self) -> _LocIndexer:  # from ABC
         return _LocIndexer(self)
-
-    # Additional methods, unique to this class.
 
 
 class _LocIndexer:
@@ -263,7 +300,6 @@ class _LocIndexer:
         return PfState(offtakevolume, unsourcedprice, sourced)
 
 
-from . import enable_arithmatic, enable_hedging  # noqa
+from . import enable_arithmatic  # noqa
 
 enable_arithmatic.apply()
-enable_hedging.apply()
