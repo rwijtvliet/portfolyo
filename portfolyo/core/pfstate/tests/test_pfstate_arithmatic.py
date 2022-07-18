@@ -162,10 +162,10 @@ add_pfs1_pfs2 = PfState(
         (pfs1, "*", dataset1["nodim"], mul_pfs1_nodim2),
         (pfs1, "/", dataset1["nodim"], div_pfs1_nodim2),
         # Series with unit.
-        (pfs1, "+", dataset1["nodim"].astype("MW"), ValueError),
-        (pfs1, "-", dataset1["nodim"].astype("MW"), ValueError),
-        (pfs1, "*", dataset1["nodim"].astype("MW"), ValueError),
-        (pfs1, "/", dataset1["nodim"].astype("MW"), ValueError),
+        (pfs1, "+", dataset1["nodim"].astype("pint[MW]"), ValueError),
+        (pfs1, "-", dataset1["nodim"].astype("pint[MW]"), ValueError),
+        (pfs1, "*", dataset1["nodim"].astype("pint[MW]"), ValueError),
+        (pfs1, "/", dataset1["nodim"].astype("pint[MW]"), ValueError),
         # Other PfState.
         (pfs1, "+", pfs1, mul_pfs1_2),
         (pfs1, "+", pfs2, add_pfs1_pfs2),
