@@ -70,7 +70,6 @@ Contents
    specialized_topics/dimensions
    specialized_topics/resampling
 
-
 .. toctree::
    :maxdepth: 2
    :caption: Full reference

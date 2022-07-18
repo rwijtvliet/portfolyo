@@ -1,3 +1,7 @@
+"""Package to analyse and manipulate timeseries related to power and gas offtake portfolios."""
+
+import pandas
+
 from .core.pfline import PfLine, SinglePfLine, MultiPfLine, Kind
 from .core.pfstate import PfState
 from .core.mixins.plot import plot_pfstates

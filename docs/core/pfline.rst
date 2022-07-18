@@ -469,7 +469,7 @@ The returned portfolio lines are flattened.
 
 It is also possible to set a price-only or volume-only portfolio line as the price or volume; for this we use the ``.set_price()`` and ``set_volume()`` methods.
 
-.. _hedging:
+.. _pflinehedging:
 
 -------
 Hedging

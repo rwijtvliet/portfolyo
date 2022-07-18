@@ -62,7 +62,7 @@ Unsourced price
 
 One of the parameters of the initialisation is the ``unsouncedprice``, which needs a little bit of explanation. It is the price that we expect to pay (/receive) for the volume that the portfolio is currently short (/long). This is intimately connected to the market prices, but they are not necessarily equal.
 
-If the portfolio state has the same frequency as the spot market on which any remaining open volume is eventually settled, the ``unsourcedprice`` can be set to the price-forward curve. It does not depend on the particulars of the portfolio we are considering - completely unhedged or nearly fully hedged; with its offtake predominantly during the day, during the night, during the week or during the weekend.
+If the portfolio state has the same frequency as the spot market on which any remaining open volume is eventually settled, the ``unsourcedprice`` can be set to the price-forward curve. It does not depend on the particulars of the portfolio we are considering -- completely unhedged or nearly fully hedged; with its offtake predominantly during the day, during the night, during the week or during the weekend.
 
 If the portfolio state *is* aggregated, e.g. to monthly values, we need to supply as ``unsourcedprice`` the average value of the price-forward curve in eath month *weighted with the unsourced volume*. This obviously *does* depend on the particulars of the portfolio. When comparing two portfolios with identical monthly offtake volumes and identical sourced volumes, the monthly unsourced price will be higher for the portfolio that has its offtake predominantly in the peak hours, compared to the other portfolio which has it mainly in the offpeak hours.
 
@@ -261,13 +261,15 @@ Note that, when changing the sourced or offtake volume, the warning in :ref:`the
 Mark-to-Market
 --------------
 
-If we want to know the market value of only the sourced volumes, we can use the ``.mtm_of_sourced()`` method, which calculates the surplus value of the sourcing contracts at current market prices. It uses the unsourced prices for this, so here too, the warning in :ref:`the section on unsourced prices<unsourcedprice>` applies.
+If we want to know the market value of only the sourced volumes, we can use the ``.mtm_of_sourced()`` method, which calculates the surplus value of the sourcing contracts at current market prices. It uses the unsourced prices for this, so here too, the warning in the section on unsourced prices (:ref:`above <unsourcedprice>`) applies.
 
 -------
 Hedging
 -------
 
-The unsourced volume can be hedged with standard products - month, quarter, or year blocks. (See the :doc:`section on heding <./pfline#_hedging>` in the documentation on portfolio lines). The ``.hedge_of_unsourced()`` method returns the portfolio line of the volumes and prices of this hedge; the ``.source_unsourced()`` method returns what the portfolio state would be, if this volume was actually added to the currently sourced volume.
+The unsourced volume can be hedged with standard products - month, quarter, or year blocks. (See the :ref:`section on heding <pflinehedging>` in the documentation on portfolio lines). The ``.hedge_of_unsourced()`` method returns the portfolio line of the volumes and prices of this hedge; the ``.source_unsourced()`` method returns what the portfolio state would be, if this volume was actually added to the currently sourced volume.
+
+Examples of this are shown in the :doc:`tutorial<../tutorial/part3>`.
 
 
 ---
