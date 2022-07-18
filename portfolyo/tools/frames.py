@@ -527,8 +527,6 @@ def _wavg_df(
     -----
     Will raise error if axis == 1 and columns have distinct unit-dimensions.
     """
-    freq_input = df.index.freq
-
     # Prep: orient so that we can always average over rows.
     if axis == 1:
         df = df.T
@@ -537,9 +535,9 @@ def _wavg_df(
     if isinstance(weights, pd.DataFrame):
         if axis == 1:
             weights = weights.T
-        result = pd.Series({c: _wavg_series(s, weights[c]) for c, s in df.items()})
-    else:  # series or iterable or None
-        result = pd.Series({c: _wavg_series(s, weights) for c, s in df.items()})
+        result = df.apply(lambda s: _wavg_series(s, weights.loc[:, s.name]))
+    else:  # weights == series or iterable or None
+        result = df.apply(lambda s: _wavg_series(s, weights))
 
     # Correction: turn series of pint-Quantities into pint-series, if possible.
     if pd.api.types.is_object_dtype(result):
@@ -549,8 +547,6 @@ def _wavg_df(
         except (AttributeError, DimensionalityError):
             pass
 
-    # Correction: infer frequency (may be lost if axis==1).
-    result = set_frequency(result, freq_input)
     return result
 
 
