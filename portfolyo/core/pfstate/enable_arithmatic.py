@@ -11,10 +11,8 @@ if TYPE_CHECKING:  # needed to avoid circular imports
     from ..pfstate import PfState
     from ..pfline import PfLine
 
-# pfline = pfstate = None
 
-
-def _prep_data(value, ref: PfState) -> Union[pd.Series, PfLine, PfState]:
+def _prep_data(value, refindex: pd.DatetimeIndex) -> Union[pd.Series, PfLine, PfState]:
     """Turn ``value`` into PfLine or PfState if possible. If not, turn into (normal or unit-aware) Series."""
 
     # Already a PfState.
@@ -42,11 +40,11 @@ def _prep_data(value, ref: PfState) -> Union[pd.Series, PfLine, PfState]:
 
     # Just a single value.
     if isinstance(value, int) or isinstance(value, float):
-        s = pd.Series(value, ref.index)
-        return _prep_data(s, ref)
+        s = pd.Series(value, refindex)
+        return _prep_data(s, refindex)
     elif isinstance(value, nits.Q_):
-        s = pd.Series(value.magnitude, ref.index, dtype=nits.pintunit(value.units))
-        return _prep_data(s, ref)
+        s = pd.Series(value.magnitude, refindex, dtype=f"pint[{value.units:P}]")
+        return _prep_data(s, refindex)
 
     raise TypeError(f"Cannot handle inputs of this type; got {type(value)}.")
 
@@ -70,29 +68,35 @@ def _add_pfstates(pfs1: pfstate.PfState, pfs2: pfstate.PfState) -> pfstate.PfSta
 def _multiply_pfstate_and_series(pfs: pfstate.PfState, s: pd.Series) -> pfstate.PfState:
     """Multiply pfstate and Series."""
     # Scale up volumes (and revenues), leave prices unchanged.
-    offtakevolume = pfs.offtakevolume.volume * s
-    unsourcedprice = pfs.unsourcedprice
-    sourced = pfs.sourced * s
-    return pfstate.PfState(offtakevolume, unsourcedprice, sourced)
+    return pfstate.PfState(pfs.offtakevolume * s, pfs.unsourcedprice, pfs.sourced * s)
 
 
 def _divide_pfstates(pfs1: pfstate.PfState, pfs2: pfstate.PfState) -> pd.DataFrame:
     """Divide two pfstates."""
     series = {}
-    for part in [
+    for top, bottom in [
         ("offtake", "volume"),
         ("sourced", "volume"),
         ("sourced", "price"),
-        ("unsourced", "price"),
+        ("unsourced", "volume"),
+        ("unsourcedprice", "price"),
+        ("pnl_cost", "price"),
     ]:
-        series[part] = pfs1[part[0]][part[1]] / pfs2[part[0]][part[1]]
+        pfl1 = getattr(getattr(pfs1, top), bottom)
+        pfl2 = getattr(getattr(pfs2, top), bottom)
+        top = top.replace("unsourcedprice", "unsourced")
+        series[(top, bottom)] = pfl1 / pfl2
     return pd.DataFrame(series)
 
 
-def _assert_freq_compatibility(o1, o2):
+def _assert_index_compatibility(o1, o2):
     if o1.index.freq != o2.index.freq:
         raise NotImplementedError(
             "Cannot do arithmatic with timeseries of unequal frequency."
+        )
+    if o1.index.tz != o2.index.tz:
+        raise NotImplementedError(
+            "Cannot do arithmatic with timeseries in unequal timezones."
         )
 
 
@@ -108,8 +112,8 @@ class PfStateArithmatic:
         if not other:
             return self
 
-        other = _prep_data(other, self)  # other is now a PfState, PfLine, or Series.
-        _assert_freq_compatibility(self, other)
+        other = _prep_data(other, self.index)  # other is now PfState, PfLine, or Series
+        _assert_index_compatibility(self, other)
 
         # Other is a PfState.
         if isinstance(other, pfstate.PfState):
@@ -127,8 +131,8 @@ class PfStateArithmatic:
 
     def __mul__(self: PfState, other):
 
-        other = _prep_data(other, self)  # other is now a PfState, PfLine, or Series.
-        _assert_freq_compatibility(self, other)
+        other = _prep_data(other, self.index)  # other is now PfState, PfLine, or Series
+        _assert_index_compatibility(self, other)
 
         # Other is a Series (but not containing [power], [energy] or [price]).
         if isinstance(other, pd.Series):
@@ -139,8 +143,8 @@ class PfStateArithmatic:
     __rmul__ = __mul__
 
     def __truediv__(self: PfState, other):
-        other = _prep_data(other, self)  # other is now a PfState, PfLine, or Series.
-        _assert_freq_compatibility(self, other)
+        other = _prep_data(other, self.index)  # other is now PfState, PfLine, or Series
+        _assert_index_compatibility(self, other)
 
         # Other is a PfState.
         if isinstance(other, pfstate.PfState):

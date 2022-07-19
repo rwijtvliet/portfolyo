@@ -167,7 +167,7 @@ def wp_sourced(
 
     # Add unit if wanted.
     if has_unit:
-        wunit = nits.pintunit(w_unit) if w_unit is not None else "pint[MW]"
+        wunit = nits.pintunit_remove(w_unit) if w_unit is not None else "pint[MW]"
         w = w.astype(wunit)
         p = p.astype("pint[Eur/MWh]")
     return w, p

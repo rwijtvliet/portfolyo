@@ -4,15 +4,18 @@ from portfolyo import (
     SinglePfLine,
     MultiPfLine,
     PfState,
+    testing,
     Kind,
+    dev,
     Q_,
 )  # noqa
 import portfolyo as pf
 import pandas as pd
+import numpy as np
 import pytest
 
 
-pf.dev.seed(0)  # make sure we always get the same random numbers
+dev.seed(0)  # make sure we always get the same random numbers
 
 
 def id_fn(data: Any):
@@ -68,7 +71,7 @@ dataset1 = {
     ),
     "nodim": pd.Series([2, -1.5, 10], i1),
 }
-pfs1 = PfState(dataset1["offtake"], dataset1["unsourcedprice"], dataset1["sourced"] / 2)
+pfs1 = PfState(dataset1["offtake"], dataset1["unsourcedprice"], dataset1["sourced"])
 
 # Set 2. Partial overlap with set 1.
 i2 = pd.date_range("2020-02", freq="MS", periods=3, tz=tz)
@@ -83,7 +86,21 @@ dataset2 = {
     ),
     "nodim": pd.Series([2, -1.5, 10], i2),
 }
-pfs2 = PfState(dataset2["offtake"], dataset2["unsourcedprice"], dataset2["sourced"] / 2)
+pfs2 = PfState(dataset2["offtake"], dataset2["unsourcedprice"], dataset2["sourced"])
+
+# Portfolio state without overlap.
+i3 = pd.date_range("2022", freq="MS", periods=3, tz=tz)
+pfs3 = dev.get_pfstate(i3)
+
+# Portfolio state with other frequency.
+i4 = pd.date_range("2020", freq="D", periods=3, tz=tz)
+pfs4 = dev.get_pfstate(i4)
+
+# Portfolio state with wrong timezone.
+i5 = pd.date_range("2022", freq="MS", periods=3, tz="Asia/Kolkata")
+pfs5 = dev.get_pfstate(i5)
+i6 = pd.date_range("2022", freq="MS", periods=3, tz=None)
+pfs6 = dev.get_pfstate(i6)
 
 # Several expected results of arithmatic.
 mul_pfs1_2 = PfState(
@@ -95,83 +112,139 @@ mul_pfs1_0 = PfState(
 div_pfs1_2 = PfState(
     dataset1["offtake"] / 2, dataset1["unsourcedprice"], dataset1["sourced"] / 2
 )
-mul_pfs1_nodim2 = PfState(
-    dataset1["offtake"] * dataset2["nodim"],
+mul_pfs1_nodim1 = PfState(
+    dataset1["offtake"] * dataset1["nodim"],
     dataset1["unsourcedprice"],
-    dataset1["sourced"] * dataset2["nodim"],
+    dataset1["sourced"] * dataset1["nodim"],
 )
-div_pfs1_nodim2 = PfState(
-    dataset1["offtake"] / dataset2["nodim"],
+div_pfs1_nodim1 = PfState(
+    dataset1["offtake"] / dataset1["nodim"],
     dataset1["unsourcedprice"],
-    dataset1["sourced"] / dataset2["nodim"],
+    dataset1["sourced"] / dataset1["nodim"],
 )
 neg_pfs1 = PfState(
     -dataset1["offtake"], dataset1["unsourcedprice"], -dataset1["sourced"]
 )
-i12 = pd.date_range("2020-02", freq="MS", periods=2)
+i12 = pd.date_range("2020-02", freq="MS", periods=2, tz=tz)
 add_pfs1_pfs2 = PfState(
     PfLine({"w": pd.Series([-20.0, -25], i12)}),
     PfLine({"p": pd.Series([400, 53.125], i12)}),
     PfLine({"w": pd.Series([17.0, 9], i12), "p": pd.Series([100, 700 / 9], i12)}),
 )
-
-
-# neg_volume_pfl1 = pf.SinglePfLine({"w": -series1["w"]})
-# neg_price_pfl1 = pf.SinglePfLine({"p": -series1["p"]})
-# neg_all_pfl1 = pf.SinglePfLine({"w": -series1["w"], "r": -series1["r"]})
-# add_volume_series = {"w": series1["w"] + series2["w"]}
-# add_volume_pfl = pf.SinglePfLine({"w": add_volume_series["w"]})
-# sub_volume_series = {"w": series1["w"] - series2["w"]}
-# sub_volume_pfl = pf.SinglePfLine({"w": sub_volume_series["w"]})
-# add_price_series = {"p": series1["p"] + series2["p"]}
-# add_price_pfl = pf.SinglePfLine({"p": add_price_series["p"]})
-# sub_price_series = {"p": series1["p"] - series2["p"]}
-# sub_price_pfl = pf.SinglePfLine({"p": sub_price_series["p"]})
-# add_all_series = {"w": series1["w"] + series2["w"], "r": series1["r"] + series2["r"]}
-# add_all_pfl = pf.SinglePfLine({"w": add_all_series["w"], "r": add_all_series["r"]})
-# sub_all_series = {"w": series1["w"] - series2["w"], "r": series1["r"] - series2["r"]}
-# sub_all_pfl = pf.SinglePfLine({"w": sub_all_series["w"], "r": sub_all_series["r"]})
-# mul_volume1_price2 = pf.SinglePfLine({"w": series1["w"], "p": series2["p"]})
-# mul_volume2_price1 = pf.SinglePfLine({"w": series2["w"], "p": series1["p"]})
-# div_volume1_volume2 = (series1["w"] / series2["w"]).astype("pint[dimensionless]")
-# div_price1_price2 = (series1["p"] / series2["p"]).astype("pint[dimensionless]")
-# mul_all1_dimless2 = pf.SinglePfLine(
-#     {"w": series1["w"] * series2["nodim"], "p": series1["p"]}
-# )
-# div_all1_dimless2 = pf.SinglePfLine(
-#     {"w": series1["w"] / series2["nodim"], "p": series1["p"]}
-# )
+div_pfs1_pfs2 = pd.DataFrame(
+    {
+        ("offtake", "volume"): [1 / 3, 1 / 4],
+        ("sourced", "volume"): [5 / 12, 4 / 5],
+        ("sourced", "price"): [1, 0.5],
+        ("unsourced", "volume"): [0, 1 / 15],
+        ("unsourced", "price"): [150 / 400, 2],
+        ("pnl_cost", "price"): [1 / 1.6, 60 / 62.5],
+    },
+    i12,
+    dtype="pint[dimensionless]",
+)
+div_pfs2_pfs1 = pd.DataFrame(
+    {
+        ("offtake", "volume"): [3, 4],
+        ("sourced", "volume"): [12 / 5, 5 / 4],
+        ("sourced", "price"): [1, 2],
+        ("unsourced", "volume"): [np.nan, 15],
+        ("unsourced", "price"): [400 / 150, 0.5],
+        ("pnl_cost", "price"): [1.6, 62.5 / 60],
+    },
+    i12,
+    dtype="pint[dimensionless]",
+)
+div_pfs1_pfs1 = pd.DataFrame(
+    {
+        ("offtake", "volume"): [1.0, 1, 1],
+        ("sourced", "volume"): [1.0, 1, 1],
+        ("sourced", "price"): [1.0, 1, 1],
+        ("unsourced", "volume"): [1.0, np.nan, 1],
+        ("unsourced", "price"): [1.0, 1, 1],
+        ("pnl_cost", "price"): [1.0, 1, 1],
+    },
+    i1,
+    dtype="pint[dimensionless]",
+)
+div_2pfs1_pfs1 = pd.DataFrame(
+    {
+        ("offtake", "volume"): [2.0, 2, 2],
+        ("sourced", "volume"): [2.0, 2, 2],
+        ("sourced", "price"): [1.0, 1, 1],
+        ("unsourced", "volume"): [2.0, np.nan, 2],
+        ("unsourced", "price"): [1.0, 1, 1],
+        ("pnl_cost", "price"): [1.0, 1, 1],
+    },
+    i1,
+    dtype="pint[dimensionless]",
+)
+emptydivision = pd.DataFrame(
+    [],
+    columns=(
+        ("offtake", "volume"),
+        ("sourced", "volume"),
+        ("sourced", "price"),
+        ("unsourced", "volume"),
+        ("unsourced", "price"),
+        ("pnl_cost", "price"),
+    ),
+)
 
 
 @pytest.mark.parametrize(
     ("pfs_in", "operation", "value", "expected"),
     [
         # Constant without unit.
-        (pfs1, "+", 2, ValueError),
-        (pfs1, "-", 2, ValueError),
+        (pfs1, "+", 2, Exception),
+        (pfs1, "-", 2, Exception),
         (pfs1, "*", 2, mul_pfs1_2),
         (pfs1, "/", 2, div_pfs1_2),
         # Constant with unit.
-        (pfs1, "+", Q_(4, "MWh"), ValueError),
-        (pfs1, "-", Q_(4, "MWh"), ValueError),
-        (pfs1, "*", Q_(4, "MWh"), ValueError),
-        (pfs1, "/", Q_(4, "MWh"), ValueError),
+        (pfs1, "+", Q_(4, "MWh"), Exception),
+        (pfs1, "-", Q_(4, "MWh"), Exception),
+        (pfs1, "*", Q_(4, "MWh"), Exception),
+        (pfs1, "/", Q_(4, "MWh"), Exception),
         # Series without unit.
-        (pfs1, "+", dataset1["nodim"], ValueError),
-        (pfs1, "-", dataset1["nodim"], ValueError),
-        (pfs1, "*", dataset1["nodim"], mul_pfs1_nodim2),
-        (pfs1, "/", dataset1["nodim"], div_pfs1_nodim2),
+        (pfs1, "+", dataset1["nodim"], Exception),
+        (pfs1, "-", dataset1["nodim"], Exception),
+        (pfs1, "*", dataset1["nodim"], mul_pfs1_nodim1),
+        (pfs1, "/", dataset1["nodim"], div_pfs1_nodim1),
         # Series with unit.
-        (pfs1, "+", dataset1["nodim"].astype("pint[MW]"), ValueError),
-        (pfs1, "-", dataset1["nodim"].astype("pint[MW]"), ValueError),
-        (pfs1, "*", dataset1["nodim"].astype("pint[MW]"), ValueError),
-        (pfs1, "/", dataset1["nodim"].astype("pint[MW]"), ValueError),
+        (pfs1, "+", dataset1["nodim"].astype("pint[MW]"), Exception),
+        (pfs1, "-", dataset1["nodim"].astype("pint[MW]"), Exception),
+        (pfs1, "*", dataset1["nodim"].astype("pint[MW]"), Exception),
+        (pfs1, "/", dataset1["nodim"].astype("pint[MW]"), Exception),
         # Other PfState.
         (pfs1, "+", pfs1, mul_pfs1_2),
         (pfs1, "+", pfs2, add_pfs1_pfs2),
+        (pfs2, "+", pfs1, add_pfs1_pfs2),
         (pfs1, "-", pfs1, mul_pfs1_0),
-        (pfs1, "*", pfs1, ValueError),
-        (pfs1, "/", pfs1, ValueError),
+        (pfs1, "*", pfs1, Exception),
+        (pfs1, "*", pfs2, Exception),
+        (pfs1, "/", pfs2, div_pfs1_pfs2),
+        (pfs2, "/", pfs1, div_pfs2_pfs1),
+        (pfs1, "/", pfs1, div_pfs1_pfs1),
+        (mul_pfs1_2, "/", pfs1, div_2pfs1_pfs1),
+        # Other PfState without overlap.
+        (pfs1, "+", pfs3, Exception),
+        (pfs1, "-", pfs3, Exception),
+        (pfs1, "*", pfs3, Exception),
+        (pfs1, "/", pfs3, emptydivision),
+        # Other PfState with incorrect frequency.
+        (pfs1, "+", pfs4, Exception),
+        (pfs1, "-", pfs4, Exception),
+        (pfs1, "*", pfs4, Exception),
+        (pfs1, "/", pfs4, Exception),
+        # Other PfState in different timezone.
+        (pfs1, "+", pfs5, Exception),
+        (pfs1, "-", pfs5, Exception),
+        (pfs1, "*", pfs5, Exception),
+        (pfs1, "/", pfs5, Exception),
+        (pfs1, "+", pfs6, Exception),
+        (pfs1, "-", pfs6, Exception),
+        (pfs1, "*", pfs6, Exception),
+        (pfs1, "/", pfs6, Exception),
     ],
     ids=id_fn,
 )
@@ -185,8 +258,9 @@ def test_pfs_arithmatic(pfs_in, value, operation, expected):
             return pfs_in - value
         elif operation == "*":
             return pfs_in * value
-        elif operation == "-":
+        elif operation == "/":
             return pfs_in / value
+        raise NotImplementedError()
 
     # Test error case.
     if isinstance(expected, type) and issubclass(expected, Exception):
@@ -196,4 +270,7 @@ def test_pfs_arithmatic(pfs_in, value, operation, expected):
 
     # Test correct case.
     result = calc()
-    assert result == expected
+    if isinstance(expected, pd.DataFrame):
+        testing.assert_frame_equal(result, expected)
+    else:
+        assert result == expected

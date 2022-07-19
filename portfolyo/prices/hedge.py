@@ -128,6 +128,8 @@ def hedge(
 
     # Handle possible units.
     if wunits or punits:
-        df = df.astype({"w": nits.pintunit(wunits), "p": nits.pintunit(punits)})
+        df = df.astype(
+            {"w": nits.pintunit_remove(wunits), "p": nits.pintunit_remove(punits)}
+        )
 
     return df["w"], df["p"]

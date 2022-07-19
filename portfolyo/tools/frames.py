@@ -563,5 +563,5 @@ def series_allclose(s1, s2, *args, **kwargs):
         return False
     # Both have units, and both have same dimensionality (e.g. 'length'). Check values.
     s1_vals = s1.pint.m
-    s2_vals = s2.astype(nits.pintunit(s1.pint.u)).pint.m
+    s2_vals = s2.astype(f"pint[{s1.pint.u:P}]").pint.m
     return np.allclose(s1_vals, s2_vals, *args, **kwargs)
