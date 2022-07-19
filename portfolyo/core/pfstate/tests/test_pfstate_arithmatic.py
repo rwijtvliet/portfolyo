@@ -44,19 +44,6 @@ def id_fn(data: Any):
 
 
 tz = "Europe/Berlin"
-# i1 = pd.date_range("2021", periods=20, freq="MS", tz=tz)  # same freq, part overlap
-# i2 = pd.date_range("2022-04", periods=20, freq="MS", tz=tz)  # same freq, no overlap
-# i3 = pd.date_range(
-#     "2020-04", periods=8000, freq="H", tz=tz
-# )  # shorter freq, part overlap
-# i4 = pd.date_range("2020", periods=8, freq="QS", tz=tz)  # longer freq, part overlap
-
-
-# TODO: check correct working of dunder methods. E.g. assert correct addition:
-# . . pflines having same or different kind
-# . . pflines having same or different frequency
-# . . pflines covering same or different time periods
-
 
 # Set 1.
 i1 = pd.date_range("2020", freq="MS", periods=3, tz=tz)
@@ -192,6 +179,12 @@ emptydivision = pd.DataFrame(
     index=pd.DatetimeIndex([], freq="MS", tz=tz),
     dtype=float,
 )
+
+
+def test_pfs_negation():
+    """Test if negation works correctly."""
+    result = -pfs1
+    assert result == neg_pfs1
 
 
 @pytest.mark.parametrize(
