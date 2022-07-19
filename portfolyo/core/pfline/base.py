@@ -9,7 +9,7 @@ from __future__ import annotations
 from ..ndframelike import NDFrameLike
 from ..mixins import PfLineText, PfLinePlot, OtherOutput
 from ...prices.utils import duration_bpo
-from ...prices import convert
+from ...prices import convert, hedge
 from ...tools.types import Quantity, Value
 
 from abc import abstractmethod
@@ -81,8 +81,8 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
                 errors[subcls] = e
                 pass
         errormsg = "\n".join(f"- {c.__name__}: {e.args[0]}" for c, e in errors.items())
-        raise NotImplementedError(
-            f"None of the subclasses can be created from this data, with the following reasons:\n{errormsg}"
+        raise ValueError(
+            f"Cannot create flat or nested PfLine, with the following reasons:\n{errormsg}"
         )
 
     # Additional abstract methods to be implemented by descendents.
@@ -320,9 +320,59 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         i = pd.MultiIndex.from_product([prods, ("duration", *self.available)])
         return df[i]
 
+    def hedge_with(
+        self: PfLine, p: PfLine, how: str = "val", freq: str = "MS", po: bool = None
+    ) -> PfLine:
+        """Hedge the volume in the portfolio line with a price curve.
+
+        Parameters
+        ----------
+        p : PfLine
+            Portfolio line with prices to be used in the hedge.
+        how : str, optional (Default: 'val')
+            Hedge-constraint. 'vol' for volumetric hedge, 'val' for value hedge.
+        freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'AS' (years)}
+            Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
+        po : bool, optional
+            Type of hedging products. Set to True to split hedge into peak and offpeak.
+            (Default: split if volume timeseries has hourly values or shorter.)
+
+        Returns
+        -------
+        PfLine
+            Hedged volume and prices. Index with same frequency as original, but every
+            timestamp within a given hedging frequency has the same volume [MW] and price.
+            (or, one volume-price pair for peak, and another volume-price pair for offpeak.)
+
+        Notes
+        -----
+        - If the PfLine contains prices, these are ignored.
+        - If ``p`` contains volumes, these are ignored.
+        """
+        if self.kind is Kind.PRICE_ONLY:
+            raise ValueError(
+                "Cannot hedge a PfLine that does not contain volume information."
+            )
+        if self.index.freq not in ["15T", "H", "D"]:
+            raise ValueError(
+                "Can only hedge a PfLine with daily or (quarter)hourly information."
+            )
+        if not isinstance(p, PfLine):
+            raise TypeError(
+                f"Parameter ``p`` must be a PfLine instance; got {type(p)}."
+            )
+        if po is None:
+            po = self.index.freq in ["15T", "H"]  # default: peak/offpeak if possible
+        if po and self.index.freq not in ["15T", "H"]:
+            raise ValueError(
+                "Can only hedge with peak and offpeak products if PfLine has (quarter)hourly information."
+            )
+
+        wout, pout = hedge.hedge(self.w, p.p, how, freq, po)
+        return single.SinglePfLine({"w": wout, "p": pout})
+
 
 # Must be at end, because they depend on PfLine existing.
-from . import single, multi, interop, enable_arithmatic, enable_hedging  # noqa
+from . import single, multi, interop, enable_arithmatic  # noqa
 
 enable_arithmatic.apply()
-enable_hedging.apply()

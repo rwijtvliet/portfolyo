@@ -24,9 +24,10 @@ PA_ = pint_pandas.PintArray
 Q_ = ureg.Quantity
 
 
-def pintunit(u: pint.Unit) -> str:
+def pintunit_remove(u: pint.Unit) -> str:
     units = f"{u}" or "dimensionless"
     return f"pint[{units}]"
+    # TODO: replace with f'{units:P}'
 
 
 # def to_pref_unit(self: pint.Quantity):
@@ -99,7 +100,7 @@ def set_unit(s: pd.Series, unit: Union[pint.Unit, str]) -> pd.Series:
     if not isinstance(unit, pint.Unit):
         unit = ureg.Unit(unit)
     # sets unit if none set yet, otherwise converts if possible
-    return s.astype(pintunit(unit))
+    return s.astype(pintunit_remove(unit))
 
 
 def set_units(
