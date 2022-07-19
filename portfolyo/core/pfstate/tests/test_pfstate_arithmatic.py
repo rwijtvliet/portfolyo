@@ -189,6 +189,8 @@ emptydivision = pd.DataFrame(
         ("unsourced", "price"),
         ("pnl_cost", "price"),
     ),
+    index=pd.DatetimeIndex([], freq="MS", tz=tz),
+    dtype=float,
 )
 
 
