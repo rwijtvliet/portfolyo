@@ -63,6 +63,6 @@ html_css_files = ["css/custom.css"]
 
 html_theme_options = {"navigation_depth": 1}
 
-exec_code_stdout_encoding = "utf-8"
+exec_code_set_utf8_encoding = True
 
 autosummary_generate = True
