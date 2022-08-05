@@ -46,10 +46,7 @@ Both initialisation methods are shown here:
    # let's have a look at this portfolio state
    pfs
    # --- hide: start ---
-   txt = repr(pfs)
-   for source, target in (("●", "o"), ("─", "-"), ("└", "|"), ("├", "|"), ("│", "|")):
-      txt = txt.replace(source, target)
-   print(txt) 
+   print(repr(pfs)) 
 
 Note that in this portfolio, no sourcing has yet taken place.
 
@@ -211,10 +208,7 @@ As with portfolio lines, portfolio states can be resampled to a new frequency wi
    # continuation from previous code example
    pfs.asfreq('QS')
    # --- hide: start ---
-   txt = repr(pfs.asfreq('QS'))
-   for source, target in (("●", "o"), ("─", "-"), ("└", "|"), ("├", "|"), ("│", "|")):
-      txt = txt.replace(source, target)
-   print(txt)
+   print(repr(pfs.asfreq('QS')))
 
 Notice how, for the unsourced volume, the prices are weighted with the energy in each month get the new price, just as is done with the sourced volume. Again, see :doc:`the tutorial <../tutorial/part3>` for a more elaborate example.
 
