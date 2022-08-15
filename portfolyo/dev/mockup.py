@@ -41,7 +41,8 @@ def w_offtake(
     """
     if year_amp + day_amp + week_amp + rand_amp > 1:
         raise ValueError(
-            f"Sum of fractional amplitudes ({year_amp:.1%} and {day_amp:.1%} and {week_amp:.1%} and {rand_amp:.1%}) should not exceed 100%."
+            f"Sum of fractional amplitudes ({year_amp:.1%} and {day_amp:.1%} and"
+            f" {week_amp:.1%} and {rand_amp:.1%}) should not exceed 100%."
         )
     # year angle: 1jan0:00..1jan0:00 -> 0..2pi
     ya = i.map(lambda ts: ts.dayofyear) / 365 * np.pi * 2
@@ -90,7 +91,8 @@ def p_marketprices(
     """
     if year_amp + week_amp + peak_amp > 1:
         raise ValueError(
-            f"Sum of fractional amplitudes ({year_amp:.1%} and {week_amp:.1%} and {peak_amp:.1%}) should not exceed 100%."
+            f"Sum of fractional amplitudes ({year_amp:.1%} and {week_amp:.1%} and"
+            f" {peak_amp:.1%}) should not exceed 100%."
         )
     # year angle: 1jan0:00..1jan0:00 -> 0..2pi. But: uniform within month
     ya = i.map(lambda ts: ts.month) / 12 * np.pi * 2
@@ -167,7 +169,7 @@ def wp_sourced(
 
     # Add unit if wanted.
     if has_unit:
-        wunit = nits.pintunit(w_unit) if w_unit is not None else "pint[MW]"
+        wunit = nits.pintunit_remove(w_unit) if w_unit is not None else "pint[MW]"
         w = w.astype(wunit)
         p = p.astype("pint[Eur/MWh]")
     return w, p

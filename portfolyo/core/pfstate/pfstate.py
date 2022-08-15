@@ -22,43 +22,48 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     Parameters
     ----------
-    offtakevolume, unsourcedprice, sourced : PfLine
-        `offtakevolume` may also be passed as pd.Series with name `q` or `w`.
-        `unsourcedprice` may also be passed as pd.Series.
-        `sourced` is optional; if non is specified, assume no sourcing has taken place.
+    offtakevolume: PfLine (volume-only)
+    unsourcedprice: PfLine (price-only)
+        Must be specified for at least the time period covering the offtake. If it
+        covers any more time, the values are stored, but not shown unless explicitly
+        accessing the .unsourcedprice property.
+    sourced : PfLine (price-and-volume), optional
+        - If not specified, assume no sourcing has taken place.
+        - If specified, the intersection of the index of the offtake volume and that of
+          the sourcing are kept.
+
+    Notes
+    -----
+    Sign conventions:
+    - Volumes (`q`, `w`): >0 if volume flows into the portfolio.
+    - Revenues (`r`): >0 if money flows out of the portfolio (i.e., costs).
+    - Prices (`p`): normally positive.
 
     Attributes
     ----------
     offtakevolume : volume-only PfLine
-        Offtake. Volumes are <0 for all timestamps (see 'Notes' below).
+        Offtake. Volumes are <=0 for all timestamps (see 'Notes' above).
     sourced : price-and-volume PfLine
-        Procurement. Volumes (and normally, revenues) are >0 for all timestamps (see
-        'Notes' below).
+        Procurement. Volumes (and normally, revenues) are >=0 for all timestamps (see
+        'Notes' above).
     unsourced : price-and-volume PfLine
         Procurement/trade that is still necessary until delivery. Volumes (and normally,
         revenues) are >0 if more volume must be bought, <0 if volume must be sold for a
-        given timestamp (see 'Notes' below). NB: if volume for a timestamp is 0, its
+        given timestamp (see 'Notes' above). NB: if volume for a timestamp is 0, its
         price is undefined (NaN) - to get the market prices in this portfolio, use the
         property `.unsourcedprice` instead.
     unsourcedprice : price-only PfLine
         Prices of the unsourced volume.
     netposition : price-and-volume PfLine
         Net portfolio positions. Convenience property for users with a "traders' view".
-        Does not follow sign conventions (see 'Notes' below); volumes are <0 if
+        Does not follow sign conventions (see 'Notes' above); volumes are <0 if
         portfolio is short and >0 if long. Identical to `.unsourced`, but with sign
         change for volumes and revenues (but not prices).
     procurement : price-and-volume PfLine
         The expected costs needed to source the offtake volume; the sum of the sourced
         and unsourced positions.
     index : pandas.DateTimeIndex
-        Left timestamp of row.
-
-    Notes
-    -----
-    Sign conventions:
-    . Volumes (`q`, `w`): >0 if volume flows into the portfolio.
-    . Revenues (`r`): >0 if money flows out of the portfolio (i.e., costs).
-    . Prices (`p`): normally positive.
+        Left timestamp of each delivery period under consideration.
     """
 
     @classmethod
@@ -110,8 +115,23 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         )
 
     @property
-    def index(self) -> pd.DatetimeIndex:
+    def index(self) -> pd.DatetimeIndex:  # from ABC
         return self._offtakevolume.index
+
+    @property
+    def offtakevolume(self) -> PfLine:
+        return self._offtakevolume
+
+    @property
+    def unsourcedprice(self) -> PfLine:
+        return self._unsourcedprice
+
+    @property
+    def sourced(self) -> PfLine:
+        if self._sourced is None:
+            return PfLine(pd.DataFrame({"q": 0, "r": 0}, self.index))
+        else:
+            return self._sourced
 
     @property
     def offtake(self) -> PfLine:
@@ -119,20 +139,8 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         return self._offtakevolume
 
     @property
-    def offtakevolume(self) -> PfLine:
-        return self._offtakevolume
-
-    @property
-    def sourced(self) -> PfLine:
-        return self._sourced
-
-    @property
     def unsourced(self) -> PfLine:
-        return -(self._offtakevolume + self._sourced.volume) * self._unsourcedprice
-
-    @property
-    def unsourcedprice(self) -> PfLine:
-        return self._unsourcedprice
+        return -(self.offtake.volume + self.sourced.volume) * self.unsourcedprice
 
     @property
     def netposition(self) -> PfLine:
@@ -144,7 +152,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     @property
     def sourcedfraction(self) -> pd.Series:
-        return -self._sourced.volume / self._offtakevolume
+        return self.sourced.volume / -self.offtake.volume
 
     @property
     def unsourcedfraction(self) -> pd.Series:
@@ -190,24 +198,24 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
     def set_offtakevolume(self, offtakevolume: PfLine) -> PfState:
         warnings.warn(
             "This operation changes the unsourced volume. This causes inaccuracies in its price"
-            " if the portfolio has a frequency that is longer than the spot market."
+            " if the portfolio state has a frequency that is longer than the spot market."
         )
-        return PfState(offtakevolume, self._unsourcedprice, self._sourced)
+        return PfState(offtakevolume, self.unsourcedprice, self._sourced)
 
     def set_unsourcedprice(self, unsourcedprice: PfLine) -> PfState:
-        return PfState(self._offtakevolume, unsourcedprice, self._sourced)
+        return PfState(self.offtake.volume, unsourcedprice, self._sourced)
 
     def set_sourced(self, sourced: PfLine) -> PfState:
         warnings.warn(
             "This operation changes the unsourced volume. This causes inaccuracies in its price"
-            " if the portfolio has a frequency that is longer than the spot market."
+            " if the portfolio state has a frequency that is longer than the spot market."
         )
         return PfState(self._offtakevolume, self._unsourcedprice, sourced)
 
     def add_sourced(self, add_sourced: PfLine) -> PfState:
-        return self.set_sourced(self.sourced + add_sourced)
+        return self.set_sourced(self.sourced + add_sourced)  # warns
 
-    def asfreq(self, freq: str = "MS") -> PfState:
+    def asfreq(self, freq: str = "MS") -> PfState:  # from ABC
         """Resample the Portfolio to a new frequency.
 
         Parameters
@@ -222,10 +230,49 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
             Resampled at wanted frequency.
         """
         # pu resampling is most important, so that prices are correctly weighted.
-        offtakevolume = self.offtakevolume.asfreq(freq).volume
+        offtakevolume = self.offtakevolume.asfreq(freq)
         unsourcedprice = self.unsourced.asfreq(freq).price  # ensures weighted avg
         sourced = self.sourced.asfreq(freq)
         return PfState(offtakevolume, unsourcedprice, sourced)
+
+    def hedge_of_unsourced(
+        self: PfState, how: str = "val", freq: str = "MS", po: bool = None
+    ) -> PfLine:
+        """Hedge the unsourced volume, at unsourced prices in the portfolio.
+
+        See also
+        --------
+        PfLine.hedge
+
+        Returns
+        -------
+        PfLine
+            Hedge (volumes and prices) of unsourced volume.
+        """
+        return self.unsourced.volume.hedge_with(self.unsourcedprice, how, freq, po)
+
+    def source_unsourced(
+        self: PfState, how: str = "val", freq: str = "MS", po: bool = None
+    ) -> PfState:
+        """Simulate PfState if unsourced volume is hedged and sourced at market prices.
+
+        See also
+        --------
+        .hedge_of_unsourced()
+
+        Returns
+        -------
+        PfState
+            which is fully hedged at time scales of `freq` or longer.
+        """
+        tosource = self.hedge_of_unsourced(how, freq, po)
+        return self.__class__(
+            self._offtakevolume, self._unsourcedprice, self.sourced + tosource
+        )
+
+    def mtm_of_sourced(self) -> PfLine:
+        """Mark-to-Market value of sourced volume."""
+        return self.sourced.volume * (self.unsourcedprice - self.sourced.price)
 
     # Dunder methods.
 
@@ -233,7 +280,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         if hasattr(self, name):
             return getattr(self, name)
 
-    def __eq__(self, other):
+    def __eq__(self, other):  # from ABC
         if not isinstance(other, PfState):
             return False
         return all(
@@ -244,10 +291,8 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         return True
 
     @property
-    def loc(self) -> _LocIndexer:
+    def loc(self) -> _LocIndexer:  # from ABC
         return _LocIndexer(self)
-
-    # Additional methods, unique to this class.
 
 
 class _LocIndexer:
@@ -263,7 +308,6 @@ class _LocIndexer:
         return PfState(offtakevolume, unsourcedprice, sourced)
 
 
-from . import enable_arithmatic, enable_hedging  # noqa
+from . import enable_arithmatic  # noqa
 
 enable_arithmatic.apply()
-enable_hedging.apply()

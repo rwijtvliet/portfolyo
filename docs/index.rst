@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 =========
-portfolyo
+Portfolyo
 =========
 
 .. image:: https://img.shields.io/pypi/v/portfolyo
@@ -42,6 +42,11 @@ Contents
 --------
 
 .. toctree::
+   :maxdepth: 1
+
+   ./index
+
+.. toctree::
    :maxdepth: 2
    :caption: Core functionality
 
@@ -51,7 +56,7 @@ Contents
    core/interoperability
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Tutorials
 
    tutorial/quickstart
@@ -69,7 +74,6 @@ Contents
    specialized_topics/timezones
    specialized_topics/dimensions
    specialized_topics/resampling
-
 
 .. toctree::
    :maxdepth: 2

@@ -55,4 +55,4 @@ the commit hooks.
    $ pip install -r requirements-dev.txt
    $ pre-commit install
 
-
+Feature branches are merged into the `develop` branch. This branch is merged into the `main` branch whenever a new stable release is published.

@@ -1,60 +1,72 @@
 """Prepare/verify input data for PfState initialisation."""
 
 
-from typing import Iterable
+from typing import Iterable, Any
+from ...tools import stamps
 from ..pfline import PfLine, SinglePfLine, MultiPfLine, Kind  # noqa
-import pandas as pd
 import warnings
 
 
-def make_pflines(offtakevolume, unsourcedprice, sourced) -> Iterable[PfLine]:
+def make_pflines(
+    offtakevolume: Any, unsourcedprice: Any, sourced: Any = None
+) -> Iterable[PfLine]:
     """Take offtake, unsourced, sourced information. Do some data massaging and return
-    3 PfLines: for offtake volume, unsourced price, and sourced price and volume."""
+    3 PfLines: for offtake volume, unsourced price, and sourced price and volume.
 
-    # Make sure unsourced and offtake are specified.
+    Note
+    ----
+    Does not intersect the indices; each component maintains its individual index. (In
+    PfState, the offtake's index is used.)
+    """
+    # Ensure unsourced and offtake are specified.
     if offtakevolume is None or unsourcedprice is None:
         raise ValueError("Must specify offtake volume and unsourced prices.")
 
-    # Offtake volume.
-    if isinstance(offtakevolume, pd.Series) or isinstance(offtakevolume, pd.DataFrame):
-        offtakevolume = PfLine(offtakevolume)  # using column names or series names
-    if isinstance(offtakevolume, PfLine):
-        if offtakevolume.kind is Kind.PRICE_ONLY:
-            raise ValueError("Must specify offtake volume.")
-        elif offtakevolume.kind is Kind.ALL:
-            warnings.warn("Offtake also contains price infomation; this is discarded.")
-            offtakevolume = offtakevolume.volume
+    # Get everything as PfLine.
+    # . Offtake volume.
+    offtakevolume = PfLine(offtakevolume)  # force to be PfLine.
+    if offtakevolume.kind is Kind.PRICE_ONLY:
+        raise ValueError("Parameter ``offtakevolume`` does not contain volume.")
+    elif offtakevolume.kind is Kind.ALL:
+        warnings.warn(
+            "Parameter ``offtakevolume``: also contains price infomation; this is discarded."
+        )
+        offtakevolume = offtakevolume.volume
+    # . Unsourced prices.
+    unsourcedprice = PfLine(unsourcedprice)  # force to be PfLine.
+    if unsourcedprice.kind is Kind.VOLUME_ONLY:
+        raise ValueError("Parameter ``unsourcedprice`` does not contain prices.")
+    elif unsourcedprice.kind is Kind.ALL:
+        warnings.warn(
+            "Parameter ``unsourcedprice``: also contains volume infomation; this is discarded."
+        )
+        unsourcedprice = unsourcedprice.price
+    # . Sourced volume and prices.
+    if sourced is not None:
+        sourced = PfLine(sourced)
+        if sourced.kind is not Kind.ALL:
+            raise ValueError("Parameter ``sourced`` does not contain price and volume.")
 
-    # Unsourced prices.
-    if isinstance(unsourcedprice, pd.Series):
-        if unsourcedprice.name and unsourcedprice.name in "qwr":
-            ValueError("Name implies this is not a price timeseries.")
-        elif unsourcedprice.name != "p":
-            warnings.warn("Will assume prices, even though series name is not 'p'.")
-            unsourcedprice.name = "p"
-        unsourcedprice = PfLine(unsourcedprice)
-    elif isinstance(unsourcedprice, pd.DataFrame):
-        unsourcedprice = PfLine(unsourcedprice)  # using column names or series names
-
-    if isinstance(unsourcedprice, PfLine):
-        if unsourcedprice.kind is Kind.VOLUME_ONLY:
-            raise ValueError("Must specify unsourced prices.")
-        elif unsourcedprice.kind is Kind.ALL:
-            warnings.warn(
-                "Unsourced also contains volume infomation; this is discarded."
-            )
-            unsourcedprice = unsourcedprice.price
-
-    # Sourced volume and prices.
-    if sourced is None:
-        i = offtakevolume.index.union(unsourcedprice.index)  # largest possible index
-        sourced = PfLine(pd.DataFrame({"q": 0, "r": 0}, i))
-
-    # Do checks on indices. Lengths may differ, but frequency should be equal.
-    indices = [
-        obj.index for obj in (offtakevolume, unsourcedprice, sourced) if obj is not None
+    # Check/fix indices.
+    # . Frequencies.
+    freqs = [
+        o.index.freq for o in (offtakevolume, unsourcedprice, sourced) if o is not None
     ]
-    if len(set([i.freq for i in indices])) != 1:
+    if len(set(freqs)) != 1:
         raise ValueError("PfLines have unequal frequency; resample first.")
+    # . Lengths of offtakevolume and sourced.
+    if sourced is not None:
+        # Workaround for error in pandas intersection (#46702):
+        idx = stamps.intersection(offtakevolume.index, sourced.index)
+        offtakevolume = offtakevolume.loc[idx]
+        sourced = sourced.loc[idx]
+    # . Length of unsourcedprice.
+    if len(stamps.intersection(offtakevolume.index, unsourcedprice.index)) < len(
+        offtakevolume.index
+    ):
+        raise ValueError(
+            "Parameter ``unsourcedprice``: does not cover entire delivery"
+            " period of ``offtakevolume`` (and ``sourced``, if specified)."
+        )
 
     return offtakevolume, unsourcedprice, sourced

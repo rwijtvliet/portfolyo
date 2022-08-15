@@ -3,6 +3,7 @@
 import functools
 from ..tools import nits
 import pandas as pd
+import numpy as np
 
 
 @functools.wraps(pd.testing.assert_frame_equal)
@@ -10,11 +11,14 @@ def assert_frame_equal(left, right, *args, **kwargs):
     # Dataframes equal even if *order* of columns is not the same.
     left = nits.drop_units(left).sort_index(axis=1)
     right = nits.drop_units(right).sort_index(axis=1)
+    left = left.replace([np.inf, -np.inf], np.nan)
+    right = right.replace([np.inf, -np.inf], np.nan)
     pd.testing.assert_frame_equal(left, right, *args, **kwargs)
 
 
 @functools.wraps(pd.testing.assert_series_equal)
 def assert_series_equal(left, right, *args, **kwargs):
+
     if hasattr(left, "pint") and hasattr(right, "pint"):  # pint-series
         left, right = left.pint.to_base_units(), right.pint.to_base_units()
         assert left.pint.u == right.pint.u
@@ -33,6 +37,8 @@ def assert_series_equal(left, right, *args, **kwargs):
             assert lu == ru
 
     else:  # normal series of floats or ints
+        left = left.replace([np.inf, -np.inf], np.nan)
+        right = right.replace([np.inf, -np.inf], np.nan)
         pd.testing.assert_series_equal(left, right, *args, **kwargs)
 
 

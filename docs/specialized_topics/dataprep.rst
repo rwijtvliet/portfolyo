@@ -155,4 +155,4 @@ This function also tries to localize ``fr`` if it is not timezone-aware, and the
 
 .. rubric:: Footnotes
 
-.. [#f1] However, there is no harm in doing the localization to thee target timezone if it is possible. In specific situations, localization is not possible (if we (a) have (quarter)hourly values that we (b) want to localize to a timezone with daylight-savings-time such as "Europe/Berlin" and (c) the moment of the DST-transition is included in the input data) and ``fr.tz_localize()`` raises a ``NonExistentTimeError`` or a ``AmbiguousTimeError``. 
+.. [#f1] However, there is no harm in doing the localization to the target timezone if it is possible. In specific situations, localization is not possible (if we (a) have (quarter)hourly values that we (b) want to localize to a timezone with daylight-savings-time such as "Europe/Berlin" and (c) the moment of the DST-transition is included in the input data) and ``fr.tz_localize()`` raises a ``NonExistentTimeError`` or a ``AmbiguousTimeError``. 

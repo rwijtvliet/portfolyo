@@ -3,3 +3,4 @@ include LICENSE
 include requirements.txt
 include versioneer.py
 include portfolyo/_version.py
+include portfolyo/tools/unitdefinitions.txt

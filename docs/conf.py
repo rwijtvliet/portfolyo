@@ -10,9 +10,11 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-# import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import os
+import sys
+
+sys.path.insert(0, os.path.abspath(".."))
+sys.path.insert(0, os.path.abspath("../portfolyo"))
 
 
 # -- Project information -----------------------------------------------------
@@ -60,3 +62,7 @@ html_static_path = ["_static"]
 html_css_files = ["css/custom.css"]
 
 html_theme_options = {"navigation_depth": 1}
+
+exec_code_set_utf8_encoding = True
+
+autosummary_generate = True

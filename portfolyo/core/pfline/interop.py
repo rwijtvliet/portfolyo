@@ -66,7 +66,9 @@ class InOp:
             elif isinstance(val, pd.Series):
                 kwargs[attr] = val.loc[index]
             elif isinstance(val, nits.Q_):
-                kwargs[attr] = pd.Series(val.m, index, dtype=nits.pintunit(val.units))
+                kwargs[attr] = pd.Series(
+                    val.m, index, dtype=nits.pintunit_remove(val.units)
+                )
             else:  # float
                 kwargs[attr] = pd.Series(val, index)
         return InOp(**kwargs)
@@ -124,7 +126,7 @@ def _set_unit(
             return nits.Q_(v, unit)  # add unit or convert to unit
         if isinstance(v, pd.Series) and isinstance(v.index, pd.DatetimeIndex):
             v = _timeseries_of_floats_or_pint(v)  # float-series or pint-series
-            return v.astype(nits.pintunit(unit))
+            return v.astype(nits.pintunit_remove(unit))
         raise TypeError(
             f"Value should be a number, Quantity, or timeseries; got {type(v)}."
         )
@@ -148,7 +150,7 @@ def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
         units = list(set([q.u for q in quantities]))
         if len(units) != 1:
             raise ValueError(f"Timeseries needs uniform unit; found {','.join(units)}.")
-        s = pd.Series(magnitudes, s.index, dtype=nits.pintunit(units[0]))
+        s = pd.Series(magnitudes, s.index, dtype=nits.pintunit_remove(units[0]))
 
     # Check if all OK.
 
