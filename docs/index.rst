@@ -23,6 +23,10 @@ Portfolyo
    :target: https://app.codecov.io/gh/rwijtvliet/portfolyo
    :alt: Codecov
 
+.. image:: https://readthedocs.org/projects/portfolyo/badge/?version=latest
+    :target: https://portfolyo.readthedocs.io/en/latest/?badge=latest
+    :alt: Documentation Status
+
 Portfolyo is a Python package to analyse and manipulate **timeseries** related to **power 
 and gas offtake portfolios**.
 
