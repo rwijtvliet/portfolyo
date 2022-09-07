@@ -460,7 +460,7 @@ def duration(
         return Q_((ts_right(ts_left, freq) - ts_left).total_seconds() / 3600, "h")
 
 
-def ts_leftright(left=None, right=None) -> Tuple:
+def ts_leftright(left=None, right=None) -> Tuple[pd.Timestamp, pd.Timestamp]:
     """Makes 2 timestamps coherent to one another.
 
     Parameters
