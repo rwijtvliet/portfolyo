@@ -2,13 +2,14 @@
 Module for doing basic timestamp and frequency operations.
 """
 
-from .nits import Q_
+import datetime as dt
+from typing import Any, Callable, Tuple, Union
 
-from typing import Any, Union, Tuple
-from pytz import AmbiguousTimeError
-import pandas as pd
 import numpy as np
+import pandas as pd
+from pytz import AmbiguousTimeError
 
+from .nits import Q_
 
 # Allowed frequencies.
 # Perfect containment; a short-frequency time period always entirely falls within a single high-frequency time period.
@@ -607,3 +608,53 @@ def freq_longest(*freqs) -> Any:
     'AS'
     """
     return _freq_longestshortest(False, *freqs)
+
+
+def gasday_factory(gasday_start: dt.time) -> Callable[[pd.Timestamp], pd.Timestamp]:
+    """Returns function that calculates the start of the "gas day" in which a timestamp falls.
+
+    Necessary as a day is not always defined from midnight to midnight. For gas markets,
+    a day (e.g. Jan 10) often starts in the moring, e.g. the left-closed interval
+    Jan 10 06:00:00 - Jan 11 06:00:00.
+
+    Parameters
+    ----------
+    gasday_start : dt.time
+        Start of the gas day in market under consideration.
+
+    Returns
+    -------
+    Callable[[pd.Timestamp], pd.Timestamp]
+
+    """
+
+    def gasday(ts: pd.Timestamp) -> pd.Timestamp:
+        """Returns the "gas day" (timestamp at midnight) that a delivery timestamp belongs to.
+
+        Parameters
+        ----------
+        ts : pd.Timestamp
+            Moment of delivery.
+
+        Returns
+        -------
+        pd.Timestamp
+            (Start of) corresponding gas day.
+
+        Examples
+        --------
+        gasday(pd.Timestamp('2020-01-01 04:00:00')) == pd.Timestamp('2019-12-31 00:00:00')
+        gasday(pd.Timestamp('2020-01-01 08:00:00')) == pd.Timestamp('2020-01-01 00:00:00')
+        gasday(pd.Timestamp('2020-03-29 08:00:00+02:00 Europe/Berlin')) ==
+               pd.Timestamp('2020-03-29 00:00:00+01:00 Europe/Berlin')
+        """
+        day = ts.floor("D")
+        if ts.time() < gasday_start:  # get previous day
+            # Must use custom function; dt.timedelta(days=1) is always 24h (incorrect during DST change)
+            day = day - timedelta("D")
+        return day
+
+    return gasday
+
+
+gasday_de = gasday_factory(dt.time(hour=6))

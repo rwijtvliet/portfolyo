@@ -1057,4 +1057,32 @@ def test_longestshortestfreq(count):
     assert stamps.freq_shortest(*freqs) == freqs_small_to_large[min(indices)]
 
 
+@pytest.mark.parametrize("tz", (None, "Europe/Berlin"))
+@pytest.mark.parametrize(
+    ("stamp_in", "stamp_out"),
+    [
+        ("2020-01-01 00:00", "2019-12-31 00:00"),
+        ("2020-01-01 05:00", "2019-12-31 00:00"),
+        ("2020-01-01 05:59", "2019-12-31 00:00"),
+        ("2020-01-01 06:00", "2020-01-01 00:00"),
+        ("2020-01-01 07:00", "2020-01-01 00:00"),
+        ("2020-01-02 00:00", "2020-01-01 00:00"),
+        ("2020-03-29 05:00", "2020-03-28 00:00"),
+        ("2020-03-29 07:00", "2020-03-29 00:00"),
+        ("2020-03-30 05:00", "2020-03-29 00:00"),
+        ("2020-03-30 07:00", "2020-03-30 00:00"),
+        ("2020-10-25 05:00", "2020-10-24 00:00"),
+        ("2020-10-25 07:00", "2020-10-25 00:00"),
+        ("2020-10-26 05:00", "2020-10-25 00:00"),
+        ("2020-10-26 07:00", "2020-10-26 00:00"),
+    ],
+)
+def test_gasday_de(stamp_in: str, tz: str, stamp_out: str):
+    """Test if correct gas day is identified."""
+    ts = pd.Timestamp(stamp_in, tz=tz)
+    expected = pd.Timestamp(stamp_out, tz=tz)
+    result = stamps.gasday_de(ts)
+    assert result == expected
+
+
 # TODO: add tests for other functions
