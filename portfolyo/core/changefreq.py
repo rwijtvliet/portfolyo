@@ -254,3 +254,41 @@ def averagable(
         return pd.DataFrame({key: averagable(value, freq) for key, value in fr.items()})
 
     return _general(fr, freq, False, custom_grouper)
+
+
+def index(idx: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
+    """Resample index.
+
+    Parameters
+    ----------
+    idx : pd.DatetimeIndex
+        Index to resample
+    freq : str, optional (default: 'MS')
+        The frequency at which to resample. 'AS' (or 'A') for year, 'QS' (or 'Q')
+        for quarter, 'MS' (or 'M') for month, 'D for day', 'H' for hour, '15T' for
+        quarterhour.
+
+    Returns
+    -------
+    pd.DatetimeIndex
+    """
+    up_or_down = stamps.freq_up_or_down(idx.freq, freq)
+
+    # Nothing more needed; index already in desired frequency.
+    if up_or_down == 0:
+        return idx
+
+    # Must downsample.
+    elif up_or_down == -1:
+        # We must jump through a hoop: can't directly resample an Index.
+        return pd.Series(0, idx).resample(freq).asfreq().index
+
+    # Must upsample.
+    else:  # up_or_down == 1
+        # We must jump through additional hoops.
+        # First, extend by one value...
+        idx = idx.append(idx[-1:].shift())
+        # ... then do upsampling ...
+        idx2 = pd.Series(0, idx).resample(freq).asfreq().index
+        # ... and then remove final element.
+        return idx2[:-1]

@@ -23,6 +23,7 @@ from .tools.stamps import (
     freq_shortest,
     freq_up_or_down,
     right_to_left,
+    trim_index,
 )
 
 from .tools import frames, nits, zones, stamps
