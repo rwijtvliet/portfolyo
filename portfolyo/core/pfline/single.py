@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from . import single_helper
 from .base import PfLine, Kind
-from .. import changefreq
+from ...tools import changefreq
 from ...testing import testing
 
 from typing import Dict, Iterable, Union

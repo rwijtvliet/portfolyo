@@ -5,3 +5,4 @@ pint
 pint-pandas
 matplotlib
 colorama
+holidays

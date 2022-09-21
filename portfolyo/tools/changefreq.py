@@ -1,7 +1,7 @@
 """Functions to change frequency of a pandas dataframe."""
 
 from typing import Callable
-from ..tools import stamps, frames
+from . import stamps, frames
 from pandas.core.frame import NDFrame
 import pandas as pd
 

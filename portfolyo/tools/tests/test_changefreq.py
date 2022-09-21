@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Tuple, Union
 from portfolyo import testing
-from portfolyo.core import changefreq
+from portfolyo.tools import changefreq
 from portfolyo.tools import stamps
 import pandas as pd
 import pytest

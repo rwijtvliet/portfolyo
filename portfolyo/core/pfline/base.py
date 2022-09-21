@@ -199,7 +199,8 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
         if col == "r" and self.kind is Kind.ALL:
             raise NotImplementedError(
-                "Cannot set `r` on a price-and-volume portfolio line; first select `.volume` or `.price` before applying `.set_r()`."
+                "Cannot set `r` on a price-and-volume portfolio line; first select `.volume`"
+                " or `.price` before applying `.set_r()`."
             )
 
         inop = interop.InOp(**{col: val}).to_timeseries(self.index)
