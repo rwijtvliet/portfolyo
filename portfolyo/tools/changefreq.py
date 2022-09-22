@@ -64,10 +64,11 @@ def _downsample(
 def _upsample_averagable_freq(s: pd.Series, freq: str) -> pd.Series:
     """Upsample an averagable series using a frequency."""
     # Upsampling is easiest for averagable frames: simply duplicate parent value.
+
     # We cannot simply `.resample()`, because in that case the final value is not
     # duplicated. We add a dummy value, which we eventually remove again.
 
-    # First, add additional row...
+    # So, first, add additional row...
     # (original code to add additional row, does not work if unit-aware. Maybe with future release of pint_pandas?)
     # s = s.copy()
     # s.loc[s.index.ts_right[-1]] = None

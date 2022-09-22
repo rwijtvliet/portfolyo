@@ -60,7 +60,7 @@ def characterize_index(
     return char
 
 
-def map_index(
+def map_index_to_index(
     idx_source: pd.DatetimeIndex,
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
@@ -103,16 +103,16 @@ def map_index(
     freq_vs_d = stamps.freq_up_or_down("D", idx_source.freq)
 
     if freq_vs_d == 0:  # daily values.
-        return _map_index_daily(idx_source, idx_target, holiday_country)
+        return _map_index_to_index_daily(idx_source, idx_target, holiday_country)
 
     elif freq_vs_d == 1:  # (quarter)hourly
-        return _map_index_belowdaily(idx_source, idx_target, holiday_country)
+        return _map_index_to_index_belowdaily(idx_source, idx_target, holiday_country)
 
     else:
         raise ValueError("Can only map indices with daily frequency or shorter.")
 
 
-def _map_index_daily(
+def _map_index_to_index_daily(
     idx_source: pd.DatetimeIndex,
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
@@ -180,7 +180,7 @@ def _map_index_daily(
     return target["source_day"]
 
 
-def _map_index_belowdaily(
+def _map_index_to_index_belowdaily(
     idx_source: pd.DatetimeIndex,
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
@@ -188,7 +188,7 @@ def _map_index_belowdaily(
     # Do mapping on day-level.
     idx_target_d = changefreq.index(idx_target, "D")
     idx_source_d = changefreq.index(idx_source, "D")
-    mapp_d = _map_index_daily(idx_source_d, idx_target_d, holiday_country)
+    mapp_d = _map_index_to_index_daily(idx_source_d, idx_target_d, holiday_country)
 
     # Split timestamps in 'day' and 'offset'.
     idx_target_part1 = idx_target.floor("D")
@@ -197,7 +197,45 @@ def _map_index_belowdaily(
     return pd.Series(mapp_d[idx_target_part1].values + idx_target_part2, idx_target)
 
 
-def frame_set_index(
+def index_with_year(idx_source: pd.DatetimeIndex, target_year: int) -> pd.DatetimeIndex:
+    """Create new index that spans the same number of months as the original, but starting
+    in a different year.
+
+    Parameters
+    ----------
+    idx_source : pd.DatetimeIndex
+        Source index.
+    target_year : int
+        Year in which to start the index. If the source index spans multiple years, the
+        same number of years is used in the return index. (The provided year is used for
+        the first timestamp.)
+
+    Returns
+    -------
+    pd.DatetimeIndex
+    """
+
+    def change_year(ts: pd.Timestamp, y: int) -> pd.Timestamp:
+        return pd.Timestamp(
+            year=y,
+            month=ts.month,
+            day=ts.day,
+            hour=ts.hour,
+            minute=ts.minute,
+            freq=ts.freq,
+            tz=ts.tz,
+        )
+
+    freq, tz = idx_source.index.freq, idx_source.index.tz
+    start, end = idx_source.index[0], idx_source.index.ts_right[-1]
+    delta_years = end.year - start.year
+
+    target_start = change_year(start, target_year)
+    target_end = change_year(end, target_year + delta_years)
+    return pd.date_range(target_start, target_end, freq=freq, closed="left", tz=tz)
+
+
+def map_frame_to_index(
     source: Union[pd.Series, pd.DataFrame],
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
@@ -233,7 +271,7 @@ def frame_set_index(
     - Function is meant for data that spans full months. Using partial months may lead
       to unexpected behavior.
     """
-    mapping = map_index(source.index, idx_target, holiday_country)
+    mapping = map_index_to_index(source.index, idx_target, holiday_country)
 
     if isinstance(source, pd.Series):
         return source[mapping].set_axis(mapping.index)
@@ -242,9 +280,9 @@ def frame_set_index(
         return pd.DataFrame(series, mapping.index)
 
 
-def frame_set_year(
+def map_frame_to_year(
     source: Union[pd.Series, pd.DataFrame],
-    year_target: int,
+    target_year: int,
     holiday_country: str = None,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Change the year of a Series or DataFrame.
@@ -259,10 +297,10 @@ def frame_set_year(
     ----------
     source: pd.Series or pd.DataFrame
         Source values.
-    year_target : int
+    target_year : int
         Year onto which to map the data. If the source data spans multiple years, the
         same number of years is used in the return value. (The provided year is used for
-        the first timestamp in ``source``.)
+        the first timestamp.)
     holiday_country : str, optional (default: None)
         Country or region for which to assume the holidays. E.g. 'DE' (Germany), 'NL'
         (Netherlands), or 'USA'. See ``holidays.list_supported_countries()`` for allowed
@@ -281,27 +319,6 @@ def frame_set_year(
       to unexpected behavior.
     """
 
-    def change_year(ts: pd.Timestamp, y: int) -> pd.Timestamp:
-        return pd.Timestamp(
-            year=y,
-            month=ts.month,
-            day=ts.day,
-            hour=ts.hour,
-            minute=ts.minute,
-            freq=ts.freq,
-            tz=ts.tz,
-        )
+    target_index = index_with_year(source.index, target_year)
 
-    freq, tz = source.index.freq, source.index.tz
-    if freq is None:
-        raise ValueError("Source has no frequency.")
-    if not stamps.freq_longest(freq, "D") == "D":
-        raise ValueError("Can only handle frequencies of Daily or shorter.")
-
-    target_start = change_year(source.index[0], year_target)
-    target_end = change_year(source.index.ts_right[-1], year_target)
-    target_index = pd.date_range(
-        target_start, target_end, freq=freq, closed="left", tz=tz
-    )
-
-    return frame_set_index(source, target_index, holiday_country)
+    return map_frame_to_index(source, target_index, holiday_country)

@@ -1,11 +1,11 @@
+import functools
 from pathlib import Path
 from typing import Tuple, Union
-from portfolyo import testing
-from portfolyo.tools import changefreq
-from portfolyo.tools import stamps
+
 import pandas as pd
 import pytest
-import functools
+from portfolyo import testing
+from portfolyo.tools import changefreq, stamps
 
 freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
 

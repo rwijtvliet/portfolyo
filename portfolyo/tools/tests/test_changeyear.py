@@ -9,7 +9,10 @@ import yaml
 from portfolyo import testing
 from portfolyo.tools import changeyear
 
-TESTOBJECTFILE = pathlib.Path(__file__).parent / "test_changeyear_data.yaml"
+TESTCASES_DATA = pathlib.Path(__file__).parent / "test_changeyear_data.yaml"
+TESTCASES_DATA_2YEARS = (
+    pathlib.Path(__file__).parent / "test_changeyear_data_2years.yaml"
+)
 
 
 @dataclass
@@ -77,36 +80,42 @@ def germanyearchars() -> Iterator[GermanyYearchar]:
 
 
 @dataclass
-class Yearmapping:
+class TestCase:
     idx_source: pd.DatetimeIndex  # source index
     idx_target: pd.DatetimeIndex  # target index
     holiday_country: str
     expected_mapping: pd.Series  # for every day in the target index, get position in source
 
 
-def get_yearmapping_factory():
+def get_testcases():
+    def add_testcase(tc: dict, several_years: bool):
 
-    yearmappings: Dict[Tuple, Yearmapping] = {}
-    for tc in yaml.load(open(TESTOBJECTFILE), Loader=yaml.FullLoader):
-        # Testcase with daily frequency
-        source_year, target_year = tc["source_year"], tc["target_year"]
+        # Testcase with daily frequency.
+        year_s_start, year_t_start = tc["source_year"], tc["target_year"]
+        year_s_end, year_t_end = year_s_start + 1, year_t_start + 1
         country, tz = tc["holiday_country"], tc["tz"]
         mapping = np.array(tc["mapping"])
+        if several_years:
+            if year_s_start == 2021:
+                year_s_end += 1
+            else:
+                year_t_end += 1
+
         idx_s = pd.date_range(
-            str(source_year), str(source_year + 1), freq="D", closed="left", tz=tz
+            str(year_s_start), str(year_s_end), freq="D", closed="left", tz=tz
         )
         idx_t = pd.date_range(
-            str(target_year), str(target_year + 1), freq="D", closed="left", tz=tz
+            str(year_t_start), str(year_t_end), freq="D", closed="left", tz=tz
         )
-        key = (source_year, target_year, tz, country, "D")
-        yearmappings[key] = Yearmapping(idx_s, idx_t, country, mapping)
+        key = (year_s_start, year_t_start, tz, country, "D", several_years)
+        testcases[key] = TestCase(idx_s, idx_t, country, mapping)
 
-        # Testcase with hourly frequency
+        # Testcase with hourly frequency.
         idx_s2 = pd.date_range(
-            str(source_year), str(source_year + 1), freq="H", closed="left", tz=tz
+            str(year_s_start), str(year_s_end), freq="H", closed="left", tz=tz
         )
         idx_t2 = pd.date_range(
-            str(target_year), str(target_year + 1), freq="H", closed="left", tz=tz
+            str(year_t_start), str(year_t_end), freq="H", closed="left", tz=tz
         )
         count_s = pd.Series(0, idx_s2).resample("D").count()
         count_t = pd.Series(0, idx_t2).resample("D").count()
@@ -114,33 +123,46 @@ def get_yearmapping_factory():
         for count_t_here, m in zip(count_t, mapping):
             count_s_start = count_s[:m].sum()
             mapping_hourly.extend(range(count_s_start, count_s_start + count_t_here))
-        key = (source_year, target_year, tz, country, "H")
-        yearmappings[key] = Yearmapping(idx_s2, idx_t2, country, mapping_hourly)
+        key = (year_s_start, year_t_start, tz, country, "H", several_years)
 
-        # Testcase for identical mapping (days)
-        key = (source_year, source_year, tz, country, "D")
-        yearmappings[key] = Yearmapping(idx_s, idx_s, country, range(len(idx_s)))
+        testcases[key] = TestCase(idx_s2, idx_t2, country, mapping_hourly)
+        # Testcase for identical mapping (days).
+        key = (year_s_start, year_s_start, tz, country, "D", several_years)
+        testcases[key] = TestCase(idx_s, idx_s, country, range(len(idx_s)))
 
-        # Testcase for identical mapping (hours)
-        key = (source_year, source_year, tz, country, "H")
-        yearmappings[key] = Yearmapping(idx_s2, idx_s2, country, range(len(idx_s2)))
+        # Testcase for identical mapping (hours).
+        key = (year_s_start, year_s_start, tz, country, "H", several_years)
+        testcases[key] = TestCase(idx_s2, idx_s2, country, range(len(idx_s2)))
 
-    def get_yearmapping(
-        source_year: int, target_year: int, tz: str, holiday_country: str, freq: str
-    ) -> Yearmapping:
-        return yearmappings.get((source_year, target_year, tz, holiday_country, freq))
+    testcases: Dict[Tuple, TestCase] = {}
+    for tc in yaml.load(open(TESTCASES_DATA), Loader=yaml.FullLoader):
+        # 2020 <-> 2021
+        add_testcase(tc, False)
+    for tc in yaml.load(open(TESTCASES_DATA_2YEARS), Loader=yaml.FullLoader):
+        # 2020 <-> 2021/2022
+        add_testcase(tc, True)
 
-    return get_yearmapping
+    def testcase(
+        year_s: int,
+        year_t: int,
+        tz: str,
+        holiday_country: str,
+        freq: str,
+        several_years: bool,
+    ) -> TestCase:
+        return testcases.get((year_s, year_t, tz, holiday_country, freq, several_years))
+
+    return testcase
 
 
-get_yearmapping = get_yearmapping_factory()
+get_testcase = get_testcases()
 
 # ---
 
 
 @pytest.mark.parametrize("freq", ["15T", "H", "MS", "QS", "AS"])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
-def test_characterize_error(freq: str, tz: str):
+def test_characterizeindex_error(freq: str, tz: str):
     """Test if characterization is only possible for daily indices."""
     i = pd.date_range("2020", "2022", closed="left", freq=freq, tz=tz)
     with pytest.raises(ValueError):
@@ -150,7 +172,7 @@ def test_characterize_error(freq: str, tz: str):
 @pytest.mark.parametrize("yearchar", germanyearchars())
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
-def test_characterize_weekdays(
+def test_characterizeindex_weekdays(
     yearchar: GermanyYearchar, tz: str, holiday_country: str
 ):
     """Test if the weekdays of an index are correctly characterized."""
@@ -172,7 +194,9 @@ def test_characterize_weekdays(
 @pytest.mark.parametrize("yearchar", germanyearchars())
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
-def test_characterize_dst(yearchar: GermanyYearchar, tz: str, holiday_country: str):
+def test_characterizeindex_dst(
+    yearchar: GermanyYearchar, tz: str, holiday_country: str
+):
     """Test if the DST days of an index are correctly characterized."""
     idx = pd.date_range(
         str(yearchar.year), str(yearchar.year + 1), freq="D", tz=tz, closed="left"
@@ -192,7 +216,7 @@ def test_characterize_dst(yearchar: GermanyYearchar, tz: str, holiday_country: s
 @pytest.mark.parametrize("yearchar", germanyearchars())
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
-def test_characterize_holidays(
+def test_characterizeindex_holidays(
     yearchar: GermanyYearchar, tz: str, holiday_country: str
 ):
     """Test if the holidays of an index are correctly characterized."""
@@ -214,6 +238,7 @@ def test_characterize_holidays(
 @pytest.mark.parametrize(
     ("idx_source", "idx_target"),
     [
+        # Distinct timezones
         (
             pd.date_range("2020", "2021", freq="D", closed="left", tz=None),
             pd.date_range("2021", "2022", freq="D", closed="left", tz="Europe/Berlin"),
@@ -226,6 +251,7 @@ def test_characterize_holidays(
             pd.date_range("2020", "2021", freq="D", closed="left", tz="Asia/Kolkata"),
             pd.date_range("2021", "2022", freq="D", closed="left", tz="Europe/Berlin"),
         ),
+        # Distinct frequencies
         (
             pd.date_range("2020", "2021", freq="D", closed="left", tz=None),
             pd.date_range("2021", "2022", freq="15T", closed="left", tz=None),
@@ -236,19 +262,22 @@ def test_characterize_holidays(
         ),
         (
             pd.date_range("2020", "2021", freq="D", closed="left", tz="Europe/Berlin"),
-            pd.date_range(
-                "2021", "2022", freq="15T", closed="left", tz="Europe/Berlin"
-            ),
+            pd.date_range("2021", "2022", freq="H", closed="left", tz="Europe/Berlin"),
+        ),
+        # Too few source data
+        (
+            pd.date_range("2020", "2020-06", freq="D", closed="left", tz=None),
+            pd.date_range("2021", "2022", freq="D", closed="left", tz=None),
         ),
     ],
 )
 @pytest.mark.parametrize("holiday_country", ["DE", None])
-def test_map_index_error(
+def test_mapindextoindex_error(
     idx_source: pd.DatetimeIndex, idx_target: pd.DatetimeIndex, holiday_country: str
 ):
     """Test if error cases are correctly identified."""
     with pytest.raises(Exception):
-        _ = changeyear.map_index(
+        _ = changeyear.map_index_to_index(
             idx_source, idx_target, holiday_country=holiday_country
         )
 
@@ -257,7 +286,7 @@ def test_map_index_error(
 @pytest.mark.parametrize("holiday_country", ["DE", None])
 @pytest.mark.parametrize("numyears", [1, 3])
 @pytest.mark.parametrize("partial", [True, False])
-def test_map_index_identical(
+def test_mapindextoindex_identical(
     tz: str, holiday_country: str, numyears: int, partial: bool
 ):
     """Test if the (trivial) mapping is done correctly from index to itself."""
@@ -266,74 +295,78 @@ def test_map_index_identical(
         idx_target = idx[: len(idx) // 2]
     else:
         idx_target = idx
-    result = changeyear.map_index(idx, idx_target, holiday_country)
+    result = changeyear.map_index_to_index(idx, idx_target, holiday_country)
     expected = pd.Series(idx_target, idx_target)
     testing.assert_series_equal(result, expected, check_names=False)
 
 
-@pytest.mark.parametrize("source_year", [2020, 2021])
-@pytest.mark.parametrize("target_year", [2020, 2021])
+@pytest.mark.parametrize("year_s", [2020, 2021])
+@pytest.mark.parametrize("year_t", [2020, 2021])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
 @pytest.mark.parametrize("partial", [True, False])
 @pytest.mark.parametrize("freq", ["D", "H"])
-def test_map_index_general(
-    source_year: int,
-    target_year: int,
+@pytest.mark.parametrize("several_years", [True, False])
+def test_mapindextoindex(
+    year_s: int,
+    year_t: int,
     tz: str,
     holiday_country: str,
     partial: bool,
     freq: str,
+    several_years: bool,
 ):
     """Test if the mapping is done correctly between indices."""
-    ym = get_yearmapping(source_year, target_year, tz, holiday_country, freq)
-    if ym is None:
+    tc = get_testcase(year_s, year_t, tz, holiday_country, freq, several_years)
+    if tc is None:
         pytest.skip("This test case is not found.")
 
-    count = len(ym.idx_target) // (2 if partial else 1)
-    idx_target = ym.idx_target[:count]
-    expected_mapping = ym.expected_mapping[:count]
+    count = len(tc.idx_target) // (2 if partial else 1)
+    idx_target = tc.idx_target[:count]
+    expected_mapping = tc.expected_mapping[:count]
 
-    expected = pd.Series(ym.idx_source[expected_mapping], idx_target)
-    result = changeyear.map_index(ym.idx_source, idx_target, holiday_country)
+    expected = pd.Series(tc.idx_source[expected_mapping], idx_target)
+    result = changeyear.map_index_to_index(tc.idx_source, idx_target, holiday_country)
     testing.assert_series_equal(result, expected, check_names=False)
 
 
-@pytest.mark.parametrize("source_year", [2020, 2021])
-@pytest.mark.parametrize("target_year", [2020, 2021])
+@pytest.mark.parametrize("year_s", [2020, 2021])
+@pytest.mark.parametrize("year_t", [2020, 2021])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
 @pytest.mark.parametrize("partial", [True, False])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("freq", ["D", "H"])
-def test_frame_set_index(
-    source_year: int,
-    target_year: int,
+@pytest.mark.parametrize("several_years", [True, False])
+def test_mapframetoindex(
+    year_s: int,
+    year_t: int,
     tz: str,
     holiday_country: str,
     partial: bool,
     series_or_df: str,
     freq: str,
+    several_years: bool,
 ):
     """Test if the mapping is done correctly between frames."""
-    ym = get_yearmapping(source_year, target_year, tz, holiday_country, freq)
+    tc = get_testcase(year_s, year_t, tz, holiday_country, freq, several_years)
 
-    if ym is None:
+    if tc is None:
         pytest.skip("This test case is not found.")
 
-    values_in = np.random.rand(len(ym.idx_source))
+    values_in = np.random.rand(len(tc.idx_source))
 
-    count = len(ym.idx_target) // (2 if partial else 1)
-    idx_target = ym.idx_target[:count]
-    expected_mapping = ym.expected_mapping[:count]
+    count = len(tc.idx_target) // (2 if partial else 1)
+    idx_target = tc.idx_target[:count]
+    expected_mapping = tc.expected_mapping[:count]
 
     if series_or_df == "series":
-        frame_in = pd.Series(values_in, ym.idx_source)
+        frame_in = pd.Series(values_in, tc.idx_source)
         expected = pd.Series(values_in[expected_mapping], idx_target)
-        result = changeyear.frame_set_index(frame_in, idx_target, holiday_country)
+        result = changeyear.map_frame_to_index(frame_in, idx_target, holiday_country)
         testing.assert_series_equal(result, expected, check_names=False)
     else:
-        frame_in = pd.DataFrame({"a": values_in, "b": values_in + 1}, ym.idx_source)
+        frame_in = pd.DataFrame({"a": values_in, "b": values_in + 1}, tc.idx_source)
         expected = pd.DataFrame(
             {
                 "a": values_in[expected_mapping],
@@ -341,45 +374,47 @@ def test_frame_set_index(
             },
             idx_target,
         )
-        result = changeyear.frame_set_index(frame_in, idx_target, holiday_country)
+        result = changeyear.map_frame_to_index(frame_in, idx_target, holiday_country)
         testing.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("source_year", [2020, 2021])
-@pytest.mark.parametrize("target_year", [2020, 2021])
+@pytest.mark.parametrize("year_s", [2020, 2021])
+@pytest.mark.parametrize("year_t", [2020, 2021])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
 @pytest.mark.parametrize("partial", [True, False])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("freq", ["D", "H"])
-def test_frame_set_year(
-    source_year: int,
-    target_year: int,
+@pytest.mark.parametrize("several_years", [True, False])
+def test_mapframetoyear(
+    year_s: int,
+    year_t: int,
     tz: str,
     holiday_country: str,
     partial: bool,
     series_or_df: str,
     freq: str,
+    several_years: bool,
 ):
     """Test if the mapping is done correctly between frames."""
-    ym = get_yearmapping(source_year, target_year, tz, holiday_country, freq)
+    tc = get_testcase(year_s, year_t, tz, holiday_country, freq, several_years)
 
-    if ym is None:
+    if tc is None:
         pytest.skip("This test case is not found.")
 
-    values_in = np.random.rand(len(ym.idx_source))
+    values_in = np.random.rand(len(tc.idx_source))
 
-    count = len(ym.idx_target) // (2 if partial else 1)
-    idx_target = ym.idx_target[:count]
-    expected_mapping = ym.expected_mapping[:count]
+    count = len(tc.idx_target) // (2 if partial else 1)
+    idx_target = tc.idx_target[:count]
+    expected_mapping = tc.expected_mapping[:count]
 
     if series_or_df == "series":
-        frame_in = pd.Series(values_in, ym.idx_source)
+        frame_in = pd.Series(values_in, tc.idx_source)
         expected = pd.Series(values_in[expected_mapping], idx_target)
-        result = changeyear.frame_set_year(frame_in, target_year, holiday_country)
+        result = changeyear.map_frame_to_year(frame_in, year_t, holiday_country)
         testing.assert_series_equal(result, expected, check_names=False)
     else:
-        frame_in = pd.DataFrame({"a": values_in, "b": values_in + 1}, ym.idx_source)
+        frame_in = pd.DataFrame({"a": values_in, "b": values_in + 1}, tc.idx_source)
         expected = pd.DataFrame(
             {
                 "a": values_in[expected_mapping],
@@ -387,5 +422,5 @@ def test_frame_set_year(
             },
             idx_target,
         )
-        result = changeyear.frame_set_year(frame_in, target_year, holiday_country)
+        result = changeyear.map_frame_to_year(frame_in, year_t, holiday_country)
         testing.assert_frame_equal(result, expected)

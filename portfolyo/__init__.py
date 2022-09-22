@@ -29,7 +29,7 @@ from .tools.stamps import (
 from .tools.frames import fill_gaps, wavg, standardize, set_frequency
 from .tools.nits import Q_
 from .tools.zones import force_tzaware, force_tzagnostic
-from .tools.changeyear import frame_set_year, characterize_index
+from .tools.changeyear import map_frame_to_year, characterize_index
 from .tools import changefreq
 
 from .prices.hedge import hedge
