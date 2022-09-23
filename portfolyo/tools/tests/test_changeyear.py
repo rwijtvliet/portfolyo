@@ -285,18 +285,86 @@ def test_mapindextoindex_error(
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("holiday_country", ["DE", None])
 @pytest.mark.parametrize("numyears", [1, 3])
+@pytest.mark.parametrize("freq", ["MS", "D", "H"])
 @pytest.mark.parametrize("partial", [True, False])
 def test_mapindextoindex_identical(
-    tz: str, holiday_country: str, numyears: int, partial: bool
+    tz: str, holiday_country: str, numyears: int, partial: bool, freq: str
 ):
     """Test if the (trivial) mapping is done correctly from index to itself."""
-    idx = pd.date_range("2020", str(2020 + numyears), freq="D", closed="left", tz=tz)
+    idx = pd.date_range("2020", str(2020 + numyears), freq=freq, closed="left", tz=tz)
     if partial:
         idx_target = idx[: len(idx) // 2]
     else:
         idx_target = idx
     result = changeyear.map_index_to_index(idx, idx_target, holiday_country)
     expected = pd.Series(idx_target, idx_target)
+    testing.assert_series_equal(result, expected, check_names=False)
+
+
+@pytest.mark.parametrize(
+    ("start_s", "start_t", "months_s", "months_t", "expected_mapping"),
+    [
+        ("2020", "2021", 7, 7, range(7)),
+        ("2020", "2021", 14, 14, [12, 13, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1]),
+        ("2020", "2021", 12, 14, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 1]),
+        ("2020", "2021", 14, 12, [12, 13, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]),
+        ("2020-03", "2021", 12, 12, [10, 11, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+    ],
+)
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize("holiday_country", [None, "DE"])
+def test_mapindextoindex_months(
+    start_s: str,
+    start_t: str,
+    months_s: int,
+    months_t: int,
+    tz: str,
+    holiday_country: str,
+    expected_mapping: Iterable[int],
+):
+    """Test if the mapping is done correctly between monthly indices."""
+    idx_source = pd.date_range(
+        start_s, periods=months_s, tz=tz, freq="MS", inclusive="left"
+    )
+    idx_target = pd.date_range(
+        start_t, periods=months_t, tz=tz, freq="MS", inclusive="left"
+    )
+
+    expected = pd.Series(idx_source[expected_mapping], idx_target)
+    result = changeyear.map_index_to_index(idx_source, idx_target, holiday_country)
+    testing.assert_series_equal(result, expected, check_names=False)
+
+
+@pytest.mark.parametrize(
+    ("start_s", "start_t", "years_s", "years_t", "expected_mapping"),
+    [
+        ("2020", "2025", 4, 4, range(4)),
+        ("2020", "2025", 7, 7, [5, 6, 0, 1, 2, 3, 4]),
+        ("2020", "2025", 4, 7, [0, 1, 2, 3, 0, 1, 2]),
+        ("2020", "2025", 7, 4, [5, 6, 0, 1]),
+    ],
+)
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize("holiday_country", [None, "DE"])
+def test_mapindextoindex_years(
+    start_s: str,
+    start_t: str,
+    years_s: int,
+    years_t: int,
+    tz: str,
+    holiday_country: str,
+    expected_mapping: Iterable[int],
+):
+    """Test if the mapping is done correctly between yearly indices."""
+    idx_source = pd.date_range(
+        start_s, periods=years_s, tz=tz, freq="AS", inclusive="left"
+    )
+    idx_target = pd.date_range(
+        start_t, periods=years_t, tz=tz, freq="AS", inclusive="left"
+    )
+
+    expected = pd.Series(idx_source[expected_mapping], idx_target)
+    result = changeyear.map_index_to_index(idx_source, idx_target, holiday_country)
     testing.assert_series_equal(result, expected, check_names=False)
 
 
@@ -307,7 +375,7 @@ def test_mapindextoindex_identical(
 @pytest.mark.parametrize("partial", [True, False])
 @pytest.mark.parametrize("freq", ["D", "H"])
 @pytest.mark.parametrize("several_years", [True, False])
-def test_mapindextoindex(
+def test_mapindextoindex_daysandhours(
     year_s: int,
     year_t: int,
     tz: str,
@@ -316,7 +384,7 @@ def test_mapindextoindex(
     freq: str,
     several_years: bool,
 ):
-    """Test if the mapping is done correctly between indices."""
+    """Test if the mapping is done correctly between daily and hourly indices."""
     tc = get_testcase(year_s, year_t, tz, holiday_country, freq, several_years)
     if tc is None:
         pytest.skip("This test case is not found.")

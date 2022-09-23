@@ -7,13 +7,44 @@ month (but different year)."""
 # . Daylight-savings time will likely start and end at a different day.
 # . Weekdays and holidays are not at the same date.
 
-from typing import Union
+from typing import Callable, Union
 
 import holidays
 import pandas as pd
 
 from . import changefreq
 from . import stamps
+from .nits import Q_
+
+
+docstringliteral_notes = """
+
+Notes
+-----
+- Only works on data with a daily frequency or shorter.
+- Function is meant for data that spans full months. Using partial months may lead
+  to unexpected behavior.
+- No values are recalculated; they are simply 'reshuffled' to obey the rules below.
+- All values in a target year are taken from the same source year.
+- Source values are always taken from the same calendar month.
+- Days with a deviating duration (e.g. during DST-changeover) are mapped to each other.
+- 'Normal' (i.e., non-holidays) days are mapped according to their position in the week;
+  a Monday is mapped to a Monday, etc.
+- For holidays, the same-named holiday is taken; if not found, uses other holiday or
+  Sunday in that month.
+- In all cases, repetitions are minimized.
+- There is a subjective trade-off to be made if the mapping is not perfect. A day at
+  the end of the target month might be mapped onto a day at the beginning of the
+  source month, and the time difference might be a problem e.g. if it is a temperature
+  timeseries. Alternatively, it might be mapped onto a day in the source month that
+  was already used, thereby causing repetition. Or, a Wednesday at the end of the
+  target month could be mapped to a Wednesday at the beginning of the source month
+  or to a Monday at the end of the source month."""
+
+
+def addnotes(fn: Callable) -> Callable:
+    fn.__doc__ += f"\n{docstringliteral_notes}"
+    return fn
 
 
 def characterize_index(
@@ -56,21 +87,25 @@ def characterize_index(
     if offsets.isna().all():
         char["dst_change"] = False
     else:
-        char["dst_change"] = [*(offsets[1:] != offsets[:-1]), False]
+        char["dst_change"] = abs(char.index.duration - Q_(24, "h")) > Q_(0.1, "h")
     return char
 
 
+@addnotes
 def map_index_to_index(
     idx_source: pd.DatetimeIndex,
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
 ) -> pd.Series:
-    """Map a source index with daily frequency onto a target index with same frequency.
+    """Map a source index onto a target index. Tries to 'calculate', which timestamps
+    correspond best between the indices; see Notes, below.
 
-    Source values are always taken from the same calendar month. For holidays, the same-
-    named holiday is taken; if not found, uses other holiday in that month, or else any
-    Sunday. For weekdays, the same weekday is taken. In all cases, repetitions are
-    minimized.
+    If the indices have daily frequency or shorter, the mapping is always between periods
+    of equal duration - e.g. from a 24h-day to another 24h-day, or from a 23h-day to
+    another 23h-day - and equal 'type', e.g. from a Saturday to another Saturday.
+    If the indices have monthly frequency or longer, the mapping is more trivial, and
+    this is not necessarily the case anymore. E.g., a leapyear-Feb is mapped to a
+    non-leapyear-Feb, and e.g. the number of workdays or holidays in a month is disregarded.
 
     Parameters
     ----------
@@ -87,36 +122,103 @@ def map_index_to_index(
     -------
     pd.Series
         Index: target index. Values: corresponding timestamp in source index.
-
-    Notes
-    -----
-    No values are recalculated; they are simply 'reshuffled' to obey the rules above.
-    Within each pair of target and source timestamps, the duration is equal. (both 24h,
-    both 23h, or both 25h). It can therefore also be used as a starting point to map
-    hourly or quarterhourly indices.
     """
     if (tz1 := idx_source.tz) != (tz2 := idx_target.tz):
         raise ValueError(f"Indices must have same timezone, got {tz1} and {tz2}.")
     if (fr1 := idx_source.freq) != (fr2 := idx_target.freq):
         raise ValueError(f"Indices must have same frequency, got {fr1} and {fr2}.")
 
-    freq_vs_d = stamps.freq_up_or_down("D", idx_source.freq)
+    if stamps.freq_shortest(idx_source.freq, "MS") == "MS":
+        return _map_index_to_index_monthlyandlonger(idx_source, idx_target)
 
-    if freq_vs_d == 0:  # daily values.
+    elif idx_source.freq == "D":
         return _map_index_to_index_daily(idx_source, idx_target, holiday_country)
 
-    elif freq_vs_d == 1:  # (quarter)hourly
-        return _map_index_to_index_belowdaily(idx_source, idx_target, holiday_country)
+    else:  # (quarter)hourly
+        return _map_index_to_index_hourlyandshorter(
+            idx_source, idx_target, holiday_country
+        )
 
-    else:
-        raise ValueError("Can only map indices with daily frequency or shorter.")
+
+def _map_index_to_index_monthlyandlonger(
+    idx_source: pd.DatetimeIndex, idx_target: pd.DatetimeIndex
+) -> pd.Series:
+    source = pd.DataFrame({"in_target_count": 0}, idx_source)
+    source["yy"] = idx_source.map(lambda ts: ts.year)
+    source["mm"] = idx_source.map(lambda ts: ts.month)  # also works for QS and AS freq
+    target = pd.DataFrame({"source_month": None}, idx_target)
+
+    def set_month(candidates: pd.DataFrame, target_month: pd.Timestamp) -> None:
+        if len(candidates) == 0:
+            return
+        if len(candidates) == 1:
+            source_month = candidates.index[0]
+        else:  # pick one
+            source_month = candidates.sort_values(by=["in_target_count", "yy"]).index[0]
+        target.loc[target_month, "source_month"] = source_month
+        source.loc[source_month, "in_target_count"] += 1
+
+    # First match the years that appear in both indices. (No mapping needed.)
+    for month in target.itertuples():
+        candidates = source[
+            (source.mm == month.Index.month) & (source.yy == month.Index.year)
+        ]
+        set_month(candidates, month.Index)
+
+    # Then map the remaining years.
+    for month in target[target.source_month.isna()].itertuples():
+        candidates = source[source.mm == month.Index.month]
+        set_month(candidates, month.Index)
+
+    if any(target.source_month.isna()):
+        not_found = target[target.source_month.isna()]
+        raise ValueError(
+            f"Did not find correspondence for the following months: {not_found.index}."
+        )
+
+    return target.source_month
 
 
 def _map_index_to_index_daily(
     idx_source: pd.DatetimeIndex,
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
-):
+) -> pd.Series:
+
+    # Do mapping on month-level.
+    idx_target_m = changefreq.index(idx_target, "MS")
+    idx_source_m = changefreq.index(idx_source, "MS")
+    mapp_m = _map_index_to_index_monthlyandlonger(idx_source_m, idx_target_m)
+
+    # Map days within each month.
+    mapp_d_series = []
+    for target_m, source_m in mapp_m.items():
+        idx_target_partial = idx_target[
+            (idx_target >= target_m) & (idx_target < stamps.ts_right(target_m, "MS"))
+        ]
+        idx_source_partial = idx_source[
+            (idx_source >= source_m) & (idx_source < stamps.ts_right(source_m, "MS"))
+        ]
+        mapp_d = _map_index_to_index_daily_samemonth(
+            idx_source_partial, idx_target_partial, holiday_country
+        )
+        mapp_d_series.append(mapp_d)
+
+    mapping = pd.concat(mapp_d_series)
+    mapping.index.freq = "D"
+    return mapping
+
+
+def _map_index_to_index_daily_samemonth(
+    idx_source: pd.DatetimeIndex, idx_target: pd.DatetimeIndex, holiday_country: str
+) -> pd.Series:
+
+    months = set([*[ts.month for ts in idx_source], *[ts.month for ts in idx_target]])
+    if len(months) > 1:
+        raise ValueError(
+            f"Indices must contain timestamps of only one calender month; found {months}."
+        )
+
     source = characterize_index(idx_source, holiday_country)
     target = characterize_index(idx_target, holiday_country)
     source["in_target_count"] = 0  # keep track of which days have been used.
@@ -125,9 +227,9 @@ def _map_index_to_index_daily(
     def set_day(candidates: pd.DataFrame, target_day: pd.Timestamp) -> None:
         if len(candidates) == 0:
             return
-        if any(candidates["in_target_count"] == 0):  # find earliest
-            source_day = candidates.sort_values(by=["in_target_count"]).index[0]
-        else:  # find nearest
+        if len(candidates) == 1:
+            source_day = candidates.index[0]
+        else:  # find 'nearest' within month under consideration
             candidates = candidates.copy()  # to stop complaining on next line
             candidates["dist"] = abs(candidates.dd - target_day.day)
             source_day = candidates.sort_values(by=["in_target_count", "dist"]).index[0]
@@ -137,7 +239,7 @@ def _map_index_to_index_daily(
     # Map the DST days.
     for day in target[target.dst_change].itertuples():
         # Find dst-changing day in same month.
-        candidates = source[source.dst_change & (source.mm == day.mm)]
+        candidates = source[source.dst_change]
         set_day(candidates, day.Index)
 
     # Map the non-holidays.
@@ -147,16 +249,13 @@ def _map_index_to_index_daily(
             ~source.dst_change
             & (source.holiday == "")
             & (source.isoweekday == day.isoweekday)
-            & (source.mm == day.mm)
         ]
         set_day(candidates, day.Index)
 
     # Map the holidays with same name.
     for day in target[~target.dst_change & (target.holiday != "")].itertuples():
-        # Find same-named holiday IN THE SAME MONTH.
-        candidates = source[
-            ~source.dst_change & (source.holiday == day.holiday) & (source.mm == day.mm)
-        ]
+        # Find same-named holiday.
+        candidates = source[~source.dst_change & (source.holiday == day.holiday)]
         set_day(candidates, day.Index)
 
     # Map holidays that were not yet found.
@@ -165,9 +264,7 @@ def _map_index_to_index_daily(
     ].itertuples():
         # Find any other holiday or any Sunday.
         candidates = source[
-            ~source.dst_change
-            & ((source.holiday != "") | (source.isoweekday == 7))
-            & (source.mm == day.mm)
+            ~source.dst_change & ((source.holiday != "") | (source.isoweekday == 7))
         ]
         set_day(candidates, day.Index)
 
@@ -177,10 +274,10 @@ def _map_index_to_index_daily(
             f"Did not find correspondence for the following days: {not_found.index}."
         )
 
-    return target["source_day"]
+    return target.source_day
 
 
-def _map_index_to_index_belowdaily(
+def _map_index_to_index_hourlyandshorter(
     idx_source: pd.DatetimeIndex,
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
@@ -226,8 +323,8 @@ def index_with_year(idx_source: pd.DatetimeIndex, target_year: int) -> pd.Dateti
             tz=ts.tz,
         )
 
-    freq, tz = idx_source.index.freq, idx_source.index.tz
-    start, end = idx_source.index[0], idx_source.index.ts_right[-1]
+    freq, tz = idx_source.freq, idx_source.tz
+    start, end = idx_source[0], idx_source.ts_right[-1]
     delta_years = end.year - start.year
 
     target_start = change_year(start, target_year)
@@ -235,18 +332,17 @@ def index_with_year(idx_source: pd.DatetimeIndex, target_year: int) -> pd.Dateti
     return pd.date_range(target_start, target_end, freq=freq, closed="left", tz=tz)
 
 
+# ---
+
+
+@addnotes
 def map_frame_to_index(
     source: Union[pd.Series, pd.DataFrame],
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
 ) -> Union[pd.Series, pd.DataFrame]:
-    """Map a Series or DataFrame onto a target index.
-
-    This is useful when combining data that was recorded in distinct years.
-
-    Source values are always taken from the same calendar month. For holidays, the same-
-    named holiday is taken; if not found, uses other holiday or Sunday in that month. For
-    weekdays, the same weekday is taken. In all cases, repetitions are minimized.
+    """Map a Series or DataFrame onto a target index. It tries to 'calculate', how data
+    would look like if it had occurred in a different year.
 
     Parameters
     ----------
@@ -263,14 +359,8 @@ def map_frame_to_index(
     -------
     pd.Series or pd.DataFrame
         Index: target index. Values: corresponding values in source index.
-
-    Notes
-    -----
-    - No values are recalculated; they are simply 'reshuffled' to obey the rules above.
-    - Only works on data with a daily frequency or shorter.
-    - Function is meant for data that spans full months. Using partial months may lead
-      to unexpected behavior.
     """
+
     mapping = map_index_to_index(source.index, idx_target, holiday_country)
 
     if isinstance(source, pd.Series):
@@ -280,18 +370,14 @@ def map_frame_to_index(
         return pd.DataFrame(series, mapping.index)
 
 
+@addnotes
 def map_frame_to_year(
     source: Union[pd.Series, pd.DataFrame],
     target_year: int,
     holiday_country: str = None,
 ) -> Union[pd.Series, pd.DataFrame]:
-    """Change the year of a Series or DataFrame.
-
-    This is useful when combining data that was recorded in distinct years.
-
-    Source values are always taken from the same calendar month. For holidays, the same-
-    named holiday is taken; if not found, uses other holiday or Sunday in that month. For
-    weekdays, the same weekday is taken. In all cases, repetitions are minimized.
+    """Change the year of a Series or DataFrame. Tries to 'calculate', how data
+    would look like if it had occurred in a different year.
 
     Parameters
     ----------
@@ -310,13 +396,6 @@ def map_frame_to_year(
     -------
     pd.Series or pd.DataFrame
         Index: target index. Values: corresponding values in source index.
-
-    Notes
-    -----
-    - No values are recalculated; they are simply 'reshuffled' to obey the rules above.
-    - Only works on data with a daily frequency or shorter.
-    - Function is meant for data that spans full months. Using partial months may lead
-      to unexpected behavior.
     """
 
     target_index = index_with_year(source.index, target_year)
