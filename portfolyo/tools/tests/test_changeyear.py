@@ -394,6 +394,7 @@ def test_mapindextoindex_daysandhours(
     expected_mapping = tc.expected_mapping[:count]
 
     expected = pd.Series(tc.idx_source[expected_mapping], idx_target)
+    # result = map_index_to_index(tc.idx_source, idx_target, holiday_country)
     result = changeyear.map_index_to_index(tc.idx_source, idx_target, holiday_country)
     testing.assert_series_equal(result, expected, check_names=False)
 
