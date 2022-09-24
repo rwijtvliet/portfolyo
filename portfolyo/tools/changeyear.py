@@ -18,31 +18,30 @@ from .nits import Q_
 
 
 docstringliteral_notes = """
-
-Notes
------
-- Only works on data with a daily frequency or shorter.
-- Function is meant for data that spans full months. Using partial months may lead
+* Function is meant for data that spans full months. Using partial months may lead
   to unexpected behavior.
-- No values are recalculated; they are simply 'reshuffled' to obey the rules below.
-- All values in a target year are taken from the same source year.
-- Source values are always taken from the same calendar month.
-- Days with a deviating duration (e.g. during DST-changeover) are mapped to each other.
-- 'Normal' (i.e., non-holidays) days are mapped according to their position in the week;
-  a Monday is mapped to a Monday, etc.
-- For holidays, the same-named holiday is taken; if not found, uses other holiday or
-  Sunday in that month.
-- In all cases, repetitions are minimized.
-- There is a subjective trade-off to be made if the mapping is not perfect. A day at
-  the end of the target month might be mapped onto a day at the beginning of the
-  source month, and the time difference might be a problem e.g. if it is a temperature
-  timeseries. Alternatively, it might be mapped onto a day in the source month that
-  was already used, thereby causing repetition. Or, a Wednesday at the end of the
-  target month could be mapped to a Wednesday at the beginning of the source month
-  or to a Monday at the end of the source month."""
+* No values are recalculated; they are simply 'reshuffled' to obey the rules below.
+* The mapping is always between the same calendar month (e.g., April to April).
+* The mapping is between fixed year-month pairs (e.g., all values for 2025-April are
+  taken from 2020-April). If a year-month pair exists in both source and target, it is
+  mapped onto itself without modification.
+* When mapping daily (or shorter) values, the mapping is always between periods of equal
+  duration (i.e. from a 24h-day to another 24h-day, or from a 23h-day to another 23h-day)
+  and equal 'type' (i.e., from a Saturday to another Saturday). For holidays, the same-
+  named holiday is taken; if not found, another holiday or Sunday in that month is used.
+* When mapping monthly (or longer) values, the mapping is more trivial. E.g., a leapyear
+  Feb is mapped to a non-leapyear-Feb, and the number of workdays or holidays in a month
+  is also disregarded.
+* Repetitions are minimized.
+* There is a subjective trade-off to be made if the mapping is not perfect. One example
+  of a trade-of: a day at the end of the target month might be mapped onto a day at the
+  beginning of the source month or onto a day in the source month that was already used.
+  Another trade-of: a Wednesday at the end of the target month could be mapped to a
+  Wednesday at the beginning of the source month or to a Monday at the end of the source
+  month. (In both cases, the first option is implemented.)"""
 
 
-def addnotes(fn: Callable) -> Callable:
+def additional_notes(fn: Callable) -> Callable:
     fn.__doc__ += f"\n{docstringliteral_notes}"
     return fn
 
@@ -91,21 +90,13 @@ def characterize_index(
     return char
 
 
-@addnotes
+@additional_notes
 def map_index_to_index(
     idx_source: pd.DatetimeIndex,
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
 ) -> pd.Series:
-    """Map a source index onto a target index. Tries to 'calculate', which timestamps
-    correspond best between the indices; see Notes, below.
-
-    If the indices have daily frequency or shorter, the mapping is always between periods
-    of equal duration - e.g. from a 24h-day to another 24h-day, or from a 23h-day to
-    another 23h-day - and equal 'type', e.g. from a Saturday to another Saturday.
-    If the indices have monthly frequency or longer, the mapping is more trivial, and
-    this is not necessarily the case anymore. E.g., a leapyear-Feb is mapped to a
-    non-leapyear-Feb, and e.g. the number of workdays or holidays in a month is disregarded.
+    """Map a source index onto a target index according to certain rules (See Notes).
 
     Parameters
     ----------
@@ -122,6 +113,11 @@ def map_index_to_index(
     -------
     pd.Series
         Index: target index. Values: corresponding timestamp in source index.
+
+    Notes
+    -----
+    * If the target index spans more months than the source, some source months are mapped
+      from multiple times. If it spans fewer months, not all source months are mapped from.
     """
     if (tz1 := idx_source.tz) != (tz2 := idx_target.tz):
         raise ValueError(f"Indices must have same timezone, got {tz1} and {tz2}.")
@@ -185,20 +181,20 @@ def _map_index_to_index_daily(
     holiday_country: str = None,
 ) -> pd.Series:
 
-    # Do mapping on month-level.
-    idx_target_m = changefreq.index(idx_target, "MS")
-    idx_source_m = changefreq.index(idx_source, "MS")
-    mapp_m = _map_index_to_index_monthlyandlonger(idx_source_m, idx_target_m)
+    # Split into months.
+    idx_source_by_m = {m: s.index for m, s in pd.Series(0, idx_source).resample("MS")}
+    idx_target_by_m = {m: s.index for m, s in pd.Series(0, idx_target).resample("MS")}
 
-    # Map days within each month.
+    # Mapping on month-level.
+    mapp_m = _map_index_to_index_monthlyandlonger(
+        pd.DatetimeIndex(idx_source_by_m.keys(), freq="MS"),
+        pd.DatetimeIndex(idx_target_by_m.keys(), freq="MS"),
+    )
+
+    # Mapping on month-level.
     mapp_d_series = []
-    for target_m, source_m in mapp_m.items():
-        idx_target_partial = idx_target[
-            (idx_target >= target_m) & (idx_target < stamps.ts_right(target_m, "MS"))
-        ]
-        idx_source_partial = idx_source[
-            (idx_source >= source_m) & (idx_source < stamps.ts_right(source_m, "MS"))
-        ]
+    for target_m, idx_target_partial in idx_target_by_m.items():
+        idx_source_partial = idx_source_by_m[mapp_m[target_m]]
         mapp_d = _map_index_to_index_daily_samemonth(
             idx_source_partial, idx_target_partial, holiday_country
         )
@@ -332,17 +328,48 @@ def index_with_year(idx_source: pd.DatetimeIndex, target_year: int) -> pd.Dateti
     return pd.date_range(target_start, target_end, freq=freq, closed="left", tz=tz)
 
 
+@additional_notes
+def map_index_to_year(
+    idx_source: pd.DatetimeIndex, target_year: int, holiday_country: str
+) -> pd.Series:
+    """Map a source index onto a target year according to certain rules (See Notes).
+
+    Parameters
+    ----------
+    idx_source : pd.DatetimeIndex
+        Index of source values.
+    target_year : int
+        Year onto which to map the data.
+    holiday_country : str, optional (default: None)
+        Country or region for which to assume the holidays. E.g. 'DE' (Germany), 'NL'
+        (Netherlands), or 'USA'. See ``holidays.list_supported_countries()`` for allowed
+        values.
+
+    Returns
+    -------
+    pd.Series
+        Index: target index. Values: corresponding timestamp in source index.
+
+    Notes
+    -----
+    * The ``target_year`` is used for the first timestamp; the returned frame spans the
+      same number of months as the source.
+    """
+    idx_target = index_with_year(idx_source, target_year)
+    return map_index_to_index(idx_source, idx_target, holiday_country)
+
+
 # ---
 
 
-@addnotes
+@additional_notes
 def map_frame_to_index(
     source: Union[pd.Series, pd.DataFrame],
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
 ) -> Union[pd.Series, pd.DataFrame]:
-    """Map a Series or DataFrame onto a target index. It tries to 'calculate', how data
-    would look like if it had occurred in a different year.
+    """Map a Series or DataFrame onto a target index according to certain rules (see
+    Notes). What would the data have looked like if it had occured in a different year?
 
     Parameters
     ----------
@@ -359,8 +386,14 @@ def map_frame_to_index(
     -------
     pd.Series or pd.DataFrame
         Index: target index. Values: corresponding values in source index.
-    """
 
+    Notes
+    -----
+    * This is a lossy operation.
+    * No recalculation takes place! This special care must be taken when mapping monthly
+      (or longer values), as there a mapping between unequal-length periods might occur
+      due to leapday and non-leapday Februaries.
+    """
     mapping = map_index_to_index(source.index, idx_target, holiday_country)
 
     if isinstance(source, pd.Series):
@@ -370,23 +403,21 @@ def map_frame_to_index(
         return pd.DataFrame(series, mapping.index)
 
 
-@addnotes
+@additional_notes
 def map_frame_to_year(
     source: Union[pd.Series, pd.DataFrame],
     target_year: int,
     holiday_country: str = None,
 ) -> Union[pd.Series, pd.DataFrame]:
-    """Change the year of a Series or DataFrame. Tries to 'calculate', how data
-    would look like if it had occurred in a different year.
+    """Map a Series or DataFrame onto a target year according to certain rules (see
+    Notes). What would the data have looked like if it had occured in a different year?
 
     Parameters
     ----------
     source: pd.Series or pd.DataFrame
         Source values.
     target_year : int
-        Year onto which to map the data. If the source data spans multiple years, the
-        same number of years is used in the return value. (The provided year is used for
-        the first timestamp.)
+        Year onto which to map the data.
     holiday_country : str, optional (default: None)
         Country or region for which to assume the holidays. E.g. 'DE' (Germany), 'NL'
         (Netherlands), or 'USA'. See ``holidays.list_supported_countries()`` for allowed
@@ -396,8 +427,20 @@ def map_frame_to_year(
     -------
     pd.Series or pd.DataFrame
         Index: target index. Values: corresponding values in source index.
+
+    Notes
+    -----
+    * The ``target_year`` is used for the first timestamp; the returned frame spans the
+      same number of months as the source.
+    * This is a lossy operation.
+    * No recalculation takes place! This special care must be taken when mapping monthly
+      (or longer values), as there a mapping between unequal-length periods might occur
+      due to leapday and non-leapday Februaries.
     """
+    mapping = map_index_to_year(source.index, target_year, holiday_country)
 
-    target_index = index_with_year(source.index, target_year)
-
-    return map_frame_to_index(source, target_index, holiday_country)
+    if isinstance(source, pd.Series):
+        return source[mapping].set_axis(mapping.index)
+    else:
+        series = {col: s[mapping].values for col, s in source.items()}
+        return pd.DataFrame(series, mapping.index)
