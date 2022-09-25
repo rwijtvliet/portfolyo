@@ -126,11 +126,20 @@ class MultiPfLine(PfLine, Mapping):
     def asfreq(self, freq: str = "MS") -> MultiPfLine:
         if self._heterogeneous_children:
             warnings.warn(
-                "This portfolio has its price and volume information stored in distinct child porfolios. The portfolio is flattened before changing its frequency."
+                "This portfolio has its price and volume information stored in distinct child porfolios."
+                " The portfolio is flattened before changing its frequency."
             )
             return self.flatten().asfreq(freq)
         return MultiPfLine(
-            {label: child.asfreq(freq) for label, child in self._children.items()}
+            {name: child.asfreq(freq) for name, child in self._children.items()}
+        )
+
+    def map_to_year(self, year: int, holiday_country: str) -> MultiPfLine:
+        return MultiPfLine(
+            {
+                name: child.map_to_year(year, holiday_country)
+                for name, child in self._children.items()
+            }
         )
 
     @property

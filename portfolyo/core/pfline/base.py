@@ -143,6 +143,34 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         ...
 
     @abstractmethod
+    def map_to_year(self, year: int, holiday_country: str = None) -> PfLine:
+        """Transfer the data to a hypothetical other year.
+
+        Parameters
+        ----------
+        year : int
+            Year to transfer the data to.
+        holiday_country : str, optional (default: None)
+            Country or region for which to assume the holidays. E.g. 'DE' (Germany), 'NL'
+            (Netherlands), or 'USA'. See ``holidays.list_supported_countries()`` for
+            allowed values.
+
+        Returns
+        -------
+        PfLine
+
+        Notes
+        -----
+        Useful for daily data and shorter. Copies over the data but takes weekdays (and
+        holidays) target year into consideration. See ``portfolyo.map_frame_as_year()``
+        for more information.
+        Inaccurate for monthly data and longer, because we only have one value per month,
+        and can therefore not take different number of holidays/weekends (i.e., offpeak
+        hours) into consideration.
+        """
+        ...
+
+    @abstractmethod
     def __bool__(self) -> bool:
         """Return True if object (i.e., its children) contains any non-zero data."""
         ...

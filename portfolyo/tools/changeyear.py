@@ -55,8 +55,9 @@ def characterize_index(
     ----------
     idx : pd.DatetimeIndex
     holiday_country : str, optional (default: "DE")
-        Country or region for which to assume the holidays. See
-        ``holidays.list_supported_countries()`` for allowed values.
+        Country or region for which to assume the holidays. E.g. 'DE' (Germany), 'NL'
+        (Netherlands), or 'USA'. See ``holidays.list_supported_countries()`` for allowed
+        values.
 
     Returns
     -------
@@ -368,8 +369,9 @@ def map_frame_to_index(
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
 ) -> Union[pd.Series, pd.DataFrame]:
-    """Map a Series or DataFrame onto a target index according to certain rules (see
-    Notes). What would the data have looked like if it had occured in a different year?
+    """Transfer the data in a Series or DataFrame to a hypothetical other index
+    according to certain rules (see Notes). What would the data have looked like if it
+    had occured in a different year?
 
     Parameters
     ----------
@@ -409,8 +411,9 @@ def map_frame_to_year(
     target_year: int,
     holiday_country: str = None,
 ) -> Union[pd.Series, pd.DataFrame]:
-    """Map a Series or DataFrame onto a target year according to certain rules (see
-    Notes). What would the data have looked like if it had occured in a different year?
+    """Transfer the data in a Series or DataFrame to a hypothetical other year
+    according to certain rules (see Notes). What would the data have looked like if it
+    had occured in a different year?
 
     Parameters
     ----------
