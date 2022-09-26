@@ -441,8 +441,8 @@ def test_mapframetoyear_oneyear(
     """Test if the mapping is done correctly between frames."""
 
     if several_years_source:
-        if year_s == 2020:
-            pytest.skip("Only test several SOURCE years")
+        if year_s != 2021 or year_t != 2021:
+            pytest.skip("Only test mapping several years when mapping to itself.")
         tc = get_testcase(year_s, year_t, tz, holiday_country, freq, True)
     else:
         tc = get_testcase(year_s, year_t, tz, holiday_country, freq, False)

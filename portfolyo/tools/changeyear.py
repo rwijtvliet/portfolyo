@@ -1,6 +1,6 @@
-"""Map series with quarterhourly, hourly, or daily values onto another index , trying to
-align weekdays, holidays, and dst-changeover days. Always takes values from same calender
-month (but different year)."""
+"""Map series with quarterhourly, hourly, or daily values onto another index or year,
+trying to align weekdays, holidays, and dst-changeover days. Always takes values from
+same calender month (but different year)."""
 
 # Three difficulties when changing the year:
 # . Feb 29 might be present in one of the years but not in the other.

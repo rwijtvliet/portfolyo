@@ -30,7 +30,7 @@ from .tools.frames import fill_gaps, wavg, standardize, set_frequency
 from .tools.nits import Q_
 from .tools.zones import force_tzaware, force_tzagnostic
 from .tools.changeyear import map_frame_to_year, characterize_index
-from .tools import changefreq
+from .tools import changefreq, stamps, nits, frames
 
 from .prices.hedge import hedge
 from .prices.utils import is_peak_hour
