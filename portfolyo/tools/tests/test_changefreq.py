@@ -636,7 +636,6 @@ def test_changefreq_fullonly(
     """Test if, when downsampling, only the periods are returned that are fully present in the source."""
     if stamps.freq_longest(source_freq, target_freq) == source_freq:
         pytest.skip("Only test downsampling.")
-        return
 
     # Get test data.
     testfn = changefreq.averagable if avg_or_sum == "avg" else changefreq.summable
@@ -649,11 +648,11 @@ def test_changefreq_fullonly(
     # Remove some data, so that source contains partial periods
     source, expected = source.iloc[1:-1], expected.iloc[1:-1]
 
-    # Error if no data to be returned.
-    if len(expected) == 0:
-        with pytest.raises(ValueError):
-            _ = testfn(source, target_freq)
-        return
+    # # Error if no data to be returned.
+    # if len(expected) == 0:
+    #     with pytest.raises(ValueError):
+    #         _ = testfn(source, target_freq)
+    #     return
 
     # Get and assert result.
     result = testfn(source, target_freq)
