@@ -570,6 +570,7 @@ def get_df_from_excel(freq, tz):
     return df
 
 
+@functools.lru_cache(1000)
 def get_testframes(
     source_freq: str,
     target_freq: str,
