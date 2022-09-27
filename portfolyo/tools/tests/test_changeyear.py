@@ -1,5 +1,6 @@
-import pathlib
+import functools
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Dict, Iterable, Iterator, Tuple
 
 import numpy as np
@@ -9,10 +10,8 @@ import yaml
 from portfolyo import testing
 from portfolyo.tools import changeyear
 
-TESTCASES_DATA = pathlib.Path(__file__).parent / "test_changeyear_data.yaml"
-TESTCASES_DATA_2YEARS = (
-    pathlib.Path(__file__).parent / "test_changeyear_data_2years.yaml"
-)
+TESTCASES_DATA = Path(__file__).parent / "test_changeyear_data.yaml"
+TESTCASES_DATA_2YEARS = Path(__file__).parent / "test_changeyear_data_2years.yaml"
 
 
 @dataclass
@@ -87,7 +86,7 @@ class TestCase:
     expected_mapping: pd.Series  # for every day in the target index, get position in source
 
 
-def get_testcases():
+def create_testcase_factory():
     def add_testcase(tc: dict, several_years: bool):
 
         # Testcase with daily frequency.
@@ -155,7 +154,7 @@ def get_testcases():
     return testcase
 
 
-get_testcase = get_testcases()
+get_testcase = functools.lru_cache(100)(create_testcase_factory())
 
 # ---
 
