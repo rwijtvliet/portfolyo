@@ -105,7 +105,8 @@ def force_tzaware(fr: NDFrame, tz: str, *, floating: bool = True) -> NDFrame:
 
     if not tz:
         raise ValueError(
-            "No timezone was specified. To convert to standardized timezone-agnostic frame, use ``force_tzagnostic`` instead."
+            "No timezone was specified. To convert to standardized timezone-agnostic frame,"
+            " use ``force_tzagnostic`` instead."
         )
 
     # Copy, try to set freq, and store original attributes.
@@ -114,7 +115,8 @@ def force_tzaware(fr: NDFrame, tz: str, *, floating: bool = True) -> NDFrame:
 
     if not freq_input:
         raise ValueError(
-            "A frequency could not be determined for this data. Localize the index (with ``fr.tz_localize``) or add missing datapoints (with ``fr.resample().asfreq()``), or both."
+            "A frequency could not be determined for this data. Localize the index (with"
+            "``fr.tz_localize``) or add missing datapoints (with ``fr.resample().asfreq()``), or both."
         )
 
     # Do conversion.
@@ -172,7 +174,8 @@ def force_tzagnostic(fr: NDFrame) -> NDFrame:
 
     if not freq_input:
         raise ValueError(
-            "A frequency could not be determined for this data. Localize the index (with ``fr.tz_localize``) or add missing datapoints (with ``fr.resample().asfreq()``), or both."
+            "A frequency could not be determined for this data. Localize the index (with "
+            "``fr.tz_localize``) or add missing datapoints (with ``fr.resample().asfreq()``), or both."
         )
 
     # Do conversion.
