@@ -48,7 +48,12 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
 def test_verifydict_frequencyconsistency(freq1, freq2):
     """Test if error is raised when creating a dictionary from pflines with unequal frequencies."""
 
-    kwargs = {"start": "2020", "end": "2021", "closed": "left", "tz": "Europe/Berlin"}
+    kwargs = {
+        "start": "2020",
+        "end": "2021",
+        "inclusive": "left",
+        "tz": "Europe/Berlin",
+    }
     i1 = pd.date_range(**kwargs, freq=freq1)
     i2 = pd.date_range(**kwargs, freq=freq2)
 
