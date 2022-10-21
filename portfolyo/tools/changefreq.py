@@ -286,7 +286,7 @@ def index(idx: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
 
     # Must upsample.
     else:  # up_or_down == 1
-        # We must jump through additional hoops.
+        # We must jump through additional hoops, because we are using datetimeindices.
         # First, extend by one value...
         idx = idx.append(idx[-1:].shift())
         # ... then do upsampling ...
