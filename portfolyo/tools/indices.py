@@ -6,6 +6,26 @@ import pandas as pd
 from . import stamps
 
 
+def ts_right(i: pd.DatetimeIndex, freq: str = None) -> pd.Series:
+    """Right-bound timestamp belonging to left-bound timestamp.
+
+    Parameters
+    ----------
+    i : pd.DatetimeIndex
+        Index for which to calculate the right-bound timestamp.
+    freq : {'15T' (quarter-hour), 'H' (hour), 'D' (day), 'MS' (month), 'QS' (quarter),
+        'AS' (year)}, optional
+        Frequency to use in determining the right-bound timestamp.
+        If none specified, use ``.freq`` attribute of ``i``.
+
+    Returns
+    -------
+    pd.Series
+        With ``i`` as its index, and the corresponding right-bound timestamps as the values.
+    """
+    return pd.Series(i.shift(freq=freq), i, name="ts_right")
+
+
 def right_to_left(i: pd.DatetimeIndex, how: str = "A") -> pd.DatetimeIndex:
     """Turn an index with right-bound timestamps into one with left-bound timestamps.
 

@@ -49,6 +49,37 @@ def guess_frequency(tdelta: pd.Timedelta) -> str:
         )
 
 
+def ts_right(ts_left: pd.Timestamp, freq: str = None) -> pd.Timestamp:
+    """Right-bound timestamp belonging to left-bound timestamp.
+
+    Parameters
+    ----------
+    ts_left : pd.Timestamp
+        Timestamp(s) for which to calculate the right-bound timestamp.
+    freq : {'15T' (quarter-hour), 'H' (hour), 'D' (day), 'MS' (month), 'QS' (quarter),
+        'AS' (year)}, optional
+        Frequency to use in determining the right-bound timestamp.
+        If none specified, use ``.freq`` attribute of ``ts_left``.
+
+    Returns
+    -------
+    pd.Timestamp
+        Corresponding right-bound timestamp.
+
+    Examples
+    --------
+    >>> ts_right(pd.Timestamp('2020-03-01'), 'MS')
+    Timestamp('2020-04-01 00:00:00')
+    >>> ts_right(pd.Timestamp('2020-03-01', tz='Europe/Berlin'), 'MS')
+    Timestamp('2020-04-01 00:00:00+0200', tz='Europe/Berlin')
+    >>> ts_right(pd.Timestamp('2020-03-01'), 'AS')
+    ValueError
+    """
+    if freq is None:
+        freq = ts_left.freq
+    return ts_left + offset(freq)
+
+
 def floor_ts(
     ts: Union[pd.Timestamp, pd.DatetimeIndex], freq=None, future: int = 0
 ) -> Union[pd.Timestamp, pd.DatetimeIndex]:
@@ -284,42 +315,6 @@ def offset(freq: str) -> Union[pd.Timedelta, pd.DateOffset]:
         raise ValueError(
             f"Parameter ``freq`` must be one of {', '.join(FREQUENCIES)}; got '{freq}'."
         )
-
-
-def ts_right(
-    ts_left: Union[pd.Timestamp, pd.DatetimeIndex], freq: str = None
-) -> Union[pd.Timestamp, pd.Series]:
-    """Right-bound timestamp belonging to left-bound timestamp.
-
-    Parameters
-    ----------
-    ts_left : Union[pd.Timestamp, pd.DatetimeIndex]
-        Timestamp(s) for which to calculate the right-bound timestamp.
-    freq : {'15T' (quarter-hour), 'H' (hour), 'D' (day), 'MS' (month), 'QS' (quarter),
-        'AS' (year)}, optional
-        Frequency to use in determining the right-bound timestamp.
-        If none specified, use ``.freq`` attribute of ``ts_left``.
-
-    Returns
-    -------
-    Timestamp (if ts_left is Timestamp) or Series (if ts_left is DatetimeIndex).
-
-    Examples
-    --------
-    >>> ts_right(pd.Timestamp('2020-03-01'), 'MS')
-    Timestamp('2020-04-01 00:00:00')
-    >>> ts_right(pd.Timestamp('2020-03-01', tz='Europe/Berlin'), 'MS')
-    Timestamp('2020-04-01 00:00:00+0200', tz='Europe/Berlin')
-    >>> ts_right(pd.Timestamp('2020-03-01'), 'AS')
-    ValueError
-    """
-    if isinstance(ts_left, pd.DatetimeIndex):
-        return pd.Series(ts_left.shift(freq=freq), ts_left, name="ts_right")
-
-    # Assume it's a single timestamp.
-    if freq is None:
-        freq = ts_left.freq
-    return ts_left + offset(freq)
 
 
 def duration(
@@ -560,7 +555,7 @@ def gasday_factory(gasday_start: dt.time) -> Callable[[pd.Timestamp], pd.Timesta
         day = ts.floor("D")
         if ts.time() < gasday_start:  # get previous day
             # Must use custom function; dt.timedelta(days=1) is always 24h (incorrect during DST change)
-            day = day - timedelta("D")
+            day = day - offset("D")
         return day
 
     return gasday
