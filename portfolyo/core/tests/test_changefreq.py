@@ -9,6 +9,341 @@ import functools
 
 freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
 
+# No timezone.
+
+i1 = pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="H", inclusive="left")
+s1 = pd.Series(range(len(i1)), i1)
+
+s1_15t_sum = pd.Series(
+    [v2 for v in range(len(i1)) for v2 in [v / 4.0] * 4],
+    pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="15T", inclusive="left"),
+)
+s1_15t_avg = pd.Series(
+    [v2 for v in range(len(i1)) for v2 in [v * 1.0] * 4],
+    pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="15T", inclusive="left"),
+)
+
+s1_d_sum = pd.Series([564.0, 1140], pd.date_range("2020-01-16", freq="D", periods=2))
+s1_d_avg = pd.Series([23.5, 47.5], pd.date_range("2020-01-16", freq="D", periods=2))
+
+s1_m_sum = s1_m_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="MS"), dtype=float
+)
+s1_q_sum = s1_q_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="QS"), dtype=float
+)
+s1_a_sum = s1_a_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="AS"), dtype=float
+)
+
+# Timezone, no DST.
+
+
+def withtz(sin):
+    sout = sin.tz_localize("Europe/Berlin")
+    sout.index.freq = sin.index.freq
+    return sout
+
+
+(
+    s2,
+    s2_15t_sum,
+    s2_15t_avg,
+    s2_d_sum,
+    s2_d_avg,
+    s2_m_sum,
+    s2_m_avg,
+    s2_q_sum,
+    s2_q_avg,
+    s2_a_sum,
+    s2_a_avg,
+) = (
+    withtz(s)
+    for s in (
+        s1,
+        s1_15t_sum,
+        s1_15t_avg,
+        s1_d_sum,
+        s1_d_avg,
+        s1_m_sum,
+        s1_m_avg,
+        s1_q_sum,
+        s1_q_avg,
+        s1_a_sum,
+        s1_a_avg,
+    )
+)
+
+# Timezone, start of DST.
+
+i3_start, i3_end = "2020-03-28 12:00", "2020-03-31 12:00"
+tz = "Europe/Berlin"
+i3 = pd.date_range(i3_start, i3_end, freq="H", inclusive="left", tz=tz)
+s3 = pd.Series(range(len(i3)), i3)
+
+s3_15t_sum = pd.Series(
+    [v2 for v in range(len(i3)) for v2 in [v / 4.0] * 4],
+    pd.date_range(i3_start, i3_end, freq="15T", inclusive="left", tz=tz),
+)
+s3_15t_avg = pd.Series(
+    [v2 for v in range(len(i3)) for v2 in [v * 1.0] * 4],
+    pd.date_range(i3_start, i3_end, freq="15T", inclusive="left", tz=tz),
+)
+
+s3_d_sum = pd.Series(
+    [529.0, 1116], pd.date_range("2020-03-29", freq="D", periods=2, tz=tz)
+)
+s3_d_avg = pd.Series(
+    [23.0, 46.5], pd.date_range("2020-03-29", freq="D", periods=2, tz=tz)
+)
+
+s3_m_sum = s3_m_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="MS", tz=tz), dtype=float
+)
+s3_q_sum = s3_q_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="QS", tz=tz), dtype=float
+)
+s3_a_sum = s3_a_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="AS", tz=tz), dtype=float
+)
+
+# Timezone, end of DST.
+
+i4_start, i4_end = "2020-10-24 12:00", "2020-10-27 12:00"
+i4 = pd.date_range(i4_start, i4_end, freq="H", inclusive="left", tz=tz)
+s4 = pd.Series(range(len(i4)), i4)
+
+s4_15t_sum = pd.Series(
+    [v2 for v in range(len(i4)) for v2 in [v / 4.0] * 4],
+    pd.date_range(i4_start, i4_end, freq="15T", inclusive="left", tz=tz),
+)
+s4_15t_avg = pd.Series(
+    [v2 for v in range(len(i4)) for v2 in [v * 1.0] * 4],
+    pd.date_range(i4_start, i4_end, freq="15T", inclusive="left", tz=tz),
+)
+
+s4_d_sum = pd.Series(
+    [600.0, 1164], pd.date_range("2020-10-25", freq="D", periods=2, tz=tz)
+)
+s4_d_avg = pd.Series(
+    [24.0, 48.5], pd.date_range("2020-10-25", freq="D", periods=2, tz=tz)
+)
+
+s4_m_sum = s4_m_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="MS", tz=tz), dtype=float
+)
+s4_q_sum = s4_q_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="QS", tz=tz), dtype=float
+)
+s4_a_sum = s4_a_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="AS", tz=tz), dtype=float
+)
+
+# Months (= unequal lengths) as starting point.
+
+i5 = pd.date_range("2020-04", "2021-06", freq="MS", inclusive="left")
+s5 = pd.Series(range(len(i5)), i5)
+
+daycount = [30, 31, 30, 31, 31, 30, 31, 30, 31, 31, 28, 31, 30, 31]
+s5_d_sum = pd.Series(
+    [v2 for v, l in zip(range(len(i5)), daycount) for v2 in [v / l] * l],
+    pd.date_range("2020-04-01", "2021-06-01", freq="D", inclusive="left"),
+    dtype=float,
+)
+s5_d_avg = pd.Series(
+    [v2 for v, l in zip(range(len(i5)), daycount) for v2 in [v] * l],
+    pd.date_range("2020-04-01", "2021-06-01", freq="D", inclusive="left"),
+    dtype=float,
+)
+
+s5_q_sum = pd.Series(
+    [3.0, 12, 21, 30],
+    pd.date_range("2020-04-01", "2021-04-01", freq="QS", inclusive="left"),
+)
+s5_q_avg = pd.Series(
+    [1.0, 3.989130434782609, 7.0, 10.0],
+    pd.date_range("2020-04-01", "2021-04-01", freq="QS", inclusive="left"),
+)
+
+s5_a_sum = s5_a_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="AS"), dtype=float
+)
+
+# Months (= unequal lengths) as starting point, with DST
+
+i6 = pd.date_range("2020-04", "2021-06", freq="MS", inclusive="left", tz=tz)
+s6 = pd.Series(range(len(i6)), i6)
+
+s6_d_avg = pd.Series(
+    [v2 for v, l in zip(range(len(i6)), daycount) for v2 in [v] * l],
+    pd.date_range("2020-04-01", "2021-06-01", freq="D", inclusive="left", tz=tz),
+    dtype=float,
+)
+hourcount = [720, 744, 720, 744, 744, 720, 745, 720, 744, 744, 672, 743, 720, 744]
+s6_d_sum_values = []
+for m, (value, days, monthlen) in enumerate(zip(range(len(i6)), daycount, hourcount)):
+    for d in range(days):
+        if m == 6 and d == 24:  # 2020-oct-25
+            daylen = 25
+        elif m == 11 and d == 27:  # 2021-mar-28
+            daylen = 23
+        else:
+            daylen = 24
+        s6_d_sum_values.append(value * daylen / monthlen)
+s6_d_sum = pd.Series(
+    s6_d_sum_values,
+    pd.date_range("2020-04-01", "2021-06-01", freq="D", inclusive="left", tz=tz),
+    dtype=float,
+)
+
+s6_q_sum = pd.Series(
+    [3.0, 12, 21, 30],
+    pd.date_range("2020-04-01", "2021-04-01", freq="QS", inclusive="left", tz=tz),
+)
+s6_q_avg = pd.Series(
+    [1.0, 3.989130434782609, 6.999547306473517, 9.999536822603057],
+    pd.date_range("2020-04-01", "2021-04-01", freq="QS", inclusive="left", tz=tz),
+)
+
+s6_a_sum = s6_a_avg = pd.Series(
+    [], pd.date_range("2020", periods=0, freq="AS", tz=tz), dtype=float
+)
+
+
+@pytest.mark.parametrize(
+    ("s", "freq", "expected"),
+    [
+        (s1, "15T", s1_15t_sum),
+        (s1, "D", s1_d_sum),
+        (s1, "MS", s1_m_sum),
+        (s1, "QS", s1_q_sum),
+        (s1, "AS", s1_a_sum),
+        (s2, "15T", s2_15t_sum),
+        (s2, "D", s2_d_sum),
+        (s2, "MS", s2_m_sum),
+        (s2, "QS", s2_q_sum),
+        (s2, "AS", s2_a_sum),
+        (s3, "15T", s3_15t_sum),
+        (s3, "D", s3_d_sum),
+        (s3, "MS", s3_m_sum),
+        (s3, "QS", s3_q_sum),
+        (s3, "AS", s3_a_sum),
+        (s4, "15T", s4_15t_sum),
+        (s4, "D", s4_d_sum),
+        (s4, "MS", s4_m_sum),
+        (s4, "QS", s4_q_sum),
+        (s4, "AS", s4_a_sum),
+        (s5, "D", s5_d_sum),
+        (s5, "QS", s5_q_sum),
+        (s5, "AS", s5_a_sum),
+        (s6, "D", s6_d_sum),
+        (s6, "QS", s6_q_sum),
+        (s6, "AS", s6_a_sum),
+    ],
+)
+def test_resample_summable(s, freq, expected):
+    """Test if resampling works as expected."""
+    result = changefreq.summable(s, freq)
+    testing.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("s", "freq", "expected"),
+    [
+        (s1, "15T", s1_15t_avg),
+        (s1, "D", s1_d_avg),
+        (s1, "MS", s1_m_avg),
+        (s1, "QS", s1_q_avg),
+        (s1, "AS", s1_a_avg),
+        (s2, "15T", s2_15t_avg),
+        (s2, "D", s2_d_avg),
+        (s2, "MS", s2_m_avg),
+        (s2, "QS", s2_q_avg),
+        (s2, "AS", s2_a_avg),
+        (s3, "15T", s3_15t_avg),
+        (s3, "D", s3_d_avg),
+        (s3, "MS", s3_m_avg),
+        (s3, "QS", s3_q_avg),
+        (s3, "AS", s3_a_avg),
+        (s4, "15T", s4_15t_avg),
+        (s4, "D", s4_d_avg),
+        (s4, "MS", s4_m_avg),
+        (s4, "QS", s4_q_avg),
+        (s4, "AS", s4_a_avg),
+        (s5, "D", s5_d_avg),
+        (s5, "QS", s5_q_avg),
+        (s5, "AS", s5_a_avg),
+        (s6, "D", s6_d_avg),
+        (s6, "QS", s6_q_avg),
+        (s6, "AS", s6_a_avg),
+    ],
+)
+def test_resample_avgable(s, freq, expected):
+    """Test if resampling works as expected."""
+    result = changefreq.averagable(s, freq)
+    testing.assert_series_equal(result, expected)
+
+
+# Using gas days instead of calendar days.
+
+# . no tz
+i7 = pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="H", inclusive="left")
+s7 = pd.Series(range(len(i7)), i7)
+s7_d_sum = pd.Series([708.0, 1284], pd.date_range("2020-01-16", freq="D", periods=2))
+s7_d_avg = pd.Series([29.5, 53.5], pd.date_range("2020-01-16", freq="D", periods=2))
+
+# . start of dst
+i8 = pd.date_range(
+    "2020-03-26 12:00", "2020-03-30 12:00", freq="H", inclusive="left", tz=tz
+)
+s8 = pd.Series(range(len(i8)), i8)
+s8_d_sum = pd.Series(
+    [708.0, 1219, 1836], pd.date_range("2020-03-27", freq="D", periods=3, tz=tz)
+)
+s8_d_avg = pd.Series(
+    [29.5, 53, 76.5], pd.date_range("2020-03-27", freq="D", periods=3, tz=tz)
+)
+
+# . end of dst
+i9 = pd.date_range(
+    "2020-10-22 12:00", "2020-10-26 12:00", freq="H", inclusive="left", tz=tz
+)
+s9 = pd.Series(range(len(i9)), i9)
+s9_d_sum = pd.Series(
+    [708.0, 1350, 1884], pd.date_range("2020-10-23", freq="D", periods=3, tz=tz)
+)
+s9_d_avg = pd.Series(
+    [29.5, 54, 78.5], pd.date_range("2020-10-23", freq="D", periods=3, tz=tz)
+)
+
+
+@pytest.mark.parametrize(
+    ("s", "freq", "grouper", "expected"),
+    [
+        (s7, "D", stamps.gasday_de, s7_d_sum),
+        # (s8, "D", stamps.gasday_de, s8_d_sum),
+        # (s9, "D", stamps.gasday_de, s9_d_sum),
+    ],
+)
+def test_resample_summable_custom(s, freq, grouper, expected):
+    """Test if resampling also works when using custom grouper function."""
+    result = changefreq.summable(s, freq, grouper)
+    testing.assert_series_equal(result, expected)
+
+
+@pytest.mark.parametrize(
+    ("s", "freq", "grouper", "expected"),
+    [
+        (s7, "D", stamps.gasday_de, s7_d_avg),
+        # (s8, "D", stamps.gasday_de, s8_d_avg),
+        # (s9, "D", stamps.gasday_de, s9_d_avg),
+    ],
+)
+def test_resample_avgable_custom(s, freq, grouper, expected):
+    """Test if resampling also works when using custom grouper function."""
+    result = changefreq.averagable(s, freq, grouper)
+    testing.assert_series_equal(result, expected)
+
 
 # @pytest.fixture(params=freqs_small_to_large)
 # def freq(request):
