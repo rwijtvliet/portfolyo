@@ -1,11 +1,11 @@
+import functools
 from pathlib import Path
 from typing import Tuple, Union
-from portfolyo import testing
-from portfolyo.core import changefreq
-from portfolyo.tools import stamps
+
 import pandas as pd
 import pytest
-import functools
+from portfolyo import testing
+from portfolyo.tools import changefreq, stamps
 
 freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
 
@@ -570,6 +570,7 @@ def get_df_from_excel(freq, tz):
     return df
 
 
+@functools.lru_cache(1000)
 def get_testframes(
     source_freq: str,
     target_freq: str,
@@ -636,7 +637,6 @@ def test_changefreq_fullonly(
     """Test if, when downsampling, only the periods are returned that are fully present in the source."""
     if stamps.freq_longest(source_freq, target_freq) == source_freq:
         pytest.skip("Only test downsampling.")
-        return
 
     # Get test data.
     testfn = changefreq.averagable if avg_or_sum == "avg" else changefreq.summable
@@ -649,11 +649,11 @@ def test_changefreq_fullonly(
     # Remove some data, so that source contains partial periods
     source, expected = source.iloc[1:-1], expected.iloc[1:-1]
 
-    # Error if no data to be returned.
-    if len(expected) == 0:
-        with pytest.raises(ValueError):
-            _ = testfn(source, target_freq)
-        return
+    # # Error if no data to be returned.
+    # if len(expected) == 0:
+    #     with pytest.raises(ValueError):
+    #         _ = testfn(source, target_freq)
+    #     return
 
     # Get and assert result.
     result = testfn(source, target_freq)

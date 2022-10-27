@@ -1,7 +1,7 @@
 """Functions to change frequency of a pandas dataframe."""
 
 from typing import Callable
-from ..tools import stamps, frames
+from . import stamps, frames
 from pandas.core.frame import NDFrame
 import pandas as pd
 
@@ -64,10 +64,11 @@ def _downsample(
 def _upsample_averagable_freq(s: pd.Series, freq: str) -> pd.Series:
     """Upsample an averagable series using a frequency."""
     # Upsampling is easiest for averagable frames: simply duplicate parent value.
+
     # We cannot simply `.resample()`, because in that case the final value is not
     # duplicated. We add a dummy value, which we eventually remove again.
 
-    # First, add additional row...
+    # So, first, add additional row...
     # (original code to add additional row, does not work if unit-aware. Maybe with future release of pint_pandas?)
     # s = s.copy()
     # s.loc[s.index.ts_right[-1]] = None
@@ -254,3 +255,41 @@ def averagable(
         return pd.DataFrame({key: averagable(value, freq) for key, value in fr.items()})
 
     return _general(fr, freq, False, custom_grouper)
+
+
+def index(idx: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
+    """Resample index.
+
+    Parameters
+    ----------
+    idx : pd.DatetimeIndex
+        Index to resample
+    freq : str, optional (default: 'MS')
+        The frequency at which to resample. 'AS' (or 'A') for year, 'QS' (or 'Q')
+        for quarter, 'MS' (or 'M') for month, 'D for day', 'H' for hour, '15T' for
+        quarterhour.
+
+    Returns
+    -------
+    pd.DatetimeIndex
+    """
+    up_or_down = stamps.freq_up_or_down(idx.freq, freq)
+
+    # Nothing more needed; index already in desired frequency.
+    if up_or_down == 0:
+        return idx
+
+    # Must downsample.
+    elif up_or_down == -1:
+        # We must jump through a hoop: can't directly resample an Index.
+        return pd.Series(0, idx).resample(freq).asfreq().index
+
+    # Must upsample.
+    else:  # up_or_down == 1
+        # We must jump through additional hoops, because we are using datetimeindices.
+        # First, extend by one value...
+        idx = idx.append(idx[-1:].shift())
+        # ... then do upsampling ...
+        idx2 = pd.Series(0, idx).resample(freq).asfreq().index
+        # ... and then remove final element.
+        return idx2[:-1]

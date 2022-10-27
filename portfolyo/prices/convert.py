@@ -12,7 +12,7 @@ Convert volume [MW] and price [Eur/MWh] timeseries using base, peak, offpeak tim
 
 from typing import Union, Iterable
 from . import utils
-from ..core import changefreq
+from ..tools import changefreq
 from ..tools.types import Value, Stamp
 from ..tools.stamps import freq_up_or_down
 from ..tools.frames import trim_frame
