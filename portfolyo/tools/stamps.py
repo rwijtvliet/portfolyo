@@ -1,5 +1,5 @@
 """
-Module for doing basic timestamp and frequency operations.
+Module for doing basic operations on timestamps, timedeltas, and frequencies.
 """
 
 from .nits import Q_
@@ -48,98 +48,10 @@ def guess_frequency(tdelta: pd.Timedelta) -> str:
         )
 
 
-def right_to_left(i: pd.DatetimeIndex, how: str = "A") -> pd.DatetimeIndex:
-    """Turn an index with right-bound timestamps into one with left-bound timestamps.
-
-    Parameters
-    ----------
-    i : pd.DatetimeIndex
-        The index that needs its timestamps changed.
-    how : {'A', 'B'}, optional (default: 'A')
-        If ``i`` is not localized, and contains a DST-transition, there are two ways
-        in which it may be right-bound. E.g. at start of DST: (A) contains 2:00 but not
-        3:00 (like left-bound timestamps do); or (B) contains 3:00 but not 2:00.
-        Ignored for timezone-aware ``i``.
-
-    Returns
-    -------
-    pd.DatetimeIndex
-        With left-bound timestamps.
-
-    Notes
-    -----
-    If frequency is not set, guess from the spacing of the timestamps. Assumes values
-    are in order. Does no error checking to see if index actually makes sense. Does not
-    assess if 'A' or 'B' makes most sense for tz-naive ``i``.
-    """
-    # Must be able to handle cases where .freq is not set. A tz-naive index that contains
-    # a DST-changeover will have missing or repeated timestamps.
-
-    freq, tz = i.freq, i.tz
-
-    # Get frequency.
-    if freq is None:
-        freq = pd.infer_freq(i)
-
-    if freq is None:  # Couldn't infer frequency. Try from median timedelta.
-        freq = guess_frequency((i[1:] - i[:-1]).median())
-
-    # Make leftbound.
-    td = timedelta(freq)
-    if tz or how == "A":  # if tz-aware, only one way to make leftbound.
-        return i - td
-    else:  # how == "B"
-        return pd.DatetimeIndex([i[0] - td, *i[:-1]])
-
-
-def intersection(*indices: pd.DatetimeIndex) -> pd.DatetimeIndex:
-    """Intersect several DatetimeIndices.
-
-    Parameters
-    ----------
-    *indices : pd.DatetimeIndex
-        The indices to intersect.
-
-    Returns
-    -------
-    pd.DatetimeIndex
-        The intersection, i.e., datetimeindex with values that exist in each index.
-
-    Notes
-    -----
-    If indices have distinct timezones or names, the values from the first index are used.
-    """
-    if len(indices) == 0:
-        raise ValueError("Must specify at least one index.")
-
-    distinct_freqs = set([i.freq for i in indices])
-    if len(indices) > 1 and len(distinct_freqs) != 1:
-        raise ValueError(
-            f"Indices must not have equal frequencies; got {distinct_freqs}."
-        )
-
-    tznaive = [i.tz is None for i in indices]
-    if any(tznaive) and not all(tznaive):
-        raise ValueError(
-            "All indices must be either timezone-aware or timezone-naive; got "
-            f"{sum(tznaive)} naive (out of {len(indices)})."
-        )
-
-    freq, name, tz = indices[0].freq, indices[0].name, indices[0].tz
-
-    # Calculation is cumbersome: pandas DatetimeIndex.intersection not working correctly on timezone-aware indices.
-    values = set(indices[0])
-    for idx in indices[1:]:
-        values = values.intersection(set(idx))
-    idx = pd.DatetimeIndex(sorted(list(values)), freq=freq, name=name, tz=tz)
-
-    return idx
-
-
 def floor_ts(
     ts: Union[pd.Timestamp, pd.DatetimeIndex], freq=None, future: int = 0
 ) -> Union[pd.Timestamp, pd.DatetimeIndex]:
-    """Floor timestamp to period boundary.
+    """Floor timestamp to 'natural' period boundary.
 
     i.e., find (latest) period start that is on or before the timestamp.
 
@@ -216,7 +128,7 @@ def floor_ts(
 def ceil_ts(
     ts: Union[pd.Timestamp, pd.DatetimeIndex], freq=None, future: int = 0
 ) -> Union[pd.Timestamp, pd.DatetimeIndex]:
-    """Ceil timestamp to period boundary.
+    """Ceil timestamp to 'natural' period boundary.
 
     i.e., find (earliest) period start that is on or after the timestamp.
 
@@ -325,7 +237,7 @@ def trim_index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
     return i[(i >= start) & (i < end)]
 
 
-def timedelta(freq: str) -> Union[pd.Timedelta, pd.DateOffset]:
+def offset(freq: str) -> Union[pd.Timedelta, pd.DateOffset]:
     """Object that can be added to a left-bound timestamp to find corresponding right-bound timestamp
 
     Parameters
@@ -339,9 +251,9 @@ def timedelta(freq: str) -> Union[pd.Timedelta, pd.DateOffset]:
 
     Examples
     --------
-    >>> timedelta("H")
+    >>> offset("H")
     Timedelta('0 days 01:00:00')
-    >>> timedelta("MS")
+    >>> offset("MS")
     <DateOffset: months=1>
     """
     # Get right timestamp for each index value, based on the frequency.
@@ -367,7 +279,7 @@ def timedelta(freq: str) -> Union[pd.Timedelta, pd.DateOffset]:
     else:
         for freq2 in ["MS", "QS"]:  # Edge case: month-/quarterly but starting != Jan.
             if freq_up_or_down(freq2, freq) == 0:
-                return timedelta(freq2)
+                return offset(freq2)
         raise ValueError(
             f"Parameter ``freq`` must be one of {', '.join(FREQUENCIES)}; got '{freq}'."
         )
@@ -400,16 +312,13 @@ def ts_right(
     >>> ts_right(pd.Timestamp('2020-03-01'), 'AS')
     ValueError
     """
-    if freq is None:
-        freq = ts_left.freq
-
-    assert_boundary_ts(ts_left, freq)
-
     if isinstance(ts_left, pd.DatetimeIndex):
-        return pd.Series(ts_left + timedelta(freq), ts_left, name="ts_right")
+        return pd.Series(ts_left.shift(freq=freq), ts_left, name="ts_right")
 
     # Assume it's a single timestamp.
-    return ts_left + timedelta(freq)
+    if freq is None:
+        freq = ts_left.freq
+    return ts_left + offset(freq)
 
 
 def duration(
@@ -442,16 +351,16 @@ def duration(
     if freq is None:
         freq = ts_left.freq
 
-    assert_boundary_ts(ts_left, freq)
-
     if isinstance(ts_left, pd.DatetimeIndex):
         if freq in ["15T", "H"]:
             # Speed-up things for fixed-duration frequencies.
             h = 1 if freq == "H" else 0.25
+            hours = pd.Series(h, ts_left)
         else:
             # Individual calculations for non-fixed-duration frequencies.
-            h = [td.total_seconds() / 3600 for td in ts_right(ts_left, freq) - ts_left]
-        return pd.Series(h, ts_left, dtype="pint[h]").rename("duration")
+            deltas = ts_right(ts_left, freq) - ts_left
+            hours = deltas.apply(lambda td: td.total_seconds() / 3600)
+        return hours.astype("pint[h]").rename("duration")
 
     # Assume it's a single timestamp.
     if freq in ["15T", "H"]:
