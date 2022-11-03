@@ -61,7 +61,7 @@ def stamp(
 
 
 def index(
-    i: pd.DateimeIndex, freq: str, future: int = 0, offset_hours: float = 0
+    i: pd.DatetimeIndex, freq: str, future: int = 0, offset_hours: float = 0
 ) -> pd.DatetimeIndex:
     f"""Ceil timestamps of index to end of delivery period.
 

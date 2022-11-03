@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+
 from portfolyo import testing, tools
 
 TESTCASES_NODST = [
@@ -39,13 +40,13 @@ TESTCASES_DST = [
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(("ts", "freq", "expected_ts_right"), TESTCASES_NODST)
-def test_right_stamp_nodst(ts, freq, tz, expected_ts_right):
+def test_right_stamp_nodst(ts: str, freq: str, tz: str, expected_ts_right: str):
     """Test if right timestamp is correctly calculated for timestamp without dst-transition."""
     stamptest(ts, freq, tz, expected_ts_right)
 
 
 @pytest.mark.parametrize(("ts", "freq", "expected_ts_right"), TESTCASES_DST)
-def test_right_stamp_dst(ts, freq, expected_ts_right):
+def test_right_stamp_dst(ts: str, freq: str, expected_ts_right: str):
     """Test if right timestamp is correctly calculated for timestamp with dst-transition."""
     stamptest(ts, freq, "Europe/Berlin", expected_ts_right)
 
@@ -53,16 +54,18 @@ def test_right_stamp_dst(ts, freq, expected_ts_right):
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("freq_as", ["attr", "param"])
 @pytest.mark.parametrize(("ts", "freq", "expected_ts_right"), TESTCASES_NODST)
-def test_right_index_nodst(ts, freq, tz, expected_ts_right):
+def test_right_index_nodst(
+    ts: str, freq: str, tz: str, expected_ts_right: str, freq_as: str
+):
     """Test if right timestamp is correctly calculated for index without dst-transition."""
-    indextest(ts, freq, tz, expected_ts_right)
+    indextest(ts, freq, tz, freq_as, expected_ts_right)
 
 
 @pytest.mark.parametrize("freq_as", ["attr", "param"])
 @pytest.mark.parametrize(("ts", "freq", "expected_ts_right"), TESTCASES_DST)
-def test_right_index_dst(ts, freq, expected_ts_right):
+def test_right_index_dst(ts: str, freq: str, expected_ts_right: str, freq_as: str):
     """Test if right timestamp is correctly calculated for index with dst-transition."""
-    indextest(ts, freq, "Europe/Berlin", expected_ts_right)
+    indextest(ts, freq, "Europe/Berlin", freq_as, expected_ts_right)
 
 
 def stamptest(ts, freq, tz, expected_ts_right):

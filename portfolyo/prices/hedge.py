@@ -108,7 +108,8 @@ def hedge(
         po = w.index.freq in ["15T", "H"] and freq != "D"
     if po and not (w.index.freq in ["15T", "H"] and freq != "D"):
         raise ValueError(
-            "Split into peak and offpeak only possible when (a) hedging with monthly (or longer) products, and (b) if timeseries have hourly (or shorter) values."
+            "Split into peak and offpeak only possible when (a) hedging with monthly (or "
+            "longer) products, and (b) if timeseries have hourly (or shorter) values."
         )
 
     # Handle possible units.
@@ -130,11 +131,6 @@ def hedge(
 
     # Handle possible units.
     if wunits or punits:
-        df = df.astype(
-            {
-                "w": tools.unit.pintunit_remove(wunits),
-                "p": tools.unit.pintunit_remove(punits),
-            }
-        )
+        df = df.astype({"w": f"pint[{wunits:P}]", "p": f"pint[{punits:P}]"})
 
     return df["w"], df["p"]

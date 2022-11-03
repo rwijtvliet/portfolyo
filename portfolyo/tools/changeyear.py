@@ -12,7 +12,7 @@ from typing import Callable, Union
 import holidays
 import pandas as pd
 
-from . import changefreq as changefreqtools
+from . import changefreq as tools_changefreq
 from . import freq as tools_freq
 from . import unit as tools_unit
 
@@ -281,8 +281,8 @@ def _map_index_to_index_hourlyandshorter(
     holiday_country: str = None,
 ):
     # Do mapping on day-level.
-    idx_target_d = changefreqtools.index(idx_target, "D")
-    idx_source_d = changefreqtools.index(idx_source, "D")
+    idx_target_d = tools_changefreq.index(idx_target, "D")
+    idx_source_d = tools_changefreq.index(idx_source, "D")
     mapp_d = _map_index_to_index_daily(idx_source_d, idx_target_d, holiday_country)
 
     # Split timestamps in 'day' and 'offset'.

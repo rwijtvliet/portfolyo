@@ -632,8 +632,8 @@ def test_changefreq(source_freq, target_freq, tz, avg_or_sum, series_or_df, with
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("target_freq", tools.stamp.FREQUENCIES)
-@pytest.mark.parametrize("source_freq", tools.stamp.FREQUENCIES)
+@pytest.mark.parametrize("target_freq", tools.freq.FREQUENCIES)
+@pytest.mark.parametrize("source_freq", tools.freq.FREQUENCIES)
 def test_changefreq_fullonly(
     source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
 ):

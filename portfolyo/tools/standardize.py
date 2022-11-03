@@ -7,11 +7,11 @@ from typing import Union
 import pandas as pd
 from pytz import AmbiguousTimeError, NonExistentTimeError
 
-from .tests import frame as tools_frame
-from .tests import freq as tools_freq
-from .tests import isboundary as tools_isboundary
-from .tests import righttoleft as tools_righttoleft
-from .tests import tzone as tools_tzone
+from . import frame as tools_frame
+from . import freq as tools_freq
+from . import isboundary as tools_isboundary
+from . import righttoleft as tools_righttoleft
+from . import tzone as tools_tzone
 
 
 def frame(

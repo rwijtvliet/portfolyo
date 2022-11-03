@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import yaml
+
 from portfolyo import testing, tools
 
 TESTCASES_DATA = Path(__file__).parent / "test_changeyear_data.yaml"
@@ -100,20 +101,20 @@ def create_testcase_factory():
                 year_t_end += 1
 
         idx_s = pd.date_range(
-            str(year_s_start), str(year_s_end), freq="D", closed="left", tz=tz
+            str(year_s_start), str(year_s_end), freq="D", inclusive="left", tz=tz
         )
         idx_t = pd.date_range(
-            str(year_t_start), str(year_t_end), freq="D", closed="left", tz=tz
+            str(year_t_start), str(year_t_end), freq="D", inclusive="left", tz=tz
         )
         key = (year_s_start, year_t_start, tz, country, "D", several_years)
         testcases[key] = TestCase(idx_s, idx_t, country, mapping)
 
         # Testcase with hourly frequency.
         idx_s2 = pd.date_range(
-            str(year_s_start), str(year_s_end), freq="H", closed="left", tz=tz
+            str(year_s_start), str(year_s_end), freq="H", inclusive="left", tz=tz
         )
         idx_t2 = pd.date_range(
-            str(year_t_start), str(year_t_end), freq="H", closed="left", tz=tz
+            str(year_t_start), str(year_t_end), freq="H", inclusive="left", tz=tz
         )
         count_s = pd.Series(0, idx_s2).resample("D").count()
         count_t = pd.Series(0, idx_t2).resample("D").count()
@@ -162,7 +163,7 @@ get_testcase = functools.lru_cache(100)(create_testcase_factory())
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 def test_characterizeindex_error(freq: str, tz: str):
     """Test if characterization is only possible for daily indices."""
-    i = pd.date_range("2020", "2022", closed="left", freq=freq, tz=tz)
+    i = pd.date_range("2020", "2022", inclusive="left", freq=freq, tz=tz)
     with pytest.raises(ValueError):
         _ = tools.changeyear.characterize_index(i)
 
@@ -175,7 +176,7 @@ def test_characterizeindex_weekdays(
 ):
     """Test if the weekdays of an index are correctly characterized."""
     idx = pd.date_range(
-        str(yearchar.year), str(yearchar.year + 1), freq="D", tz=tz, closed="left"
+        str(yearchar.year), str(yearchar.year + 1), freq="D", tz=tz, inclusive="left"
     )
     char = tools.changeyear.characterize_index(idx, holiday_country)
     # Test index.
@@ -197,7 +198,7 @@ def test_characterizeindex_dst(
 ):
     """Test if the DST days of an index are correctly characterized."""
     idx = pd.date_range(
-        str(yearchar.year), str(yearchar.year + 1), freq="D", tz=tz, closed="left"
+        str(yearchar.year), str(yearchar.year + 1), freq="D", tz=tz, inclusive="left"
     )
     char = tools.changeyear.characterize_index(idx, holiday_country)
     # Test dst.
@@ -219,7 +220,7 @@ def test_characterizeindex_holidays(
 ):
     """Test if the holidays of an index are correctly characterized."""
     idx = pd.date_range(
-        str(yearchar.year), str(yearchar.year + 1), freq="D", tz=tz, closed="left"
+        str(yearchar.year), str(yearchar.year + 1), freq="D", tz=tz, inclusive="left"
     )
     char = tools.changeyear.characterize_index(idx, holiday_country)
     # Test holiday.
@@ -238,34 +239,46 @@ def test_characterizeindex_holidays(
     [
         # Distinct timezones
         (
-            pd.date_range("2020", "2021", freq="D", closed="left", tz=None),
-            pd.date_range("2021", "2022", freq="D", closed="left", tz="Europe/Berlin"),
+            pd.date_range("2020", "2021", freq="D", inclusive="left", tz=None),
+            pd.date_range(
+                "2021", "2022", freq="D", inclusive="left", tz="Europe/Berlin"
+            ),
         ),
         (
-            pd.date_range("2020", "2021", freq="D", closed="left", tz="Europe/Berlin"),
-            pd.date_range("2021", "2022", freq="D", closed="left", tz=None),
+            pd.date_range(
+                "2020", "2021", freq="D", inclusive="left", tz="Europe/Berlin"
+            ),
+            pd.date_range("2021", "2022", freq="D", inclusive="left", tz=None),
         ),
         (
-            pd.date_range("2020", "2021", freq="D", closed="left", tz="Asia/Kolkata"),
-            pd.date_range("2021", "2022", freq="D", closed="left", tz="Europe/Berlin"),
+            pd.date_range(
+                "2020", "2021", freq="D", inclusive="left", tz="Asia/Kolkata"
+            ),
+            pd.date_range(
+                "2021", "2022", freq="D", inclusive="left", tz="Europe/Berlin"
+            ),
         ),
         # Distinct frequencies
         (
-            pd.date_range("2020", "2021", freq="D", closed="left", tz=None),
-            pd.date_range("2021", "2022", freq="15T", closed="left", tz=None),
+            pd.date_range("2020", "2021", freq="D", inclusive="left", tz=None),
+            pd.date_range("2021", "2022", freq="15T", inclusive="left", tz=None),
         ),
         (
-            pd.date_range("2020", "2021", freq="15T", closed="left", tz=None),
-            pd.date_range("2021", "2022", freq="D", closed="left", tz=None),
+            pd.date_range("2020", "2021", freq="15T", inclusive="left", tz=None),
+            pd.date_range("2021", "2022", freq="D", inclusive="left", tz=None),
         ),
         (
-            pd.date_range("2020", "2021", freq="D", closed="left", tz="Europe/Berlin"),
-            pd.date_range("2021", "2022", freq="H", closed="left", tz="Europe/Berlin"),
+            pd.date_range(
+                "2020", "2021", freq="D", inclusive="left", tz="Europe/Berlin"
+            ),
+            pd.date_range(
+                "2021", "2022", freq="H", inclusive="left", tz="Europe/Berlin"
+            ),
         ),
         # Too few source data
         (
-            pd.date_range("2020", "2020-06", freq="D", closed="left", tz=None),
-            pd.date_range("2021", "2022", freq="D", closed="left", tz=None),
+            pd.date_range("2020", "2020-06", freq="D", inclusive="left", tz=None),
+            pd.date_range("2021", "2022", freq="D", inclusive="left", tz=None),
         ),
     ],
 )
@@ -289,7 +302,9 @@ def test_mapindextoindex_identical(
     tz: str, holiday_country: str, numyears: int, partial: bool, freq: str
 ):
     """Test if the (trivial) mapping is done correctly from index to itself."""
-    idx = pd.date_range("2020", str(2020 + numyears), freq=freq, closed="left", tz=tz)
+    idx = pd.date_range(
+        "2020", str(2020 + numyears), freq=freq, inclusive="left", tz=tz
+    )
     if partial:
         idx_target = idx[: len(idx) // 2]
     else:

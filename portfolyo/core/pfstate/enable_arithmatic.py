@@ -32,7 +32,7 @@ def _prep_data(value, refindex: pd.DatetimeIndex) -> Union[pd.Series, PfLine, Pf
             return value
 
         try:
-            name = tools.unit.unit2name(value.pint.units)
+            name = tools.unit.to_name(value.pint.units)
         except ValueError:
             return value  # has unit, but unknown
 

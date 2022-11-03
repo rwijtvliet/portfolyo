@@ -65,9 +65,7 @@ class InOp:
             elif isinstance(val, pd.Series):
                 kwargs[attr] = val.loc[index]
             elif isinstance(val, tools.unit.Q_):
-                kwargs[attr] = pd.Series(
-                    val.m, index, dtype=tools.unit.pintunit_remove(val.units)
-                )
+                kwargs[attr] = pd.Series(val.m, index, dtype=f"pint[{val.units:P}]")
             else:  # float
                 kwargs[attr] = pd.Series(val, index)
         return InOp(**kwargs)
@@ -103,7 +101,7 @@ def _set_unit(
     if v is None:
         return None
 
-    unit = tools.unit.name2unit(attr) if attr else None
+    unit = tools.unit.from_name(attr) if attr else None
 
     if unit is None:  # should be unit-agnostic
         if isinstance(v, int) or isinstance(v, float):
@@ -125,7 +123,7 @@ def _set_unit(
             return tools.unit.Q_(v, unit)  # add unit or convert to unit
         if isinstance(v, pd.Series) and isinstance(v.index, pd.DatetimeIndex):
             v = _timeseries_of_floats_or_pint(v)  # float-series or pint-series
-            return v.astype(tools.unit.pintunit_remove(unit))
+            return v.astype(f"pint[{unit:P}]")
         raise TypeError(
             f"Value should be a number, Quantity, or timeseries; got {type(v)}."
         )
@@ -149,7 +147,7 @@ def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
         units = list(set([q.u for q in quantities]))
         if len(units) != 1:
             raise ValueError(f"Timeseries needs uniform unit; found {','.join(units)}.")
-        s = pd.Series(magnitudes, s.index, dtype=tools.unit.pintunit_remove(units[0]))
+        s = pd.Series(magnitudes, s.index, dtype=f"pint[{units[0]:P}]")
 
     # Check if all OK.
 
@@ -164,7 +162,7 @@ def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
 
 
 def _unit2attr(unit) -> str:
-    attr = tools.unit.unit2name(unit)  # Error if dimension unknown
+    attr = tools.unit.to_name(unit)  # Error if dimension unknown
     if attr not in _ATTRIBUTES:
         raise NotImplementedError(f"Cannot handle data with this unit ({unit}).")
     return attr

@@ -40,7 +40,7 @@ def get_value(name: str = "w", has_unit: bool = True):
     if not has_unit:
         return magn
     else:
-        unit = tools.unit.name2unit(name)
+        unit = tools.unit.from_name(name)
         return tools.unit.Q_(magn, unit)
 
 

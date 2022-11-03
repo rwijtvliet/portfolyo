@@ -3,7 +3,7 @@ Working with pint units.
 """
 
 from pathlib import Path
-from typing import Dict, Union
+from typing import Union
 
 import pandas as pd
 import pint
@@ -37,12 +37,6 @@ NAMES_AND_UNITS = {
 }
 
 
-def pintunit_remove(u: pint.Unit) -> str:
-    # TODO: Remove and replace usage with f'pint[{units:P}]'
-    units = f"{u}" or "dimensionless"
-    return f"pint[{units}]"
-
-
 def to_compact(value: Union[pint.Quantity, pd.Series, pd.DataFrame]):
     # TODO: Unused. Remove?
     """Convert to more compact unit by moving absolute magnitude into readable range."""
@@ -73,50 +67,6 @@ def from_name(name: str) -> pint.Unit:
     if name in NAMES_AND_UNITS:
         return NAMES_AND_UNITS[name]
     raise ValueError(f"No standard unit found for name '{name}'.")
-
-
-def set_unit(s: pd.Series, unit: Union[pint.Unit, str]) -> pd.Series:
-    """Make series unit-aware. If series is already unit-aware, convert to specified unit.
-    If not, assume values are in specified unit.
-
-    Parameters
-    ----------
-    s : pd.Series
-    unit : Union[pint.Unit, str]
-        If None, remove the unit.
-
-    Returns
-    -------
-    pd.Series
-        Same as input series, but with specified unit.
-    """
-    if not isinstance(unit, pint.Unit):
-        unit = ureg.Unit(unit)
-    # sets unit if none set yet, otherwise converts if possible
-    return s.astype(pintunit_remove(unit))
-
-
-def set_units(
-    df: pd.DataFrame, units: Dict[str, Union[pint.Unit, str]]
-) -> pd.DataFrame:
-    """Make dataframe unit-aware. If dataframe is already unit-aware, convert to specified
-    units. If not, assume values are in specified unit.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-    units : Dict[str, Union[pint.Unit, str]]
-        key = column name, value = unit to set to that column
-
-    Returns
-    -------
-    pd.DataFrame
-        Same as input dataframe, but with specified units.
-    """
-    df = df.copy()  # don't change incoming dataframe
-    for name, unit in units.items():
-        df[name] = set_unit(df[name], unit)
-    return df
 
 
 def drop_units(fr: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.DataFrame]:

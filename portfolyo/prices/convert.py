@@ -232,7 +232,7 @@ def tseries2singlebpo(s: pd.Series, prefix: str = "") -> pd.Series:
 
     # Handle possible units.
     if units is not None:
-        sout = sout.astype(tools.unit.pintunit_remove(units))
+        sout = sout.astype(f"pint[{units}]")
     return sout
 
 
@@ -300,7 +300,7 @@ def tseries2bpoframe(s: pd.Series, freq: str = "MS", prefix: str = "") -> pd.Dat
 
     # Handle possible units.
     if units is not None:
-        sout = sout.astype(tools.unit.pintunit_remove(units))
+        sout = sout.astype(f"pint[{units}]")
     return sout.unstack()
 
 
@@ -425,7 +425,7 @@ def tseries2tseries(s: pd.Series, freq: str = "MS") -> pd.Series:
 
     # Handle possible units.
     if units is not None:
-        sout = sout.astype(tools.unit.pintunit_remove(units))
+        sout = sout.astype(f"pint[{units}]")
     return sout
 
 

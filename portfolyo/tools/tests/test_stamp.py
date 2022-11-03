@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+
 from portfolyo import tools
 
 
@@ -13,7 +14,7 @@ def test_tsleftright_nonespecified(tz_param: str, offset_hours: int):
         pd.Timestamp(year=nextyear, month=1, day=1, hour=offset_hours, tz=tz_param),
         pd.Timestamp(year=nextyear + 1, month=1, day=1, hour=offset_hours, tz=tz_param),
     )
-    result = tools.stamps.ts_leftright(None, None, tz_param, offset_hours)
+    result = tools.stamp.ts_leftright(None, None, tz_param, offset_hours)
     for a, b in zip(result, expected):
         assert a == b
 
@@ -41,7 +42,7 @@ def test_tsleftright_onespecified(
     # There should be no timezone errors and no swapping is necessary.
     tss = [pd.Timestamp(ts, tz=tz_specified) for ts in tss]  # one will be NaT
     expected = [pd.Timestamp(ts, tz=tz_specified) for ts in expected_tss]
-    result = tools.stamps.ts_leftright(*tss, tz_param, offset_hours)
+    result = tools.stamp.ts_leftright(*tss, tz_param, offset_hours)
 
     for a, b in zip(result, expected):
         assert a == b
@@ -86,10 +87,10 @@ def test_tsleftright_bothspecified(
 
     if tzs_specified[0] != tzs_specified[1]:
         with pytest.raises(ValueError):
-            _ = tools.stamps.ts_leftright(*tss, tz_param, offset_hours)
+            _ = tools.stamp.ts_leftright(*tss, tz_param, offset_hours)
 
     expected = [pd.Timestamp(ts, tz=tzs_specified[0]) for ts in expected_tss]
-    result = tools.stamps.ts_leftright(*tss, tz_param, offset_hours)
+    result = tools.stamp.ts_leftright(*tss, tz_param, offset_hours)
 
     for a, b in zip(result, expected):
         assert a == b

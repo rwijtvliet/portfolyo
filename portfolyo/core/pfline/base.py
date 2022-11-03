@@ -244,28 +244,6 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
             data["q"] = self.q
         return single.SinglePfLine(data)
 
-        # # val is now None, a PfLine, or dimless Series.
-
-        # # Get pd.Series of other, in correct unit.
-        # if isinstance(val, float) or isinstance(val, int):
-        #     val = pd.Series(val, self.index)
-        # elif isinstance(val, tools.unit.Q_):
-        #     val = pd.Series(val.magnitude, self.index, dtype=nits.g(val.units))
-
-        # if self.kind is Kind.ALL and col == "r":
-        #     raise NotImplementedError(
-        #         "Cannot set `r`; first select `.volume` or `.price` before applying `.set_r()`."
-        #     )
-        # # Create pd.DataFrame.
-        # # TODO: Use InOp
-        # data = {col: val.astype(nits.pintunit(nits.name2unit(col)))}
-        # if col in ["w", "q", "r"] and self.kind in [Kind.PRICE_ONLY, Kind.ALL]:
-        #     data["p"] = self.p
-        # elif col in ["p", "r"] and self.kind in [Kind.VOLUME_ONLY, Kind.ALL]:
-        #     data["q"] = self.q
-        # df = pd.DataFrame(data)
-        # return single.SinglePfLine(df)
-
     def set_w(self, w: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
         """Set or update power timeseries [MW]; returns modified (and flattened) instance."""
         return self._set_col_val("w", w)

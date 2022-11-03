@@ -58,7 +58,7 @@ def duration_peak(
 
     See also
     --------
-    .tools.stamps.duration
+    .tools.duration
     """
     if freq is None:
         freq = ts_left.freq
@@ -98,7 +98,7 @@ def duration_offpeak(
 
     See also
     --------
-    .tools.stamps.duration
+    .tools.duration
     """
     return duration_base(ts_left, freq) - duration_peak(ts_left, freq)
 
