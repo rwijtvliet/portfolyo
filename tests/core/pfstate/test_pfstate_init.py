@@ -1,8 +1,9 @@
-from portfolyo import dev, testing, PfState, PfLine  # noqa
-from portfolyo.core.pfstate.pfstate_helper import make_pflines
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
+
+from portfolyo import PfLine, PfState, dev, testing  # noqa
+from portfolyo.core.pfstate.pfstate_helper import make_pflines
 
 # Assert correct working of _make_pflines
 # . check unsourced and offtake are specified.
@@ -12,9 +13,11 @@ import pytest
 
 dev.seed(4)
 i_ref = pd.date_range("2020", freq="D", periods=80)
+s_ref = dev.get_series(i_ref, "")
 i_less = pd.date_range("2020-01-15", freq="D", periods=60)
+s_less = dev.get_series(i_less, "")
 i_more = pd.date_range("2019-12-15", freq="D", periods=100)
-s_ref, s_less, s_more = (dev.get_series(i, "") for i in (i_ref, i_less, i_more))
+s_more = dev.get_series(i_more, "")
 i_difffreq = pd.date_range("2020", freq="H", periods=80)
 s_difffreq = dev.get_series(i_difffreq, "")
 

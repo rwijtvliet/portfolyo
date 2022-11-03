@@ -5,6 +5,7 @@ from typing import Any, Dict, Iterable
 
 import pandas as pd
 import pytest
+
 from portfolyo import FREQUENCIES, Kind, MultiPfLine, PfLine, SinglePfLine, dev  # noqa
 
 
@@ -234,6 +235,7 @@ def test_singlepfline_init_2(itd: InitTestcase):
 @pytest.mark.parametrize("itd", **data_in_function(MultiPfLine))
 def test_multipfline_init_2(itd: InitTestcase):
     """Test if MultiPfLine can be initialized correctly, and attributes return correct values."""
+    pass
     # TODO: first specify, how multipfline should be initializable
     # data_in, expected_kind = itd.data_in, itd.expected_kind
     # if type(expected_kind) is type and issubclass(expected_kind, Exception):

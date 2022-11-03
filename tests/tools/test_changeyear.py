@@ -79,7 +79,7 @@ def germanyearchars() -> Iterator[GermanyYearchar]:
 
 
 @dataclass
-class TestCase:
+class TCase:  # testcase
     idx_source: pd.DatetimeIndex  # source index
     idx_target: pd.DatetimeIndex  # target index
     holiday_country: str
@@ -107,7 +107,7 @@ def create_testcase_factory():
             str(year_t_start), str(year_t_end), freq="D", inclusive="left", tz=tz
         )
         key = (year_s_start, year_t_start, tz, country, "D", several_years)
-        testcases[key] = TestCase(idx_s, idx_t, country, mapping)
+        testcases[key] = TCase(idx_s, idx_t, country, mapping)
 
         # Testcase with hourly frequency.
         idx_s2 = pd.date_range(
@@ -124,16 +124,16 @@ def create_testcase_factory():
             mapping_hourly.extend(range(count_s_start, count_s_start + count_t_here))
         key = (year_s_start, year_t_start, tz, country, "H", several_years)
 
-        testcases[key] = TestCase(idx_s2, idx_t2, country, mapping_hourly)
+        testcases[key] = TCase(idx_s2, idx_t2, country, mapping_hourly)
         # Testcase for identical mapping (days).
         key = (year_s_start, year_s_start, tz, country, "D", several_years)
-        testcases[key] = TestCase(idx_s, idx_s, country, range(len(idx_s)))
+        testcases[key] = TCase(idx_s, idx_s, country, range(len(idx_s)))
 
         # Testcase for identical mapping (hours).
         key = (year_s_start, year_s_start, tz, country, "H", several_years)
-        testcases[key] = TestCase(idx_s2, idx_s2, country, range(len(idx_s2)))
+        testcases[key] = TCase(idx_s2, idx_s2, country, range(len(idx_s2)))
 
-    testcases: Dict[Tuple, TestCase] = {}
+    testcases: Dict[Tuple, TCase] = {}
     for tc in yaml.load(open(TESTCASES_DATA), Loader=yaml.FullLoader):
         # 2020 <-> 2021
         add_testcase(tc, False)
@@ -148,7 +148,7 @@ def create_testcase_factory():
         holiday_country: str,
         freq: str,
         several_years: bool,
-    ) -> TestCase:
+    ) -> TCase:
         return testcases.get((year_s, year_t, tz, holiday_country, freq, several_years))
 
     return testcase
