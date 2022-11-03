@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from ..prices.utils import is_peak_hour
-from ..tools import unit  # noqa # use current ureg
+from ..tools import unit  # noqa # ensure we use current ureg
 
 
 def w_offtake(
