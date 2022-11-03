@@ -1,8 +1,8 @@
 # List required packages in this file, one per line.
-numpy
-pandas
+numpy==1.23.2
+pandas==1.4.4
+matplotlib==3.5.3
 pint==0.19
 pint-pandas
-matplotlib
 colorama
 holidays
