@@ -4,18 +4,19 @@ Abstract Base Class for PfLine.
 
 from __future__ import annotations
 
+from abc import abstractmethod
+from enum import Enum
+from typing import TYPE_CHECKING, Iterable, Union
+
+import pandas as pd
+
+from ... import tools
+from ...prices import convert, hedge
+from ...prices.utils import duration_bpo
+from ..mixins import OtherOutput, PfLinePlot, PfLineText
 
 # from . import single, multi, interop  #<-- moved to end of file
 from ..ndframelike import NDFrameLike
-from ..mixins import PfLineText, PfLinePlot, OtherOutput
-from ...prices.utils import duration_bpo
-from ...prices import convert, hedge
-from ...tools.types import Quantity, Value
-
-from abc import abstractmethod
-from enum import Enum
-from typing import Iterable, Union, TYPE_CHECKING
-import pandas as pd
 
 # Developer notes: we would like to be able to handle 2 cases with volume AND financial
 # information. We would like to...
@@ -35,8 +36,8 @@ import pandas as pd
 
 
 if TYPE_CHECKING:
-    from .single import SinglePfLine  # noqa
     from .multi import MultiPfLine  # noqa
+    from .single import SinglePfLine  # noqa
 
 
 class Kind(Enum):
@@ -222,7 +223,9 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         # Design decision: could also be non-flattened if self.kind is not ALL
         return single.SinglePfLine({"p": self.p})
 
-    def _set_col_val(self, col: str, val: pd.Series | Value) -> SinglePfLine:
+    def _set_col_val(
+        self, col: str, val: Union[pd.Series, float, int, tools.unit.Q_]
+    ) -> SinglePfLine:
         """Set or update a timeseries and return the modified instance."""
 
         if col == "r" and self.kind is Kind.ALL:
@@ -246,7 +249,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         # # Get pd.Series of other, in correct unit.
         # if isinstance(val, float) or isinstance(val, int):
         #     val = pd.Series(val, self.index)
-        # elif isinstance(val, Quantity):
+        # elif isinstance(val, tools.unit.Q_):
         #     val = pd.Series(val.magnitude, self.index, dtype=nits.g(val.units))
 
         # if self.kind is Kind.ALL and col == "r":
@@ -263,19 +266,19 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         # df = pd.DataFrame(data)
         # return single.SinglePfLine(df)
 
-    def set_w(self, w: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
+    def set_w(self, w: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
         """Set or update power timeseries [MW]; returns modified (and flattened) instance."""
         return self._set_col_val("w", w)
 
-    def set_q(self, q: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
+    def set_q(self, q: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
         """Set or update energy timeseries [MWh]; returns modified (and flattened) instance."""
         return self._set_col_val("q", q)
 
-    def set_p(self, p: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
+    def set_p(self, p: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
         """Set or update price timeseries [Eur/MWh]; returns modified (and flattened) instance."""
         return self._set_col_val("p", p)
 
-    def set_r(self, r: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
+    def set_r(self, r: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
         """Set or update revenue timeseries [MW]; returns modified (and flattened) instance."""
         return self._set_col_val("r", r)
 
@@ -402,6 +405,6 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
 
 # Must be at end, because they depend on PfLine existing.
-from . import single, multi, interop, enable_arithmatic  # noqa
+from . import enable_arithmatic, interop, multi, single  # noqa
 
 enable_arithmatic.apply()

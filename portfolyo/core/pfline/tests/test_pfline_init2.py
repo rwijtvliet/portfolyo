@@ -2,10 +2,10 @@
 
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable
-from portfolyo import dev, PfLine, SinglePfLine, MultiPfLine, FREQUENCIES, Kind  # noqa
-from portfolyo.tools import stamps
+
 import pandas as pd
 import pytest
+from portfolyo import FREQUENCIES, Kind, MultiPfLine, PfLine, SinglePfLine, dev  # noqa
 
 
 def id_fn(data: Any):
@@ -197,10 +197,6 @@ def all_testcases(typ) -> Iterable[InitTestcase]:
         for tz in ["Europe/Berlin", None]:
             for freq in FREQUENCIES:
                 i = dev.get_index(freq, tz, start)
-                try:
-                    stamps.assert_boundary_ts(i, freq)
-                except AssertionError:
-                    continue
                 for has_unit in [True, False]:
                     cases = [
                         *dict_testcases(i, has_unit, typ),

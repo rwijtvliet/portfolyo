@@ -7,8 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import yaml
-from portfolyo import testing
-from portfolyo.tools import changeyear
+from portfolyo import testing, tools
 
 TESTCASES_DATA = Path(__file__).parent / "test_changeyear_data.yaml"
 TESTCASES_DATA_2YEARS = Path(__file__).parent / "test_changeyear_data_2years.yaml"
@@ -165,7 +164,7 @@ def test_characterizeindex_error(freq: str, tz: str):
     """Test if characterization is only possible for daily indices."""
     i = pd.date_range("2020", "2022", closed="left", freq=freq, tz=tz)
     with pytest.raises(ValueError):
-        _ = changeyear.characterize_index(i)
+        _ = tools.changeyear.characterize_index(i)
 
 
 @pytest.mark.parametrize("yearchar", germanyearchars())
@@ -178,7 +177,7 @@ def test_characterizeindex_weekdays(
     idx = pd.date_range(
         str(yearchar.year), str(yearchar.year + 1), freq="D", tz=tz, closed="left"
     )
-    char = changeyear.characterize_index(idx, holiday_country)
+    char = tools.changeyear.characterize_index(idx, holiday_country)
     # Test index.
     for i1, i2 in zip(char.index, idx):
         assert i1 == i2
@@ -200,7 +199,7 @@ def test_characterizeindex_dst(
     idx = pd.date_range(
         str(yearchar.year), str(yearchar.year + 1), freq="D", tz=tz, closed="left"
     )
-    char = changeyear.characterize_index(idx, holiday_country)
+    char = tools.changeyear.characterize_index(idx, holiday_country)
     # Test dst.
     if tz is None:
         assert not any(char.dst_change)
@@ -222,7 +221,7 @@ def test_characterizeindex_holidays(
     idx = pd.date_range(
         str(yearchar.year), str(yearchar.year + 1), freq="D", tz=tz, closed="left"
     )
-    char = changeyear.characterize_index(idx, holiday_country)
+    char = tools.changeyear.characterize_index(idx, holiday_country)
     # Test holiday.
     if holiday_country is None:
         assert not any(char.holiday)
@@ -276,7 +275,7 @@ def test_mapindextoindex_error(
 ):
     """Test if error cases are correctly identified."""
     with pytest.raises(Exception):
-        _ = changeyear.map_index_to_index(
+        _ = tools.changeyear.map_index_to_index(
             idx_source, idx_target, holiday_country=holiday_country
         )
 
@@ -295,7 +294,7 @@ def test_mapindextoindex_identical(
         idx_target = idx[: len(idx) // 2]
     else:
         idx_target = idx
-    result = changeyear.map_index_to_index(idx, idx_target, holiday_country)
+    result = tools.changeyear.map_index_to_index(idx, idx_target, holiday_country)
     expected = pd.Series(idx_target, idx_target)
     testing.assert_series_equal(result, expected, check_names=False)
 
@@ -339,7 +338,9 @@ def test_mapindextoindex_monthlyandlonger(
     )
 
     expected = pd.Series(idx_source[expected_mapping], idx_target)
-    result = changeyear.map_index_to_index(idx_source, idx_target, holiday_country)
+    result = tools.changeyear.map_index_to_index(
+        idx_source, idx_target, holiday_country
+    )
     testing.assert_series_equal(result, expected, check_names=False)
 
 
@@ -369,7 +370,9 @@ def test_mapindextoindex_daysandhours(
     expected_mapping = tc.expected_mapping[:count]
 
     expected = pd.Series(tc.idx_source[expected_mapping], idx_target)
-    result = changeyear.map_index_to_index(tc.idx_source, idx_target, holiday_country)
+    result = tools.changeyear.map_index_to_index(
+        tc.idx_source, idx_target, holiday_country
+    )
     testing.assert_series_equal(result, expected, check_names=False)
 
 
@@ -406,7 +409,9 @@ def test_mapframetoindex(
     if series_or_df == "series":
         frame_in = pd.Series(values_in, tc.idx_source)
         expected = pd.Series(values_in[expected_mapping], idx_target)
-        result = changeyear.map_frame_to_index(frame_in, idx_target, holiday_country)
+        result = tools.changeyear.map_frame_to_index(
+            frame_in, idx_target, holiday_country
+        )
         testing.assert_series_equal(result, expected, check_names=False)
     else:
         frame_in = pd.DataFrame({"a": values_in, "b": values_in + 1}, tc.idx_source)
@@ -417,7 +422,9 @@ def test_mapframetoindex(
             },
             idx_target,
         )
-        result = changeyear.map_frame_to_index(frame_in, idx_target, holiday_country)
+        result = tools.changeyear.map_frame_to_index(
+            frame_in, idx_target, holiday_country
+        )
         testing.assert_frame_equal(result, expected)
 
 
@@ -454,7 +461,7 @@ def test_mapframetoyear_oneyear(
     if series_or_df == "series":
         frame_in = pd.Series(values_in, tc.idx_source)
         expected = pd.Series(values_in[tc.expected_mapping], tc.idx_target)
-        result = changeyear.map_frame_to_year(frame_in, year_t, holiday_country)
+        result = tools.changeyear.map_frame_to_year(frame_in, year_t, holiday_country)
         testing.assert_series_equal(result, expected, check_names=False)
     else:
         frame_in = pd.DataFrame({"a": values_in, "b": values_in + 1}, tc.idx_source)
@@ -465,5 +472,5 @@ def test_mapframetoyear_oneyear(
             },
             tc.idx_target,
         )
-        result = changeyear.map_frame_to_year(frame_in, year_t, holiday_country)
+        result = tools.changeyear.map_frame_to_year(frame_in, year_t, holiday_country)
         testing.assert_frame_equal(result, expected)

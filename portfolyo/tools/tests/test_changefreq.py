@@ -4,8 +4,7 @@ from typing import Tuple, Union
 
 import pandas as pd
 import pytest
-from portfolyo import testing
-from portfolyo.tools import changefreq, stamps
+from portfolyo import testing, tools
 
 freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
 
@@ -243,7 +242,7 @@ s6_a_sum = s6_a_avg = pd.Series(
 )
 def test_resample_summable(s, freq, expected):
     """Test if resampling works as expected."""
-    result = changefreq.summable(s, freq)
+    result = tools.changefreq.summable(s, freq)
     testing.assert_series_equal(result, expected)
 
 
@@ -280,7 +279,7 @@ def test_resample_summable(s, freq, expected):
 )
 def test_resample_avgable(s, freq, expected):
     """Test if resampling works as expected."""
-    result = changefreq.averagable(s, freq)
+    result = tools.changefreq.averagable(s, freq)
     testing.assert_series_equal(result, expected)
 
 
@@ -317,32 +316,32 @@ s9_d_avg = pd.Series(
 )
 
 
-@pytest.mark.parametrize(
-    ("s", "freq", "grouper", "expected"),
-    [
-        (s7, "D", stamps.gasday_de, s7_d_sum),
-        # (s8, "D", stamps.gasday_de, s8_d_sum),
-        # (s9, "D", stamps.gasday_de, s9_d_sum),
-    ],
-)
-def test_resample_summable_custom(s, freq, grouper, expected):
-    """Test if resampling also works when using custom grouper function."""
-    result = changefreq.summable(s, freq, grouper)
-    testing.assert_series_equal(result, expected)
+# @pytest.mark.parametrize(
+#     ("s", "freq", "grouper", "expected"),
+#     [
+#         (s7, "D", tools.stamp.gasday_de, s7_d_sum),
+#         # (s8, "D", tools.stamp.gasday_de, s8_d_sum),
+#         # (s9, "D", tools.stamp.gasday_de, s9_d_sum),
+#     ],
+# )
+# def test_resample_summable_custom(s, freq, grouper, expected):
+#     """Test if resampling also works when using custom grouper function."""
+#     result = tools_bak.changefreq.summable(s, freq, grouper)
+#     testing.assert_series_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    ("s", "freq", "grouper", "expected"),
-    [
-        (s7, "D", stamps.gasday_de, s7_d_avg),
-        # (s8, "D", stamps.gasday_de, s8_d_avg),
-        # (s9, "D", stamps.gasday_de, s9_d_avg),
-    ],
-)
-def test_resample_avgable_custom(s, freq, grouper, expected):
-    """Test if resampling also works when using custom grouper function."""
-    result = changefreq.averagable(s, freq, grouper)
-    testing.assert_series_equal(result, expected)
+# @pytest.mark.parametrize(
+#     ("s", "freq", "grouper", "expected"),
+#     [
+#         (s7, "D", tools_bak.stamp.gasday_de, s7_d_avg),
+#         # (s8, "D", tools.stamp.gasday_de, s8_d_avg),
+#         # (s9, "D", tools.stamp.gasday_de, s9_d_avg),
+#     ],
+# )
+# def test_resample_avgable_custom(s, freq, grouper, expected):
+#     """Test if resampling also works when using custom grouper function."""
+#     result = tools_bak.changefreq.averagable(s, freq, grouper)
+#     testing.assert_series_equal(result, expected)
 
 
 # @pytest.fixture(params=freqs_small_to_large)
@@ -577,7 +576,7 @@ def get_testframes(
     tz: str,
     avg_or_sum: str,
     series_or_df: str,
-    with_units: bool,
+    with_units: str,
 ) -> Tuple[Union[pd.DataFrame, pd.Series]]:
     source_s = get_df_from_excel(source_freq, tz)[source_freq]
     if target_freq is None:
@@ -585,7 +584,7 @@ def get_testframes(
     else:
         target_s = get_df_from_excel(target_freq, tz)[f"{source_freq}_{avg_or_sum}"]
 
-    if with_units:
+    if with_units == "units":
         source_s = source_s.astype("pint[MW]")
         target_s = target_s.astype("pint[MW]")
 
@@ -598,16 +597,20 @@ def get_testframes(
         )
 
 
-@pytest.mark.parametrize("with_units", [True, False])
+@pytest.mark.parametrize("with_units", ["units", "nounits"])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("target_freq", stamps.FREQUENCIES)
-@pytest.mark.parametrize("source_freq", stamps.FREQUENCIES)
+@pytest.mark.parametrize("target_freq", tools.freq.FREQUENCIES)
+@pytest.mark.parametrize("source_freq", tools.freq.FREQUENCIES)
 def test_changefreq(source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units):
     """Test if frequency of series or dataframe can be correctly changed."""
     # Get test data.
-    testfn = changefreq.averagable if avg_or_sum == "avg" else changefreq.summable
+    if avg_or_sum == "avg":
+        testfn = tools.changefreq.averagable
+    else:
+        testfn = tools.changefreq.summable
+
     if source_freq != target_freq:
         source, expected = get_testframes(
             source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
@@ -625,21 +628,25 @@ def test_changefreq(source_freq, target_freq, tz, avg_or_sum, series_or_df, with
         testing.assert_frame_equal(result, expected, check_dtype=False)
 
 
-@pytest.mark.parametrize("with_units", [True, False])
+@pytest.mark.parametrize("with_units", ["units", "nounits"])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("avg_or_sum", ["avg", "sum"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("target_freq", stamps.FREQUENCIES)
-@pytest.mark.parametrize("source_freq", stamps.FREQUENCIES)
+@pytest.mark.parametrize("target_freq", tools.stamp.FREQUENCIES)
+@pytest.mark.parametrize("source_freq", tools.stamp.FREQUENCIES)
 def test_changefreq_fullonly(
     source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
 ):
     """Test if, when downsampling, only the periods are returned that are fully present in the source."""
-    if stamps.freq_longest(source_freq, target_freq) == source_freq:
+    if tools.freq.longest(source_freq, target_freq) == source_freq:
         pytest.skip("Only test downsampling.")
 
     # Get test data.
-    testfn = changefreq.averagable if avg_or_sum == "avg" else changefreq.summable
+    if avg_or_sum == "avg":
+        testfn = tools.changefreq.averagable
+    else:
+        testfn = tools.changefreq.summable
+
     source, expected = get_testframes(
         source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
     )

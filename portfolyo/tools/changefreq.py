@@ -1,9 +1,12 @@
 """Functions to change frequency of a pandas dataframe."""
 
 from typing import Callable
-from . import stamps, frames
-from pandas.core.frame import NDFrame
+
 import pandas as pd
+from pandas.core.frame import NDFrame
+
+from . import frame as tools_frame
+from . import freq as tools_freq
 
 
 def _downsample_summable_freq(s: pd.Series, freq: str) -> pd.Series:
@@ -50,7 +53,7 @@ def _downsample(
         # Downsampling is easiest for summable series.
         if custom_grouper:
             s2 = _downsample_summable_custom(s, custom_grouper)
-            return frames.set_frequency(s2, freq)
+            return tools_frame.set_frequency(s2, freq)
         else:
             return _downsample_summable_freq(s, freq)
     else:
@@ -145,9 +148,9 @@ def _general(
     if freq in ["M", "A", "Q"]:
         freq += "S"
     # Make sure it is a valid frequency.
-    if freq not in stamps.FREQUENCIES:
+    if freq not in tools_freq.FREQUENCIES:
         raise ValueError(
-            f"Parameter ``freq`` must be one of {','.join(stamps.FREQUENCIES)}; got {freq}."
+            f"Parameter ``freq`` must be one of {','.join(tools_freq.FREQUENCIES)}; got {freq}."
         )
     # Make sure series has valid frequency.
     if s.index.freq is None:
@@ -164,7 +167,7 @@ def _general(
         # empty frame.
         return pd.Series([], pd.date_range("2020", periods=0, freq=freq))
 
-    up_or_down = stamps.freq_up_or_down(s.index.freq, freq)
+    up_or_down = tools_freq.up_or_down(s.index.freq, freq)
 
     # Nothing more needed; portfolio already in desired frequency.
     if up_or_down == 0:
@@ -257,12 +260,12 @@ def averagable(
     return _general(fr, freq, False, custom_grouper)
 
 
-def index(idx: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
+def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
     """Resample index.
 
     Parameters
     ----------
-    idx : pd.DatetimeIndex
+    i : pd.DatetimeIndex
         Index to resample
     freq : str, optional (default: 'MS')
         The frequency at which to resample. 'AS' (or 'A') for year, 'QS' (or 'Q')
@@ -273,23 +276,23 @@ def index(idx: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
     -------
     pd.DatetimeIndex
     """
-    up_or_down = stamps.freq_up_or_down(idx.freq, freq)
+    up_or_down = tools_freq.up_or_down(i.freq, freq)
 
     # Nothing more needed; index already in desired frequency.
     if up_or_down == 0:
-        return idx
+        return i
 
     # Must downsample.
     elif up_or_down == -1:
         # We must jump through a hoop: can't directly resample an Index.
-        return pd.Series(0, idx).resample(freq).asfreq().index
+        return pd.Series(0, i).resample(freq).asfreq().index
 
     # Must upsample.
     else:  # up_or_down == 1
         # We must jump through additional hoops, because we are using datetimeindices.
         # First, extend by one value...
-        idx = idx.append(idx[-1:].shift())
+        i = i.append(i[-1:].shift())
         # ... then do upsampling ...
-        idx2 = pd.Series(0, idx).resample(freq).asfreq().index
+        i2 = pd.Series(0, i).resample(freq).asfreq().index
         # ... and then remove final element.
-        return idx2[:-1]
+        return i2[:-1]

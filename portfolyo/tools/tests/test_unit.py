@@ -1,8 +1,9 @@
-from portfolyo.tools.nits import ureg, Q_
 import numpy as np
 import pytest
+from portfolyo import tools
+from portfolyo.tools.unit import Q_, ureg
 
-IDENTITIES = [
+UNIT_IDENTITIES = [
     ("MWh", "MWH", "megawatthour"),
     ("kWh", "KWH", "kilowatthour"),
     ("J", "Joule"),
@@ -13,19 +14,21 @@ IDENTITIES = [
 ]
 
 
-@pytest.mark.parametrize("strlist", IDENTITIES)
-def test_units_consistent(strlist):
-    for e in strlist:
-        assert ureg.Unit(strlist[0]) == ureg.Unit(e)
+@pytest.mark.parametrize("units", UNIT_IDENTITIES)
+def test_units_consistent(units):
+    unit = tools.unit.ureg.Unit(units[0])
+    for u in units:
+        assert tools.unit.ureg.Unit(u) == unit
 
 
-@pytest.mark.parametrize("strlist", IDENTITIES)
-def test_quantities_consistent(strlist):
-    for e in strlist:
-        assert Q_(1.4, strlist[0]) == Q_(1.4, e)
+@pytest.mark.parametrize("units", UNIT_IDENTITIES)
+def test_quantities_consistent(units):
+    quantity = tools.unit.Q_(1.4, units[0])
+    for u in units:
+        assert tools.unit.Q_(1.4, u) == quantity
 
 
-EXTENTED_IDENTITIES = [
+QUANTITY_IDENTITIES = [
     (
         Q_(1, ureg.megawatthour),
         Q_(1, ureg.MWh),
@@ -59,7 +62,7 @@ EXTENTED_IDENTITIES = [
 ]
 
 
-@pytest.mark.parametrize("quants", EXTENTED_IDENTITIES)
+@pytest.mark.parametrize("quants", QUANTITY_IDENTITIES)
 def test_extended_identities(quants):
     for q in quants:
         assert np.isclose(q, quants[0])

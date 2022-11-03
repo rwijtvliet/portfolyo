@@ -1,0 +1,6 @@
+. Create class Commodity which stores:
+.. peak hours
+.. shortest timeperiod
+.. start of deliveryperiod (offset_hours)
+
+. split base, peak, offpeak function into index and stamp

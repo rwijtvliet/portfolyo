@@ -1,10 +1,12 @@
 """Functionality to hedge an offtake profile with a price profile."""
 
-from .utils import is_peak_hour
-from . import convert
-from ..tools import frames, nits
 from typing import Tuple
+
 import pandas as pd
+
+from .. import tools
+from . import convert
+from .utils import is_peak_hour
 
 
 def _hedge(df: pd.DataFrame, how: str, po: bool) -> pd.Series:
@@ -115,7 +117,7 @@ def hedge(
 
     # Only keep full periods of overlapping timestamps.
     i = win.index.intersection(pin.index)
-    df = frames.trim_frame(pd.DataFrame({"w": win, "p": pin}).loc[i, :], freq)
+    df = tools.trim.frame(pd.DataFrame({"w": win, "p": pin}).loc[i, :], freq)
     if len(df) == 0:
         return df["w"], df["p"]  # No full periods; don't do hedge; return empty series
 
@@ -129,7 +131,10 @@ def hedge(
     # Handle possible units.
     if wunits or punits:
         df = df.astype(
-            {"w": nits.pintunit_remove(wunits), "p": nits.pintunit_remove(punits)}
+            {
+                "w": tools.unit.pintunit_remove(wunits),
+                "p": tools.unit.pintunit_remove(punits),
+            }
         )
 
     return df["w"], df["p"]

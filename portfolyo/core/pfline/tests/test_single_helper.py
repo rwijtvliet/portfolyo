@@ -1,9 +1,8 @@
-from portfolyo import testing, dev
-from portfolyo.core.pfline import single_helper
-from portfolyo.tools.nits import Q_
-from portfolyo.tools.stamps import FREQUENCIES
 import pandas as pd
 import pytest
+from portfolyo import dev, testing, tools
+from portfolyo.core.pfline import single_helper
+from portfolyo.tools.unit import Q_
 
 
 def assert_w_q_compatible(freq, w, q):
@@ -32,7 +31,7 @@ def assert_p_q_r_compatible(r, p, q):
 
 
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
-@pytest.mark.parametrize("freq", FREQUENCIES)
+@pytest.mark.parametrize("freq", tools.freq.FREQUENCIES)
 def test_makedataframe_freqtz(freq, tz):
     """Test if dataframe can made from data with various timezones and frequencies."""
 

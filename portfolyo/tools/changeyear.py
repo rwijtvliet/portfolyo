@@ -12,10 +12,9 @@ from typing import Callable, Union
 import holidays
 import pandas as pd
 
-from . import changefreq
-from . import stamps
-from .nits import Q_
-
+from . import changefreq as changefreqtools
+from . import freq as tools_freq
+from . import unit as tools_unit
 
 docstringliteral_notes = """
 * Function is meant for data that spans full months. Using partial months may lead
@@ -87,7 +86,9 @@ def characterize_index(
     if offsets.isna().all():
         char["dst_change"] = False
     else:
-        char["dst_change"] = abs(char.index.duration - Q_(24, "h")) > Q_(0.1, "h")
+        char["dst_change"] = abs(
+            char.index.duration - tools_unit.Q_(24, "h")
+        ) > tools_unit.Q_(0.1, "h")
     return char
 
 
@@ -125,7 +126,7 @@ def map_index_to_index(
     if (fr1 := idx_source.freq) != (fr2 := idx_target.freq):
         raise ValueError(f"Indices must have same frequency, got {fr1} and {fr2}.")
 
-    if stamps.freq_shortest(idx_source.freq, "MS") == "MS":
+    if tools_freq.shortest(idx_source.freq, "MS") == "MS":
         return _map_index_to_index_monthlyandlonger(idx_source, idx_target)
 
     elif idx_source.freq == "D":
@@ -280,8 +281,8 @@ def _map_index_to_index_hourlyandshorter(
     holiday_country: str = None,
 ):
     # Do mapping on day-level.
-    idx_target_d = changefreq.index(idx_target, "D")
-    idx_source_d = changefreq.index(idx_source, "D")
+    idx_target_d = changefreqtools.index(idx_target, "D")
+    idx_source_d = changefreqtools.index(idx_source, "D")
     mapp_d = _map_index_to_index_daily(idx_source_d, idx_target_d, holiday_country)
 
     # Split timestamps in 'day' and 'offset'.

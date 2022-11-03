@@ -1,11 +1,11 @@
 from typing import Dict
+
+import numpy as np
+import pandas as pd
+import pytest
 from pint import DimensionalityError, UndefinedUnitError
 from portfolyo.core.pfline import interop as io
-from portfolyo.tools.nits import Q_
-import pandas as pd
-import numpy as np
-
-import pytest
+from portfolyo.tools.unit import Q_
 
 idx1 = pd.date_range("2020", freq="MS", periods=12)
 val1 = 100 + 20 * np.random.random(len(idx1))

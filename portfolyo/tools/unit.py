@@ -1,14 +1,16 @@
-"""Module with tools for dealing with units ("'nits" to keep "units" available in
-name space.) """
+"""
+Working with pint units.
+"""
 
 from pathlib import Path
-from typing import Union, Dict
+from typing import Dict, Union
+
+import pandas as pd
 import pint
 import pint_pandas
-import pandas as pd
-
 
 path = Path(__file__).parent / "unitdefinitions.txt"
+
 
 ureg = pint_pandas.PintType.ureg = pint.UnitRegistry(
     str(path),
@@ -24,22 +26,6 @@ PA_ = pint_pandas.PintArray
 Q_ = ureg.Quantity
 
 
-def pintunit_remove(u: pint.Unit) -> str:
-    units = f"{u}" or "dimensionless"
-    return f"pint[{units}]"
-    # TODO: replace with f'{units:P}'
-
-
-# def to_pref_unit(self: pint.Quantity):
-#     for unit in (ureg.MW, ureg.euro_per_MWh):
-#         if self.dimensionality == unit.dimensionality:
-#             return self.to(unit)
-#     return self
-
-# def cast2quant(val, unit:pint.Unit) -> pint.Quantity:
-#     """Cast a value `val` to a quantity with the given unit."""
-#     return Q_(val, unit)
-
 NAMES_AND_UNITS = {
     "w": ureg.MW,
     "q": ureg.MWh,
@@ -51,7 +37,14 @@ NAMES_AND_UNITS = {
 }
 
 
+def pintunit_remove(u: pint.Unit) -> str:
+    # TODO: Remove and replace usage with f'pint[{units:P}]'
+    units = f"{u}" or "dimensionless"
+    return f"pint[{units}]"
+
+
 def to_compact(value: Union[pint.Quantity, pd.Series, pd.DataFrame]):
+    # TODO: Unused. Remove?
     """Convert to more compact unit by moving absolute magnitude into readable range."""
     if isinstance(value, pint.Quantity):
         return value.to_compact()
@@ -66,7 +59,7 @@ def to_compact(value: Union[pint.Quantity, pd.Series, pd.DataFrame]):
         )
 
 
-def unit2name(unit: pint.Unit) -> str:
+def to_name(unit: pint.Unit) -> str:
     """Find the standard column name belonging to unit `unit`. Checks on dimensionality,
     not exact unit."""
     for name, u in NAMES_AND_UNITS.items():
@@ -75,7 +68,7 @@ def unit2name(unit: pint.Unit) -> str:
     raise pint.UndefinedUnitError(f"No standard name found for unit '{unit}'.")
 
 
-def name2unit(name: str) -> pint.Unit:
+def from_name(name: str) -> pint.Unit:
     """Find standard unit belonging to a column name."""
     if name in NAMES_AND_UNITS:
         return NAMES_AND_UNITS[name]

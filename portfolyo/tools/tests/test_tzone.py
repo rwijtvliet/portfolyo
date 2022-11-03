@@ -1,10 +1,10 @@
+import functools
 from enum import Enum
-from portfolyo.tools import zones, frames, stamps
-from portfolyo import testing
 from pathlib import Path
+
 import pandas as pd
 import pytest
-import functools
+from portfolyo import testing, tools
 
 
 class TzType(Enum):
@@ -24,7 +24,7 @@ class TzType(Enum):
 
 @functools.lru_cache()
 def get_df_fromexcel(aggfreq, tzt_in: TzType, tzt_out: TzType) -> pd.DataFrame:
-    path = Path(__file__).parent / "test_zones_data.xlsx"
+    path = Path(__file__).parent / "test_tzone_data.xlsx"
 
     if tzt_in is TzType.A_NONFLOAT and aggfreq != "15T":
         return None, None  # does not exist as starting point for our tests
@@ -70,9 +70,7 @@ def do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn):
     # Conversion not possible.
     if df_out is None:
         with pytest.raises((ValueError, AssertionError)):
-            result = conversion_fn(fr_in)  # either conversion_fn raises error...
-            stamps.assert_boundary_ts(result.index, aggfreq)  # ... or assertion does.
-        return
+            _ = conversion_fn(fr_in)  # conversion_fn raises error
 
     # Conversion possible.
     expected = df_out if series_or_df == "df" else df_out["col1"]
@@ -98,7 +96,7 @@ def test_forceaware_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
     """Test if frames can be correctly converted to tz-aware"""
 
     def conversion_fn(fr):
-        return zones.force_tzaware(fr, tzt_out.explicit, floating=tzt_in.floating)
+        return tools.tzone.force_aware(fr, tzt_out.explicit, floating=tzt_in.floating)
 
     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 
@@ -117,7 +115,7 @@ def test_forceagnostic_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
     """Test if frames can be correctly converted to tz-agnostic"""
 
     def conversion_fn(fr):
-        return zones.force_tzagnostic(fr)
+        return tools.tzone.force_tzagnostic(fr)
 
     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 
@@ -139,8 +137,8 @@ def test_conversionAtoA_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
 
     def conversion_fn(fr):
         floating = tzt_in.floating or tzt_out.floating
-        fr_out = zones._A_to_A(fr, tz=tzt_out.explicit, floating=floating)
-        return frames.set_frequency(fr_out, aggfreq)
+        fr_out = tools.tzone._A_to_A(fr, tz=tzt_out.explicit, floating=floating)
+        return tools.frames.set_frequency(fr_out, aggfreq)
 
     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 
@@ -154,8 +152,8 @@ def test_conversionAtoB_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
     """Test if frames can be correctly converted from type A to type B."""
 
     def conversion_fn(fr):
-        fr_out = zones._A_to_B(fr)
-        return frames.set_frequency(fr_out, aggfreq)
+        fr_out = tools.tzone._A_to_B(fr)
+        return tools.frames.set_frequency(fr_out, aggfreq)
 
     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 
@@ -167,8 +165,8 @@ def test_conversionBtoA_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
     """Test if frames can be correctly converted from type B to type A."""
 
     def conversion_fn(fr):
-        fr_out = zones._B_to_A(fr, tz=tzt_out.explicit)
-        return frames.set_frequency(fr_out, aggfreq)
+        fr_out = tools.tzone._B_to_A(fr, tz=tzt_out.explicit)
+        return tools.frames.set_frequency(fr_out, aggfreq)
 
     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 
@@ -180,7 +178,7 @@ def test_conversionBtoA_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
 #     """Test if frames can be correctly converted from type C to type A."""
 
 #     def conversion_fn(fr):
-#         fr_out = zones._C_to_A(fr, tz=tzt_in.implicit)
+#         fr_out = tools.tzone._C_to_A(fr, tz=tzt_in.implicit)
 #         return frames.set_frequency(fr_out, aggfreq)
 
 #     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
@@ -193,7 +191,7 @@ def test_conversionBtoA_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
 #     """Test if frames can be correctly converted from type C to type B."""
 
 #     def conversion_fn(fr):
-#         fr_out = zones._C_to_B(fr, tz_in=tzt_in.implicit)
+#         fr_out = tools.tzone._C_to_B(fr, tz_in=tzt_in.implicit)
 #         return frames.set_frequency(fr_out, aggfreq)
 
 #     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)

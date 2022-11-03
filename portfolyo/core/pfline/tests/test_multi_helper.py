@@ -1,9 +1,9 @@
 from typing import Any, Mapping
-from portfolyo import testing, dev, Kind
-from portfolyo.core.pfline import multi_helper
-from portfolyo.tools import stamps
+
 import pandas as pd
 import pytest
+from portfolyo import Kind, dev, testing, tools
+from portfolyo.core.pfline import multi_helper
 
 
 @pytest.mark.parametrize("freq", ["MS", "D"])
@@ -98,7 +98,7 @@ def test_verifydict_unequaltimeperiods(freq, overlap):
     spfl2 = dev.get_singlepfline(i2, "all")
     dic = {"PartA": spfl1, "PartB": spfl2}
 
-    intersection = stamps.intersection(spfl1.index, spfl2.index)
+    intersection = tools.intersection.index(spfl1.index, spfl2.index)
 
     if not overlap:
         # raise error (two portfoliolines do not have anything in common.)

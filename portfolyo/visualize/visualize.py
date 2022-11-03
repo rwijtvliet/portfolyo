@@ -2,15 +2,16 @@
 Visualize portfolio lines, etc.
 """
 
-from ..tools import stamps, nits
-
-from typing import List, Optional, Iterable
-from collections import namedtuple
-from matplotlib import pyplot as plt
-import matplotlib as mpl
-import pandas as pd
-import numpy as np
 import colorsys
+from collections import namedtuple
+from typing import Iterable, List, Optional
+
+import matplotlib as mpl
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+
+from .. import tools
 
 mpl.style.use("seaborn")
 
@@ -132,7 +133,7 @@ def _categories(ax: plt.Axes, s: pd.Series, cat: bool = None) -> Optional[Iterab
     # We use categorical data if...
     if (ax.lines or ax.collections or ax.containers) and ax.xaxis.have_units():
         create = True  # ...ax already has category axis; or
-    elif cat is None and stamps.freq_shortest(s.index.freq, "MS") == "MS":
+    elif cat is None and tools.freq.shortest(s.index.freq, "MS") == "MS":
         create = True  # ...it's the default for the given frequency; or
     elif cat is True:
         create = True  # ...user wants it.
@@ -206,7 +207,7 @@ def plot_timeseries_as_bar(
         delta = s.index.ts_right - s.index
         x = np.array(list(zip(s.index + 0.1 * delta, s.index + 0.9 * delta))).flatten()
         magnitudes = np.array([[v, 0] for v in s.values.quantity.magnitude]).flatten()
-        values = nits.PA_(magnitudes, s.values.quantity.units)
+        values = tools.unit.PA_(magnitudes, s.values.quantity.units)
         ax.fill_between(x, 0, values, step="post", **kwargs)
 
         add_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)

@@ -1,15 +1,18 @@
 """Add arithmatic to PfState classes."""
 
 from __future__ import annotations
-from ...tools import nits, frames
-from .. import pfline
-from . import pfstate
+
 from typing import TYPE_CHECKING, Union
+
 import pandas as pd
 
+from ... import tools
+from .. import pfline
+from . import pfstate
+
 if TYPE_CHECKING:  # needed to avoid circular imports
-    from ..pfstate import PfState
     from ..pfline import PfLine
+    from ..pfstate import PfState
 
 
 def _prep_data(value, refindex: pd.DatetimeIndex) -> Union[pd.Series, PfLine, PfState]:
@@ -29,7 +32,7 @@ def _prep_data(value, refindex: pd.DatetimeIndex) -> Union[pd.Series, PfLine, Pf
             return value
 
         try:
-            name = nits.unit2name(value.pint.units)
+            name = tools.unit.unit2name(value.pint.units)
         except ValueError:
             return value  # has unit, but unknown
 
@@ -42,7 +45,7 @@ def _prep_data(value, refindex: pd.DatetimeIndex) -> Union[pd.Series, PfLine, Pf
     if isinstance(value, int) or isinstance(value, float):
         s = pd.Series(value, refindex)
         return _prep_data(s, refindex)
-    elif isinstance(value, nits.Q_):
+    elif isinstance(value, tools.unit.Q_):
         s = pd.Series(value.magnitude, refindex, dtype=f"pint[{value.units:P}]")
         return _prep_data(s, refindex)
 
@@ -60,7 +63,7 @@ def _add_pfstates(pfs1: pfstate.PfState, pfs2: pfstate.PfState) -> pfstate.PfSta
     # . Therefore, use weighted average.
     values = pd.DataFrame({"s": pfs1.unsourcedprice.p, "o": pfs2.unsourcedprice.p})
     weights = pd.DataFrame({"s": pfs1.unsourced.q, "o": pfs2.unsourced.q})
-    unsourcedprice = pfline.PfLine({"p": frames.wavg(values, weights, axis=1)})
+    unsourcedprice = pfline.PfLine({"p": tools.wavg.dataframe(values, weights, axis=1)})
 
     return pfstate.PfState(offtakevolume, unsourcedprice, sourced)
 

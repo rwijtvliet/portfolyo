@@ -1,10 +1,12 @@
 """Tools to deal with timezones."""
 
-from . import frames, stamps
-import pytz
-from pandas.core.frame import NDFrame
-import pandas as pd
+from typing import Union
 
+import pandas as pd
+import pytz
+
+from . import frame as tools_frame
+from . import freq as tools_freq
 
 """
 (hourly means: hourly or shorter)
@@ -54,13 +56,15 @@ It's therefore hard to determine, which it is.
 """
 
 
-def force_tzaware(fr: NDFrame, tz: str, *, floating: bool = True) -> NDFrame:
+def force_aware(
+    fr: Union[pd.Series, pd.DataFrame], tz: str, *, floating: bool = True
+) -> Union[pd.Series, pd.DataFrame]:
     """Convert/set series or dataframe to a specific timezone.
 
     Parameters
     ----------
-    fr : NDFrame
-        Pandas Series or Dataframe with tz-aware or (standardized) tz-agnostic index.
+    fr : pd.Series or pd.DataFrame
+        with tz-aware or (standardized) tz-agnostic index.
     tz : str
         Target timezone.
     floating : bool, optional (default: True)
@@ -79,8 +83,8 @@ def force_tzaware(fr: NDFrame, tz: str, *, floating: bool = True) -> NDFrame:
 
     Returns
     -------
-    NDFrame
-        With tz-aware index.
+    pd.Series or pd.DataFrame
+        with tz-aware index.
 
     Notes
     -----
@@ -110,7 +114,7 @@ def force_tzaware(fr: NDFrame, tz: str, *, floating: bool = True) -> NDFrame:
         )
 
     # Copy, try to set freq, and store original attributes.
-    fr = frames.set_frequency(fr)
+    fr = tools_frame.set_frequency(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
     if not freq_input:
@@ -126,27 +130,25 @@ def force_tzaware(fr: NDFrame, tz: str, *, floating: bool = True) -> NDFrame:
     else:  # input is standardized tz-agnostic
         fr_out = _B_to_A(fr, tz=tz)
 
-    # Return: set frequency, and if succesful, check if all timestamps are valid for it.
-    fr_out = frames.set_frequency(fr_out, freq_input)
-    try:
-        stamps.assert_boundary_ts(fr_out.index, freq_input)
-    except AssertionError as e:
-        raise ValueError("The timestamps are not all at the start of a period.") from e
+    # Return: set frequency.
+    fr_out = tools_frame.set_frequency(fr_out, freq_input)
     return fr_out
 
 
-def force_tzagnostic(fr: NDFrame) -> NDFrame:
+def force_agnostic(
+    fr: Union[pd.Series, pd.DataFrame]
+) -> Union[pd.Series, pd.DataFrame]:
     """Turn a frame (series or dataframe) into timezone-agnostic frame.
 
     Parameters
     ----------
-    fr : NDFrame
-        Pandas Series or Dataframe with tz-aware or (standardized) tz-agnostic index.
+    fr : pd.Series or pd.DataFrame
+        with tz-aware or (standardized) tz-agnostic index.
 
     Returns
     -------
-    NDFrame
-        With standardize tz-agnostic index, i.e., 24h in each day and no DST transitions.
+    pd.Series or pd.DataFrame
+        with standardize tz-agnostic index, i.e., 24h in each day and no DST transitions.
 
     Notes
     -----
@@ -169,7 +171,7 @@ def force_tzagnostic(fr: NDFrame) -> NDFrame:
       this conversion is probably what we want, regardless of the unit.
     """
     # Copy, try to set freq, and store original attributes.
-    fr = frames.set_frequency(fr)
+    fr = tools_frame.set_frequency(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
     if not freq_input:
@@ -185,13 +187,14 @@ def force_tzagnostic(fr: NDFrame) -> NDFrame:
     else:  # input is already standardized tz-agnostic
         fr_out = fr
 
-    # Return: set frequency, and if succesful, check if all timestamps are valid for it.
-    fr_out = frames.set_frequency(fr_out, freq_input)
-    stamps.assert_boundary_ts(fr_out.index, freq_input)
+    # Return: set frequency.
+    fr_out = tools_frame.set_frequency(fr_out, freq_input)
     return fr_out
 
 
-def _A_to_A(fr: NDFrame, *, tz, floating) -> NDFrame:
+def _A_to_A(
+    fr: Union[pd.Series, pd.DataFrame], *, tz, floating
+) -> Union[pd.Series, pd.DataFrame]:
     if isinstance(tz, str):  # convert to make comparison (below) possible
         tz = pytz.timezone(tz)
 
@@ -209,16 +212,18 @@ def _A_to_A(fr: NDFrame, *, tz, floating) -> NDFrame:
         return _B_to_A(_A_to_B(fr), tz=tz)
 
 
-def _A_to_B(fr: NDFrame) -> NDFrame:
+def _A_to_B(fr: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.DataFrame]:
     return _aware_to_agnostic(fr)
 
 
-def _B_to_A(fr: NDFrame, *, tz) -> NDFrame:
+def _B_to_A(
+    fr: Union[pd.Series, pd.DataFrame], *, tz
+) -> Union[pd.Series, pd.DataFrame]:
     return _agnostic_to_aware(fr, tz)
 
 
-def _idx_after_conversion(fr: NDFrame, tz) -> pd.DatetimeIndex:
-    fr = frames.set_frequency(fr)
+def _idx_after_conversion(fr: Union[pd.Series, pd.DataFrame], tz) -> pd.DatetimeIndex:
+    fr = tools_frame.set_frequency(fr)
     freq_input = fr.index.freq
     if not freq_input:
         raise ValueError("Cannot recalculate values if frequency is not known.")
@@ -230,7 +235,9 @@ def _idx_after_conversion(fr: NDFrame, tz) -> pd.DatetimeIndex:
     return idx
 
 
-def _agnostic_to_aware(fr: NDFrame, tz: str) -> NDFrame:
+def _agnostic_to_aware(
+    fr: Union[pd.Series, pd.DataFrame], tz: str
+) -> Union[pd.Series, pd.DataFrame]:
     """Recalculate values in tz-agnostic series or dataframe, to get a tz-aware one.
     (i.e., B to A)."""
     if tz_input := fr.index.tz:
@@ -241,7 +248,7 @@ def _agnostic_to_aware(fr: NDFrame, tz: str) -> NDFrame:
     idx_out = _idx_after_conversion(fr, tz)
 
     # Convert daily or longer.
-    if stamps.freq_shortest(idx_out.freq, "D") == "D":
+    if tools_freq.shortest(idx_out.freq, "D") == "D":
         # One-to-one correspondence between the timestamps in input and ouput frames.
         # --> Simply replace the index.
         return fr.set_axis(idx_out)
@@ -253,7 +260,9 @@ def _agnostic_to_aware(fr: NDFrame, tz: str) -> NDFrame:
     return fr.loc[mapping_onto_input_index].set_axis(idx_out)
 
 
-def _aware_to_agnostic(fr: NDFrame) -> NDFrame:
+def _aware_to_agnostic(
+    fr: Union[pd.Series, pd.DataFrame]
+) -> Union[pd.Series, pd.DataFrame]:
     """Recalculate values in tz-aware series or dataframe, to get a tz-agnostic one.
     (i.e., A to B)."""
     if not fr.index.tz:
@@ -262,7 +271,7 @@ def _aware_to_agnostic(fr: NDFrame) -> NDFrame:
     idx_out = _idx_after_conversion(fr, None)
 
     # Convert daily or longer.
-    if stamps.freq_shortest(idx_out.freq, "D") == "D":
+    if tools_freq.shortest(idx_out.freq, "D") == "D":
         # One-to-one correspondence between the timestamps in input and ouput frames.
         # --> Simply replace the index.
         return fr.set_axis(idx_out)

@@ -1,8 +1,9 @@
 import datetime as dt
-from portfolyo.tools import nits
-from portfolyo.prices import utils
+
 import pandas as pd
 import pytest
+from portfolyo import tools
+from portfolyo.prices import utils
 
 # TODO: where are the hedge and conversion tests?? --> check git history
 
@@ -88,8 +89,8 @@ def test_duration(
     else:  # freq == 'D'
         b = 24
         p = 12 * jan_1_weekday
-    b = nits.Q_(b, "hours")
-    p = nits.Q_(p, "hours")
+    b = tools.unit.Q_(b, "hours")
+    p = tools.unit.Q_(p, "hours")
     o = b - p
 
     # Test values.

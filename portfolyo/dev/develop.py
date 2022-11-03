@@ -3,13 +3,14 @@ Code to quickly get objects for testing.
 """
 
 from typing import Dict
-from ..core.pfline import PfLine, SinglePfLine, MultiPfLine, Kind
-from ..core.pfstate import PfState
-from ..tools import nits
-from . import mockup
-import pandas as pd
-import numpy as np
 
+import numpy as np
+import pandas as pd
+
+from .. import tools
+from ..core.pfline import Kind, MultiPfLine, PfLine, SinglePfLine
+from ..core.pfstate import PfState
+from . import mockup
 
 OK_COL_COMBOS = ["w", "q", "p", "pr", "qr", "qp", "wp", "wr"]
 
@@ -39,8 +40,8 @@ def get_value(name: str = "w", has_unit: bool = True):
     if not has_unit:
         return magn
     else:
-        unit = nits.name2unit(name)
-        return nits.Q_(magn, unit)
+        unit = tools.unit.name2unit(name)
+        return tools.unit.Q_(magn, unit)
 
 
 def get_series(

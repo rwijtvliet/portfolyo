@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from . import base
-from . import interop
-from .base import Kind
-from ...tools import frames
-
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+from ... import tools
+from . import base, interop
+from .base import Kind
 
 
 def make_dataframe(data) -> pd.DataFrame:
@@ -63,7 +62,7 @@ def _dataframe_from_series(
         q = r / p
     if q is None:
         q = w * w.index.duration
-    elif w is not None and not frames.series_allclose(q, w * w.index.duration):
+    elif w is not None and not tools.frame.series_allclose(q, w * w.index.duration):
         raise ValueError("Passed values for ``q`` and ``w`` not consistent.")
 
     # Get revenue information (and check consistency).
@@ -79,10 +78,10 @@ def _dataframe_from_series(
                     "Found timestamps with ``p``==na yet ``q``!=0. Unknown ``r``."
                 )
             r[i] = 0
-    elif p is not None and not frames.series_allclose(r, p * q):
+    elif p is not None and not tools.frame.series_allclose(r, p * q):
         # Edge case: remove lines where p==nan or p==inf and q==0 before judging consistency.
         i = p.isna() | np.isinf(p.pint.m)
-        if not (abs(q.pint.m[i]) < 1e-5).all() or not frames.series_allclose(
+        if not (abs(q.pint.m[i]) < 1e-5).all() or not tools.frame.series_allclose(
             r[~i], p[~i] * q[~i]
         ):
             raise ValueError("Passed values for ``q``, ``p`` and ``r`` not consistent.")
