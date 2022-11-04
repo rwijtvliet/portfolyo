@@ -11,6 +11,7 @@ from . import (
     freq,
     intersection,
     isboundary,
+    peakperiod,
     right,
     righttoleft,
     stamp,
