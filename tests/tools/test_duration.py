@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+
 from portfolyo import testing, tools
 
 TESTCASES = [
@@ -23,7 +24,7 @@ TESTCASES = [
 @pytest.mark.parametrize(("ts", "freq", "hours"), TESTCASES)
 def test_duration_stamp(ts, freq, hours):
     """Test if duration in correctly calculated."""
-    assert tools.duration(ts, freq) == tools.unit.Q_(hours[0], "h")
+    assert tools.duration.stamp(ts, freq) == tools.unit.Q_(hours[0], "h")
 
 
 @pytest.mark.parametrize(("ts", "freq", "hours"), TESTCASES)
@@ -31,7 +32,7 @@ def test_duration_stamp(ts, freq, hours):
 def test_duration_index(ts, freq, hours, freq_as):
     """Test if duration in correctly calculated."""
     i = pd.date_range(ts, freq=freq, periods=2)
-    expected = pd.Series(hours, i)
+    expected = pd.Series(hours, i, dtype="pint[h]", name="duration")
     if freq_as == "attr":
         result = tools.duration.index(i)
     else:

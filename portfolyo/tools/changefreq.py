@@ -7,6 +7,7 @@ from pandas.core.frame import NDFrame
 
 from . import frame as tools_frame
 from . import freq as tools_freq
+from . import right as tools_right
 
 
 def _downsample_summable_freq(s: pd.Series, freq: str) -> pd.Series:
@@ -14,8 +15,9 @@ def _downsample_summable_freq(s: pd.Series, freq: str) -> pd.Series:
     # Downsampling is easiest for summable series: simply sum child values.
     s2 = s.resample(freq).sum()
     # Discard rows in new series that are only partially present in original.
-    msk = (s2.index >= s.index[0]) & (s2.index.ts_right <= s.index.ts_right[-1])
-    s2 = s2[msk]
+    mask1 = s2.index >= s.index[0]
+    mask2 = tools_right.index(s2.index) <= tools_right.stamp(s.index[-1], s.index.freq)
+    s2 = s2[mask1 & mask2]
     # Return if any values found.
     # if not len(s2):
     #     raise ValueError("There are no 'full' time periods at this frequency.")
@@ -33,7 +35,7 @@ def _downsample_summable_custom(
     start = s.index[0]
     if grouper(start) == grouper(start - eps):
         s2 = s2.iloc[1:]
-    end = s.index[-1].ts_right
+    end = tools_right.stamp(s.index[-1], s.index.freq)  # only right of final stamp
     if grouper(end - eps) == grouper(end):
         s2 = s2.iloc[:-1]
     # Return if any values found.
@@ -77,7 +79,8 @@ def _upsample_averagable_freq(s: pd.Series, freq: str) -> pd.Series:
     # s.loc[s.index.ts_right[-1]] = None
     # (Workaround: turn into dataframe, change frequency, and turn back into series.)
     df = pd.DataFrame(s)
-    df.loc[s.index.ts_right[-1], :] = None
+    additional_stamp = tools_right.stamp(s.index[-1], s.index.freq)
+    df.loc[additional_stamp, :] = None
     # ... then do upsampling ...
     df2 = df.resample(freq).asfreq().ffill()  # duplicate value
     # ... and then remove final row (and turn back into series).

@@ -12,11 +12,33 @@ def index(start: str, end: str, freq: str, tz: str) -> pd.DatetimeIndex:
 
 
 f_germanpower = tools.peakperiod.factory(dt.time(hour=8), dt.time(hour=20))
-f_everyday13half = tools.peakperiod.factory(
+f_everyday_13half = tools.peakperiod.factory(
     dt.time(hour=8), dt.time(hour=21, minute=30), [1, 2, 3, 4, 5, 6, 7]
 )
-f_fullworkingdays = tools.peakperiod(None, None, [1, 2, 3, 4, 5])
-f_everyday_until6 = tools.peakperiod(None, dt.time(hour=6), [1, 2, 3, 4, 5, 6, 7])
+f_workingdays_full = tools.peakperiod.factory(None, None, [1, 2, 3, 4, 5])
+f_everyday_until6 = tools.peakperiod.factory(
+    None, dt.time(hour=6), [1, 2, 3, 4, 5, 6, 7]
+)
+
+
+@pytest.mark.parametrize(
+    ("peak_left", "peak_right", "isoweekdays", "expected"),
+    [
+        (None, None, [1, 2, 3, 4, 5, 6, 7], ValueError),
+        (dt.time(hour=0), dt.time(hour=0), [1, 2, 3, 4, 5, 6, 7], ValueError),
+        (dt.time(hour=0), dt.time(hour=0), [1, 2, 3, 4, 5, 6], None),
+        (dt.time(hour=1), None, [1, 2, 3, 4, 5, 6, 7], None),
+    ],
+)
+def test_functioncreation(
+    peak_left: dt.time, peak_right: dt.time, isoweekdays: Iterable[int], expected
+):
+    """Test if an error is raised when creating impossible functions."""
+    if type(expected) is type and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            tools.peakperiod.factory(peak_left, peak_right, isoweekdays)
+    else:
+        tools.peakperiod.factory(peak_left, peak_right, isoweekdays)
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
@@ -27,19 +49,19 @@ f_everyday_until6 = tools.peakperiod(None, dt.time(hour=6), [1, 2, 3, 4, 5, 6, 7
         ("2020-01-08", "H", 5 * 12),
         ("2020-04-01", "15T", 65 * 12 * 4),
         ("2020-04-01", "H", 65 * 12),
-        ("2021", "15T", 254 * 12 * 4),
-        ("2021", "H", 254 * 12),
+        ("2021", "15T", 262 * 12 * 4),
+        ("2021", "H", 262 * 12),
         ("2021", "D", ValueError),
         ("2021", "MS", ValueError),
         ("2021", "QS", ValueError),
         ("2021", "AS", ValueError),
     ],
 )
-def test_peakperiod_germanpower_2020(end: str, freq: str, tz: str, expected_peak: int):
+def test_peakperiod_germanpower(end: str, freq: str, tz: str, expected_peak: int):
     """Test if the peak periods are correctly calculated."""
     # Not influenced by timezone, because dst change always during offpeak-hours.
     i = index("2020", end, freq, tz)
-    test(i, f_germanpower, expected_peak)
+    do_test(i, f_germanpower, expected_peak)
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
@@ -56,13 +78,11 @@ def test_peakperiod_germanpower_2020(end: str, freq: str, tz: str, expected_peak
         ("2021", "AS", ValueError),
     ],
 )
-def test_peakperiod_everyday13half_2020(
-    end: str, freq: str, tz: str, expected_peak: int
-):
+def test_peakperiod_everyday13half(end: str, freq: str, tz: str, expected_peak: int):
     """Test if the peak periods are correctly calculated."""
     # Not influenced by timezone, because dst change always during offpeak-hours.
     i = index("2020", end, freq, tz)
-    test(i, f_everyday13half, expected_peak)
+    do_test(i, f_everyday_13half, expected_peak)
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
@@ -75,21 +95,19 @@ def test_peakperiod_everyday13half_2020(
         ("2020-04-01", "15T", 65 * 24 * 4),
         ("2020-04-01", "H", 65 * 24),
         ("2020-04-01", "D", 65),
-        ("2021", "15T", 254 * 24 * 4),
-        ("2021", "H", 254 * 24),
-        ("2021", "D", 254),
+        ("2021", "15T", 262 * 24 * 4),
+        ("2021", "H", 262 * 24),
+        ("2021", "D", 262),
         ("2021", "MS", ValueError),
         ("2021", "QS", ValueError),
         ("2021", "AS", ValueError),
     ],
 )
-def test_peakperiod_fullworkingdays_2020(
-    end: str, freq: str, tz: str, expected_peak: int
-):
+def test_peakperiod_workingdaysfull(end: str, freq: str, tz: str, expected_peak: int):
     """Test if the peak periods are correctly calculated."""
     # Not influenced by timezone, because dst change always during offpeak-hours.
     i = index("2020", end, freq, tz)
-    test(i, f_fullworkingdays, expected_peak)
+    do_test(i, f_workingdays_full, expected_peak)
 
 
 @pytest.mark.parametrize(
@@ -127,35 +145,13 @@ def test_peakperiod_fullworkingdays_2020(
         (10, "H", "Asia/Kolkata", 31 * 6),
     ],
 )
-def test_peakperiod_everydayuntil6_2020(
-    month: int, tz: str, freq: str, expected_peak: int
-):
+def test_peakperiod_everydayuntil6(month: int, tz: str, freq: str, expected_peak: int):
     """Test if the peak periods are correctly calculated."""
     i = index(f"2020-{month}", f"2020-{month+1}", freq, tz)
-    test(i, f_germanpower, expected_peak)
+    do_test(i, f_everyday_until6, expected_peak)
 
 
-@pytest.mark.parametrize(
-    ("peak_left", "peak_right", "isoweekdays", "expected"),
-    [
-        (None, None, [1, 2, 3, 4, 5, 6, 7], ValueError),
-        (dt.time(hour=0), dt.time(hour=0), [1, 2, 3, 4, 5, 6, 7], ValueError),
-        (dt.time(hour=0), dt.time(hour=0), [1, 2, 3, 4, 5, 6], None),
-        (dt.time(hour=1), None, [1, 2, 3, 4, 5, 6, 7], None),
-    ],
-)
-def test_incorrectfunction(
-    peak_left: dt.time, peak_right: dt.time, isoweekdays: Iterable[int], expected
-):
-    """Test if an error is raised when creating impossible functions."""
-    if type(expected) is type and issubclass(expected, Exception):
-        with pytest.raises(expected):
-            tools.peakperiod.factory(peak_left, peak_right, isoweekdays)
-    else:
-        tools.peakperiod.factory(peak_left, peak_right, isoweekdays)
-
-
-def test(i: pd.DatetimeIndex, f: tools.peakperiod.PeakFunction, expected_peak: int):
+def do_test(i: pd.DatetimeIndex, f: tools.peakperiod.PeakFunction, expected_peak: int):
     if type(expected_peak) is type and issubclass(expected_peak, Exception):
         with pytest.raises(expected_peak):
             f(i)

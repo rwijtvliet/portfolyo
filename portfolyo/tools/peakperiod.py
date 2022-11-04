@@ -4,6 +4,7 @@ Module to work with peak and offpeak hours.
 import datetime as dt
 from typing import Callable, Iterable
 
+import numpy as np
 import pandas as pd
 
 from . import freq as tools_freq
@@ -77,10 +78,10 @@ def factory(
             f"Input specifies times that are not 'round' quarter-hours; got {peak_left} and {peak_right}."
         )
 
-    def filter_date(i: pd.DatetimeIndex) -> Iterable[bool]:
-        return i.map(lambda ts: ts.isoweekday() in isoweekdays)
+    def filter_date(i: pd.DatetimeIndex) -> np.ndarray:
+        return i.map(lambda ts: ts.isoweekday() in isoweekdays).values
 
-    def filter_time(i: pd.DatetimeIndex) -> Iterable[bool]:
+    def filter_time(i: pd.DatetimeIndex) -> np.ndarray:
         time_left = i.time
         time_right = tools_right.index(i).dt.time.values
         mask = True

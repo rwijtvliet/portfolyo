@@ -4,6 +4,7 @@ from typing import Tuple, Union
 
 import pandas as pd
 import pytest
+
 from portfolyo import testing, tools
 
 freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
@@ -603,14 +604,16 @@ def get_testframes(
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("target_freq", tools.freq.FREQUENCIES)
 @pytest.mark.parametrize("source_freq", tools.freq.FREQUENCIES)
-def test_changefreq(source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units):
+def test_changefreq(
+    source_freq: str,
+    target_freq: str,
+    tz: str,
+    avg_or_sum: str,
+    series_or_df: str,
+    with_units: str,
+):
     """Test if frequency of series or dataframe can be correctly changed."""
     # Get test data.
-    if avg_or_sum == "avg":
-        testfn = tools.changefreq.averagable
-    else:
-        testfn = tools.changefreq.summable
-
     if source_freq != target_freq:
         source, expected = get_testframes(
             source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
@@ -621,11 +624,7 @@ def test_changefreq(source_freq, target_freq, tz, avg_or_sum, series_or_df, with
         )
 
     # Get and assert result.
-    result = testfn(source, target_freq)
-    if series_or_df == "series":
-        testing.assert_series_equal(result, expected, check_dtype=False)
-    else:
-        testing.assert_frame_equal(result, expected, check_dtype=False)
+    do_test(avg_or_sum, source, target_freq, expected, series_or_df)
 
 
 @pytest.mark.parametrize("with_units", ["units", "nounits"])
@@ -635,18 +634,18 @@ def test_changefreq(source_freq, target_freq, tz, avg_or_sum, series_or_df, with
 @pytest.mark.parametrize("target_freq", tools.freq.FREQUENCIES)
 @pytest.mark.parametrize("source_freq", tools.freq.FREQUENCIES)
 def test_changefreq_fullonly(
-    source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
+    source_freq: str,
+    target_freq: str,
+    tz: str,
+    avg_or_sum: str,
+    series_or_df: str,
+    with_units: str,
 ):
     """Test if, when downsampling, only the periods are returned that are fully present in the source."""
     if tools.freq.longest(source_freq, target_freq) == source_freq:
         pytest.skip("Only test downsampling.")
 
     # Get test data.
-    if avg_or_sum == "avg":
-        testfn = tools.changefreq.averagable
-    else:
-        testfn = tools.changefreq.summable
-
     source, expected = get_testframes(
         source_freq, target_freq, tz, avg_or_sum, series_or_df, with_units
     )
@@ -656,14 +655,18 @@ def test_changefreq_fullonly(
     # Remove some data, so that source contains partial periods
     source, expected = source.iloc[1:-1], expected.iloc[1:-1]
 
-    # # Error if no data to be returned.
-    # if len(expected) == 0:
-    #     with pytest.raises(ValueError):
-    #         _ = testfn(source, target_freq)
-    #     return
-
     # Get and assert result.
+    do_test(avg_or_sum, source, target_freq, expected, series_or_df)
+
+
+def do_test(avg_or_sum, source, target_freq, expected, series_or_df):
+    if avg_or_sum == "avg":
+        testfn = tools.changefreq.averagable
+    else:
+        testfn = tools.changefreq.summable
+
     result = testfn(source, target_freq)
+
     if series_or_df == "series":
         testing.assert_series_equal(result, expected, check_dtype=False)
     else:

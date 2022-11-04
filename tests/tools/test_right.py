@@ -82,6 +82,8 @@ def indextest(ts, freq, tz, freq_as, expected_ts_right):
     else:
         i.freq = None
         result = tools.right.index(i, freq)
-    expected_right = pd.date_range(expected_ts_right, freq=freq, periods=100, tz=tz)
+    expected_right = pd.date_range(
+        expected_ts_right, freq=freq, periods=100, tz=tz, name="right"
+    )
     expected = pd.Series(expected_right, i)
     testing.assert_series_equal(result, expected)

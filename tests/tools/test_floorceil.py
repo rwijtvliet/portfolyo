@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+
 from portfolyo import testing, tools
 
 TESTCASES_NODST = [  # "ts", "fut", "freq", "floored", "ceiled"
@@ -243,7 +244,12 @@ def stamptest(fn, ts, freq, fut, offset_hours, tz, expected):
 
 
 def indextest(fn, ts, freq, fut, offset_hours, tz, expected):
-    i = pd.date_range(ts, periods=10, freq=freq, tz=tz)  # causes rounding of ts
+    ts = pd.Timestamp(ts, tz=tz)
+    i = pd.date_range(
+        ts,
+        periods=10,
+        freq=freq,
+    )  # causes rounding of ts
     i += ts - i[0]  # undoes the rounding
     result = fn(i, freq, fut, offset_hours)
     result.freq = None  # disregard checking frequencies here

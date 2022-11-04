@@ -1,14 +1,14 @@
 import numpy as np
 import pandas as pd
-import portfolyo as pf
 import pytest
+
+import portfolyo as pf
 from portfolyo import tools
 
 
 @pytest.mark.parametrize("weightsas", ["none", "list", "series"])
-@pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("with_units", ["units", "nounits"])
-def test_wavg_valuesasseries1(weightsas: str, axis: int, with_units: str):
+def test_wavg_valuesasseries1(weightsas: str, with_units: str):
     """Test if weighted average of a series is correctly calculated."""
     # Starting values.
     values = pd.Series([100, 200, 300, -150])
@@ -26,16 +26,13 @@ def test_wavg_valuesasseries1(weightsas: str, axis: int, with_units: str):
         values = values.astype("pint[Eur/MWh]")
         expected = pf.Q_(expected, "Eur/MWh")
     # Test.
-    assert np.isclose(tools.wavg.series(values, weights, axis), expected)
+    assert np.isclose(tools.wavg.series(values, weights), expected)
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series"])
-@pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("with_units", ["units", "nounits"])
 @pytest.mark.parametrize("indextype", [int, pd.DatetimeIndex])
-def test_wavg_valuesasseries2(
-    weightsas: str, axis: int, with_units: str, indextype: type
-):
+def test_wavg_valuesasseries2(weightsas: str, with_units: str, indextype: type):
     """Test if weighted average of a series is correctly calculated."""
     # Starting values.
     i = range(4) if indextype is int else pd.date_range("2020", freq="D", periods=4)
@@ -51,13 +48,12 @@ def test_wavg_valuesasseries2(
         values = values.astype("pint[Eur/MWh]")
         expected = pf.Q_(expected, "Eur/MWh")
     # Test.
-    assert np.isclose(tools.wavg.series(values, weights, axis), expected)
+    assert np.isclose(tools.wavg.series(values, weights), expected)
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series"])
-@pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("with_units", ["units", "nounits"])
-def test_wavg_valuesasseries_na(weightsas: str, axis: int, with_units: str):
+def test_wavg_valuesasseries_na(weightsas: str, with_units: str):
     """Test if weighted average of a series is correctly identified as error,
     when all weights are 0 but not all values are equal."""
     # Starting values.
@@ -71,13 +67,12 @@ def test_wavg_valuesasseries_na(weightsas: str, axis: int, with_units: str):
         if weightsas == "series":
             weights = weights.astype("pint[MWh]")
     # Test.
-    assert np.isnan(tools.wavg.series(values, weights, axis))
+    assert np.isnan(tools.wavg.series(values, weights))
 
 
 @pytest.mark.parametrize("weightsas", ["list", "series"])
-@pytest.mark.parametrize("axis", [0, 1])
 @pytest.mark.parametrize("with_units", ["units", "nounits"])
-def test_wavg_valuesasseries_0weights(weightsas: str, axis: int, with_units: str):
+def test_wavg_valuesasseries_0weights(weightsas: str, with_units: str):
     """Test if weighted average of a series is correctly calculated,
     when all weights are 0 and all values are equal."""
     # Starting values.
@@ -93,7 +88,7 @@ def test_wavg_valuesasseries_0weights(weightsas: str, axis: int, with_units: str
         if weightsas == "series":
             weights = weights.astype("pint[MWh]")
     # Test.
-    assert tools.wavg.series(values, weights, axis) == expected
+    assert tools.wavg.series(values, weights) == expected
 
 
 @pytest.mark.parametrize("weightsas", ["none", "list", "series", "dataframe"])

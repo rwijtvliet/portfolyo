@@ -34,12 +34,12 @@ def test_fill_gaps(values, index, maxgap, gapvalues, tol):
     """Test if gaps are correctly interpolated."""
     # Test as Series.
     s = pd.Series(values, index)
-    s_new = tools.frames.fill_gaps(s, maxgap)
+    s_new = tools.frame.fill_gaps(s, maxgap)
     s[s.isna()] = gapvalues
     pd.testing.assert_series_equal(s_new, s, rtol=tol)
     # Test as DataFrame.
     df = pd.DataFrame({"a": values}, index)
-    df_new = tools.frames.fill_gaps(df, maxgap)
+    df_new = tools.frame.fill_gaps(df, maxgap)
     df[df.isna()] = gapvalues
     pd.testing.assert_frame_equal(df_new, df, rtol=tol)
 
@@ -66,7 +66,7 @@ def test_addheader_tocolumns(df_columns, header, expected_columns):
     """Test if header can be added to the columns of a dataframe."""
     i = dev.get_index()
     df_in = pd.DataFrame(np.random.rand(len(i), len(df_columns)), i, df_columns)
-    result_columns = tools.frames.add_header(df_in, header).columns.to_list()
+    result_columns = tools.frame.add_header(df_in, header).columns.to_list()
     assert np.array_equal(result_columns, expected_columns)
 
 
@@ -97,7 +97,7 @@ test_index_H_deconstructed = test_index_H.map(lambda ts: (ts.year, ts.month, ts.
 def test_addheader_torows(df_index, header, expected_index):
     """Test if header can be added to the rows of a dataframe."""
     df_in = pd.DataFrame(np.random.rand(len(df_index), 2), df_index, ["A", "B"])
-    result_index = tools.frames.add_header(df_in, header, axis=0).index.to_list()
+    result_index = tools.frame.add_header(df_in, header, axis=0).index.to_list()
     assert np.array_equal(result_index, expected_index)
 
 
@@ -167,9 +167,9 @@ def test_setfreq(
     # Test.
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
-            _ = tools.frames.set_frequency(fr, wanted, strict)
+            _ = tools.frame.set_frequency(fr, wanted, strict)
         return
-    fr2 = tools.frames.set_frequency(fr, wanted, strict)
+    fr2 = tools.frame.set_frequency(fr, wanted, strict)
     assert fr2.index.freq == expected
 
 
@@ -193,7 +193,7 @@ expect_concat_13 = pd.DataFrame(
 )
 def test_concat(dfs, axis, expected):
     """Test if concatenation works as expected."""
-    result = tools.frames.concat(dfs, axis)
+    result = tools.frame.concat(dfs, axis)
     testing.assert_frame_equal(result, expected)
 
 
@@ -222,4 +222,4 @@ vals2 = np.array([1, 2.0, -4.1234, 0.5])
 )
 def test_series_allclose(s1, s2, expected_result):
     """Test if series can be correctly compared, even if they have a unit."""
-    assert tools.frames.series_allclose(s1, s2) == expected_result
+    assert tools.frame.series_allclose(s1, s2) == expected_result

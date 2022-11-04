@@ -44,4 +44,4 @@ def index(i: pd.DatetimeIndex, freq: str = None) -> pd.Series:
     freq = freq or i.freq
     # i.shift gives error in edge cases, e.g. if
     # i = pd.date_range('2020-03-29', freq='D', periods=5, tz='Europe/Berlin'))
-    return pd.Series(i + tools_freq.to_offset(freq), i, name="ts_right")
+    return pd.Series(i + tools_freq.to_offset(freq), i, name="right")

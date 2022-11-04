@@ -14,6 +14,7 @@ import pandas as pd
 
 from . import changefreq as tools_changefreq
 from . import freq as tools_freq
+from . import right as tools_right
 from . import unit as tools_unit
 
 docstringliteral_notes = """
@@ -322,7 +323,7 @@ def index_with_year(idx_source: pd.DatetimeIndex, target_year: int) -> pd.Dateti
         )
 
     freq, tz = idx_source.freq, idx_source.tz
-    start, end = idx_source[0], idx_source.ts_right[-1]
+    start, end = idx_source[0], tools_right(idx_source)[-1]
     delta_years = end.year - start.year
 
     target_start = change_year(start, target_year)
