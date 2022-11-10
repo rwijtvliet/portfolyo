@@ -5,7 +5,6 @@ from typing import Union
 import pandas as pd
 import pytz
 
-from . import frame as tools_frame
 from . import freq as tools_freq
 
 """
@@ -114,7 +113,7 @@ def force_aware(
         )
 
     # Copy, try to set freq, and store original attributes.
-    fr = tools_frame.set_frequency(fr)
+    fr = tools_freq.set_to_frame(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
     if not freq_input:
@@ -131,7 +130,7 @@ def force_aware(
         fr_out = _B_to_A(fr, tz=tz)
 
     # Return: set frequency.
-    fr_out = tools_frame.set_frequency(fr_out, freq_input)
+    fr_out = tools_freq.set_to_frame(fr_out, freq_input)
     return fr_out
 
 
@@ -171,7 +170,7 @@ def force_agnostic(
       this conversion is probably what we want, regardless of the unit.
     """
     # Copy, try to set freq, and store original attributes.
-    fr = tools_frame.set_frequency(fr)
+    fr = tools_freq.set_to_frame(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
     if not freq_input:
@@ -188,7 +187,7 @@ def force_agnostic(
         fr_out = fr
 
     # Return: set frequency.
-    fr_out = tools_frame.set_frequency(fr_out, freq_input)
+    fr_out = tools_freq.set_to_frame(fr_out, freq_input)
     return fr_out
 
 
@@ -223,7 +222,7 @@ def _B_to_A(
 
 
 def _idx_after_conversion(fr: Union[pd.Series, pd.DataFrame], tz) -> pd.DatetimeIndex:
-    fr = tools_frame.set_frequency(fr)
+    fr = tools_freq.set_to_frame(fr)
     freq_input = fr.index.freq
     if not freq_input:
         raise ValueError("Cannot recalculate values if frequency is not known.")

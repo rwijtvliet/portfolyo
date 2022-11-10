@@ -77,6 +77,7 @@ Contents
    specialized_topics/dataprep
    specialized_topics/timezones
    specialized_topics/dimensions
+   specialized_topics/indices
    specialized_topics/resampling
 
 .. toctree::

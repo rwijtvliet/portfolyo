@@ -40,31 +40,24 @@ def stamp(ts: pd.Timestamp, freq: str) -> tools_unit.Q_:
     return tools_unit.Q_(h, "h")
 
 
-def index(i: pd.DatetimeIndex, freq: str = None) -> pd.Series:
-    f"""Duration of a timestamp.
+def index(i: pd.DatetimeIndex) -> pd.Series:
+    """Duration of a timestamp.
 
     Parameters
     ----------
     i : pd.DatetimeIndex
         Index for which to calculate the duration.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}, optional
-        Frequency to use in determining the duration.
-        If none specified, use ``.freq`` attribute of ``i``.
 
     Returns
     -------
     pint-Series
         With ``i`` as its index, and the corresponding duration as the values.
     """
-    freq = freq or i.freq
-
-    if freq in ["15T", "H"]:
+    if i.freq in ["15T", "H"]:
         # Speed-up things for fixed-duration frequencies.
-        h = 1.0 if freq == "H" else 0.25
-        hours = pd.Series(h, i)
+        h = 1.0 if i.freq == "H" else 0.25
     else:
         # Individual calculations for non-fixed-duration frequencies.
-        hours = (tools_right.index(i, freq) - i).apply(
-            lambda td: td.total_seconds() / 3600
-        )
-    return hours.astype("pint[h]").rename("duration")
+        h = (tools_right.index(i) - i).map(lambda td: td.total_seconds() / 3600)
+
+    return pd.Series(h, i).astype("pint[h]").rename("duration")

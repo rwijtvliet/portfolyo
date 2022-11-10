@@ -83,7 +83,7 @@ def factory(
 
     def filter_time(i: pd.DatetimeIndex) -> np.ndarray:
         time_left = i.time
-        time_right = tools_right.index(i).dt.time.values
+        time_right = tools_right.index(i).time
         mask = True
         if peak_left != midnight:
             cond1 = time_left >= peak_left

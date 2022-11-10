@@ -1,6 +1,9 @@
+from typing import Union
+
 import numpy as np
 import pandas as pd
 import pytest
+
 from portfolyo import tools
 
 freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
@@ -79,3 +82,92 @@ def test_fromtdelta_dst(start, end, expected):
     else:
         result = tools.freq.from_tdelta(tdelta)
         assert result == expected
+
+
+@pytest.mark.parametrize("indexorframe", ["index", "series"])
+@pytest.mark.parametrize(
+    ("freq", "num", "wanted", "strict", "expected"),
+    [
+        # D
+        # . enough
+        ("D", 10, None, False, "D"),
+        ("D", 10, None, True, "D"),
+        ("D", 10, "MS", False, ValueError),
+        ("D", 10, "MS", True, ValueError),
+        ("D", 10, "D", False, "D"),
+        ("D", 10, "D", True, "D"),
+        # . too few
+        ("D", 2, None, False, None),
+        ("D", 2, None, True, ValueError),
+        ("D", 2, "MS", False, ValueError),
+        ("D", 2, "MS", True, ValueError),
+        ("D", 2, "D", False, "D"),
+        ("D", 2, "D", True, "D"),
+        # 15T, too few
+        ("15T", 2, None, False, None),
+        ("15T", 2, None, True, ValueError),
+        ("15T", 2, "MS", False, ValueError),
+        ("15T", 2, "MS", True, ValueError),
+        ("15T", 2, "15T", False, "15T"),
+        ("15T", 2, "15T", True, "15T"),
+        # invalid freq, not correctable
+        # . enough
+        ("2D", 10, None, False, "2D"),
+        ("2D", 10, None, True, ValueError),
+        ("2D", 10, "MS", False, ValueError),
+        ("2D", 10, "MS", True, ValueError),
+        ("2D", 10, "2D", False, "2D"),
+        ("2D", 10, "2D", True, ValueError),
+        # . too few
+        ("2D", 2, None, False, None),
+        ("2D", 2, None, True, ValueError),
+        ("2D", 2, "MS", False, ValueError),
+        ("2D", 2, "MS", True, ValueError),
+        ("2D", 2, "2D", False, "2D"),
+        ("2D", 2, "2D", True, ValueError),
+        # invalid freq, correctable
+        # . enough
+        ("QS-APR", 10, None, False, "QS"),
+        ("QS-APR", 10, None, True, "QS"),
+        ("QS-APR", 10, "MS", False, ValueError),
+        ("QS-APR", 10, "MS", True, ValueError),
+        ("QS-APR", 10, "QS", False, "QS"),
+        ("QS-APR", 10, "QS", True, "QS"),
+        # . too few
+        ("QS-APR", 2, None, False, None),
+        ("QS-APR", 2, None, True, ValueError),
+        ("QS-APR", 2, "MS", False, ValueError),
+        ("QS-APR", 2, "MS", True, ValueError),
+        ("QS-APR", 2, "QS", False, "QS"),
+        ("QS-APR", 2, "QS", True, "QS"),
+    ],
+)
+def test_setfreq(
+    freq: str,
+    num: int,
+    wanted: str,
+    strict: bool,
+    expected: Union[str, Exception],
+    indexorframe: str,
+):
+    i = pd.date_range("2020", periods=num, freq=freq)
+    i.freq = None
+
+    if indexorframe == "index":
+        inputvalue = i
+        fn = tools.freq.set_to_index
+    else:
+        inputvalue = pd.Series(np.random.rand(num), i)
+        fn = tools.freq.set_to_frame
+
+    # Test.
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            _ = fn(inputvalue, wanted, strict)
+        return
+    result = fn(inputvalue, wanted, strict)
+    if indexorframe == "index":
+        outputfreq = result.freq
+    else:
+        outputfreq = result.index.freq
+    assert outputfreq == expected

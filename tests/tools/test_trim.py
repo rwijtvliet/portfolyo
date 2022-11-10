@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+
 from portfolyo import testing, tools
 
 
@@ -14,7 +15,7 @@ def test_trimindex_notrimming(
     """Test if no trimming is done when it is not necessary."""
     start = f"2020-01-01 {offset_hours:02}:00:00"
     end = f"2021-01-01 {offset_hours:02}:00:00"
-    test_general(indexorframe, start, end, freq, tz, trimfreq, offset_hours, start, end)
+    do_test(indexorframe, start, end, freq, tz, trimfreq, offset_hours, start, end)
 
 
 @pytest.mark.parametrize("indexorframe", ["index", "s", "s_unit", "df", "df_unit"])
@@ -25,7 +26,7 @@ def test_trimindex_short2short(indexorframe: str, tz: str, offset_hours_ignore: 
     # If input and output are below-daily, the offset parameter to the trim function should be ignored.
     start, tr_start = "2020-01-05 04:15:00", "2020-01-05 05:00"
     end, tr_end = "2022-12-21 04:15:00", "2022-12-21 04:00"
-    test_general(
+    do_test(
         indexorframe,
         start,
         end,
@@ -65,7 +66,7 @@ def test_trimindex_long2long(
     tr_start = f"{tr_start} {offset_hours:02}:00:00"
     end = f"2022-12-21 {offset_hours:02}:00:00"
     tr_end = f"{tr_end} {offset_hours:02}:00:00"
-    test_general(
+    do_test(
         indexorframe,
         start,
         end,
@@ -105,7 +106,7 @@ def test_trimindex_long2short(
     # If trimfrequency is below-daily, the offset parameter to the trim function should be ignored.
     start = tr_start = f"{start} {offset_hours:02}:00:00"
     end = tr_end = f"{end} {offset_hours:02}:00:00"
-    test_general(
+    do_test(
         indexorframe,
         start,
         end,
@@ -137,12 +138,10 @@ def test_trimindex_short2long(
     # Only in case a below-daily index is trimmed to a daily-or-longer frequency is the offset parameter used.
     start, tr_start = "2020-01-04 22:00:00", f"{tr_start} {offset_hours:02}:00:00"
     end, tr_end = "2022-12-21 22:00:00", f"{tr_end} {offset_hours:02}:00:00"
-    test_general(
-        indexorframe, start, end, "H", tz, trimfreq, offset_hours, tr_start, tr_end
-    )
+    do_test(indexorframe, start, end, "H", tz, trimfreq, offset_hours, tr_start, tr_end)
 
 
-def test_general(
+def do_test(
     indexorframe: str,
     start: str,
     end: str,
@@ -160,25 +159,25 @@ def test_general(
         i_expected = pd.date_range(tr_start, tr_end, freq=freq, inclusive="left", tz=tz)
 
     if indexorframe == "index":
-        test_trimindex(i, trimfreq, offset_hours, i_expected)
+        do_test_trimindex(i, trimfreq, offset_hours, i_expected)
     elif indexorframe == "s":
-        test_trimseries(i, trimfreq, offset_hours, i_expected, False)
+        do_test_trimseries(i, trimfreq, offset_hours, i_expected, False)
     elif indexorframe == "s_unit":
-        test_trimseries(i, trimfreq, offset_hours, i_expected, True)
+        do_test_trimseries(i, trimfreq, offset_hours, i_expected, True)
     elif indexorframe == "df":
-        test_trimdataframe(i, trimfreq, offset_hours, i_expected, False)
+        do_test_trimdataframe(i, trimfreq, offset_hours, i_expected, False)
     elif indexorframe == "df_unit":
-        test_trimdataframe(i, trimfreq, offset_hours, i_expected, True)
+        do_test_trimdataframe(i, trimfreq, offset_hours, i_expected, True)
 
 
-def test_trimindex(
+def do_test_trimindex(
     i: pd.DatetimeIndex, trimfreq: str, offset_hours: int, expected: pd.DatetimeIndex
 ):
     result = tools.trim.index(i, trimfreq, offset_hours)
     testing.assert_index_equal(result, expected)
 
 
-def test_trimseries(
+def do_test_trimseries(
     i: pd.DatetimeIndex,
     trimfreq: str,
     offset_hours: int,
@@ -198,7 +197,7 @@ def test_trimseries(
     testing.assert_series_equal(result, expected)
 
 
-def test_trimdataframe(
+def do_test_trimdataframe(
     i: pd.DatetimeIndex,
     trimfreq: str,
     offset_hours: int,

@@ -25,7 +25,7 @@ def test_tsleftright_nonespecified(tz_param: str, offset_hours: int):
     ("tss", "offset_hours", "expected_tss"),
     [
         (("2020-01-01", None), 0, ("2020-01-01", "2021-01-01")),
-        (("2020-01-01", None), 6, ("2020-01-01", "2021-01-01 06:00")),
+        (("2020-01-01", None), 6, ("2020-01-01", "2020-01-01 06:00")),
         ((None, "2020-02-02"), 0, ("2020-01-01", "2020-02-02")),
         ((None, "2020-02-02"), 6, ("2020-01-01 06:00", "2020-02-02")),
         (("2020-03-03 3:33", None), 0, ("2020-03-03 3:33", "2021-01-01")),
@@ -55,7 +55,7 @@ def test_tsleftright_onespecified(
         (None, None),
         ("Europe/Berlin", "Europe/Berlin"),
         (None, "Europe/Berlin"),
-        ("Europe/Berlin", "Asia/Kolkota"),
+        ("Europe/Berlin", "Asia/Kolkata"),
     ],
 )
 @pytest.mark.parametrize("offset_hours", [0, 6])
@@ -88,6 +88,7 @@ def test_tsleftright_bothspecified(
     if tzs_specified[0] != tzs_specified[1]:
         with pytest.raises(ValueError):
             _ = tools.stamp.ts_leftright(*tss, tz_param, offset_hours)
+        return
 
     expected = [pd.Timestamp(ts, tz=tzs_specified[0]) for ts in expected_tss]
     result = tools.stamp.ts_leftright(*tss, tz_param, offset_hours)

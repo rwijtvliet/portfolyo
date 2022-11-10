@@ -8,14 +8,13 @@ import pandas as pd
 
 from . import floor as tools_floor
 from . import isboundary as tools_isboundary
-from . import right as tools_right
 
 
 def ts_leftright(
     left: pd.Timestamp = None,
     right: pd.Timestamp = None,
     tz: str = None,
-    offset_hours: float = None,
+    offset_hours: int = None,
 ) -> Tuple[pd.Timestamp, pd.Timestamp]:
     """Makes 2 timestamps coherent to one another.
 
@@ -31,7 +30,7 @@ def ts_leftright(
         Timezone for the returned timestamps. Timezones of ``left`` and ``right`` take
         priority, so this values is ignored unless both ``left`` and ``right`` are not
         specified.
-    offset_hours : float, optional (default: 0)
+    offset_hours : int, optional (default: 0)
         Offset of delivery period compared to midnight, in hours. E.g. 6 if delivery
         periods start at 06:00:00.
         Used to determine the start (and end) of the year if one of the timestamps is
@@ -52,7 +51,7 @@ def ts_leftright(
     if right is pd.NaT:
         if left is pd.NaT:
             left = tools_floor.stamp(pd.Timestamp.now(tz=tz), "AS", 1, offset_hours)
-        right = tools_right.stamp(left, "AS")  # TODO: offset_hours?
+        right = tools_floor.stamp(left, "AS", 1, offset_hours)
 
     # if we land here, we at least know right.
     if left is pd.NaT:
@@ -63,7 +62,8 @@ def ts_leftright(
         left = tools_floor.stamp(right, "AS", back, offset_hours)
 
     # if we land here, we know left and right.
-    if len(set([left.tz, right.tz])) == 2:  # distinct timezones
+    zones = [None if ts.tz is None else ts.tz.zone for ts in [left, right]]
+    if len(set(zones)) == 2:  # distinct timezones
         raise ValueError(
             f"The timestamps have distinct timezones: {left.tz} and {right.tz}."
         )

@@ -8,62 +8,6 @@ from typing import Any, Iterable, Union
 import numpy as np
 import pandas as pd
 
-from . import freq as tools_freq
-
-
-def set_frequency(
-    fr: Union[pd.Series, pd.DataFrame], wanted: str = None, strict: bool = False
-) -> Union[pd.Series, pd.DataFrame]:
-    """Try to read, infer, or force frequency of frame's index.
-
-    Parameters
-    ----------
-    fr : pd.Series or pd.DataFrame
-    wanted : str, optional
-        Frequency to set. If none provided, try to infer.
-    strict : bool, optional (default: False)
-        If True, raise ValueError if a valid frequency is not found.
-
-    Returns
-    -------
-    Union[pd.Series, pd.DataFrame]
-        Same type as ``fr``, with, if possible, a valid value for ``fr.index.freq``.
-    """
-    # Handle non-datetime-indices.
-    if not isinstance(fr.index, pd.DatetimeIndex):
-        raise ValueError(
-            "The data does not have a datetime index and can therefore not have a frequency."
-        )
-
-    # Find frequency.
-    fr = fr.copy()
-    if fr.index.freq:
-        pass
-    elif wanted:
-        fr.index.freq = wanted
-    else:
-        try:
-            fr.index.freq = pd.infer_freq(fr.index)
-        except ValueError:
-            pass  # couldn't find one, e.g. because not enough values
-
-    # Correct if necessary.
-    freq = fr.index.freq
-    if not freq and strict:  # No frequency found.
-        raise ValueError("The data does not seem to have a regular frequency.")
-    elif freq and freq not in tools_freq.FREQUENCIES:
-        # Edge case: year-/quarterly but starting != Jan.
-        if tools_freq.up_or_down(freq, "AS") == 0:
-            fr.index.freq = "AS"  # will likely fail
-        elif tools_freq.up_or_down(freq, "QS") == 0:
-            fr.index.freq = "QS"  # will only succeed if QS-APR, QS-JUL or QS-OCT
-        elif strict:
-            raise ValueError(
-                "The data has a non-allowed frequency. Must be one of "
-                f"{', '.join(tools_freq.FREQUENCIES)}; found '{freq}'."
-            )
-    return fr
-
 
 def fill_gaps(
     fr: Union[pd.Series, pd.DataFrame], maxgap: int = 2

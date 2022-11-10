@@ -131,14 +131,6 @@ def to_offset(freq: str) -> Union[pd.Timedelta, pd.DateOffset]:
     >>> freq.to_offset("MS")
     <DateOffset: months=1>
     """
-    # Get right timestamp for each index value, based on the frequency.
-    # . This one breaks for 'MS':
-    # (i + pd.DateOffset(nanoseconds=i.freq.nanos))
-    # . This drops a value at some DST transitions:
-    # (i.shift(1))
-    # . This one gives wrong value at DST transitions:
-    # i + i.freq
-
     if freq == "15T":
         return pd.Timedelta(hours=0.25)
     elif freq == "H":
@@ -153,8 +145,11 @@ def to_offset(freq: str) -> Union[pd.Timedelta, pd.DateOffset]:
         return pd.DateOffset(years=1)
     else:
         for freq2 in ["MS", "QS"]:  # Edge case: month-/quarterly but starting != Jan.
-            if up_or_down(freq2, freq) == 0:
-                return to_offset(freq2)
+            try:
+                if up_or_down(freq2, freq) == 0:
+                    return to_offset(freq2)
+            except ValueError:  # freq is not a valid frequency
+                pass
         raise ValueError(
             f"Parameter ``freq`` must be one of {', '.join(FREQUENCIES)}; got '{freq}'."
         )
@@ -190,3 +185,79 @@ def from_tdelta(tdelta: pd.Timedelta) -> str:
             f"The timedelta ({tdelta}) doesn't seem to be fit to any of the allowed "
             f"frequencies ({', '.join(FREQUENCIES)})."
         )
+
+
+def set_to_index(
+    i: pd.DatetimeIndex, wanted: str = None, strict: bool = False
+) -> pd.DatetimeIndex:
+    """Try to read, infer, or force frequency of index.
+
+    Parameters
+    ----------
+    i : pd.DatetimeIndex
+    wanted : str, optional
+        Frequency to set. If none provided, try to infer.
+    strict : bool, optional (default: False)
+        If True, raise ValueError if a valid frequency is not found.
+
+    Returns
+    -------
+    pd.DatetimeIndex
+        with same values as ``i``, but, if possible, a valid value for ``i.freq``.
+    """
+    # Find frequency.
+    i = i.copy(deep=True)
+    if i.freq:
+        pass
+    elif wanted:
+        i.freq = wanted
+    else:
+        try:
+            i.freq = pd.infer_freq(i)
+        except ValueError:
+            pass  # couldn't find one, e.g. because not enough values
+
+    # Correct if necessary.
+    freq = i.freq
+    if not freq and strict:  # No frequency found.
+        raise ValueError("The index does not seem to have a regular frequency.")
+    elif freq and freq not in FREQUENCIES:
+        # Edge case: year-/quarterly but starting != Jan.
+        if up_or_down(freq, "AS") == 0:
+            i.freq = "AS"  # will likely fail
+        elif up_or_down(freq, "QS") == 0:
+            i.freq = "QS"  # will only succeed if QS-APR, QS-JUL or QS-OCT
+        elif strict:
+            raise ValueError(
+                f"The data has a non-allowed frequency. Must be one of {', '.join(FREQUENCIES)}; found '{freq}'."
+            )
+    return i
+
+
+def set_to_frame(
+    fr: Union[pd.Series, pd.DataFrame], wanted: str = None, strict: bool = False
+) -> Union[pd.Series, pd.DataFrame]:
+    """Try to read, infer, or force frequency of frame's index.
+
+    Parameters
+    ----------
+    fr : pd.Series or pd.DataFrame
+    wanted : str, optional
+        Frequency to set. If none provided, try to infer.
+    strict : bool, optional (default: False)
+        If True, raise ValueError if a valid frequency is not found.
+
+    Returns
+    -------
+    Union[pd.Series, pd.DataFrame]
+        Same type as ``fr``, with, if possible, a valid value for ``fr.index.freq``.
+    """
+    # Handle non-datetime-indices.
+    if not isinstance(fr.index, pd.DatetimeIndex):
+        raise ValueError(
+            "The data does not have a datetime index and can therefore not have a frequency."
+        )
+
+    fr = fr.copy()
+    fr.index = set_to_index(fr.index, wanted, strict)
+    return fr

@@ -7,9 +7,7 @@ from typing import Union
 import pandas as pd
 from pytz import AmbiguousTimeError, NonExistentTimeError
 
-from . import frame as tools_frame
 from . import freq as tools_freq
-from . import isboundary as tools_isboundary
 from . import righttoleft as tools_righttoleft
 from . import tzone as tools_tzone
 
@@ -62,8 +60,8 @@ def frame(
 
     See also
     --------
-    ``portfolyo.force_tzaware``
-    ``portfolyo.force_tzagnostic``
+    ``portfolyo.force_aware``
+    ``portfolyo.force_agnostic``
     """
     kwargs = {"tz": tz, "floating": floating, "force_freq": force_freq}
 
@@ -80,7 +78,7 @@ def frame(
 
     # Make sure it has a frequency, i.e., make sure it is tz-aware or tz-agnostic.
     # Pipeline if frequency not yet found: right -> left -> localize -> tz-aware -> freq
-    fr = tools_frame.set_frequency(fr)
+    fr = tools_freq.set_to_frame(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
     # The data may be right-bound.
@@ -135,9 +133,9 @@ def frame(
 
     # Fix timezone.
     if force == "aware":
-        fr = tools_tzone.force_tzaware(fr, tz, floating=floating)
+        fr = tools_tzone.force_aware(fr, tz, floating=floating)
     elif force == "agnostic" or force == "naive":
-        fr = tools_tzone.force_tzagnostic(fr)
+        fr = tools_tzone.force_agnostic(fr)
     elif force is None:  # don't try to fix timezone.
         pass
     else:
@@ -148,20 +146,68 @@ def frame(
     # Standardize index name.
     fr.index.name = "ts_left"
     # After standardizing timezone, the frequency should have been set.
-    return tools_frame.set_frequency(fr, freq_input, strict=force_freq)
+    return tools_freq.set_to_frame(fr, freq_input, strict=force_freq)
 
 
-def assert_standardized(fr: Union[pd.Series, pd.DataFrame]):
+def assert_frame_standardized(fr: Union[pd.Series, pd.DataFrame]):
     """Assert that series or dataframe is standardized."""
+    assert_index_standardized(fr.index)
 
-    freq = fr.index.freq
+
+def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
+    """Assert that index is standardized."""
+
+    if not isinstance(i, pd.DatetimeIndex):
+        raise AssertionError(f"Expecting DatetimeIndex; got {type(i)}.")
+
+    # Check frequency.
+    freq = i.freq
     if not freq:
         raise AssertionError("Index must have frequency set.")
     if freq not in (freqs := tools_freq.FREQUENCIES):
         raise AssertionError(
             f"Index frequency must be one of {', '.join(freqs)}; found '{freq}'."
         )
-    if not tools_isboundary.index(fr.index, freq):
-        raise AssertionError(
-            f"Index values are not (all) at start of a '{freq}'-period."
-        )
+
+    # Check hour and minute.
+    if tools_freq.up_or_down(freq, "15T") <= 0:  # quarterhour
+        startminute = 15 if __right else 0
+        if i[0].minute != startminute:
+            err = ("right-bound", "15 min past the") if __right else ("", "at a full")
+            raise AssertionError(
+                f"An index with {err[0]} quarterhourly values must start {err[1]} hour; found {i[0]}."
+            )
+
+        if any(not_ok := [ts.minute not in (0, 15, 30, 45) for ts in i]):
+            raise AssertionError(
+                "In an index with quarterhourly values, all timestamps (all periods) should"
+                f" start at a full quarter-hour; found {i[not_ok]}."
+            )
+    else:  # longer than quarterhour
+        if any(not_ok := i.minute != 0):
+            raise AssertionError(
+                "In an index with hourly-or-longer values, all timestamps (all periods) should"
+                f" start at a full hour; found {i[not_ok]}."
+            )
+
+    # Check time-of-day.
+    if tools_freq.up_or_down(freq, "D") >= 0:
+        if not len(times := set(i.time)) == 1:
+            raise AssertionError(
+                "In an index with daily-or-longer values, all timestamps (all periods) should"
+                f" start at the same time. Found multiple times: {times}."
+            )
+
+    # Check day-of-X.
+    if tools_freq.up_or_down(freq, "D") > 0:
+        if freq == "MS":
+            period, not_ok = "month", ~i.is_month_start
+        elif freq == "QS":
+            period, not_ok = "quarter", ~i.is_quarter_start
+        elif freq == "AS":
+            period, not_ok = "year", ~i.is_year_start
+        if any(not_ok):
+            raise AssertionError(
+                f"In an index with {period}ly values, all timestamps (all {period}s) should"
+                f" fall on the first day of a {period}; found {i[not_ok]}."
+            )

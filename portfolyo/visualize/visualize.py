@@ -199,12 +199,12 @@ def plot_timeseries_as_bar(
     else:  # Bad combination: bar graph on time-axis. But allow anyway.
 
         # This is slow if there are many elements.
-        # x = s.index + 0.5 * (s.index.ts_right - s.index)
+        # x = s.index + 0.5 * (s.index.right - s.index)
         # width = pd.Timedelta(hours=s.index.duration.median().to("h").magnitude * 0.8)
         # ax.bar(x.values, s.values, width, **kwargs)
 
         # This is faster.
-        delta = s.index.ts_right - s.index
+        delta = s.index.right - s.index
         x = np.array(list(zip(s.index + 0.1 * delta, s.index + 0.9 * delta))).flatten()
         magnitudes = np.array([[v, 0] for v in s.values.quantity.magnitude]).flatten()
         values = tools.unit.PA_(magnitudes, s.values.quantity.units)
@@ -222,7 +222,7 @@ def plot_timeseries_as_area(
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     splot = s.copy()  # modified with additional (repeated) datapoint
-    splot[splot.index.ts_right[-1]] = splot.values[-1]
+    splot[splot.index.right[-1]] = splot.values[-1]
 
     # Plot and add labels to datapoints.
     categories = _categories(ax, s, cat)
@@ -239,7 +239,7 @@ def plot_timeseries_as_area(
     else:
 
         ax.fill_between(splot.index, 0, splot.values, step="post", **kwargs)
-        delta = s.index.ts_right - s.index
+        delta = s.index.right - s.index
         add_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
 
 
@@ -252,7 +252,7 @@ def plot_timeseries_as_step(
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     splot = s.copy()  # modified with additional (repeated) datapoint
-    splot[splot.index.ts_right[-1]] = splot.values[-1]
+    splot[splot.index.right[-1]] = splot.values[-1]
 
     # Plot add labels to datapoints
     categories = _categories(ax, s, cat)
@@ -269,7 +269,7 @@ def plot_timeseries_as_step(
     else:
 
         ax.step(splot.index, splot.values, where="post", **kwargs)
-        delta = s.index.ts_right - s.index
+        delta = s.index.right - s.index
         add_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
 
 
@@ -295,8 +295,8 @@ def plot_timeseries_as_hline(
 
     else:
 
-        delta = s.index.ts_right - s.index
-        ax.hlines(s.values, s.index, s.index.ts_right, **kwargs)
+        delta = s.index.right - s.index
+        ax.hlines(s.values, s.index, s.index.right, **kwargs)
         add_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, False)
 
 

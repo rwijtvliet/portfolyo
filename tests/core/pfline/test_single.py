@@ -120,8 +120,8 @@ def test_singlepfline_asfreqcorrect2(freq, newfreq, columns, tz):
             cols.append("r")
         df1, df2 = pfl1.df()[cols], pfl2.df()[cols]
 
-    mask1 = (df1.index >= df2.index[0]) & (df1.index.ts_right <= df2.index.ts_right[-1])
-    mask2 = (df2.index >= df1.index[0]) & (df2.index.ts_right <= df1.index.ts_right[-1])
+    mask1 = (df1.index >= df2.index[0]) & (df1.index.right <= df2.index.right[-1])
+    mask2 = (df2.index >= df1.index[0]) & (df2.index.right <= df1.index.right[-1])
     df1, df2 = df1[mask1], df2[mask2]
 
     if df2.empty or df1.empty:

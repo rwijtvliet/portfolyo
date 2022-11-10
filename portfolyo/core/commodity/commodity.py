@@ -10,7 +10,7 @@ class Commodity:
 
     freq: str
     is_peak_hour: tools.peakperiod.PeakFunction = None
-    offset_hours: float = 0
+    offset_hours: int = 0
 
     def __post_init__(self):
         if self.freq not in (freqs := tools.freq.FREQUENCIES):

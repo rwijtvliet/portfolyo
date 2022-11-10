@@ -138,7 +138,7 @@ def test_conversionAtoA_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
     def conversion_fn(fr):
         floating = tzt_in.floating or tzt_out.floating
         fr_out = tools.tzone._A_to_A(fr, tz=tzt_out.explicit, floating=floating)
-        return tools.frames.set_frequency(fr_out, aggfreq)
+        return tools.freq.set_to_frame(fr_out, aggfreq)
 
     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 
@@ -153,7 +153,7 @@ def test_conversionAtoB_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
 
     def conversion_fn(fr):
         fr_out = tools.tzone._A_to_B(fr)
-        return tools.frames.set_frequency(fr_out, aggfreq)
+        return tools.freq.set_to_frame(fr_out, aggfreq)
 
     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 
@@ -166,7 +166,7 @@ def test_conversionBtoA_fromexcel(aggfreq, tzt_in, tzt_out, series_or_df):
 
     def conversion_fn(fr):
         fr_out = tools.tzone._B_to_A(fr, tz=tzt_out.explicit)
-        return tools.frames.set_frequency(fr_out, aggfreq)
+        return tools.freq.set_to_frame(fr_out, aggfreq)
 
     do_conversion_test(aggfreq, tzt_in, tzt_out, series_or_df, conversion_fn)
 

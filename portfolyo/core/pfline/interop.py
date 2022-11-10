@@ -152,7 +152,7 @@ def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
     # Check if all OK.
 
     try:
-        tools.standardize.assert_standardized(s)
+        tools.standardize.assert_frame_standardized(s)
     except AssertionError as e:
         raise ValueError(
             "Timeseries not in expected form. See ``portfolyo.standardize()`` for more information."

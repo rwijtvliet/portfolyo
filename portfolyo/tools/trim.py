@@ -12,7 +12,7 @@ from . import freq as tools_freq
 from . import right as tools_right
 
 
-def index(i: pd.DatetimeIndex, freq: str, offset_hours: float = 0) -> pd.DatetimeIndex:
+def index(i: pd.DatetimeIndex, freq: str, offset_hours: int = 0) -> pd.DatetimeIndex:
     f"""Trim index to only keep full periods of certain frequency.
 
     Parameters
@@ -21,7 +21,7 @@ def index(i: pd.DatetimeIndex, freq: str, offset_hours: float = 0) -> pd.Datetim
         The (untrimmed) DatetimeIndex
     freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
         Frequency to trim to. E.g. 'MS' to only keep full months.
-    offset_hours : float, optional (default: 0)
+    offset_hours : int, optional (default: 0)
         Offset of delivery period compared to midnight, in hours. E.g. 6 if delivery
         periods start at 06:00:00.
         Used only when trimming a below-daily index to a daily-or-longer frequency.
@@ -34,12 +34,12 @@ def index(i: pd.DatetimeIndex, freq: str, offset_hours: float = 0) -> pd.Datetim
     if not i.freq:
         raise ValueError("Index ``i`` does not have a frequency.")
     mask_start = i >= tools_ceil.stamp(i[0], freq, 0, offset_hours)
-    mask_end = tools_right.index(i) < tools_floor.stamp(i[-1], freq, 0, offset_hours)
+    mask_end = tools_right.index(i) <= tools_floor.stamp(i[-1], freq, 0, offset_hours)
     return i[mask_start & mask_end]
 
 
 def frame(
-    fr: Union[pd.Series, pd.DataFrame], freq: str, offset_hours: float = 0
+    fr: Union[pd.Series, pd.DataFrame], freq: str, offset_hours: int = 0
 ) -> Union[pd.Series, pd.DataFrame]:
     f"""Trim index of series or dataframe to only keep full periods of certain frequency.
 
@@ -49,7 +49,7 @@ def frame(
         The (untrimmed) pandas series or dataframe.
     freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
         Frequency to trim to. E.g. 'MS' to only keep full months.
-    offset_hours : float, optional (default: 0)
+    offset_hours : int, optional (default: 0)
         Offset of delivery period compared to midnight, in hours. E.g. 6 if delivery
         periods start at 06:00:00.
         Used only when trimming a below-daily frame to a daily-or-longer frequency.

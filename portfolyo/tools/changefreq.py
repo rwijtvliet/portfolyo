@@ -5,7 +5,6 @@ from typing import Callable
 import pandas as pd
 from pandas.core.frame import NDFrame
 
-from . import frame as tools_frame
 from . import freq as tools_freq
 from . import right as tools_right
 
@@ -55,7 +54,7 @@ def _downsample(
         # Downsampling is easiest for summable series.
         if custom_grouper:
             s2 = _downsample_summable_custom(s, custom_grouper)
-            return tools_frame.set_frequency(s2, freq)
+            return tools_freq.set_to_frame(s2, freq)
         else:
             return _downsample_summable_freq(s, freq)
     else:
@@ -76,7 +75,7 @@ def _upsample_averagable_freq(s: pd.Series, freq: str) -> pd.Series:
     # So, first, add additional row...
     # (original code to add additional row, does not work if unit-aware. Maybe with future release of pint_pandas?)
     # s = s.copy()
-    # s.loc[s.index.ts_right[-1]] = None
+    # s.loc[s.index.right[-1]] = None
     # (Workaround: turn into dataframe, change frequency, and turn back into series.)
     df = pd.DataFrame(s)
     additional_stamp = tools_right.stamp(s.index[-1], s.index.freq)
