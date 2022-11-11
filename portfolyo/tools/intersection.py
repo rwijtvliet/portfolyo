@@ -16,25 +16,36 @@ def index(*indices: pd.DatetimeIndex) -> pd.DatetimeIndex:
 
     Notes
     -----
-    If indices have distinct timezones or names, the values from the first index are used.
+    The indices must have equal frequency, timezone, start-of-day. Otherwise, an error
+    is raised. If there is no overlap, an empty Index is returned.
     """
     if len(indices) == 0:
         raise ValueError("Must specify at least one index.")
 
-    distinct_freqs = set([i.freq for i in indices])
-    if len(indices) > 1 and len(distinct_freqs) != 1:
-        raise ValueError(
-            f"Indices must not have equal frequencies; got {distinct_freqs}."
-        )
+    if len(indices) == 1:
+        return indices[0]
 
-    tznaive = [i.tz is None for i in indices]
-    if any(tznaive) and not all(tznaive):
-        raise ValueError(
-            "All indices must be either timezone-aware or timezone-naive; got "
-            f"{sum(tznaive)} naive (out of {len(indices)})."
-        )
+    # If we land here, we have at least 2 indices.
+
+    distinct_freqs = set([i.freq for i in indices])
+    if len(distinct_freqs) != 1:
+        raise ValueError(f"Indices must have equal frequencies; got {distinct_freqs}.")
+
+    distinct_tzs = set([i.tz for i in indices])
+    if len(distinct_tzs) != 1:
+        raise ValueError(f"Indices must have equal timezones; got {distinct_tzs}.")
 
     freq, name, tz = indices[0].freq, indices[0].name, indices[0].tz
+
+    empty_idx = [len(i) == 0 for i in indices]
+    if any(empty_idx):
+        return pd.DatetimeIndex([], freq=freq, tz=tz, name=name)
+
+    # If we land here, we have at least 2 indices, all are not empty, with equal tz and freq.
+
+    distinct_sod = set([i[0].time() for i in indices])
+    if len(distinct_sod) != 1:
+        raise ValueError(f"Indices must have equal start-of-day; got {distinct_sod}.")
 
     # Calculation is cumbersome: pandas DatetimeIndex.intersection not working correctly on timezone-aware indices.
     values = set(indices[0])

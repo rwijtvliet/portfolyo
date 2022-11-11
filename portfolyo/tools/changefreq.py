@@ -1,73 +1,62 @@
 """Functions to change frequency of a pandas dataframe."""
 
-from typing import Callable
+import datetime as dt
+from typing import Union
 
 import pandas as pd
-from pandas.core.frame import NDFrame
 
 from . import freq as tools_freq
 from . import right as tools_right
+from . import trim as tools_trim
 
 
-def _downsample_summable_freq(s: pd.Series, freq: str) -> pd.Series:
-    """Downsample a summable series using a frequency."""
-    # Downsampling is easiest for summable series: simply sum child values.
-    s2 = s.resample(freq).sum()
-    # Discard rows in new series that are only partially present in original.
-    mask1 = s2.index >= s.index[0]
-    mask2 = tools_right.index(s2.index) <= tools_right.stamp(s.index[-1], s.index.freq)
-    s2 = s2[mask1 & mask2]
-    # Return if any values found.
-    # if not len(s2):
-    #     raise ValueError("There are no 'full' time periods at this frequency.")
-    return s2
+def _downsample(is_summable: bool, s: pd.Series, freq: str) -> pd.Series:
+    """Downsample series."""
+    # Downsampling is easiest for summable series.
 
-
-def _downsample_summable_custom(
-    s: pd.Series, grouper: Callable[[pd.Timestamp], pd.Timestamp]
-) -> pd.Series:
-    """Downsample a summable series using a custom grouper."""
-    # Downsampling is easiest for summable series: simply sum child values.
-    s2 = s.groupby(grouper).sum()
-    # Discard rows in new series that are only partially present in original.
-    eps = pd.Timedelta(seconds=1)
-    start = s.index[0]
-    if grouper(start) == grouper(start - eps):
-        s2 = s2.iloc[1:]
-    end = tools_right.stamp(s.index[-1], s.index.freq)  # only right of final stamp
-    if grouper(end - eps) == grouper(end):
-        s2 = s2.iloc[:-1]
-    # Return if any values found.
-    # if not len(s2):
-    #     raise ValueError("There are no 'full' time periods for this grouper.")
-    return s2
-
-
-def _downsample(
-    s: pd.Series,
-    freq: str,
-    is_summable: bool = True,
-    custom_grouper: Callable[[pd.Series], pd.Series] = None,
-) -> pd.Series:
-    """Downsample any series."""
-    if is_summable:
-        # Downsampling is easiest for summable series.
-        if custom_grouper:
-            s2 = _downsample_summable_custom(s, custom_grouper)
-            return tools_freq.set_to_frame(s2, freq)
-        else:
-            return _downsample_summable_freq(s, freq)
-    else:
-        # For averagable frames: first make summable.
+    if not is_summable:
+        # For averagable series: first make summable.
         summable = s.mul(s.index.duration, axis=0)  # now has a pint dtype
-        summable2 = _downsample(summable, freq, True, custom_grouper)
+        summable2 = _downsample(True, summable, freq)
         s2 = summable2.div(summable2.index.duration, axis=0)
         return s2.astype(s.dtype).rename(s.name)
 
+    # s is summable: downsampling means summing child values.
 
-def _upsample_averagable_freq(s: pd.Series, freq: str) -> pd.Series:
-    """Upsample an averagable series using a frequency."""
-    # Upsampling is easiest for averagable frames: simply duplicate parent value.
+    s = tools_trim.frame(s, freq)  # keep only full periods in target freq
+
+    start_of_day = s.index[0].time()
+    offset = dt.timedelta(hours=start_of_day.hour, minutes=start_of_day.minute)
+    source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
+    target_vs_daily = tools_freq.up_or_down(freq, "D")
+
+    # Downsample to days.
+    s2 = s
+    if source_vs_daily < 0:
+        if target_vs_daily < 0:
+            return s2.resample(freq).sum()
+        s2 = s2.resample("D", offset=offset).sum()
+    # Downsample to longer-than-days.
+    if target_vs_daily > 0:
+        # workaround: (a) first downsample to days...
+        s2 = s2.resample(freq).sum()
+        s2.index += offset  # ...(b) add the offset manually...
+        s2.index.freq = freq  # ...(c) and set the frequency manually as well.
+    return s2
+
+
+def _upsample(is_summable: bool, s: pd.Series, freq: str) -> pd.Series:
+    """Upsample series."""
+    # Upsampling is easiest for averagable series.
+
+    if is_summable:
+        # For summable series: first make averagable.
+        avgable = s.div(s.index.duration, axis=0)  # now has a pint dtype
+        avgable2 = _upsample(False, avgable, freq)
+        s2 = avgable2.mul(avgable2.index.duration, axis=0)
+        return s2.astype(s.dtype).rename(s.name)
+
+    # s is averagable: upsampling means copying value to all children.
 
     # We cannot simply `.resample()`, because in that case the final value is not
     # duplicated. We add a dummy value, which we eventually remove again.
@@ -86,57 +75,17 @@ def _upsample_averagable_freq(s: pd.Series, freq: str) -> pd.Series:
     return df2.iloc[:-1, 0].rename(s.name)
 
 
-def _upsample_averagable_custom(
-    s: pd.Series, grouper: Callable[[pd.Timestamp], pd.Timestamp]
-) -> pd.Series:
-    """Upsample an averagable series using a custom grouper."""
-    raise NotImplementedError("Can't upsample using a custome grouper (yet)!")
-
-
-def _upsample(
-    s: pd.Series,
-    freq: str,
-    is_summable: bool = True,
-    custom_grouper: Callable[[pd.Series], pd.Series] = None,
-) -> pd.Series:
-    """Upsample any series."""
-    if not is_summable:
-        # Upsampling is easiest for averagable frames.
-        if custom_grouper:
-            return _upsample_averagable_custom(s, custom_grouper)
-        else:
-            return _upsample_averagable_freq(s, freq)
-    else:
-        # For summable frames: first make averagable.
-        avgable = s.div(s.index.duration, axis=0)  # now has a pint dtype
-        avgable2 = _upsample(avgable, freq, False, custom_grouper)
-        s2 = avgable2.mul(avgable2.index.duration, axis=0)
-        return s2.astype(s.dtype).rename(s.name)
-
-
-def _general(
-    s: pd.Series,
-    freq: str = "MS",
-    is_summable: bool = True,
-    custom_grouper: Callable[[pd.Timestamp], pd.Timestamp] = None,
-) -> pd.Series:
-    """Change frequency of a Series, depending on the type of data it contains.
+def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
+    f"""Change frequency of a Series, depending on the type of data it contains.
 
     Parameters
     ----------
+    is_summable : bool
+        True if data is summable, False if it is averagable.
     s : pd.Series
         Series that needs to be resampled.
-    freq : str, optional (default: "MS")
+    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}, optional (default: 'MS')
         Target frequency.
-    is_summable : bool, optional (default: True)
-        True if the values are 'time-summable'. False if it is 'time-averagable'. See
-        https://portfolyo.readthedocs.io/en/latest/specialized_topics/resampling.html
-        for more information.
-    custom_grouper : Callable[[pd.Timestamp], pd.Timestamp], optional (default: None)
-        A custom grouper function that should be used for this frequency, instead of the
-        default resampling function. (``freq`` argument still used to determine up- or
-        downsampling). Callable takes in any timestamp, and returns the timestamp of the
-        downsampled group.
 
     Returns
     -------
@@ -146,18 +95,6 @@ def _general(
 
     # TODO: Add tests with multiindex columns
 
-    # Some values for freq cause labels to be right-bound. Change to make left-bound.
-    if freq in ["M", "A", "Q"]:
-        freq += "S"
-    # Make sure it is a valid frequency.
-    if freq not in tools_freq.FREQUENCIES:
-        raise ValueError(
-            f"Parameter ``freq`` must be one of {','.join(tools_freq.FREQUENCIES)}; got {freq}."
-        )
-    # Make sure series has valid frequency.
-    if s.index.freq is None:
-        raise ValueError("Series must have frequency.")
-
     # Eliminate integers.
     if pd.api.types.is_integer_dtype(s.dtype):
         s = s.astype(float)
@@ -165,9 +102,8 @@ def _general(
     # s is now a Series with a 'float' or 'pint' dtype.
 
     # Empty series.
-    if len(s) == 0:
-        # empty frame.
-        return pd.Series([], pd.date_range("2020", periods=0, freq=freq))
+    if len(s) == 0:  # empty frame
+        return s
 
     up_or_down = tools_freq.up_or_down(s.index.freq, freq)
 
@@ -177,35 +113,25 @@ def _general(
 
     # Must downsample.
     elif up_or_down == -1:
-        return _downsample(s, freq, is_summable, custom_grouper)
+        return _downsample(is_summable, s, freq)
 
     # Must upsample.
     else:  # up_or_down == 1
-        return _upsample(s, freq, is_summable, custom_grouper)
+        return _upsample(is_summable, s, freq)
 
 
 def summable(
-    fr: NDFrame,
-    freq: str = "MS",
-    custom_grouper: Callable[[pd.Timestamp], pd.Timestamp] = None,
-) -> NDFrame:
-    """
-    Resample and aggregate DataFrame or Series with time-summable quantities.
+    fr: Union[pd.Series, pd.DataFrame], freq: str = "MS"
+) -> Union[pd.Series, pd.DataFrame]:
+    f"""
+    Resample and aggregate a DataFrame or Series with 'time-summable' quantities.
 
     Parameters
     ----------
-    fr : NDFrame
-        Pandas Series or DataFrame.
-    freq : str, optional (default: 'MS')
-        The frequency at which to resample. 'AS' (or 'A') for year, 'QS' (or 'Q')
-        for quarter, 'MS' (or 'M') for month, 'D for day', 'H' for hour, '15T' for
-        quarterhour.
-    custom_grouper : Callable[[pd.Timestamp], pd.Timestamp], optional (default: None)
-        A custom grouper function that should be used for this frequency, instead of the
-        default resampling function. (``freq`` argument still used to determine up- or
-        downsampling). Callable takes in any timestamp, and returns the timestamp of the
-        downsampled group.
-
+    fr : pd.Series or pd.DataFrame
+        Pandas Series or DataFrame to be resampled.
+    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}, optional (default: 'MS')
+        Target frequency.
 
     Returns
     -------
@@ -216,35 +142,34 @@ def summable(
     A 'time-summable' quantity is one that can be summed to get to an aggregate
     value, like revenue [Eur] or energy [MWh]. Prices [Eur/MWh] and powers [MW]
     are not time-summable.
+    See https://portfolyo.readthedocs.io/en/latest/specialized_topics/resampling.html
+    for more information.
+
+    For shorter-than-daily indices, it is assumed that the index starts with a full day.
+    I.e., the time-of-day of the first element is assumed to be the start time for the
+    day-or-longer delivery periods. (E.g., if the index has hourly values and starts with
+    "2020-04-21 06:00:00", it is assumed that a delivery day is from 06:00:00 (incl)
+    until 06:00:00 (excl).)
     """
     if isinstance(fr, pd.DataFrame):
         # Turn into series, change frequency, and turn back into dataframe.
         return pd.DataFrame({key: summable(value, freq) for key, value in fr.items()})
 
-    return _general(fr, freq, True, custom_grouper)
+    return _general(True, fr, freq)
 
 
 def averagable(
-    fr: NDFrame,
-    freq: str = "MS",
-    custom_grouper: Callable[[pd.Timestamp], pd.Timestamp] = None,
-) -> NDFrame:
-    """
-    Resample and aggregate DataFrame or Series with time-averagable quantities.
+    fr: Union[pd.Series, pd.DataFrame], freq: str = "MS"
+) -> Union[pd.Series, pd.DataFrame]:
+    f"""
+    Resample and aggregate a DataFrame or Series with 'time-averagable' quantities.
 
     Parameters
     ----------
-    fr : NDFrame
-        Pandas Series or DataFrame.
-    freq : str, optional (default: 'MS')
-        The frequency at which to resample. 'AS' (or 'A') for year, 'QS' (or 'Q')
-        for quarter, 'MS' (or 'M') for month, 'D for day', 'H' for hour, '15T' for
-        quarterhour.
-    custom_grouper : Callable[[pd.Timestamp], pd.Timestamp], optional (default: None)
-        A custom grouper function that should be used for this frequency, instead of the
-        default resampling function. (``freq`` argument still used to determine up- or
-        downsampling). Callable takes in any timestamp, and returns the timestamp of the
-        downsampled group.
+    fr : pd.Series or pd.DataFrame
+        Pandas Series or DataFrame to be resampled.
+    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}, optional (default: 'MS')
+        Target frequency.
 
     Returns
     -------
@@ -254,25 +179,31 @@ def averagable(
     -----
     A 'time-averagable' quantity is one that can be averaged to an aggregate value,
     like power [MW]. When downsampling, the values are weighted with their duration.
+    See https://portfolyo.readthedocs.io/en/latest/specialized_topics/resampling.html
+    for more information.
+
+    For shorter-than-daily indices, it is assumed that the index starts with a full day.
+    I.e., the time-of-day of the first element is assumed to be the start time for the
+    day-or-longer delivery periods. (E.g., if the index has hourly values and starts with
+    "2020-04-21 06:00:00", it is assumed that a delivery day is from 06:00:00 (incl)
+    until 06:00:00 (excl).)
     """
     if isinstance(fr, pd.DataFrame):
         # Turn into series, change frequency, and turn back into dataframe.
         return pd.DataFrame({key: averagable(value, freq) for key, value in fr.items()})
 
-    return _general(fr, freq, False, custom_grouper)
+    return _general(False, fr, freq)
 
 
 def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
-    """Resample index.
+    f"""Resample index.
 
     Parameters
     ----------
     i : pd.DatetimeIndex
-        Index to resample
-    freq : str, optional (default: 'MS')
-        The frequency at which to resample. 'AS' (or 'A') for year, 'QS' (or 'Q')
-        for quarter, 'MS' (or 'M') for month, 'D for day', 'H' for hour, '15T' for
-        quarterhour.
+        Index to resample.
+    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+        Target frequency.
 
     Returns
     -------
@@ -291,7 +222,7 @@ def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
 
     # Must upsample.
     else:  # up_or_down == 1
-        # We must jump through additional hoops, because we are using datetimeindices.
+        # We must jump through additional hoops, because we are using DatetimeIndex instead of PeriodIndex
         # First, extend by one value...
         i = i.append(i[-1:].shift())
         # ... then do upsampling ...

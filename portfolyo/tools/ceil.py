@@ -56,30 +56,30 @@ def stamp(
     return tools_round.stamp_general("ceil", ts, freq, future, start_of_day)
 
 
-def index(i: pd.DatetimeIndex, freq: str, future: int = 0) -> pd.DatetimeIndex:
-    f"""Ceil timestamps of index to end of delivery period.
+# def index(i: pd.DatetimeIndex, freq: str, future: int = 0) -> pd.DatetimeIndex:
+#     f"""Ceil timestamps of index to end of delivery period.
 
-    i.e., find (earliest) period start that is on or before the timestamp.
+#     i.e., find (earliest) period start that is on or before the timestamp.
 
-    Parameters
-    ----------
-    i : pd.DatetimeIndex
-        Timestamps to ceil.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
-        What to ceil to, e.g. 'QS' to get end of quarter it's contained in.
-    future : int, optional (default: 0)
-        0 to ceil to period end. 1 (-1) to get end of period after (before) that, etc.
+#     Parameters
+#     ----------
+#     i : pd.DatetimeIndex
+#         Timestamps to ceil.
+#     freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+#         What to ceil to, e.g. 'QS' to get end of quarter it's contained in.
+#     future : int, optional (default: 0)
+#         0 to ceil to period end. 1 (-1) to get end of period after (before) that, etc.
 
-    Returns
-    -------
-    pd.DatetimeIndex
+#     Returns
+#     -------
+#     pd.DatetimeIndex
 
-    Notes
-    -----
-    For shorter-than-daily indices, it is assumed that the index starts with a full day.
-    I.e., the time-of-day of the first element is assumed to be the start time for the
-    day-or-longer delivery periods. (E.g., if the index has hourly values and starts with
-    "2020-04-21 06:00:00", it is assumed that a delivery day is from 06:00:00 (incl)
-    until 06:00:00 (excl).)
-    """
-    return tools_round.index_general("ceil", i, freq, future)
+#     Notes
+#     -----
+#     For shorter-than-daily indices, it is assumed that the index starts with a full day.
+#     I.e., the time-of-day of the first element is assumed to be the start time for the
+#     day-or-longer delivery periods. (E.g., if the index has hourly values and starts with
+#     "2020-04-21 06:00:00", it is assumed that a delivery day is from 06:00:00 (incl)
+#     until 06:00:00 (excl).)
+#     """
+#     return tools_round.index_general("ceil", i, freq, future)
