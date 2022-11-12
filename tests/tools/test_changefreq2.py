@@ -7,78 +7,77 @@ import pytest
 
 from portfolyo import testing, tools
 
-
-def durationfn_yearlyfreq(ts):
-    return (366 if ts.year % 4 == 0 else 365) * 24
-
-
-def durationfn_quarterlyfreq(ts):
-    days = {1: 90, 4: 91, 7: 92, 10: 92}[ts.month]
-    if ts.month == 1 and ts.year % 4 == 0:
-        days += 1
-    hours = days * 24
-    if ts.tz == "Europe/Berlin":
-        if ts.month == 1:
-            hours -= 1
-        elif ts.month == 10:
-            hours += 1
-    return hours
+# def durationfn_yearlyfreq(ts):
+#     return (366 if ts.year % 4 == 0 else 365) * 24
 
 
-def durationfn_monthlyfreq(ts):
-    if ts.month in [4, 6, 9, 11]:
-        days = 30
-    elif ts.month == 2:
-        days = 29 if ts.year % 4 == 0 else 28
-    else:
-        days = 31
-    hours = days * 24
-    if ts.tz == "Europe/Berlin":
-        if ts.month == 3:
-            hours -= 1
-        elif ts.month == 10:
-            hours += 1
-    return hours
+# def durationfn_quarterlyfreq(ts):
+#     days = {1: 90, 4: 91, 7: 92, 10: 92}[ts.month]
+#     if ts.month == 1 and ts.year % 4 == 0:
+#         days += 1
+#     hours = days * 24
+#     if ts.tz == "Europe/Berlin":
+#         if ts.month == 1:
+#             hours -= 1
+#         elif ts.month == 10:
+#             hours += 1
+#     return hours
 
 
-def durationfn_dailyfreq(ts):
-    hours = 24
-    if ts.tz == "Europe/Berlin":
-        if ts.month == 3 and (
-            ts.year == 2020
-            and (ts.day == 29 and ts.hour < 2 or ts.day == 28 and ts.hour > 2)
-            or ts.year == 2021
-            and (ts.day == 28 and ts.hour < 2 or ts.day == 27 and ts.hour > 2)
-        ):
-            hours = 23
-        if ts.month == 10 and (
-            ts.year == 2020
-            and (ts.day == 25 and ts.hour < 2 or ts.day == 24 and ts.hour > 2)
-            or ts.year == 2021
-            and (ts.day == 31 and ts.hour < 2 or ts.day == 30 and ts.hour > 2)
-        ):
-            hours = 25
-    return hours
+# def durationfn_monthlyfreq(ts):
+#     if ts.month in [4, 6, 9, 11]:
+#         days = 30
+#     elif ts.month == 2:
+#         days = 29 if ts.year % 4 == 0 else 28
+#     else:
+#         days = 31
+#     hours = days * 24
+#     if ts.tz == "Europe/Berlin":
+#         if ts.month == 3:
+#             hours -= 1
+#         elif ts.month == 10:
+#             hours += 1
+#     return hours
 
 
-def calc_durations(i: pd.DatetimeIndex) -> np.ndarray:
-    # Calculate the duration of each timestamp in an index. For indices between Nov 2019 and Feb 2022
-    freq = i.freq
-    if freq == "AS":
-        return i.map(durationfn_yearlyfreq)
-    if freq == "QS":
-        return i.map(durationfn_quarterlyfreq)
-    if freq == "MS":
-        return i.map(durationfn_monthlyfreq)
-    if freq == "D":
-        return i.map(durationfn_dailyfreq)
-    if freq == "H":
-        return i.map(lambda ts: 1)
-    if freq == "15T":
-        return i.map(lambda ts: 0.25)
+# def durationfn_dailyfreq(ts):
+#     hours = 24
+#     if ts.tz == "Europe/Berlin":
+#         if ts.month == 3 and (
+#             ts.year == 2020
+#             and (ts.day == 29 and ts.hour < 6 or ts.day == 28 and ts.hour >= 6)
+#             or ts.year == 2021
+#             and (ts.day == 28 and ts.hour < 6 or ts.day == 27 and ts.hour >= 6)
+#         ):
+#             hours = 23
+#         if ts.month == 10 and (
+#             ts.year == 2020
+#             and (ts.day == 25 and ts.hour < 6 or ts.day == 24 and ts.hour >= 6)
+#             or ts.year == 2021
+#             and (ts.day == 31 and ts.hour < 6 or ts.day == 30 and ts.hour >= 6)
+#         ):
+#             hours = 25
+#     return hours
 
 
-@functools.cache
+# def calc_durations(i: pd.DatetimeIndex) -> np.ndarray:
+#     # Calculate the duration of each timestamp in an index. For indices between Nov 2019 and Feb 2022
+#     freq = i.freq
+#     if freq == "AS":
+#         return i.map(durationfn_yearlyfreq)
+#     if freq == "QS":
+#         return i.map(durationfn_quarterlyfreq)
+#     if freq == "MS":
+#         return i.map(durationfn_monthlyfreq)
+#     if freq == "D":
+#         return i.map(durationfn_dailyfreq)
+#     if freq == "H":
+#         return i.map(lambda ts: 1)
+#     if freq == "15T":
+#         return i.map(lambda ts: 0.25)
+
+
+@functools.lru_cache()
 def idfn_midnight(
     longestfreq: str,
 ) -> Callable[[pd.DatetimeIndex], Iterable[Tuple[int]]]:
@@ -102,7 +101,7 @@ def idfn_midnight(
         return lambda i: i.year
 
 
-@functools.cache
+@functools.lru_cache()
 def idfn_0600(longestfreq: str) -> Callable[[pd.DatetimeIndex], Iterable[Tuple[int]]]:
     def utc(i):
         if not i.tz:
@@ -111,16 +110,25 @@ def idfn_0600(longestfreq: str) -> Callable[[pd.DatetimeIndex], Iterable[Tuple[i
             return [ts.utcoffset().total_seconds() for ts in i]
 
     def year(i):
-        return i.year - (i.hour < 6) * (i.month == 1) * (i.day == 1)
+        return i.year - 1 * (i.hour < 6) * (i.month == 1) * (i.day == 1)
 
     def quarter(i):
-        return i.quarter - (i.hour < 6) & ((i.month - 1) % 3 == 0) & (i.day == 1)
+        q = i.quarter - 1 * (i.hour < 6) * ((i.month - 1) % 3 == 0) * (i.day == 1)
+        return (q - 1) % 4 + 1  # 1 - 1 = 4
 
     def month(i):
-        return i.month - (i.hour < 6) & (i.day == 1)
+        m = i.month - 1 * (i.hour < 6) * (i.day == 1)
+        return (m - 1) % 12 + 1  # 1 - 1 = 12
+
+    def numofdaysinprevmonth(i):
+        return month(i).map(
+            lambda m: [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][m - 1]
+        ) + (i.year == 2020) * (month(i) == 2)
 
     def day(i):
-        return i.day - (i.hour < 6)
+        d = i.day - 1 * (i.hour < 6)
+        mask = d == 0
+        return d + mask * numofdaysinprevmonth(i)
 
     if longestfreq == "15T":
         return lambda i: pd.Index(zip(i.year, i.month, i.day, i.hour, i.minute, utc(i)))
@@ -136,7 +144,7 @@ def idfn_0600(longestfreq: str) -> Callable[[pd.DatetimeIndex], Iterable[Tuple[i
         return lambda i: year(i)
 
 
-@functools.cache
+@functools.lru_cache()
 def idxs_and_mapping(
     startdate_shrt: str,
     starttime_shrt: str,
@@ -152,10 +160,9 @@ def idxs_and_mapping(
     # Starting indices. Untrimmed; might have too many values.
     # Index with short frequency, as specified.
     i_shrt = pd.date_range(
-        f"{startdate_shrt} {starttime_shrt}",
-        end_shrt,
+        pd.Timestamp(f"{startdate_shrt} {starttime_shrt}", tz=tz),
+        pd.Timestamp(end_shrt, tz=tz),
         freq=freq_shrt,
-        tz=tz,
         inclusive="left",
     )
     # Get generous index with long frequency.
@@ -166,13 +173,13 @@ def idxs_and_mapping(
     )
 
     # Durations.
-    durs_long = calc_durations(i_long)
-    durs_shrt = calc_durations(i_shrt)
+    durs_long = tools.duration.index(i_long).pint.m.values
+    durs_shrt = tools.duration.index(i_shrt).pint.m.values
     # Correspondence.
     if starttime_shrt == "00:00":
-        idfn = idfn_midnight(i_long.freq)
+        idfn = idfn_midnight(freq_long)
     else:
-        idfn = idfn_0600(i_long.freq)
+        idfn = idfn_0600(freq_long)
     ids_long = idfn(i_long)
     ids_shrt = idfn(i_shrt)
 
@@ -190,13 +197,13 @@ def idxs_and_mapping(
 
     # Find indices that are actually mapped onto each other.
     i_shrt_values = [ts for fractions in mapping.values() for ts in fractions.keys()]
-    i_shrt_trimmed = pd.DatetimeIndex(i_shrt_values, freq=i_shrt.freq, tz=i_shrt.tz)
-    i_long_trimmed = pd.DatetimeIndex(mapping.keys(), freq=freq_long, tz=i_shrt.tz)
+    i_shrt_trimmed = pd.DatetimeIndex(i_shrt_values, freq=freq_shrt, tz=tz)
+    i_long_trimmed = pd.DatetimeIndex(mapping.keys(), freq=freq_long, tz=tz)
 
     return i_long_trimmed, i_shrt_trimmed, i_shrt, mapping
 
 
-def start(freq):
+def startdate(freq):
     if freq == "15T" or freq == "H" or freq == "D":
         return "2019-12-15"
     if freq == "MS":
@@ -225,7 +232,7 @@ def test_summable_downsample(
 
     # mapping = ts_long: {ts_shrt: fraction}
     i_long, i_shrt, i_shrt_untrimmed, mapping = idxs_and_mapping(
-        start(freq_shrt), starttime, "2022-02-15", freq_shrt, tz, freq_long
+        startdate(freq_shrt), starttime, "2022-02-15", freq_shrt, tz, freq_long
     )
     # i_long is the index with the longest frequency, so with the fewest values!
 
@@ -264,7 +271,7 @@ def test_avgable_downsample(
 
     # mapping = ts_long: {ts_shrt: fraction}
     i_long, i_shrt, i_shrt_untrimmed, mapping = idxs_and_mapping(
-        start(freq_shrt), starttime, "2022-02-15", freq_shrt, tz, freq_long
+        startdate(freq_shrt), starttime, "2022-02-15", freq_shrt, tz, freq_long
     )
     # i_long is the index with the longest frequency, so with the fewest values!
 
@@ -302,7 +309,7 @@ def test_avgable_upsample(
 
     # mapping = ts_long: {ts_shrt: fraction}
     i_long, i_shrt, _, mapping = idxs_and_mapping(
-        start(freq_shrt), starttime, "2022-02-15", freq_shrt, tz, freq_long
+        startdate(freq_shrt), starttime, "2022-02-15", freq_shrt, tz, freq_long
     )
     # i_long is the index with the longest frequency, so with the fewest values!
 
@@ -341,7 +348,7 @@ def test_summable_upsample(
 
     # mapping = ts_long: {ts_shrt: fraction}
     i_long, i_shrt, _, mapping = idxs_and_mapping(
-        start(freq_shrt), starttime, "2022-02-15", freq_shrt, tz, freq_long
+        startdate(freq_shrt), starttime, "2022-02-15", freq_shrt, tz, freq_long
     )
     # i_long is the index with the longest frequency, so with the fewest values!
 
