@@ -10,18 +10,18 @@ from . import right as tools_right
 from . import trim as tools_trim
 
 
-def _downsample(is_summable: bool, s: pd.Series, freq: str) -> pd.Series:
-    """Downsample series."""
-    # Downsampling is easiest for summable series.
+def _downsample_avgable(s: pd.Series, freq: str) -> pd.Series:
+    """Downsample averagble series."""
+    # For averagable series: first make summable.
+    summable = s.mul(s.index.duration, axis=0)  # now has a pint dtype
+    summable2 = _downsample_summable(summable, freq)
+    s2 = summable2.div(summable2.index.duration, axis=0)
+    return s2.astype(s.dtype).rename(s.name)
 
-    if not is_summable:
-        # For averagable series: first make summable.
-        summable = s.mul(s.index.duration, axis=0)  # now has a pint dtype
-        summable2 = _downsample(True, summable, freq)
-        s2 = summable2.div(summable2.index.duration, axis=0)
-        return s2.astype(s.dtype).rename(s.name)
 
-    # s is summable: downsampling means summing child values.
+def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
+    """Downsample summable series."""
+    # Downsampling is easiest for summable series: sum child values.
 
     s = tools_trim.frame(s, freq)  # keep only full periods in target freq
 
@@ -29,6 +29,9 @@ def _downsample(is_summable: bool, s: pd.Series, freq: str) -> pd.Series:
     offset = dt.timedelta(hours=start_of_day.hour, minutes=start_of_day.minute)
     source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
     target_vs_daily = tools_freq.up_or_down(freq, "D")
+
+    # We cannot simply `.resample()`, e.g. from hourly to monthly, because in that
+    # case the start-of-day is lost. We need to do it in two steps.
 
     # Downsample to days.
     s2 = s
@@ -45,21 +48,36 @@ def _downsample(is_summable: bool, s: pd.Series, freq: str) -> pd.Series:
     return s2
 
 
-def _upsample(is_summable: bool, s: pd.Series, freq: str) -> pd.Series:
-    """Upsample series."""
-    # Upsampling is easiest for averagable series.
+def _upsample_summable(s: pd.Series, freq: str) -> pd.Series:
+    """Upsample summable series."""
+    # For summable series: first make averagable.
+    avgable = s.div(s.index.duration, axis=0)  # now has a pint dtype
+    avgable2 = _upsample_avgable(avgable, freq)
+    s2 = avgable2.mul(avgable2.index.duration, axis=0)
+    return s2.astype(s.dtype).rename(s.name)
 
-    if is_summable:
-        # For summable series: first make averagable.
-        avgable = s.div(s.index.duration, axis=0)  # now has a pint dtype
-        avgable2 = _upsample(False, avgable, freq)
-        s2 = avgable2.mul(avgable2.index.duration, axis=0)
-        return s2.astype(s.dtype).rename(s.name)
 
-    # s is averagable: upsampling means copying value to all children.
+def _upsample_avgable(s: pd.Series, freq: str) -> pd.Series:
+    """Upsample averagable series."""
+    # Upsampling is easiest for averagable series: duplicate value to all children.
 
-    # We cannot simply `.resample()`, because in that case the final value is not
-    # duplicated. We add a dummy value, which we eventually remove again.
+    start_of_day = s.index[0].time()
+    offset = dt.timedelta(hours=start_of_day.hour, minutes=start_of_day.minute)
+
+    source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
+    target_vs_daily = tools_freq.up_or_down(freq, "D")
+
+    # Several isuses with pandas resampling:
+
+    # 1. When upsampling from to yearly to monthly values with `.resample()`, the
+    # start-of-day is lost. We need to do it in two steps; first upsampling to days and
+    # then downsampling to months.
+
+    if source_vs_daily > 0 and target_vs_daily > 0:
+        return _downsample_avgable(_upsample_avgable(s, "D"), freq)
+
+    # 2. We cannot simply `.resample()`, because in that case the final value is not
+    # duplicated. Solution: add a dummy value, which we eventually remove again.
 
     # So, first, add additional row...
     # (original code to add additional row, does not work if unit-aware. Maybe with future release of pint_pandas?)
@@ -70,7 +88,7 @@ def _upsample(is_summable: bool, s: pd.Series, freq: str) -> pd.Series:
     additional_stamp = tools_right.stamp(s.index[-1], s.index.freq)
     df.loc[additional_stamp, :] = None
     # ... then do upsampling ...
-    df2 = df.resample(freq).asfreq().ffill()  # duplicate value
+    df2 = df.resample(freq, offset=offset).asfreq().ffill()  # duplicate value
     # ... and then remove final row (and turn back into series).
     return df2.iloc[:-1, 0].rename(s.name)
 
@@ -113,11 +131,17 @@ def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
 
     # Must downsample.
     elif up_or_down == -1:
-        return _downsample(is_summable, s, freq)
+        if is_summable:
+            return _downsample_summable(s, freq)
+        else:
+            return _downsample_avgable(s, freq)
 
     # Must upsample.
-    else:  # up_or_down == 1
-        return _upsample(is_summable, s, freq)
+    else:
+        if is_summable:
+            return _upsample_summable(s, freq)
+        else:
+            return _upsample_avgable(s, freq)
 
 
 def summable(

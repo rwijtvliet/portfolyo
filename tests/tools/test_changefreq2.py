@@ -153,7 +153,7 @@ def idxs_and_mapping(
     tz: str,
     freq_long: str,
 ) -> Tuple[pd.DatetimeIndex, pd.DatetimeIndex, pd.DatetimeIndex, Mapping]:
-    # Create index with short frequency, and a mapping from the longer frequency to it.
+    # Create mapping from the longer frequency to the shorter frequency.
     if tools.freq.longest(freq_long, freq_shrt) != freq_long:
         pytest.skip("This combination of frequencies is not tested here.")
 
@@ -165,7 +165,7 @@ def idxs_and_mapping(
         freq=freq_shrt,
         inclusive="left",
     )
-    # Get generous index with long frequency.
+    # Get generous index with long frequency to cover at least i_shrt.
     i_long = pd.date_range(
         tools.floor.stamp(i_shrt[0], freq_long, 0, i_shrt[0].time()),
         tools.ceil.stamp(i_shrt[-1], freq_long, 0, i_shrt[0].time()),
