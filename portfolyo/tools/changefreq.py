@@ -144,6 +144,36 @@ def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
             return _upsample_avgable(s, freq)
 
 
+def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
+    f"""Resample index.
+
+    Parameters
+    ----------
+    i : pd.DatetimeIndex
+        Index to resample.
+    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+        Target frequency.
+
+    Returns
+    -------
+    pd.DatetimeIndex
+    """
+    up_or_down = tools_freq.up_or_down(i.freq, freq)
+
+    # Nothing more needed; index already in desired frequency.
+    if up_or_down == 0:
+        return i
+
+    # Must downsample.
+    elif up_or_down == -1:
+        # We must jump through a hoop: can't directly resample an Index.
+        return _downsample_summable(pd.Series(0, i), freq).index
+
+    # Must upsample.
+    else:  # up_or_down == 1
+        return _upsample_avgable(pd.Series(0, i), freq).index
+
+
 def summable(
     fr: Union[pd.Series, pd.DataFrame], freq: str = "MS"
 ) -> Union[pd.Series, pd.DataFrame]:
@@ -217,39 +247,3 @@ def averagable(
         return pd.DataFrame({key: averagable(value, freq) for key, value in fr.items()})
 
     return _general(False, fr, freq)
-
-
-def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
-    f"""Resample index.
-
-    Parameters
-    ----------
-    i : pd.DatetimeIndex
-        Index to resample.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
-        Target frequency.
-
-    Returns
-    -------
-    pd.DatetimeIndex
-    """
-    up_or_down = tools_freq.up_or_down(i.freq, freq)
-
-    # Nothing more needed; index already in desired frequency.
-    if up_or_down == 0:
-        return i
-
-    # Must downsample.
-    elif up_or_down == -1:
-        # We must jump through a hoop: can't directly resample an Index.
-        return pd.Series(0, i).resample(freq).asfreq().index
-
-    # Must upsample.
-    else:  # up_or_down == 1
-        # We must jump through additional hoops, because we are using DatetimeIndex instead of PeriodIndex
-        # First, extend by one value...
-        i = i.append(i[-1:].shift())
-        # ... then do upsampling ...
-        i2 = pd.Series(0, i).resample(freq).asfreq().index
-        # ... and then remove final element.
-        return i2[:-1]

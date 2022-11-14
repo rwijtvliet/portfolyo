@@ -80,7 +80,9 @@ def stamp_current(
         rounded = ts
     else:
         part_of_prevday = ts.time() < start_of_day
-        rounded = ts.replace(hour=start_of_day.hour, minute=start_of_day.minute)
+        rounded = ts.replace(hour=start_of_day.hour, minute=start_of_day.minute).floor(
+            "15T"
+        )
         if part_of_prevday and fn == "floor":
             rounded -= tools_freq.to_offset("D")
         elif not part_of_prevday and fn == "ceil":

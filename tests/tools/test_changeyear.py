@@ -297,15 +297,15 @@ def test_mapindextoindex_error(
 @pytest.mark.parametrize("holiday_country", ["DE", None])
 @pytest.mark.parametrize("numyears", [1, 3])
 @pytest.mark.parametrize("freq", ["MS", "D", "H"])
-@pytest.mark.parametrize("partial", [True, False])
+@pytest.mark.parametrize("partial", ["partial", "full"])
 def test_mapindextoindex_identical(
-    tz: str, holiday_country: str, numyears: int, partial: bool, freq: str
+    tz: str, holiday_country: str, numyears: int, partial: str, freq: str
 ):
     """Test if the (trivial) mapping is done correctly from index to itself."""
     idx = pd.date_range(
         "2020", str(2020 + numyears), freq=freq, inclusive="left", tz=tz
     )
-    if partial:
+    if partial == "partial":
         idx_target = idx[: len(idx) // 2]
     else:
         idx_target = idx
@@ -363,7 +363,7 @@ def test_mapindextoindex_monthlyandlonger(
 @pytest.mark.parametrize("year_t", [2020, 2021])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
-@pytest.mark.parametrize("partial", [True, False])
+@pytest.mark.parametrize("partial", ["partial", "full"])
 @pytest.mark.parametrize("freq", ["D", "H"])
 @pytest.mark.parametrize("several_years", [True, False])
 def test_mapindextoindex_daysandhours(
@@ -371,7 +371,7 @@ def test_mapindextoindex_daysandhours(
     year_t: int,
     tz: str,
     holiday_country: str,
-    partial: bool,
+    partial: str,
     freq: str,
     several_years: bool,
 ):
@@ -380,7 +380,7 @@ def test_mapindextoindex_daysandhours(
     if tc is None:
         pytest.skip("This test case is not found.")
 
-    count = len(tc.idx_target) // (2 if partial else 1)
+    count = len(tc.idx_target) // (2 if partial == "partial" else 1)
     idx_target = tc.idx_target[:count]
     expected_mapping = tc.expected_mapping[:count]
 
@@ -395,7 +395,7 @@ def test_mapindextoindex_daysandhours(
 @pytest.mark.parametrize("year_t", [2020, 2021])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
-@pytest.mark.parametrize("partial", [True, False])
+@pytest.mark.parametrize("partial", ["partial", "full"])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("freq", ["D", "H"])
 @pytest.mark.parametrize("several_years", [True, False])
@@ -404,7 +404,7 @@ def test_mapframetoindex(
     year_t: int,
     tz: str,
     holiday_country: str,
-    partial: bool,
+    partial: str,
     series_or_df: str,
     freq: str,
     several_years: bool,
@@ -417,7 +417,7 @@ def test_mapframetoindex(
 
     values_in = np.random.rand(len(tc.idx_source))
 
-    count = len(tc.idx_target) // (2 if partial else 1)
+    count = len(tc.idx_target) // (2 if partial == "partial" else 1)
     idx_target = tc.idx_target[:count]
     expected_mapping = tc.expected_mapping[:count]
 
