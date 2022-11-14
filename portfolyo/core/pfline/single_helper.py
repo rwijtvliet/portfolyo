@@ -2,13 +2,12 @@
 
 from __future__ import annotations
 
-from . import base
-from . import interop
-from .base import Kind
-from ...tools import frames
-
-import pandas as pd
 import numpy as np
+import pandas as pd
+
+from ...tools import frames
+from . import base, interop
+from .base import Kind
 
 
 def make_dataframe(data) -> pd.DataFrame:
@@ -58,9 +57,15 @@ def _dataframe_from_series(
 
     # Get quantity information (and check consistency).
     if q is None and w is None:
-        if r is None or p is None:
-            raise ValueError("Must supply (a) volume, (b) price, or (c) both.")
-        q = r / p
+        if r is not None:
+            if p is not None:
+                q = r / p
+            else:
+                q = interop.InOp(q=0).to_timeseries(r.index).q
+        elif p is None:
+            raise ValueError(
+                "Must supply (a) volume, (b) price, (c) revenue, or (d) a (consistent) combination of these."
+            )
     if q is None:
         q = w * w.index.duration
     elif w is not None and not frames.series_allclose(q, w * w.index.duration):
