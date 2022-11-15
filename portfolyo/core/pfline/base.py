@@ -4,18 +4,19 @@ Abstract Base Class for PfLine.
 
 from __future__ import annotations
 
+from abc import abstractmethod
+from enum import Enum
+from typing import TYPE_CHECKING, Iterable, Union
+
+import pandas as pd
+
+from ...prices import convert, hedge
+from ...prices.utils import duration_bpo
+from ...tools.types import Quantity, Value
+from ..mixins import OtherOutput, PfLinePlot, PfLineText
 
 # from . import single, multi, interop  #<-- moved to end of file
 from ..ndframelike import NDFrameLike
-from ..mixins import PfLineText, PfLinePlot, OtherOutput
-from ...prices.utils import duration_bpo
-from ...prices import convert, hedge
-from ...tools.types import Quantity, Value
-
-from abc import abstractmethod
-from enum import Enum
-from typing import Iterable, Union, TYPE_CHECKING
-import pandas as pd
 
 # Developer notes: we would like to be able to handle 2 cases with volume AND financial
 # information. We would like to...
@@ -35,8 +36,8 @@ import pandas as pd
 
 
 if TYPE_CHECKING:
-    from .single import SinglePfLine  # noqa
     from .multi import MultiPfLine  # noqa
+    from .single import SinglePfLine  # noqa
 
 
 class Kind(Enum):
@@ -44,6 +45,7 @@ class Kind(Enum):
 
     VOLUME_ONLY = "vol"
     PRICE_ONLY = "pri"
+    REVENUE_ONLY = "rev"
     ALL = "all"
 
     def __repr__(self):
@@ -54,8 +56,9 @@ class Kind(Enum):
 
 
 class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
-    """Class to hold a related energy timeseries. This can be volume timeseries with q
-    [MWh] and w [MW], a price timeseries with p [Eur/MWh] or both.
+    """Class to hold a related energy timeseries. This can be volume data (with q
+    [MWh] and w [MW]), price data (with p [Eur/MWh]), revenue data (with r [Eur]), or
+    a combination of all.
     """
 
     def __new__(cls, data):
@@ -191,16 +194,20 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
     @property
     def price(self) -> SinglePfLine:
         """Return (flattened) price-only PfLine."""
-        # Design decision: could also be non-flattened if self.kind is not ALL
+        # Design decision: could also be non-flattened - if self.kind is PRICE
         return single.SinglePfLine({"p": self.p})
 
-    def _set_col_val(self, col: str, val: pd.Series | Value) -> SinglePfLine:
-        """Set or update a timeseries and return the modified instance."""
+    @property
+    def revenue(self) -> SinglePfLine:
+        """Return (flattened) revenue-only PfLine."""
+        # Design decision: could also be non-flattened.
+        return single.SinglePfLine({"r": self.r})
 
-        if col == "r" and self.kind is Kind.ALL:
-            raise NotImplementedError(
-                "Cannot set `r` on a price-and-volume portfolio line; first select `.volume` or `.price` before applying `.set_r()`."
-            )
+    def _set_col_val(self, col: str, val: pd.Series | Value) -> SinglePfLine:
+        """Set or update a timeseries and return the modified instance.
+        Priorities in case kind is ALL: (1) keep original volumes. If volumes are being
+        updated: (2) keep original prices.
+        """
 
         inop = interop.InOp(**{col: val}).to_timeseries(self.index)
 
@@ -212,42 +219,24 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
             data["q"] = self.q
         return single.SinglePfLine(data)
 
-        # # val is now None, a PfLine, or dimless Series.
-
-        # # Get pd.Series of other, in correct unit.
-        # if isinstance(val, float) or isinstance(val, int):
-        #     val = pd.Series(val, self.index)
-        # elif isinstance(val, Quantity):
-        #     val = pd.Series(val.magnitude, self.index, dtype=nits.g(val.units))
-
-        # if self.kind is Kind.ALL and col == "r":
-        #     raise NotImplementedError(
-        #         "Cannot set `r`; first select `.volume` or `.price` before applying `.set_r()`."
-        #     )
-        # # Create pd.DataFrame.
-        # # TODO: Use InOp
-        # data = {col: val.astype(nits.pintunit(nits.name2unit(col)))}
-        # if col in ["w", "q", "r"] and self.kind in [Kind.PRICE_ONLY, Kind.ALL]:
-        #     data["p"] = self.p
-        # elif col in ["p", "r"] and self.kind in [Kind.VOLUME_ONLY, Kind.ALL]:
-        #     data["q"] = self.q
-        # df = pd.DataFrame(data)
-        # return single.SinglePfLine(df)
-
     def set_w(self, w: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
-        """Set or update power timeseries [MW]; returns modified (and flattened) instance."""
+        """Set or update power timeseries [MW]; returns modified (and flattened) instance.
+        If kind is ALL, keep original prices and update the revenues to reflect the new volumes."""
         return self._set_col_val("w", w)
 
     def set_q(self, q: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
-        """Set or update energy timeseries [MWh]; returns modified (and flattened) instance."""
+        """Set or update energy timeseries [MWh]; returns modified (and flattened) instance.
+        If kind is ALL, keep original prices and update the revenues to reflect the new volumes."""
         return self._set_col_val("q", q)
 
     def set_p(self, p: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
-        """Set or update price timeseries [Eur/MWh]; returns modified (and flattened) instance."""
+        """Set or update price timeseries [Eur/MWh]; returns modified (and flattened) instance.
+        If kind is ALL, keep original volumes and update the revenues to reflect the new prices."""
         return self._set_col_val("p", p)
 
     def set_r(self, r: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
-        """Set or update revenue timeseries [MW]; returns modified (and flattened) instance."""
+        """Set or update revenue timeseries [Eur]; returns modified (and flattened) instance.
+        If kind is ALL, keep original volumes and update the prices to reflect the new revenues."""
         return self._set_col_val("r", r)
 
     def set_volume(self, other: PfLine) -> SinglePfLine:
@@ -265,6 +254,14 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
                 "Can only set price equal to a price-only PfLine. Use .price to obtain such a PfLine."
             )
         return self.set_p(other.p)
+
+    def set_revenue(self, other: PfLine) -> SinglePfLine:
+        """Set or update revenue information; returns modified (and flattened) instance."""
+        if not isinstance(other, PfLine) or other.kind is not Kind.REVENUE_ONLY:
+            raise ValueError(
+                "Can only set revenue equal to a revenue-only PfLine. Use .revenue to obtain such a PfLine."
+            )
+        return self.set_r(other.r)
 
     def po(self: PfLine, freq: str = "MS") -> pd.DataFrame:
         """Decompose the portfolio line into peak and offpeak values. Takes simple averages
@@ -373,6 +370,6 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
 
 # Must be at end, because they depend on PfLine existing.
-from . import single, multi, interop, enable_arithmatic  # noqa
+from . import enable_arithmatic, interop, multi, single  # noqa
 
 enable_arithmatic.apply()
