@@ -306,7 +306,7 @@ def test_mapindextoindex_identical(
         "2020", str(2020 + numyears), freq=freq, inclusive="left", tz=tz
     )
     if partial == "partial":
-        idx_target = idx[: len(idx) // 2]
+        idx_target = idx[: len(idx) // 2 + 2]
     else:
         idx_target = idx
     result = tools.changeyear.map_index_to_index(idx, idx_target, holiday_country)
@@ -380,7 +380,7 @@ def test_mapindextoindex_daysandhours(
     if tc is None:
         pytest.skip("This test case is not found.")
 
-    count = len(tc.idx_target) // (2 if partial == "partial" else 1)
+    count = len(tc.idx_target) // (2 if partial == "partial" else 1) + 2
     idx_target = tc.idx_target[:count]
     expected_mapping = tc.expected_mapping[:count]
 
