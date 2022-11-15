@@ -11,7 +11,7 @@ We try to maximize interoperability between the ``PfLine`` and ``PfState`` class
 
 .. note:: This section assumes you are familiar with :doc:`../specialized_topics/dimensions`
 
-For our purposes, the most common data container is the timeseries, though on some occasions we are dealing with single values (e.g. a single, time-indepstopent, price of 45 Eur/MWh). There are several ways for the user to provide this information.
+For our purposes, the most common data container is the timeseries, though on some occasions we are dealing with single values (e.g. a single, time-independent, price of 45 Eur/MWh). There are several ways for the user to provide this information.
 
 In the code examples below, the following imports are assumed and variables are assumed:
 
@@ -189,29 +189,38 @@ Footnotes
 
 .. [#ts]
     
-   If we want to add unit-awareness to such a series, we can use the ``.astype()`` method with a pint-unit (e.g. "pint[MW]") as its argument. Alternatively, we can create it from scratch with the ``dtype`` parameter:
+   If we want to add unit-awareness to such a series, we can use the ``.astype()`` method with a pint-unit (e.g. "pint[MW]") as its argument (as in line 3). Alternatively, we can create it from scratch with the ``dtype`` parameter (as in line 5):
 
    .. code-block:: python 
-       :emphasize-lines: 1,7
+       :emphasize-lines: 3,4
 
        >>> idx = pandas.date_range("2023", freq="AS", periods=2)
        >>> s0 = pandas.Series([50, 56], idx)  # unit-agnostic
        >>> s1 = s0.astype("pint[Eur/MWh]")  # unit-aware
-       >>> s2 = pandas.Series([50, 56], idx, dtype="pint[Eur/MWh]")  # unit-aware
-       >>> s1  # s2 is the same
+
+       >>> s2 = pandas.Series([50, 56], idx, dtype="pint[Eur/MWh]")  # same as s1
+
+       >>> s1
        2023-01-01    50.0
        2024-01-01    56.0
        Freq: AS-JAN, dtype: pint[Eur/MWh]
 
 .. [#df]
 
-   There are several ways to create a unit-aware dataframe; the easiest is to create it from unit-aware series:
+   There are several ways to create a unit-aware dataframe; the easiest is to create it from unit-aware series (as in line 4). Alternatively, if we already have the unit-agnostic dataframe ready, we can also use the ``.astype()`` method here (line 7):
 
    .. code-block:: python
-          
+      :emphasize-lines: 4, 7
+
       >>> idx = pandas.date_range("2023", freq="AS", periods=2)
-      >>> df0 = pandas.DataFrame({("p", "Eur/MWh"): [50, 56], ("w", "MW"): [120, 125]}, idx) # unit-agnostic
-      >>> df1 = df0.pint.quantify()  # unit-aware; bottom column level used as unit
-      >>> s_p = pandas.Series([50, 56], idx, dtype="pint[Eur/MWh]")
-      >>> s_w = pandas.Series([120, 125], idx, dtype="pint[MW]")
-      >>> df1 = pandas.DataFrame({"p": s_p, "w": s_w})
+      >>> s_price = pandas.Series([50, 56], idx, dtype="pint[Eur/MWh]")
+      >>> s_volume = pandas.Series([120, 125], idx, dtype="pint[MW]")
+      >>> df1 = pandas.DataFrame({"p": s_price, "w": s_volume})
+
+      >>> df_agn = pandas.DataFrame({"p": [50, 56], 'w': [120, 125]}, idx) # unit-agnostic
+      >>> df2 = df_agn.astype({'p': 'pint[Eur/MWh]', 'w': 'pint[MW]'}) # same as df1
+
+      >>> df1.dtypes
+      p    pint[Eur/MWh]
+      w         pint[MW]
+      dtype: object
