@@ -342,7 +342,7 @@ Kind of portfolio line                            Price-only                Volu
 ``-PfLine`` (negation)                            ✅ c1_                     ✅ c1_                     ✅ c1_                 
 ``PfLine ± float``                                ✅ p_                      ❌                         ❌                   
 ``PfLine ± price``                                ✅ c2_                     ❌                         ❌                   
-``PfLine ± volume``                               ❌                         ✅ c2_                     ❌                   
+``PfLine ± volume``                               ❌                         ✅ c2_                     ❌                                
 ``PfLine ± price-and-volume``                     ❌                         ❌                         ✅ c2_                 
 ``PfLine * float``                                ✅ c1_                     ✅ c1_                     ✅ c1_                 
 ``PfLine * price``                                ❌                         ✅ pv_                     ❌                   

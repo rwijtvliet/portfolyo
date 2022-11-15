@@ -63,7 +63,7 @@ If we have to specify several individual values, we can use:
      # --- hide: start ---
      print(repr({"p": 50.0, "w": pf.Q_(120.0, 'MW')}))
 
-* Or we can use any other ``Mapping`` from string values to ``float``s, ``int``s, or ``pint.Quantity`` objects, e.g., a ``pandas.Series`` with a string index. It is recommended, however, to use ``Series`` only for timeseries information.
+* Or we can use any other ``Mapping`` from string values to :code:`float`s, :code:`int`s, or :code:`pint.Quantity` objects, e.g., a :code:`pandas.Series` with a string index. It is recommended, however, to use ``Series`` only for timeseries information.
 
 .. note:: Because we have to explicitly state the dimension abbreviation, these objects help us avoid dimensionality errors. For this reason, we may want to use them, even for *single* values.
   

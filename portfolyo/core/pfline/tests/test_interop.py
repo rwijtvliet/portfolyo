@@ -1,11 +1,12 @@
 from typing import Dict
+
+import numpy as np
+import pandas as pd
+import pytest
 from pint import DimensionalityError, UndefinedUnitError
+
 from portfolyo.core.pfline import interop as io
 from portfolyo.tools.nits import Q_
-import pandas as pd
-import numpy as np
-
-import pytest
 
 idx1 = pd.date_range("2020", freq="MS", periods=12)
 val1 = 100 + 20 * np.random.random(len(idx1))
@@ -41,11 +42,7 @@ def id_fn(data):
     [
         # One value
         # . unit-agnostic
-        (
-            23.0,
-            io.InOp(agn=23.0),
-            ValueError,
-        ),
+        (23.0, io.InOp(agn=23.0), ValueError),
         # . unitless
         (
             Q_(23.0, ""),
