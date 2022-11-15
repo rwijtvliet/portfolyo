@@ -194,7 +194,7 @@ def _map_index_to_index_daily(
         pd.DatetimeIndex(idx_target_by_m.keys(), freq="MS"),
     )
 
-    # Mapping on month-level.
+    # Mapping on daily-level.
     mapp_d_series = []
     for target_m, idx_target_partial in idx_target_by_m.items():
         idx_source_partial = idx_source_by_m[mapp_m[target_m]]
@@ -323,7 +323,7 @@ def index_with_year(idx_source: pd.DatetimeIndex, target_year: int) -> pd.Dateti
         )
 
     freq, tz = idx_source.freq, idx_source.tz
-    start, end = idx_source[0], tools_right(idx_source)[-1]
+    start, end = idx_source[0], tools_right.index(idx_source)[-1]
     delta_years = end.year - start.year
 
     target_start = change_year(start, target_year)

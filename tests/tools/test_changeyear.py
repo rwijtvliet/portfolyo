@@ -306,11 +306,13 @@ def test_mapindextoindex_identical(
         "2020", str(2020 + numyears), freq=freq, inclusive="left", tz=tz
     )
     if partial == "partial":
-        idx_target = idx[: len(idx) // 2 + 2]
+        idx_target = tools.trim.index(
+            idx[: len(idx) // 2 + 2], "MS"
+        )  # only pass full months.
     else:
         idx_target = idx
-    result = tools.changeyear.map_index_to_index(idx, idx_target, holiday_country)
     expected = pd.Series(idx_target, idx_target)
+    result = tools.changeyear.map_index_to_index(idx, idx_target, holiday_country)
     testing.assert_series_equal(result, expected, check_names=False)
 
 
@@ -381,8 +383,8 @@ def test_mapindextoindex_daysandhours(
         pytest.skip("This test case is not found.")
 
     count = len(tc.idx_target) // (2 if partial == "partial" else 1) + 2
-    idx_target = tc.idx_target[:count]
-    expected_mapping = tc.expected_mapping[:count]
+    idx_target = tools.trim.index(tc.idx_target[:count], "MS")
+    expected_mapping = tc.expected_mapping[: len(idx_target)]
 
     expected = pd.Series(tc.idx_source[expected_mapping], idx_target)
     result = tools.changeyear.map_index_to_index(
@@ -418,8 +420,8 @@ def test_mapframetoindex(
     values_in = np.random.rand(len(tc.idx_source))
 
     count = len(tc.idx_target) // (2 if partial == "partial" else 1)
-    idx_target = tc.idx_target[:count]
-    expected_mapping = tc.expected_mapping[:count]
+    idx_target = tools.trim.index(tc.idx_target[:count], "MS")
+    expected_mapping = tc.expected_mapping[: len(idx_target)]
 
     if series_or_df == "series":
         frame_in = pd.Series(values_in, tc.idx_source)

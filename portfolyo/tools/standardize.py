@@ -107,12 +107,12 @@ def frame(
     # All options to infer frequency have been exhausted. One may or may not have been found.
     # Does the user want to force a frequency?
 
-    if (not freq_input) and force_freq:
+    if not freq_input and force_freq:
         # No freq has been found, but user specifies which freq it should be.
         fr_withfreq = fr.asfreq(force_freq)
         return frame(fr_withfreq, force, "left", tz=tz, floating=floating)
 
-    elif (not freq_input) and (not force_freq):
+    elif not freq_input and not force_freq:
         # No freq has been bound, and user specifies no freq either.
         raise ValueError(
             "A frequency could not be inferred for this data. Force a frequency (by passing the"
@@ -142,6 +142,12 @@ def frame(
         raise ValueError(
             f"Parameter ``force`` must be one of 'aware', 'agnostic'; got {force}."
         )
+
+    # Check if index is OK; otherwise raise error.
+    try:
+        assert_frame_standardized(fr)
+    except AssertionError as e:
+        raise ValueError("Could not standardize this frame") from e
 
     # Standardize index name.
     fr.index.name = "ts_left"

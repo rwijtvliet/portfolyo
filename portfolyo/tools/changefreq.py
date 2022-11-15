@@ -25,6 +25,9 @@ def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
 
     s = tools_trim.frame(s, freq)  # keep only full periods in target freq
 
+    if not s:
+        return s  # empty series: don't continue
+
     start_of_day = s.index[0].time()
     offset = dt.timedelta(hours=start_of_day.hour, minutes=start_of_day.minute)
     source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")

@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
+
 from portfolyo import dev, tools
 
 
@@ -99,13 +100,18 @@ def test_standardize_convert(freq, in_tz, floating, series_or_df, bound, out_tz)
     force = "aware" if out_tz else "agnostic"
 
     # Get index.
-    while True:
-        i = dev.get_index(freq, in_tz)
-        if len(i) > 10:
-            break
+    i = dev.get_index(freq, in_tz, _random=False)
+    if bound == "right" and freq == "15T":  # Ensure it's a correct full-hour index
+        i += pd.Timedelta(minutes=15)
+    if freq == "15T" and in_tz == "Asia/Kolkata" and not floating and out_tz:
+        i += pd.Timedelta(minutes=30)
+
     # If no timezone specified and below-daily values, the created index will have too few/many datapoints.
-    if not in_tz and tools.freq.up_or_down(freq, "D") > 1:
-        pytest.skip("Edge case: too few/too many datapoints.")  # don't check edge case
+    # if (
+    #     in_tz is None
+    #     and tools.freq.up_or_down(freq, "D") == -1
+    # ):
+    #     pytest.skip('Too few datapoints, skip.')
 
     # Add values.
     fr = dev.get_series(i) if series_or_df == "series" else dev.get_dataframe(i)
@@ -137,13 +143,15 @@ def test_standardize_freq(freq, in_tz, floating, series_or_df, force):
     out_tz = "Europe/Berlin"
 
     # Get index.
-    while True:
-        i = dev.get_index(freq, in_tz)
-        if len(i) > 10:
-            break
+    i = dev.get_index(freq, in_tz, _random=False)
+
     # If no timezone specified and below-daily values, the created index will have too few/many datapoints.
-    if not in_tz and tools.freq.up_or_down(freq, "D") > 1:
-        pytest.skip("edge case: too few/too many datapoints.")  # don't check edge case
+    # if (
+    #     in_tz is None
+    #     and tools.freq.up_or_down(freq, "D") == -1
+    #     and tools.freq.up_or_down(force_freq, "D") == 1
+    # ):
+    #     pytest.skip("edge case: too few/too many datapoints.")  # don't check edge case
 
     # Add values.
     fr = dev.get_series(i) if series_or_df == "series" else dev.get_dataframe(i)
@@ -159,32 +167,29 @@ def test_standardize_freq(freq, in_tz, floating, series_or_df, force):
 
 
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("removesome", [0, 1, 2])  # 0=none, 1=from end, 2=from middle
+@pytest.mark.parametrize("removefrom", ["nowhere", "end", "middle"])
 @pytest.mark.parametrize("in_tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("freq", tools.freq.FREQUENCIES)
 @pytest.mark.parametrize(
     "force_freq", [*tools.freq.FREQUENCIES[::2], "30T", "M", "AS-FEB", None]
 )
-def test_standardize_gaps(freq, in_tz, removesome, series_or_df, force_freq):
+def test_standardize_gaps(freq, in_tz, removefrom, series_or_df, force_freq):
     """Test raising errors on index with gaps. Don't test timezone-conversion."""
     force = "agnostic" if in_tz is None else "aware"
     out_tz = in_tz
 
     # Get index.
-    while True:
-        i = dev.get_index(freq, in_tz)
-        if len(i) > 10:
-            break
+    i = dev.get_index(freq, in_tz, _random=False)
 
     # If no timezone specified and below-daily values, the created index will have too few/many datapoints.
-    if not in_tz and tools.freq.up_or_down(freq, "D") > 1:
+    if in_tz is None and tools.freq.up_or_down(freq, "D") == -1:
         pytest.skip("edge case: too few/too many datapoints.")  # don't check edge case
 
     # remove timestamp from index.
-    if removesome == 1:  # remove one from end or start
-        i = i.delete(np.random.choice([0, len(i) - 1]))
-    elif removesome == 2:  # remove max 3 from middle
-        i = i.delete(np.random.randint(2, len(i) - 2, 3))
+    if removefrom == "start":  # remove from end
+        i = i.delete(-1)
+    elif removefrom == "middle":  # remove from middle
+        i = i.delete((len(i) - 2) // 2)
 
     # Add values.
     fr = dev.get_series(i) if series_or_df == "series" else dev.get_dataframe(i)
@@ -192,11 +197,11 @@ def test_standardize_gaps(freq, in_tz, removesome, series_or_df, force_freq):
     # See if error is raised.
     if (
         # fr has frequency, but it's a forbidden frequency
-        (removesome != 2 and freq not in tools.freq.FREQUENCIES)
+        (removefrom != "middle" and freq not in tools.freq.FREQUENCIES)
         # fr has frequency, but user wants to force a different frequency
-        or (removesome != 2 and freq != force_freq and force_freq is not None)
-        # fr does not have requency, and user does not specify a forced frequency
-        or (removesome == 2 and not force_freq)
+        or (removefrom != "middle" and freq != force_freq and force_freq is not None)
+        # fr does not have frequency, and user does not specify a forced frequency
+        or (removefrom == "middle" and not force_freq)
         # user wants to force a frequency, but it's a forbidden frequency
         or (force_freq is not None and force_freq not in tools.freq.FREQUENCIES)
     ):

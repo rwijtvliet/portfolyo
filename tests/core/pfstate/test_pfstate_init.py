@@ -11,7 +11,6 @@ from portfolyo.core.pfstate.pfstate_helper import make_pflines
 # . check with keys having unequal indexes: unequal freq, timeperiod.
 # . check if missing values have expected result.
 
-dev.seed(4)
 i_ref = pd.date_range("2020", freq="D", periods=80)
 s_ref = dev.get_series(i_ref, "")
 i_less = pd.date_range("2020-01-15", freq="D", periods=60)

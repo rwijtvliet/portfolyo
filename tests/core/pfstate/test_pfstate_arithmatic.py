@@ -1,21 +1,20 @@
 from typing import Any, Dict
-from portfolyo import (
-    PfLine,
-    SinglePfLine,
-    MultiPfLine,
-    PfState,
-    testing,
-    Kind,
-    dev,
-    Q_,
-)  # noqa
-import portfolyo as pf
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 import pytest
 
-
-dev.seed(0)  # make sure we always get the same random numbers
+import portfolyo as pf
+from portfolyo import (
+    Q_,
+    Kind,
+    MultiPfLine,
+    PfLine,
+    PfState,  # noqa
+    SinglePfLine,
+    dev,
+    testing,
+)
 
 
 def id_fn(data: Any):

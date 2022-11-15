@@ -1,13 +1,13 @@
-from portfolyo import PfLine, SinglePfLine, MultiPfLine, Q_, dev, testing, Kind  # noqa
-from typing import Dict, Any
-import portfolyo as pf
+from typing import Any, Dict
+
 import pandas as pd
 import pytest
 
+import portfolyo as pf
+from portfolyo import Q_, Kind, MultiPfLine, PfLine, SinglePfLine, dev, testing  # noqa
+
 # TODO: Multipfline
 # TODO: various timezones
-
-pf.dev.seed(0)  # make sure we always get the same random numbers
 
 
 def id_fn(data: Any):
@@ -101,20 +101,38 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         ),
         (i, Kind.VOLUME_ONLY, Q_(8.1, "J"), PfLine, Kind.VOLUME_ONLY),
         # . . timeseries (series, df, pfline)
-        (i, Kind.VOLUME_ONLY, dev.get_series(i, "q"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, dev.get_series(i, "w"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, dev.get_dataframe(i, "q"), PfLine, Kind.VOLUME_ONLY),
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_singlepfline(i, Kind.VOLUME_ONLY),
+            dev.get_series(i, "q", _random=False),
             PfLine,
             Kind.VOLUME_ONLY,
         ),
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_multipfline(i, Kind.VOLUME_ONLY),
+            dev.get_series(i, "w", _random=False),
+            PfLine,
+            Kind.VOLUME_ONLY,
+        ),
+        (
+            i,
+            Kind.VOLUME_ONLY,
+            dev.get_dataframe(i, "q", _random=False),
+            PfLine,
+            Kind.VOLUME_ONLY,
+        ),
+        (
+            i,
+            Kind.VOLUME_ONLY,
+            dev.get_singlepfline(i, Kind.VOLUME_ONLY, _random=False),
+            PfLine,
+            Kind.VOLUME_ONLY,
+        ),
+        (
+            i,
+            Kind.VOLUME_ONLY,
+            dev.get_multipfline(i, Kind.VOLUME_ONLY, _random=False),
             PfLine,
             Kind.VOLUME_ONLY,
         ),
@@ -134,33 +152,75 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         (
             i,
             Kind.VOLUME_ONLY,
-            pd.DataFrame({"the_volume": dev.get_series(i, "w")}),
+            pd.DataFrame({"the_volume": dev.get_series(i, "w", _random=False)}),
             Exception,
             None,
         ),
-        (i, Kind.VOLUME_ONLY, dev.get_series(i, "q").pint.magnitude, Exception, None),
-        (i, Kind.VOLUME_ONLY, dev.get_series(i, "p"), Exception, None),
-        (i, Kind.VOLUME_ONLY, dev.get_series(i, "r"), Exception, None),
-        (i, Kind.VOLUME_ONLY, dev.get_dataframe(i, "p"), Exception, None),
-        (i, Kind.VOLUME_ONLY, dev.get_dataframe(i, "qr"), Exception, None),
-        (i, Kind.VOLUME_ONLY, dev.get_dataframe(i, "qp"), Exception, None),
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_singlepfline(i, Kind.PRICE_ONLY),
+            dev.get_series(i, "q", _random=False).pint.magnitude,
             Exception,
             None,
         ),
-        (i, Kind.VOLUME_ONLY, dev.get_multipfline(i, Kind.PRICE_ONLY), Exception, None),
-        (i, Kind.VOLUME_ONLY, dev.get_singlepfline(i, Kind.ALL), Exception, None),
-        (i, Kind.VOLUME_ONLY, dev.get_multipfline(i, Kind.ALL), Exception, None),
+        (i, Kind.VOLUME_ONLY, dev.get_series(i, "p", _random=False), Exception, None),
+        (i, Kind.VOLUME_ONLY, dev.get_series(i, "r", _random=False), Exception, None),
+        (
+            i,
+            Kind.VOLUME_ONLY,
+            dev.get_dataframe(i, "p", _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.VOLUME_ONLY,
+            dev.get_dataframe(i, "qr", _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.VOLUME_ONLY,
+            dev.get_dataframe(i, "qp", _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.VOLUME_ONLY,
+            dev.get_singlepfline(i, Kind.PRICE_ONLY, _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.VOLUME_ONLY,
+            dev.get_multipfline(i, Kind.PRICE_ONLY, _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.VOLUME_ONLY,
+            dev.get_singlepfline(i, Kind.ALL, _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.VOLUME_ONLY,
+            dev.get_multipfline(i, Kind.ALL, _random=False),
+            Exception,
+            None,
+        ),
         # Adding to price pfline.
         # . Add dimension-agnostic.
         (i, Kind.PRICE_ONLY, 12, PfLine, Kind.PRICE_ONLY),
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_series(i, "p").pint.magnitude,
+            dev.get_series(i, "p", _random=False).pint.magnitude,
             PfLine,
             Kind.PRICE_ONLY,
         ),
@@ -169,18 +229,24 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         (i, Kind.PRICE_ONLY, Q_(12.0, "Eur/MWh"), PfLine, Kind.PRICE_ONLY),
         (i, Kind.PRICE_ONLY, Q_(12.0, "Eur/kWh"), PfLine, Kind.PRICE_ONLY),
         (i, Kind.PRICE_ONLY, Q_(12.0, "cent/kWh"), PfLine, Kind.PRICE_ONLY),
-        (i, Kind.PRICE_ONLY, dev.get_series(i, "p"), PfLine, Kind.PRICE_ONLY),
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_singlepfline(i, Kind.PRICE_ONLY),
+            dev.get_series(i, "p", _random=False),
             PfLine,
             Kind.PRICE_ONLY,
         ),
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_multipfline(i, Kind.PRICE_ONLY),
+            dev.get_singlepfline(i, Kind.PRICE_ONLY, _random=False),
+            PfLine,
+            Kind.PRICE_ONLY,
+        ),
+        (
+            i,
+            Kind.PRICE_ONLY,
+            dev.get_multipfline(i, Kind.PRICE_ONLY, _random=False),
             PfLine,
             Kind.PRICE_ONLY,
         ),
@@ -193,48 +259,126 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         (i, Kind.PRICE_ONLY, Q_(12.0, "MWh"), Exception, None),
         (i, Kind.PRICE_ONLY, Q_(12.0, "h"), Exception, None),
         (i, Kind.PRICE_ONLY, Q_(0.0, "MWh"), Exception, None),
-        (i, Kind.PRICE_ONLY, dev.get_series(i, "q"), Exception, None),
+        (i, Kind.PRICE_ONLY, dev.get_series(i, "q", _random=False), Exception, None),
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_singlepfline(i, Kind.VOLUME_ONLY),
+            dev.get_singlepfline(i, Kind.VOLUME_ONLY, _random=False),
             Exception,
             None,
         ),
-        (i, Kind.PRICE_ONLY, dev.get_multipfline(i, Kind.VOLUME_ONLY), Exception, None),
-        (i, Kind.PRICE_ONLY, dev.get_singlepfline(i, Kind.ALL), Exception, None),
-        (i, Kind.PRICE_ONLY, dev.get_multipfline(i, Kind.ALL), Exception, None),
+        (
+            i,
+            Kind.PRICE_ONLY,
+            dev.get_multipfline(i, Kind.VOLUME_ONLY, _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.PRICE_ONLY,
+            dev.get_singlepfline(i, Kind.ALL, _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.PRICE_ONLY,
+            dev.get_multipfline(i, Kind.ALL, _random=False),
+            Exception,
+            None,
+        ),
         # Adding to 'complete' pfline.
         # . Add dimension-agnostic.
         (i, Kind.ALL, 5.9, Exception, None),
-        (i, Kind.ALL, dev.get_series(i, "q").pint.magnitude, Exception, None),
+        (
+            i,
+            Kind.ALL,
+            dev.get_series(i, "q", _random=False).pint.magnitude,
+            Exception,
+            None,
+        ),
         (i, Kind.ALL, {"nodim": 5.9}, Exception, None),
         (i, Kind.ALL, {"nodim": Q_(5.9, "")}, Exception, None),
         # . Add other 'all' pfline.
-        (i, Kind.ALL, dev.get_dataframe(i, "qr"), SinglePfLine, Kind.ALL),
-        (i, Kind.ALL, dev.get_dataframe(i, "qp"), SinglePfLine, Kind.ALL),
-        (i, Kind.ALL, dev.get_dataframe(i, "pr"), SinglePfLine, Kind.ALL),
-        (i, Kind.ALL, dev.get_singlepfline(i, Kind.ALL), SinglePfLine, Kind.ALL),
-        (i, Kind.ALL, dev.get_multipfline(i, Kind.ALL), PfLine, Kind.ALL),
+        (
+            i,
+            Kind.ALL,
+            dev.get_dataframe(i, "qr", _random=False),
+            SinglePfLine,
+            Kind.ALL,
+        ),
+        (
+            i,
+            Kind.ALL,
+            dev.get_dataframe(i, "qp", _random=False),
+            SinglePfLine,
+            Kind.ALL,
+        ),
+        (
+            i,
+            Kind.ALL,
+            dev.get_dataframe(i, "pr", _random=False),
+            SinglePfLine,
+            Kind.ALL,
+        ),
+        (
+            i,
+            Kind.ALL,
+            dev.get_singlepfline(i, Kind.ALL, _random=False),
+            SinglePfLine,
+            Kind.ALL,
+        ),
+        (
+            i,
+            Kind.ALL,
+            dev.get_multipfline(i, Kind.ALL, _random=False),
+            PfLine,
+            Kind.ALL,
+        ),
         # . Add something else.
         (i, Kind.ALL, Q_(6.0, "Eur"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "Eur/MWh"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "MW"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "MWh"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "h"), Exception, None),
-        (i, Kind.ALL, dev.get_series(i, "p"), Exception, None),
-        (i, Kind.ALL, dev.get_series(i, "r"), Exception, None),
-        (i, Kind.ALL, dev.get_series(i, "q"), Exception, None),
-        (i, Kind.ALL, dev.get_series(i, "w"), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "p"), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "r"), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "q"), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "w"), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "wq"), Exception, None),
-        (i, Kind.ALL, dev.get_singlepfline(i, Kind.PRICE_ONLY), Exception, None),
-        (i, Kind.ALL, dev.get_multipfline(i, Kind.PRICE_ONLY), Exception, None),
-        (i, Kind.ALL, dev.get_singlepfline(i, Kind.VOLUME_ONLY), Exception, None),
-        (i, Kind.ALL, dev.get_multipfline(i, Kind.VOLUME_ONLY), Exception, None),
+        (i, Kind.ALL, dev.get_series(i, "p", _random=False), Exception, None),
+        (i, Kind.ALL, dev.get_series(i, "r", _random=False), Exception, None),
+        (i, Kind.ALL, dev.get_series(i, "q", _random=False), Exception, None),
+        (i, Kind.ALL, dev.get_series(i, "w", _random=False), Exception, None),
+        (i, Kind.ALL, dev.get_dataframe(i, "p", _random=False), Exception, None),
+        (i, Kind.ALL, dev.get_dataframe(i, "r", _random=False), Exception, None),
+        (i, Kind.ALL, dev.get_dataframe(i, "q", _random=False), Exception, None),
+        (i, Kind.ALL, dev.get_dataframe(i, "w", _random=False), Exception, None),
+        (i, Kind.ALL, dev.get_dataframe(i, "wq", _random=False), Exception, None),
+        (
+            i,
+            Kind.ALL,
+            dev.get_singlepfline(i, Kind.PRICE_ONLY, _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.ALL,
+            dev.get_multipfline(i, Kind.PRICE_ONLY, _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.ALL,
+            dev.get_singlepfline(i, Kind.VOLUME_ONLY, _random=False),
+            Exception,
+            None,
+        ),
+        (
+            i,
+            Kind.ALL,
+            dev.get_multipfline(i, Kind.VOLUME_ONLY, _random=False),
+            Exception,
+            None,
+        ),
     ],
     ids=id_fn,
 )
@@ -250,10 +394,9 @@ def test_pfl_addsub_kind(
 ):
     """Test if addition and subtraction return correct object type and kind."""
     if pfl_in_single_or_multi == "single":
-        pfl_in = dev.get_singlepfline(pfl_in_i, pfl_in_kind)
+        pfl_in = dev.get_singlepfline(pfl_in_i, pfl_in_kind, _random=False)
     else:
-        pfl_in = dev.get_multipfline(pfl_in_i, pfl_in_kind)
-
+        pfl_in = dev.get_multipfline(pfl_in_i, pfl_in_kind, _random=False)
     # Check error is raised.
     # (Not working due to implementation issue in pint and numpy: value + pfl_in, value - pfl_in)
     if issubclass(returntype, Exception):
@@ -298,7 +441,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_series(i, "f"),
+            dev.get_series(i, "f", _random=False),
             PfLine,
             Kind.VOLUME_ONLY,
             PfLine,
@@ -307,7 +450,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_series(i, "f").astype("pint[dimensionless]"),
+            dev.get_series(i, "f", _random=False).astype("pint[dimensionless]"),
             PfLine,
             Kind.VOLUME_ONLY,
             PfLine,
@@ -316,7 +459,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, ["nodim"]),
+            dev.get_dataframe(i, ["nodim"], _random=False),
             PfLine,
             Kind.VOLUME_ONLY,
             PfLine,
@@ -325,7 +468,9 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, ["nodim"]).astype("pint[dimensionless]"),
+            dev.get_dataframe(i, ["nodim"], _random=False).astype(
+                "pint[dimensionless]"
+            ),
             PfLine,
             Kind.VOLUME_ONLY,
             PfLine,
@@ -402,7 +547,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, "q"),
+            dev.get_dataframe(i, "q", _random=False),
             Exception,
             None,
             pd.Series,
@@ -411,7 +556,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_pfline(i, Kind.VOLUME_ONLY),
+            dev.get_pfline(i, Kind.VOLUME_ONLY, _random=False),
             Exception,
             None,
             pd.Series,
@@ -420,7 +565,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_singlepfline(i, Kind.VOLUME_ONLY),
+            dev.get_singlepfline(i, Kind.VOLUME_ONLY, _random=False),
             Exception,
             None,
             pd.Series,
@@ -429,7 +574,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_multipfline(i, Kind.VOLUME_ONLY),
+            dev.get_multipfline(i, Kind.VOLUME_ONLY, _random=False),
             Exception,
             None,
             pd.Series,
@@ -443,7 +588,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_series(i, "p"),
+            dev.get_series(i, "p", _random=False),
             PfLine,
             Kind.ALL,
             Exception,
@@ -452,7 +597,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, "p"),
+            dev.get_dataframe(i, "p", _random=False),
             PfLine,
             Kind.ALL,
             Exception,
@@ -461,7 +606,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_singlepfline(i, Kind.PRICE_ONLY),
+            dev.get_singlepfline(i, Kind.PRICE_ONLY, _random=False),
             PfLine,
             Kind.ALL,
             Exception,
@@ -470,7 +615,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.VOLUME_ONLY,
-            dev.get_multipfline(i, Kind.PRICE_ONLY),
+            dev.get_multipfline(i, Kind.PRICE_ONLY, _random=False),
             PfLine,
             Kind.ALL,
             Exception,
@@ -493,7 +638,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_series(i, "f"),
+            dev.get_series(i, "f", _random=False),
             PfLine,
             Kind.PRICE_ONLY,
             PfLine,
@@ -502,7 +647,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_series(i, "f").astype("pint[dimensionless]"),
+            dev.get_series(i, "f", _random=False).astype("pint[dimensionless]"),
             PfLine,
             Kind.PRICE_ONLY,
             PfLine,
@@ -511,7 +656,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_dataframe(i, ["nodim"]),
+            dev.get_dataframe(i, ["nodim"], _random=False),
             PfLine,
             Kind.PRICE_ONLY,
             PfLine,
@@ -520,7 +665,9 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_dataframe(i, ["nodim"]).astype("pint[dimensionless]"),
+            dev.get_dataframe(i, ["nodim"], _random=False).astype(
+                "pint[dimensionless]"
+            ),
             PfLine,
             Kind.PRICE_ONLY,
             PfLine,
@@ -597,7 +744,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_dataframe(i, "q"),
+            dev.get_dataframe(i, "q", _random=False),
             PfLine,
             Kind.ALL,
             Exception,
@@ -606,7 +753,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_pfline(i, Kind.VOLUME_ONLY),
+            dev.get_pfline(i, Kind.VOLUME_ONLY, _random=False),
             PfLine,
             Kind.ALL,
             Exception,
@@ -615,7 +762,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_singlepfline(i, Kind.VOLUME_ONLY),
+            dev.get_singlepfline(i, Kind.VOLUME_ONLY, _random=False),
             PfLine,
             Kind.ALL,
             Exception,
@@ -624,7 +771,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_multipfline(i, Kind.VOLUME_ONLY),
+            dev.get_multipfline(i, Kind.VOLUME_ONLY, _random=False),
             PfLine,
             Kind.ALL,
             Exception,
@@ -635,11 +782,10 @@ def test_pfl_addsub_kind(
         (i, Kind.PRICE_ONLY, Q_(8.1, "Eur/MWh"), Exception, None, pd.Series, None),
         (i, Kind.PRICE_ONLY, Q_(8.1, "ctEur/kWh"), Exception, None, pd.Series, None),
         # . . timeseries (series, df, pfline)
-        (i, Kind.PRICE_ONLY, dev.get_series(i, "p"), Exception, None, pd.Series, None),
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_dataframe(i, "p"),
+            dev.get_series(i, "p", _random=False),
             Exception,
             None,
             pd.Series,
@@ -648,7 +794,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_singlepfline(i, Kind.PRICE_ONLY),
+            dev.get_dataframe(i, "p", _random=False),
             Exception,
             None,
             pd.Series,
@@ -657,7 +803,16 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.PRICE_ONLY,
-            dev.get_multipfline(i, Kind.PRICE_ONLY),
+            dev.get_singlepfline(i, Kind.PRICE_ONLY, _random=False),
+            Exception,
+            None,
+            pd.Series,
+            None,
+        ),
+        (
+            i,
+            Kind.PRICE_ONLY,
+            dev.get_multipfline(i, Kind.PRICE_ONLY, _random=False),
             Exception,
             None,
             pd.Series,
@@ -688,7 +843,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.ALL,
-            dev.get_series(i, "f"),
+            dev.get_series(i, "f", _random=False),
             PfLine,
             Kind.ALL,
             PfLine,
@@ -697,7 +852,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.ALL,
-            dev.get_series(i, "f").astype("pint[dimensionless]"),
+            dev.get_series(i, "f", _random=False).astype("pint[dimensionless]"),
             PfLine,
             Kind.ALL,
             PfLine,
@@ -706,7 +861,7 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.ALL,
-            dev.get_dataframe(i, ["nodim"]),
+            dev.get_dataframe(i, ["nodim"], _random=False),
             PfLine,
             Kind.ALL,
             PfLine,
@@ -715,7 +870,9 @@ def test_pfl_addsub_kind(
         (
             i,
             Kind.ALL,
-            dev.get_dataframe(i, ["nodim"]).astype("pint[dimensionless]"),
+            dev.get_dataframe(i, ["nodim"], _random=False).astype(
+                "pint[dimensionless]"
+            ),
             PfLine,
             Kind.ALL,
             PfLine,
@@ -738,9 +895,9 @@ def test_pfl_muldiv_kind(
 ):
     """Test if multiplication and division return correct object type and kind."""
     if pfl_in_single_or_multi == "single":
-        pfl_in = dev.get_singlepfline(pfl_in_i, pfl_in_kind)
+        pfl_in = dev.get_singlepfline(pfl_in_i, pfl_in_kind, _random=False)
     else:
-        pfl_in = dev.get_multipfline(pfl_in_i, pfl_in_kind)
+        pfl_in = dev.get_multipfline(pfl_in_i, pfl_in_kind, _random=False)
 
     returntype = returntype_mul if operation == "*" else returntype_div
     returnkind = returnkind_mul if operation == "*" else returnkind_div
