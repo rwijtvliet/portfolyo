@@ -1,7 +1,7 @@
 # List required packages in this file, one per line.
-numpy
+numpy==1.23.2
 pandas
+matplotlib==3.5.3
 pint==0.19
 pint-pandas
-matplotlib
 colorama
