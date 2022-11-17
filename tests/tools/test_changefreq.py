@@ -187,7 +187,7 @@ def idxs_and_mapping(
     mapping = {}  # ts_long : {ts_shrt : fraction of time in ts_long}
     for (ts_long, id_long, dur_long) in zip(i_long, ids_long, durs_long):
         mask = ids_shrt == id_long
-        if dur_long > sum(durs_shrt[mask]):
+        if dur_long > sum(durs_shrt[mask]) + 0.01:  # +0.01 to avoid rounding errors
             # Period not fully present; should not appear in final result.
             continue
 
@@ -276,17 +276,24 @@ def test_downsample_summable(
 
     # Get raw input and expected output.
     if complexity == "ones":
-        s = pd.Series(1.0, i_shrt_untrimmed)
+        s = pd.Series(1.0, i_shrt_untrimmed, name="testseries")
         s_expected = pd.Series(
-            {ts_long: len(fractions) * 1.0 for ts_long, fractions in mapping.items()}
+            {ts_long: len(fractions) * 1.0 for ts_long, fractions in mapping.items()},
+            dtype=float,
+            name="testseries",
         )
     else:
-        s = pd.Series(range(len(i_shrt_untrimmed)), i_shrt_untrimmed) * 1.0
-        expecteddict = {}
-        for ts_tg, fractions in mapping.items():
-            value = s[fractions.keys()].sum()
-            expecteddict[ts_tg] = value * 1.0  # make float
-        s_expected = pd.Series(expecteddict)
+        s = pd.Series(
+            range(len(i_shrt_untrimmed)),
+            i_shrt_untrimmed,
+            dtype=float,
+            name="testseries",
+        )
+        s_expected = pd.Series(
+            {ts_tg: s[fractions.keys()].sum() for ts_tg, fractions in mapping.items()},
+            dtype=float,
+            name="testseries",
+        )
 
     do_test("sum", seriesordf, s, s_expected, freq_long)
 
@@ -315,15 +322,22 @@ def test_downsample_avgable(
 
     # Get raw input and expected output.
     if complexity == "ones":
-        s = pd.Series(1.0, i_shrt_untrimmed)
-        s_expected = pd.Series(1.0, mapping.keys())
+        s = pd.Series(1.0, i_shrt_untrimmed, name="testseries")
+        s_expected = pd.Series(1.0, mapping.keys(), name="testseries")
     else:
-        s = pd.Series(range(len(i_shrt_untrimmed)), i_shrt_untrimmed) * 1.0
+        s = pd.Series(
+            range(len(i_shrt_untrimmed)),
+            i_shrt_untrimmed,
+            dtype=float,
+            name="testseries",
+        )
         s_expected = pd.Series(
             {
                 ts_long: sum(s[ts_short] * frac for ts_short, frac in fractions.items())
                 for ts_long, fractions in mapping.items()
-            }
+            },
+            dtype=float,
+            name="testseries",
         )
 
     do_test("avg", seriesordf, s, s_expected, freq_long)
@@ -353,16 +367,18 @@ def test_upsample_avgable(
 
     # Get raw input and expected output.
     if complexity == "ones":
-        s = pd.Series(1.0, i_long)
-        s_expected = pd.Series(1.0, i_shrt)
+        s = pd.Series(1.0, i_long, name="testseries")
+        s_expected = pd.Series(1.0, i_shrt, name="testseries")
     else:
-        s = pd.Series(range(len(i_long)), i_long) * 1.0
+        s = pd.Series(range(len(i_long)), i_long, dtype=float, name="testseries")
         s_expected = pd.Series(
             {
                 ts_shrt: s[ts_long]
                 for ts_long, fractions in mapping.items()
                 for ts_shrt in fractions.keys()
-            }
+            },
+            dtype=float,
+            name="testseries",
         )
 
     do_test("avg", seriesordf, s, s_expected, freq_shrt)
@@ -392,22 +408,26 @@ def test_upsample_summable(
 
     # Get raw input and expected output.
     if complexity == "ones":
-        s = pd.Series(1.0, i_long)
+        s = pd.Series(1.0, i_long, name="testseries")
         s_expected = pd.Series(
             {
                 ts_shrt: frac
                 for fractions in mapping.values()
                 for ts_shrt, frac in fractions.items()
-            }
+            },
+            dtype=float,
+            name="testseries",
         )
     else:
-        s = pd.Series(range(len(i_long)), i_long) * 1.0
+        s = pd.Series(range(len(i_long)), i_long, dtype="float", name="testseries")
         s_expected = pd.Series(
             {
                 ts_shrt: s[ts_long] * frac
                 for ts_long, fractions in mapping.items()
                 for ts_shrt, frac in fractions.items()
-            }
+            },
+            dtype=float,
+            name="testseries",
         )
 
     do_test("sum", seriesordf, s, s_expected, freq_shrt)
@@ -421,6 +441,7 @@ def do_test(
     else:
         fn = tools.changefreq.summable
 
+    s_expected.index = pd.DatetimeIndex(s_expected.index)
     s_expected.index.freq = tg_freq
     if seriesordf.endswith("_unit"):
         s = s.astype("pint[MW]")

@@ -10,6 +10,11 @@ from . import right as tools_right
 from . import trim as tools_trim
 
 
+def _emptyseries(s_ref: pd.Series, freq) -> pd.Series:
+    i = pd.DatetimeIndex([], freq=freq, tz=s_ref.index.tz)
+    return pd.Series([], i).astype(s_ref.dtype).rename(s_ref.name)
+
+
 def _downsample_avgable(s: pd.Series, freq: str) -> pd.Series:
     """Downsample averagble series."""
     # For averagable series: first make summable.
@@ -25,8 +30,8 @@ def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
 
     s = tools_trim.frame(s, freq)  # keep only full periods in target freq
 
-    if not len(s):
-        return s  # empty series: don't continue
+    if not len(s):  # Empty series.
+        return _emptyseries(s, freq)
 
     start_of_day = s.index[0].time()
     offset = dt.timedelta(hours=start_of_day.hour, minutes=start_of_day.minute)
@@ -48,7 +53,7 @@ def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
         s2 = s2.resample(freq).sum()
         s2.index += offset  # ...(b) add the offset manually...
         s2.index.freq = freq  # ...(c) and set the frequency manually as well.
-    return s2
+    return s2.rename(s.name)
 
 
 def _upsample_summable(s: pd.Series, freq: str) -> pd.Series:
@@ -63,6 +68,9 @@ def _upsample_summable(s: pd.Series, freq: str) -> pd.Series:
 def _upsample_avgable(s: pd.Series, freq: str) -> pd.Series:
     """Upsample averagable series."""
     # Upsampling is easiest for averagable series: duplicate value to all children.
+
+    if not len(s):  # Empty series.
+        return _emptyseries(s, freq)
 
     start_of_day = s.index[0].time()
     offset = dt.timedelta(hours=start_of_day.hour, minutes=start_of_day.minute)
@@ -121,10 +129,6 @@ def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
         s = s.astype(float)
 
     # s is now a Series with a 'float' or 'pint' dtype.
-
-    # Empty series.
-    if len(s) == 0:  # empty frame
-        return s
 
     up_or_down = tools_freq.up_or_down(s.index.freq, freq)
 
@@ -210,7 +214,7 @@ def summable(
     """
     if isinstance(fr, pd.DataFrame):
         # Turn into series, change frequency, and turn back into dataframe.
-        return pd.DataFrame({key: summable(value, freq) for key, value in fr.items()})
+        return pd.DataFrame({key: summable(s, freq) for key, s in fr.items()})
 
     return _general(True, fr, freq)
 

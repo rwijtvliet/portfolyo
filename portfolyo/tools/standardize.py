@@ -175,6 +175,10 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
             f"Index frequency must be one of {', '.join(freqs)}; found '{freq}'."
         )
 
+    # Check length.
+    if not len(i):
+        raise AssertionError("Index must have values; got empty index.")
+
     # Check hour and minute.
     if tools_freq.up_or_down(freq, "15T") <= 0:  # quarterhour
         startminute = 15 if __right else 0
