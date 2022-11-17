@@ -25,7 +25,7 @@ def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
 
     s = tools_trim.frame(s, freq)  # keep only full periods in target freq
 
-    if not s:
+    if not len(s):
         return s  # empty series: don't continue
 
     start_of_day = s.index[0].time()

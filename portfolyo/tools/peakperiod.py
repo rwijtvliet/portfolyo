@@ -23,9 +23,9 @@ def factory(
     Parameters
     ----------
     peak_left : dt.time, optional (default: midnight)
-        Start time of peak period on days that have a peak period (left-bound).
+        Start time of peak period on days that have a peak period (left-bound, incl).
     peak_right : dt.time, optional (default: midnight of following day)
-        End time of peak period on days that have a peak period (right-bound).
+        End time of peak period on days that have a peak period (right-bound, excl).
     isoweekdays : Iterable[int], optional (default: Monday through Friday)
         Which days of the week have a peak period. (1=Monday, 7=Sunday)
 
@@ -79,7 +79,7 @@ def factory(
         )
 
     def filter_date(i: pd.DatetimeIndex) -> np.ndarray:
-        return i.map(lambda ts: ts.isoweekday() in isoweekdays).values
+        return i.map(lambda ts: ts.isoweekday() in isoweekdays).values.astype(bool)
 
     def filter_time(i: pd.DatetimeIndex) -> np.ndarray:
         time_left = i.time
