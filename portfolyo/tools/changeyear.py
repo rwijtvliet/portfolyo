@@ -318,7 +318,6 @@ def index_with_year(idx_source: pd.DatetimeIndex, target_year: int) -> pd.Dateti
             day=ts.day,
             hour=ts.hour,
             minute=ts.minute,
-            freq=ts.freq,
             tz=ts.tz,
         )
 
@@ -328,7 +327,7 @@ def index_with_year(idx_source: pd.DatetimeIndex, target_year: int) -> pd.Dateti
 
     target_start = change_year(start, target_year)
     target_end = change_year(end, target_year + delta_years)
-    return pd.date_range(target_start, target_end, freq=freq, closed="left", tz=tz)
+    return pd.date_range(target_start, target_end, freq=freq, inclusive="left", tz=tz)
 
 
 @additional_notes

@@ -240,6 +240,9 @@ def test_downsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: st
 def test_upsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: str):
     """Test upsampling of indices."""
 
+    if freq_long == freq_shrt:
+        pytest.skip("Same frequency already tested when downsampling.")
+
     # mapping = ts_long: {ts_shrt: fraction}
     i_long, i_shrt, i_shrt_untrimmed, mapping = idxs_and_mapping(
         startdate(freq_shrt), starttime, "2022-02-15", freq_shrt, tz, freq_long
@@ -359,6 +362,9 @@ def test_upsample_avgable(
 ):
     """Test upsampling of averagable frames."""
 
+    if freq_long == freq_shrt:
+        pytest.skip("Same frequency already tested when downsampling.")
+
     # mapping = ts_long: {ts_shrt: fraction}
     i_long, i_shrt, _, mapping = idxs_and_mapping(
         startdate(freq_shrt), starttime, "2022-02-15", freq_shrt, tz, freq_long
@@ -399,6 +405,9 @@ def test_upsample_summable(
     starttime: str,
 ):
     """Test upsampling of summable frames."""
+
+    if freq_long == freq_shrt:
+        pytest.skip("Same frequency already tested when downsampling.")
 
     # mapping = ts_long: {ts_shrt: fraction}
     i_long, i_shrt, _, mapping = idxs_and_mapping(

@@ -12,7 +12,7 @@ from . import trim as tools_trim
 
 def _emptyseries(s_ref: pd.Series, freq) -> pd.Series:
     i = pd.DatetimeIndex([], freq=freq, tz=s_ref.index.tz)
-    return pd.Series([], i).astype(s_ref.dtype).rename(s_ref.name)
+    return pd.Series([], i, dtype=s_ref.dtype, name=s_ref.name)
 
 
 def _downsample_avgable(s: pd.Series, freq: str) -> pd.Series:
