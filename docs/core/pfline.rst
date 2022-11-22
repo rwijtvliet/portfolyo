@@ -18,34 +18,36 @@ Kind
 
 An important characteristic of a portfolio line is its "kind". The property ``PfLine.kind`` has a value from the ``portfolyo.Kind`` enumeration and tells us the type of information it contains:
 
-* ``Kind.PRICE_ONLY``: "price-only" portfolio line.
-
-  This is a portfolio line which only contains price information. 
-  
-  As an examples, consider the forward price curve for a certain market area, or the fixed offtake price that a customer is paying for a certain delivery period.
-
-* ``Kind.VOLUME_ONLY``: "volume-only" portfolio line.
+* ``Kind.VOLUME``: "volume-only" portfolio line.
 
   This is a portfolio line that only contains volume information. 
   
-  For example: the expected/projected development of offtake volume of a customer or customer group.
+  As an example, consider the expected/projected development of offtake volume of a customer or customer group.
 
   The volume in each timestamp can be retrieved by the user in units of energy (e.g., MWh) or in units of power (e.g., MW).
 
-* ``Kind.ALL``: "price-and-volume" portfolio line.
+* ``Kind.PRICE``: "price-only" portfolio line.
 
-  This a portfolio line that contains both price and volume information. 
+  This is a portfolio line which only contains price information. 
+  
+  For example, the forward price curve for a certain market area, or the fixed offtake price that a customer is paying for a certain delivery period.
+
+* ``Kind.REVENUE``: "revenue-only" portfolio line.
+
+  For example, the payoff of a financially-settled put option, which has a monetary value (e.g., in Eur) without an associated volume being delivered.
+
+* ``Kind.COMPLETE``
+
+  This a portfolio line that contains volume, price and revenue information. 
   
   For example: the volume that has been sourced to hedge a certain portfolio, e.g. in monthly or quarterly blocks. 
 
   For each timestamp we have a volume (the contracted volume, both as energy and as power), a price (for which the volume was contracted) and a revenue (i.e., the multiplication of the energy and the price). 
 
-  Revenue-only information, e.g. cash flows related to financially settled options, are stored as this kind of portfolio line as well, but with a volume of 0 in each delivery period.
-
-Under the hood, not all information that can be retrieved by the user is stored; redundant information is discarded and recalculated whenever necessary. For the volume, for example, only the energy is stored. The power can be calculated by dividing the energy (in MWh) by the duration of the timestamp (in h).
+"Volume-only" and "complete" portfolio lines contain redundant information. For the volume, the power (in MW) can be calculated by dividing the energy (in MWh) by the duration of the timestamp (in h). Likewise, the price (in Eur/MWh) can be calculated by dividing the revenue (in Eur) by the energy (in MWh). See also the note in the next section.
 
 --------------
-Initialisation
+Initialisation 
 --------------
 
 There are many ways to specify the timeseries from which to initialise a portfolio line; here we will discuss the most common ones. In all cases it is assumed that :doc:`the data has been prepared and standardized<../specialized_topics/dataprep>`.
@@ -55,7 +57,7 @@ In General
 
 ``portfolyo`` tries to determine the dimension of information (e.g., if it is a price or a volume) using its key (if it has one) and its unit (also, if it has one) - see the section on :ref:`Compatilibity of abbrevation and unit <nameunitcompatibility>`.
 
-To initialise a price-only portfolio line, we must only provide a price timeseries. To initialise a volume-only portfolio line, we must only provide a volume timeseries. To initialise a price-and-volume portfolio line, we must supply at least 2 of the following timeseries: prices, volumes, revenues. 
+To initialise a volume-only / price-only / revenue-only portfolio line, we must only provide a volume / price / revenue timeseries. To initialise a complete portfolio line, we must supply at least 2 of the following timeseries: prices, volumes, revenues. 
 
 .. note::
    
@@ -483,7 +485,7 @@ A perfect hedge would be to buy the exact offtake volume of a portfolio in every
 
 Using the ``.hedge_with()`` method, the volume timeseries in a portfolio line is compared with a price timeseries, and the corresponding portfolio line in standard products is returned. Parameters specify the forward price curve, the length of the products (e.g. months), the hedge method (volume hedge or value hedge), and whether to use a base band or split in peak and offpeak values.
 
-.. exec_code::
+.. exec_code:: 
 
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024-04-01', '2024-06-01', freq='H', inclusive='left')
