@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from .base import PfLine, Kind
-from ...tools import stamps
+from typing import Any, Counter, Dict, Mapping
 
-from typing import Counter, Mapping, Dict, Any
 import pandas as pd
+
+from ... import tools
+from .base import Kind, PfLine
 
 
 def make_mapping(data: Any) -> Mapping[Any, Any]:
@@ -86,7 +87,7 @@ def _intersect_indices(children: Dict[str, PfLine]) -> Dict[str, PfLine]:
 
     # Check/fix indices.
     # Workaround for error in pandas intersection (#46702):
-    idx = stamps.intersection(*indices)
+    idx = tools.intersection.index(*indices)
     if len(idx) == 0:
         raise ValueError("PfLine indices describe non-overlapping periods.")
 

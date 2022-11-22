@@ -10,9 +10,9 @@ from typing import TYPE_CHECKING, Iterable, Union
 
 import pandas as pd
 
+from ... import tools
 from ...prices import convert, hedge
 from ...prices.utils import duration_bpo
-from ...tools.types import Quantity, Value
 from ..mixins import OtherOutput, PfLinePlot, PfLineText
 
 # from . import single, multi, interop  #<-- moved to end of file
@@ -146,6 +146,34 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         ...
 
     @abstractmethod
+    def map_to_year(self, year: int, holiday_country: str = None) -> PfLine:
+        """Transfer the data to a hypothetical other year.
+
+        Parameters
+        ----------
+        year : int
+            Year to transfer the data to.
+        holiday_country : str, optional (default: None)
+            Country or region for which to assume the holidays. E.g. 'DE' (Germany), 'NL'
+            (Netherlands), or 'USA'. See ``holidays.list_supported_countries()`` for
+            allowed values.
+
+        Returns
+        -------
+        PfLine
+
+        Notes
+        -----
+        Useful for daily data and shorter. Copies over the data but takes weekdays (and
+        holidays) target year into consideration. See ``portfolyo.map_frame_as_year()``
+        for more information.
+        Inaccurate for monthly data and longer, because we only have one value per month,
+        and can therefore not take different number of holidays/weekends (i.e., offpeak
+        hours) into consideration.
+        """
+        ...
+
+    @abstractmethod
     def __bool__(self) -> bool:
         """Return True if object (i.e., its children) contains any non-zero data."""
         ...
@@ -203,7 +231,9 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         # Design decision: could also be non-flattened.
         return single.SinglePfLine({"r": self.r})
 
-    def _set_col_val(self, col: str, val: pd.Series | Value) -> SinglePfLine:
+    def _set_col_val(
+        self, col: str, val: Union[pd.Series, float, int, tools.unit.Q_]
+    ) -> SinglePfLine:
         """Set or update a timeseries and return the modified instance.
         Priorities in case kind is ALL: (1) keep original volumes. If volumes are being
         updated: (2) keep original prices.
@@ -219,24 +249,20 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
             data["q"] = self.q
         return single.SinglePfLine(data)
 
-    def set_w(self, w: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
-        """Set or update power timeseries [MW]; returns modified (and flattened) instance.
-        If kind is ALL, keep original prices and update the revenues to reflect the new volumes."""
+    def set_w(self, w: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
+        """Set or update power timeseries [MW]; returns modified (and flattened) instance."""
         return self._set_col_val("w", w)
 
-    def set_q(self, q: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
-        """Set or update energy timeseries [MWh]; returns modified (and flattened) instance.
-        If kind is ALL, keep original prices and update the revenues to reflect the new volumes."""
+    def set_q(self, q: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
+        """Set or update energy timeseries [MWh]; returns modified (and flattened) instance."""
         return self._set_col_val("q", q)
 
-    def set_p(self, p: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
-        """Set or update price timeseries [Eur/MWh]; returns modified (and flattened) instance.
-        If kind is ALL, keep original volumes and update the revenues to reflect the new prices."""
+    def set_p(self, p: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
+        """Set or update price timeseries [Eur/MWh]; returns modified (and flattened) instance."""
         return self._set_col_val("p", p)
 
-    def set_r(self, r: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
-        """Set or update revenue timeseries [Eur]; returns modified (and flattened) instance.
-        If kind is ALL, keep original volumes and update the prices to reflect the new revenues."""
+    def set_r(self, r: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
+        """Set or update revenue timeseries [MW]; returns modified (and flattened) instance."""
         return self._set_col_val("r", r)
 
     def set_volume(self, other: PfLine) -> SinglePfLine:

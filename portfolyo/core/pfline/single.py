@@ -5,13 +5,14 @@ Dataframe-like class to hold general energy-related timeseries; either volume ([
 
 from __future__ import annotations
 
+import warnings
 from typing import Dict, Iterable, Union
 
 import numpy as np
 import pandas as pd
 
+from ... import tools
 from ...testing import testing
-from .. import changefreq
 from . import single_helper
 from .base import Kind, PfLine
 
@@ -109,12 +110,29 @@ class SinglePfLine(PfLine):
 
     def asfreq(self, freq: str = "MS") -> SinglePfLine:
         if self.kind is Kind.PRICE_ONLY:
-            df = changefreq.averagable(self.df("p"), freq)
+            df = tools.changefreq.averagable(self.df("p"), freq)
         elif self.kind is Kind.VOLUME_ONLY:
-            df = changefreq.summable(self.df("q"), freq)
+            df = tools.changefreq.summable(self.df("q"), freq)
         else:  # self.kind is Kind.ALL
-            df = changefreq.summable(self.df("qr"), freq)
+            df = tools.changefreq.summable(self.df("qr"), freq)
         return SinglePfLine(df)
+
+    def map_to_year(self, year: int, holiday_country: str = None) -> SinglePfLine:
+        if tools.freq.shortest(self.index.freq, "MS") == "MS":
+            warnings.warn(
+                "This PfLine has a monthly frequency or longer; changing the year is inaccurate, as"
+                " details (number of holidays, weekends, offpeak hours, etc) cannot be taken into account."
+            )
+        # Use averageble data, which is necessary for mapping months (or longer) of unequal length (leap years).
+        if self.kind is Kind.PRICE_ONLY:
+            df = self.df("p")
+        elif self.kind is Kind.VOLUME_ONLY:
+            df = self.df("w")
+        else:  # self.kind is Kind.ALL
+            df = self.df("wp")
+        return SinglePfLine(
+            tools.changeyear.map_frame_to_year(df, year, holiday_country)
+        )
 
     @property
     def loc(self) -> _LocIndexer:

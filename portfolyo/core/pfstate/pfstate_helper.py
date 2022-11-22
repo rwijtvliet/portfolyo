@@ -1,10 +1,11 @@
 """Prepare/verify input data for PfState initialisation."""
 
 
-from typing import Iterable, Any
-from ...tools import stamps
-from ..pfline import PfLine, SinglePfLine, MultiPfLine, Kind  # noqa
 import warnings
+from typing import Any, Iterable
+
+from ... import tools
+from ..pfline import Kind, MultiPfLine, PfLine, SinglePfLine  # noqa
 
 
 def make_pflines(
@@ -57,11 +58,11 @@ def make_pflines(
     # . Lengths of offtakevolume and sourced.
     if sourced is not None:
         # Workaround for error in pandas intersection (#46702):
-        idx = stamps.intersection(offtakevolume.index, sourced.index)
+        idx = tools.intersection.index(offtakevolume.index, sourced.index)
         offtakevolume = offtakevolume.loc[idx]
         sourced = sourced.loc[idx]
     # . Length of unsourcedprice.
-    if len(stamps.intersection(offtakevolume.index, unsourcedprice.index)) < len(
+    if len(tools.intersection.index(offtakevolume.index, unsourcedprice.index)) < len(
         offtakevolume.index
     ):
         raise ValueError(

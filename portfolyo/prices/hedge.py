@@ -1,10 +1,12 @@
 """Functionality to hedge an offtake profile with a price profile."""
 
-from .utils import is_peak_hour
-from . import convert
-from ..tools import frames, nits
 from typing import Tuple
+
 import pandas as pd
+
+from .. import tools
+from . import convert
+from .utils import is_peak_hour
 
 
 def _hedge(df: pd.DataFrame, how: str, po: bool) -> pd.Series:
@@ -106,7 +108,8 @@ def hedge(
         po = w.index.freq in ["15T", "H"] and freq != "D"
     if po and not (w.index.freq in ["15T", "H"] and freq != "D"):
         raise ValueError(
-            "Split into peak and offpeak only possible when (a) hedging with monthly (or longer) products, and (b) if timeseries have hourly (or shorter) values."
+            "Split into peak and offpeak only possible when (a) hedging with monthly (or "
+            "longer) products, and (b) if timeseries have hourly (or shorter) values."
         )
 
     # Handle possible units.
@@ -115,7 +118,7 @@ def hedge(
 
     # Only keep full periods of overlapping timestamps.
     i = win.index.intersection(pin.index)
-    df = frames.trim_frame(pd.DataFrame({"w": win, "p": pin}).loc[i, :], freq)
+    df = tools.trim.frame(pd.DataFrame({"w": win, "p": pin}).loc[i, :], freq)
     if len(df) == 0:
         return df["w"], df["p"]  # No full periods; don't do hedge; return empty series
 
@@ -128,8 +131,6 @@ def hedge(
 
     # Handle possible units.
     if wunits or punits:
-        df = df.astype(
-            {"w": nits.pintunit_remove(wunits), "p": nits.pintunit_remove(punits)}
-        )
+        df = df.astype({"w": f"pint[{wunits:P}]", "p": f"pint[{punits:P}]"})
 
     return df["w"], df["p"]

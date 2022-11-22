@@ -3,15 +3,14 @@ dimensionless values/timeseries from data."""
 
 from __future__ import annotations
 
-import numpy as np
-
-from ... import testing
-from ...tools import nits, stamps, frames
-from . import base, single
-
-from typing import Any, Dict, Mapping, Union, Iterable, TYPE_CHECKING
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping, Union
+
+import numpy as np
 import pandas as pd
+
+from ... import testing, tools
+from . import base, single
 
 if TYPE_CHECKING:  # needed to avoid circular imports
     from .single import SinglePfLine
@@ -25,11 +24,11 @@ class InOp:
     price (p), revenue (r), adimensional (nodim) and dim-agnostic (agn) information from
     the provided data; initially without checking for consistency."""
 
-    w: Union[nits.Q_, pd.Series] = None
-    q: Union[nits.Q_, pd.Series] = None
-    p: Union[nits.Q_, pd.Series] = None
-    r: Union[nits.Q_, pd.Series] = None
-    nodim: Union[nits.Q_, pd.Series] = None  # explicitly dimensionless
+    w: Union[tools.unit.Q_, pd.Series] = None
+    q: Union[tools.unit.Q_, pd.Series] = None
+    p: Union[tools.unit.Q_, pd.Series] = None
+    r: Union[tools.unit.Q_, pd.Series] = None
+    nodim: Union[tools.unit.Q_, pd.Series] = None  # explicitly dimensionless
     agn: Union[float, pd.Series] = None  # agnostic
 
     def __post_init__(self):
@@ -54,7 +53,7 @@ class InOp:
         for attr in _ATTRIBUTES:
             if isinstance(val := getattr(self, attr), pd.Series):
                 indices.append(val.index)
-        index = stamps.intersection(*indices)  # raises error if none passed
+        index = tools.intersection.index(*indices)  # raises error if none passed
         if not len(index):
             raise ValueError("Data has no overlapping timestamps.")
         # Save all values as timeseries.
@@ -65,10 +64,8 @@ class InOp:
                 continue
             elif isinstance(val, pd.Series):
                 kwargs[attr] = val.loc[index]
-            elif isinstance(val, nits.Q_):
-                kwargs[attr] = pd.Series(
-                    val.m, index, dtype=nits.pintunit_remove(val.units)
-                )
+            elif isinstance(val, tools.unit.Q_):
+                kwargs[attr] = pd.Series(val.m, index, dtype=f"pint[{val.units:P}]")
             else:  # float
                 kwargs[attr] = pd.Series(val, index)
         return InOp(**kwargs)
@@ -98,13 +95,13 @@ class InOp:
 
 
 def _set_unit(
-    v: Union[float, int, nits.Q_, pd.Series], attr: str
-) -> Union[float, nits.Q, pd.Series]:
+    v: Union[float, int, tools.unit.Q_, pd.Series], attr: str
+) -> Union[float, tools.unit.Q, pd.Series]:
     """Add unit (if no unit set yet) or convert to unit."""
     if v is None:
         return None
 
-    unit = nits.name2unit(attr) if attr else None
+    unit = tools.unit.from_name(attr) if attr else None
 
     if unit is None:  # should be unit-agnostic
         if isinstance(v, int) or isinstance(v, float):
@@ -122,11 +119,11 @@ def _set_unit(
         )
 
     else:  # should be unit-aware
-        if isinstance(v, float) or isinstance(v, int) or isinstance(v, nits.Q_):
-            return nits.Q_(v, unit)  # add unit or convert to unit
+        if isinstance(v, float) or isinstance(v, int) or isinstance(v, tools.unit.Q_):
+            return tools.unit.Q_(v, unit)  # add unit or convert to unit
         if isinstance(v, pd.Series) and isinstance(v.index, pd.DatetimeIndex):
             v = _timeseries_of_floats_or_pint(v)  # float-series or pint-series
-            return v.astype(nits.pintunit_remove(unit))
+            return v.astype(f"pint[{unit:P}]")
         raise TypeError(
             f"Value should be a number, Quantity, or timeseries; got {type(v)}."
         )
@@ -143,19 +140,19 @@ def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
 
     elif s.dtype == object:
         # object -> maybe series of Quantitis -> convert to pint-series.
-        if not all(isinstance(val, nits.Q_) for val in s.values):
+        if not all(isinstance(val, tools.unit.Q_) for val in s.values):
             raise TypeError(f"Timeseries with unexpected data type: {s.dtype}.")
         quantities = [val.to_base_units() for val in s.values]
         magnitudes = [q.m for q in quantities]
         units = list(set([q.u for q in quantities]))
         if len(units) != 1:
             raise ValueError(f"Timeseries needs uniform unit; found {','.join(units)}.")
-        s = pd.Series(magnitudes, s.index, dtype=nits.pintunit_remove(units[0]))
+        s = pd.Series(magnitudes, s.index, dtype=f"pint[{units[0]:P}]")
 
     # Check if all OK.
 
     try:
-        frames.assert_standardized(s)
+        tools.standardize.assert_frame_standardized(s)
     except AssertionError as e:
         raise ValueError(
             "Timeseries not in expected form. See ``portfolyo.standardize()`` for more information."
@@ -165,14 +162,14 @@ def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
 
 
 def _unit2attr(unit) -> str:
-    attr = nits.unit2name(unit)  # Error if dimension unknown
+    attr = tools.unit.to_name(unit)  # Error if dimension unknown
     if attr not in _ATTRIBUTES:
         raise NotImplementedError(f"Cannot handle data with this unit ({unit}).")
     return attr
 
 
 def _from_data(
-    data: Union[float, nits.Q_, pd.Series, Dict, pd.DataFrame, Iterable, Mapping]
+    data: Union[float, tools.unit.Q_, pd.Series, Dict, pd.DataFrame, Iterable, Mapping]
 ) -> InOp:
     """Turn ``data`` into a InterOp object."""
 
@@ -182,7 +179,7 @@ def _from_data(
     elif isinstance(data, int) or isinstance(data, float):
         return InOp(agn=data)
 
-    elif isinstance(data, nits.Q_):
+    elif isinstance(data, tools.unit.Q_):
         return InOp(**{_unit2attr(data.units): data})
 
     elif isinstance(data, pd.Series) and isinstance(data.index, pd.DatetimeIndex):
@@ -190,7 +187,7 @@ def _from_data(
         if hasattr(data, "pint"):  # pint timeseries
             return InOp(**{_unit2attr(data.pint.units): data})
         elif data.dtype == object:  # timeeries of objects -> maybe Quantities?
-            if len(data) and isinstance(val := data.values[0], nits.Q_):
+            if len(data) and isinstance(val := data.values[0], tools.unit.Q_):
                 # use unit of first value to find dimension
                 return InOp(**{_unit2attr(val.u): data})
         else:  # assume float or int
