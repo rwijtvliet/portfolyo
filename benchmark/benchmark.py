@@ -4,6 +4,8 @@
 
 import datetime as dt
 import sys
+from collections import deque
+from itertools import chain
 from typing import Callable
 
 import numpy as np
@@ -15,7 +17,50 @@ import portfolyo as pf
 LENGTHS = [100, 1000, 10_000, 100_000, 300_000]
 RUNS = [10, 10, 10, 3, 1]
 
-SHEET_NAME = "reference"
+SHEET_NAME = "refactored"
+
+
+def total_size(o, handlers={}, verbose=False):
+    """Returns the approximate memory footprint an object and all of its contents.
+
+    Automatically finds the contents of the following builtin containers and
+    their subclasses:  tuple, list, deque, dict, set and frozenset.
+    To search other containers, add handlers to iterate over their contents:
+
+        handlers = {SomeContainerClass: iter,
+                    OtherContainerClass: OtherContainerClass.get_elements}
+
+    Source: https://code.activestate.com/recipes/577504/
+    """
+
+    all_handlers = {
+        tuple: iter,
+        list: iter,
+        deque: iter,
+        dict: lambda d: chain.from_iterable(d.items()),
+        set: iter,
+        frozenset: iter,
+        **handlers,  # user handlers take precedence
+    }
+    seen = set()  # track which object id's have already been seen
+    default_size = sys.getsizeof(0)  # estimate sizeof object without __sizeof__
+
+    def sizeof(o):
+        if id(o) in seen:  # do not double count the same object
+            return 0
+        seen.add(id(o))
+        s = sys.getsizeof(o, default_size)
+
+        if verbose:
+            print(s, type(o), repr(o), file=sys.stderr)
+
+        for typ, handler in all_handlers.items():
+            if isinstance(o, typ):
+                s += sum(map(sizeof, handler(o)))
+                break
+        return s
+
+    return sizeof(o)
 
 
 def benchmark_pfline(df):
@@ -36,7 +81,7 @@ def benchmark_pfline(df):
             if pfl.kind is pf.Kind.VOLUME_ONLY or pfl.kind is pf.Kind.ALL:
                 df.loc[le, ("single", "access_q", cols)] = timeit(lambda: pfl.q, ru)
                 df.loc[le, ("single", "access_w", cols)] = timeit(lambda: pfl.w, ru)
-            df.loc[le, ("single", "memory_use", cols)] = sys.getsizeof(pfl)
+            df.loc[le, ("single", "memory_use", cols)] = total_size(pfl)
             twochildren = [
                 pf.PfLine(pd.DataFrame({c: np.linspace(1, 1000, le) for c in cols}, i)),
                 pf.PfLine(pd.DataFrame({c: np.linspace(2, 2000, le) for c in cols}, i)),
@@ -50,7 +95,7 @@ def benchmark_pfline(df):
             if pfl.kind is pf.Kind.VOLUME_ONLY or pfl.kind is pf.Kind.ALL:
                 df.loc[le, ("multi10", "access_q", cols)] = timeit(lambda: pfl.q, ru)
                 df.loc[le, ("multi10", "access_w", cols)] = timeit(lambda: pfl.w, ru)
-            df.loc[le, ("multi10", "memory_use", cols)] = sys.getsizeof(pfl)
+            df.loc[le, ("multi10", "memory_use", cols)] = total_size(pfl)
 
 
 def benchmark_pfstate(df):
@@ -78,7 +123,7 @@ def benchmark_pfstate(df):
         df.loc[le, ("pfstate", "access_unsourced", "")] = timeit(
             lambda: pfs.unsourced, ru
         )
-        df.loc[le, ("pfstate", "memory_use", "")] = sys.getsizeof(pfs)
+        df.loc[le, ("pfstate", "memory_use", "")] = total_size(pfs)
 
 
 def timeit(f: Callable, runs: int):
