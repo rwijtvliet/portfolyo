@@ -38,21 +38,23 @@ def _hedge(df: pd.DataFrame, how: str, po: bool) -> pd.Series:
     """
 
     if not po:
-        try:
+        if df.index.freq:
             # Use magnitude only, so that, if w and p are float series, their return
             # series are also floats (instead of dimensionless Quantities).
             df["dur"] = df.index.duration.pint.m
-        except (AttributeError, ValueError):
+        else:
             df["dur"] = 1
 
         # Get single power and price values.
         p_hedge = (df.p * df.dur).sum() / df.dur.sum()
-        if how.lower().startswith("vol"):  # volume hedge
+        if how == "vol":  # volume hedge
             # solve for w_hedge: sum (w * duration) == w_hedge * sum (duration)
             w_hedge = (df.w * df.dur).sum() / df.dur.sum()
-        else:  # value hedge
+        elif how == "val":  # value hedge
             # solve for w_hedge: sum (w * duration * p) == w_hedge * sum (duration * p)
             w_hedge = (df.w * df.dur * df.p).sum() / (df.dur * df.p).sum()
+        else:
+            raise ValueError(f"Parameter `how` must be 'val' or 'vol'; got {how}.")
         return pd.Series({"w": w_hedge, "p": p_hedge})
     else:
         apply_f = lambda df: _hedge(df, how, po=False)  # noqa

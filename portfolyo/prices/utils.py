@@ -44,10 +44,12 @@ def duration_base(
     --------
     .tools.duration
     """
-    if isinstance(ts_left, pd.Timestamp):
-        return tools.duration.stamp(ts_left, freq)
-    else:
-        return tools.duration.index(ts_left, freq)
+    if isinstance(ts_left, pd.DatetimeIndex):
+        hours = (duration_base(ts, freq) for ts in ts_left)  # has unit
+        return pd.Series(hours, ts_left, dtype="pint[h]")
+
+    # Assume it's a single timestamp.
+    return tools.duration.stamp(ts_left, freq)
 
 
 def duration_peak(
@@ -122,6 +124,9 @@ def duration_bpo(
     -------
     Series (if ts_left is Timestamp) or DataFrame (if ts_left is DatetimeIndex).
     """
+    if freq is None and isinstance(ts_left, pd.DatetimeIndex):
+        freq = ts_left.freq
+
     b = duration_base(ts_left, freq)  # quantity or pint-series
     p = duration_peak(ts_left, freq)  # quantity or pint-series
 
