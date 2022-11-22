@@ -26,18 +26,18 @@ def make_pflines(
     # Get everything as PfLine.
     # . Offtake volume.
     offtakevolume = PfLine(offtakevolume)  # force to be PfLine.
-    if offtakevolume.kind is Kind.PRICE_ONLY:
+    if offtakevolume.kind is Kind.PRICE:
         raise ValueError("Parameter ``offtakevolume`` does not contain volume.")
-    elif offtakevolume.kind is Kind.ALL:
+    elif offtakevolume.kind is Kind.COMPLETE:
         warnings.warn(
             "Parameter ``offtakevolume``: also contains price infomation; this is discarded."
         )
         offtakevolume = offtakevolume.volume
     # . Unsourced prices.
     unsourcedprice = PfLine(unsourcedprice)  # force to be PfLine.
-    if unsourcedprice.kind is Kind.VOLUME_ONLY:
+    if unsourcedprice.kind is Kind.VOLUME:
         raise ValueError("Parameter ``unsourcedprice`` does not contain prices.")
-    elif unsourcedprice.kind is Kind.ALL:
+    elif unsourcedprice.kind is Kind.COMPLETE:
         warnings.warn(
             "Parameter ``unsourcedprice``: also contains volume infomation; this is discarded."
         )
@@ -45,7 +45,7 @@ def make_pflines(
     # . Sourced volume and prices.
     if sourced is not None:
         sourced = PfLine(sourced)
-        if sourced.kind is not Kind.ALL:
+        if sourced.kind is not Kind.COMPLETE:
             raise ValueError("Parameter ``sourced`` does not contain price and volume.")
 
     # Check/fix indices.

@@ -57,8 +57,8 @@ def _assert_pfline_kindcompatibility(children: Dict) -> None:
         return  # No compatibility error if all children of same kind.
 
     if (
-        kindcounter[Kind.VOLUME_ONLY] == kindcounter[Kind.PRICE_ONLY] == 1
-        and kindcounter[Kind.ALL] == 0
+        kindcounter[Kind.VOLUME] == kindcounter[Kind.PRICE] == 1
+        and kindcounter[Kind.COMPLETE] == 0
     ):
         return  # Children of distinct can only be combined in this exact setting.
 

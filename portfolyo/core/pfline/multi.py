@@ -51,19 +51,19 @@ class MultiPfLine(PfLine, Mapping):
 
     @property
     def w(self) -> pd.Series:
-        if self.kind in [Kind.VOLUME_ONLY, Kind.ALL]:
+        if self.kind in [Kind.VOLUME, Kind.COMPLETE]:
             return pd.Series(self.q / self.index.duration, name="w").pint.to("MW")
         return pd.Series(np.nan, self.index, name="w", dtype="pint[MW]")
 
     @property
     def q(self) -> pd.Series:
-        if self.kind is Kind.VOLUME_ONLY:
+        if self.kind is Kind.VOLUME:
             # All children have a sensible timeseries for .q
             return sum(child.q for child in self._children.values()).rename("q")
-        elif self.kind is Kind.ALL:
+        elif self.kind is Kind.COMPLETE:
             if (qp_children := self._qp_children) is not None:
                 # One of the children has a sensible timeseries for .q
-                return qp_children[Kind.VOLUME_ONLY].q
+                return qp_children[Kind.VOLUME].q
             # All children have a sensible timeseries for .q
             return sum(child.q for child in self._children.values()).rename("q")
         # No volume available.
@@ -71,13 +71,13 @@ class MultiPfLine(PfLine, Mapping):
 
     @property
     def p(self) -> pd.Series:
-        if self.kind is Kind.PRICE_ONLY:
+        if self.kind is Kind.PRICE:
             # All children have a sensible timeseries for .p
             return sum(child.p for child in self._children.values()).rename("p")
-        elif self.kind is Kind.ALL:
+        elif self.kind is Kind.COMPLETE:
             if (qp_children := self._qp_children) is not None:
                 # One of the children has a sensible timeseries for .p
-                return qp_children[Kind.PRICE_ONLY].p
+                return qp_children[Kind.PRICE].p
             # Price is weighted average of children's prices.
             return pd.Series(self.r / self.q, name="p").pint.to("Eur/MWh")
         # No price available.
@@ -85,13 +85,13 @@ class MultiPfLine(PfLine, Mapping):
 
     @property
     def r(self) -> pd.Series:
-        if self.kind is Kind.REVENUE_ONLY:
+        if self.kind is Kind.REVENUE:
             # All children have a sensible timeseries for .r
             return sum(child.r for child in self._children.values()).rename("r")
-        elif self.kind is Kind.ALL:
+        elif self.kind is Kind.COMPLETE:
             if (qp_children := self._qp_children) is not None:
                 # One of the children has a sensible timeseries for .p and .q
-                q, p = qp_children[Kind.VOLUME_ONLY].q, qp_children[Kind.PRICE_ONLY].p
+                q, p = qp_children[Kind.VOLUME].q, qp_children[Kind.PRICE].p
                 return pd.Series(q * p, name="r").pint.to("Eur")
             # All children have a sensible timeseries for .r
             return sum(child.r for child in self._children.values()).rename("r")
@@ -101,7 +101,7 @@ class MultiPfLine(PfLine, Mapping):
     @property
     def kind(self) -> Kind:
         if self._heterogeneous_children:
-            return Kind.ALL
+            return Kind.COMPLETE
         return next(iter(self._children.values())).kind
 
     def df(
@@ -235,7 +235,7 @@ class MultiPfLine(PfLine, Mapping):
     def _qp_children(self) -> Dict[Kind, PfLine]:
         """Helper method that returns the child providing the volume and the one providing the price."""
         qp_children = {child.kind: child for child in self._children.values()}
-        if Kind.VOLUME_ONLY in qp_children and Kind.PRICE_ONLY in qp_children:
+        if Kind.VOLUME in qp_children and Kind.PRICE in qp_children:
             return qp_children
         else:
             return None

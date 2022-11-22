@@ -43,10 +43,10 @@ if TYPE_CHECKING:
 class Kind(Enum):
     """Enumerate what kind of information (which dimensions) is present in a PfLine."""
 
-    VOLUME_ONLY = "vol"
-    PRICE_ONLY = "pri"
-    REVENUE_ONLY = "rev"
-    ALL = "all"
+    VOLUME = "vol"
+    PRICE = "pri"
+    REVENUE = "rev"
+    COMPLETE = "all"
 
     def __repr__(self):
         return f"<{self.value}>"
@@ -198,14 +198,22 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
     def summable(self) -> str:
         """Which attributes/colums of this PfLine can be added to those of other PfLines
         to get consistent/correct new PfLine."""
-        return {Kind.PRICE_ONLY: "p", Kind.VOLUME_ONLY: "q", Kind.ALL: "qr"}[self.kind]
+        return {
+            Kind.VOLUME: "q",
+            Kind.PRICE: "p",
+            Kind.REVENUE: "r",
+            Kind.COMPLETE: "qr",
+        }[self.kind]
 
     @property
     def available(self) -> str:  # which time series have values
         """Attributes/columns that are available. One of {'wq', 'p', 'wqpr'}."""
-        return {Kind.PRICE_ONLY: "p", Kind.VOLUME_ONLY: "wq", Kind.ALL: "wqpr"}[
-            self.kind
-        ]
+        return {
+            Kind.VOLUME: "wq",
+            Kind.PRICE: "p",
+            Kind.REVENUE: "r",
+            Kind.COMPLETE: "wqpr",
+        }[self.kind]
 
     def flatten(self) -> SinglePfLine:
         """Return flat instance, i.e., without children."""
@@ -235,8 +243,8 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         self, col: str, val: Union[pd.Series, float, int, tools.unit.Q_]
     ) -> SinglePfLine:
         """Set or update a timeseries and return the modified instance.
-        Priorities in case kind is ALL: (1) keep original volumes. If volumes are being
-        updated: (2) keep original prices.
+        Priorities in case kind is ALL: (1) If possible, keep original volumes. (2) If
+        volumes are being updated, keep original prices.
         """
 
         inop = interop.InOp(**{col: val}).to_timeseries(self.index)
@@ -267,7 +275,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
     def set_volume(self, other: PfLine) -> SinglePfLine:
         """Set or update volume information; returns modified (and flattened) instance."""
-        if not isinstance(other, PfLine) or other.kind is not Kind.VOLUME_ONLY:
+        if not isinstance(other, PfLine) or other.kind is not Kind.VOLUME:
             raise ValueError(
                 "Can only set volume equal to a volume-only PfLine. Use .volume to obtain such a PfLine."
             )
@@ -275,7 +283,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
     def set_price(self, other: PfLine) -> SinglePfLine:
         """Set or update price information; returns modified (and flattened) instance."""
-        if not isinstance(other, PfLine) or other.kind is not Kind.PRICE_ONLY:
+        if not isinstance(other, PfLine) or other.kind is not Kind.PRICE:
             raise ValueError(
                 "Can only set price equal to a price-only PfLine. Use .price to obtain such a PfLine."
             )
@@ -283,7 +291,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
     def set_revenue(self, other: PfLine) -> SinglePfLine:
         """Set or update revenue information; returns modified (and flattened) instance."""
-        if not isinstance(other, PfLine) or other.kind is not Kind.REVENUE_ONLY:
+        if not isinstance(other, PfLine) or other.kind is not Kind.REVENUE:
             raise ValueError(
                 "Can only set revenue equal to a revenue-only PfLine. Use .revenue to obtain such a PfLine."
             )
@@ -372,7 +380,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         - If the PfLine contains prices, these are ignored.
         - If ``p`` contains volumes, these are ignored.
         """
-        if self.kind is Kind.PRICE_ONLY:
+        if self.kind is Kind.PRICE:
             raise ValueError(
                 "Cannot hedge a PfLine that does not contain volume information."
             )

@@ -1,14 +1,15 @@
 """Test initialisation of PfLine, SinglePfLine, and MultiPfLine."""
 
+import random
 from dataclasses import dataclass
 from enum import Enum
-import random
 from typing import Any, Iterable
 
-import portfolyo as pf
 import pandas as pd
-from portfolyo import dev, Kind, PfLine, SinglePfLine, MultiPfLine
 import pytest
+
+import portfolyo as pf
+from portfolyo import Kind, MultiPfLine, PfLine, SinglePfLine, dev
 
 
 @dataclass
@@ -88,11 +89,11 @@ def get_testcase_A(
 
     # Checks.
     if columns in ["w", "q"]:
-        kind = Kind.VOLUME_ONLY
+        kind = Kind.VOLUME
     elif columns in ["p"]:
-        kind = Kind.PRICE_ONLY
+        kind = Kind.PRICE
     else:
-        kind = Kind.ALL
+        kind = Kind.COMPLETE
 
     return InitTestcase(data_in, df, kind)
 
@@ -123,9 +124,9 @@ def get_testcase_B(
         has_unit = inputtype is InputTypeB.MULTILEVELDF_UNIT
         data_in = {}
         for c in range(3):
-            if kind is Kind.PRICE_ONLY:
+            if kind is Kind.PRICE:
                 columns = "p"
-            elif kind is Kind.VOLUME_ONLY:
+            elif kind is Kind.VOLUME:
                 columns = random.choice(("w", "q"))
             else:
                 columns = random.choice(["wp", "wr", "qp", "qr", "pr"])
@@ -135,7 +136,7 @@ def get_testcase_B(
 
     elif inputtype in [InputTypeB.DICTINITIABLE_NOUNIT, InputTypeB.DICTINITIABLE_UNIT]:
         has_unit = inputtype is InputTypeB.DICTINITIABLE_UNIT
-        columns = {Kind.PRICE_ONLY: "p", Kind.VOLUME_ONLY: "w", Kind.ALL: "wp"}[kind]
+        columns = {Kind.PRICE: "p", Kind.VOLUME: "w", Kind.COMPLETE: "wp"}[kind]
         data_in = pd.concat(
             [
                 dev.get_dataframe(i, columns, has_unit),

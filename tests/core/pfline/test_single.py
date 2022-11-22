@@ -1,8 +1,8 @@
-from portfolyo import testing, dev, SinglePfLine, MultiPfLine, FREQUENCIES, Kind  # noqa
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
 
+from portfolyo import FREQUENCIES, Kind, MultiPfLine, SinglePfLine, dev, testing  # noqa
 
 # @dataclass
 # class InteropTestObject:
@@ -112,11 +112,11 @@ def test_singlepfline_asfreqcorrect2(freq, newfreq, columns, tz):
     pfl2 = pfl1.asfreq(newfreq)
 
     # Compare the dataframes, only keep time intervals that are in both objects.
-    if pfl1.kind is Kind.PRICE_ONLY:
+    if pfl1.kind is Kind.PRICE:
         df1, df2 = pfl1.p * pfl1.index.duration, pfl2.p * pfl2.index.duration
     else:
         cols = ["q"]
-        if pfl1.kind is Kind.ALL:
+        if pfl1.kind is Kind.COMPLETE:
             cols.append("r")
         df1, df2 = pfl1.df()[cols], pfl2.df()[cols]
 
@@ -132,7 +132,7 @@ def test_singlepfline_asfreqcorrect2(freq, newfreq, columns, tz):
 
 @pytest.mark.parametrize("freq", ["15T", "H", "D"])
 @pytest.mark.parametrize("newfreq", ["MS", "QS", "AS"])
-@pytest.mark.parametrize("kind", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY])
+@pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
 def test_singlepfline_asfreqimpossible(freq, newfreq, kind):
     """Test if changing frequency raises error if it's impossible."""
 
@@ -143,7 +143,7 @@ def test_singlepfline_asfreqimpossible(freq, newfreq, kind):
         _ = pfl.asfreq(newfreq)
 
 
-@pytest.mark.parametrize("kind", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY])
+@pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
 @pytest.mark.parametrize("col", ["w", "q", "p", "r"])
 def test_singlepfline_setseries(kind, col):
     """Test if series can be set on existing pfline."""
@@ -151,7 +151,7 @@ def test_singlepfline_setseries(kind, col):
     pfl_in = dev.get_singlepfline(kind=kind)
     s = dev.get_series(pfl_in.index, col)
 
-    if kind is Kind.ALL and col == "r":  # Expecting error
+    if kind is Kind.COMPLETE and col == "r":  # Expecting error
         with pytest.raises(NotImplementedError):
             _ = pfl_in.set_r(s)
         return
@@ -159,10 +159,10 @@ def test_singlepfline_setseries(kind, col):
     result = getattr(pfl_in, f"set_{col}")(s)
     testing.assert_series_equal(getattr(result, col), s)
     assert col in result.available
-    if kind is Kind.VOLUME_ONLY and col in ["w", "q"]:
-        expectedkind = Kind.VOLUME_ONLY
-    elif kind is Kind.PRICE_ONLY and col == "p":
-        expectedkind = Kind.PRICE_ONLY
+    if kind is Kind.VOLUME and col in ["w", "q"]:
+        expectedkind = Kind.VOLUME
+    elif kind is Kind.PRICE and col == "p":
+        expectedkind = Kind.PRICE
     else:
-        expectedkind = Kind.ALL
+        expectedkind = Kind.COMPLETE
     assert result.kind is expectedkind

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-
-from . import base, single, multi, interop
-from .base import Kind
-
-from typing import TYPE_CHECKING
-import pandas as pd
 import warnings
+from typing import TYPE_CHECKING
+
+import pandas as pd
+
+from . import base, interop, multi, single
+from .base import Kind
 
 if TYPE_CHECKING:  # needed to avoid circular imports
     from .base import PfLine
@@ -95,7 +95,7 @@ def _add_pflines(pfl1: PfLine, pfl2: PfLine):
 @_assert_freq_compatibility
 def _multiply_pflines(pfl1: PfLine, pfl2: PfLine):
     """Multiply two pflines."""
-    if set([pfl1.kind, pfl2.kind]) != {Kind.PRICE_ONLY, Kind.VOLUME_ONLY}:
+    if set([pfl1.kind, pfl2.kind]) != {Kind.PRICE, Kind.VOLUME}:
         raise NotImplementedError("Can only multiply volume with price information.")
 
     if isinstance(pfl1, multi.MultiPfLine) or isinstance(pfl2, multi.MultiPfLine):
@@ -104,7 +104,7 @@ def _multiply_pflines(pfl1: PfLine, pfl2: PfLine):
             PfLineFlattenedWarning,
         )
 
-    if pfl1.kind is Kind.PRICE_ONLY:
+    if pfl1.kind is Kind.PRICE:
         data = {"q": pfl2.q, "p": pfl1.p}
     else:  # pfl1.kind is Kind.VOLUME_ONLY:
         data = {"q": pfl1.q, "p": pfl2.p}
@@ -125,7 +125,7 @@ def _multiply_pfline_and_dimensionlessseries(pfl: PfLine, s: pd.Series):
 @_assert_freq_compatibility
 def _divide_pflines(pfl1: PfLine, pfl2: PfLine) -> pd.Series:
     """Divide two pflines."""
-    if pfl1.kind is not pfl2.kind or pfl1.kind is Kind.ALL:
+    if pfl1.kind is not pfl2.kind or pfl1.kind is Kind.COMPLETE:
         raise NotImplementedError(
             "Can only divide portfolio lines if both contain price-only or both contain volume-only information."
         )
@@ -135,7 +135,7 @@ def _divide_pflines(pfl1: PfLine, pfl2: PfLine) -> pd.Series:
             PfLineFlattenedWarning,
         )
 
-    if pfl1.kind is Kind.PRICE_ONLY:
+    if pfl1.kind is Kind.PRICE:
         s = pfl1.p / pfl2.p
     else:  # self.kind is Kind.VOlUME_ONLY
         s = pfl1.q / pfl2.q
@@ -157,7 +157,7 @@ class PfLineArithmatic:
 
     def __add__(self: PfLine, other) -> PfLine:
         # interpret dim-agnostic 'other' as price
-        default = "p" if self.kind is Kind.PRICE_ONLY else None
+        default = "p" if self.kind is Kind.PRICE else None
         other = interop.pfline_or_nodimseries(other, self.index, default)
 
         # other is now None, a PfLine, or dimless Series.
@@ -173,7 +173,7 @@ class PfLineArithmatic:
 
     def __sub__(self: PfLine, other):
         # interpret non-zero, dim-agnostic 'other' as price
-        default = "p" if self.kind is Kind.PRICE_ONLY else None
+        default = "p" if self.kind is Kind.PRICE else None
         other = interop.pfline_or_nodimseries(other, self.index, default)
 
         # other is now None, a PfLine, or dimless Series.

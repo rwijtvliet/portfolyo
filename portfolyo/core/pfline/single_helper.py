@@ -17,9 +17,9 @@ def make_dataframe(data) -> pd.DataFrame:
     if isinstance(data, base.PfLine):
         # return data.flatten()._df  <-- don't use, causes infinite recursion due to __init__ calls.
         # Works for SinglePfLine and MultiPfLine.
-        if data.kind is Kind.VOLUME_ONLY:
+        if data.kind is Kind.VOLUME:
             return pd.DataFrame({"q": data.q})
-        elif data.kind is Kind.PRICE_ONLY:
+        elif data.kind is Kind.PRICE:
             return pd.DataFrame({"p": data.p})
         else:  # data.kind == 'all'
             return pd.DataFrame({"q": data.q, "r": data.r})

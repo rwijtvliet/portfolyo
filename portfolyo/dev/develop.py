@@ -123,17 +123,17 @@ def get_dataframe(
 
 
 def get_singlepfline(
-    i: pd.DatetimeIndex = None, kind: Kind = Kind.ALL, *, _random: bool = True
+    i: pd.DatetimeIndex = None, kind: Kind = Kind.COMPLETE, *, _random: bool = True
 ) -> SinglePfLine:
     """Get single portfolio line, i.e. without children."""
     if not isinstance(kind, Kind):
         kind = Kind(kind)
-    columns = {Kind.VOLUME_ONLY: "q", Kind.PRICE_ONLY: "p", Kind.ALL: "qr"}[kind]
+    columns = {Kind.VOLUME: "q", Kind.PRICE: "p", Kind.COMPLETE: "qr"}[kind]
     return SinglePfLine(get_dataframe(i, columns))
 
 
 def get_multipfline(
-    i: pd.DatetimeIndex = None, kind: Kind = Kind.ALL, *, _random: bool = True
+    i: pd.DatetimeIndex = None, kind: Kind = Kind.COMPLETE, *, _random: bool = True
 ) -> MultiPfLine:
     """Get multi portfolio line. With 2 (singlepfline) children of the same ``kind``."""
     if not isinstance(kind, Kind):
@@ -150,7 +150,7 @@ def get_multipfline(
 
 def get_pfline(
     i: pd.DatetimeIndex = None,
-    kind: Kind = Kind.ALL,
+    kind: Kind = Kind.COMPLETE,
     max_nlevels: int = 3,
     childcount: int = 2,
     prefix: str = "",
@@ -171,8 +171,8 @@ def get_pfline(
     if nlevels == 0:
         return get_singlepfline(i, kind, _random=_random)
     # Gather information.
-    if childcount == 2 and kind is Kind.ALL and np.random.rand() < 0.33:
-        kinds = [Kind.PRICE_ONLY, Kind.VOLUME_ONLY]
+    if childcount == 2 and kind is Kind.COMPLETE and np.random.rand() < 0.33:
+        kinds = [Kind.PRICE, Kind.VOLUME]
     else:
         kinds = [kind] * childcount
     # Create multi PfLine.

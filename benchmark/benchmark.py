@@ -78,7 +78,7 @@ def benchmark_pfline(df):
             other = pf.PfLine(data + 1)
             df.loc[le, ("single", "pfl+pfl", cols)] = timeit(lambda: pfl + other, ru)
             df.loc[le, ("single", "pfl*const", cols)] = timeit(lambda: pfl * 2, ru)
-            if pfl.kind is pf.Kind.VOLUME_ONLY or pfl.kind is pf.Kind.ALL:
+            if pfl.kind is pf.Kind.VOLUME or pfl.kind is pf.Kind.COMPLETE:
                 df.loc[le, ("single", "access_q", cols)] = timeit(lambda: pfl.q, ru)
                 df.loc[le, ("single", "access_w", cols)] = timeit(lambda: pfl.w, ru)
             df.loc[le, ("single", "memory_use", cols)] = total_size(pfl)
@@ -92,7 +92,7 @@ def benchmark_pfline(df):
             )
             pfl = pf.PfLine(children)
             df.loc[le, ("multi10", "to_str", cols)] = timeit(lambda: str(pfl), ru)
-            if pfl.kind is pf.Kind.VOLUME_ONLY or pfl.kind is pf.Kind.ALL:
+            if pfl.kind is pf.Kind.VOLUME or pfl.kind is pf.Kind.COMPLETE:
                 df.loc[le, ("multi10", "access_q", cols)] = timeit(lambda: pfl.q, ru)
                 df.loc[le, ("multi10", "access_w", cols)] = timeit(lambda: pfl.w, ru)
             df.loc[le, ("multi10", "memory_use", cols)] = total_size(pfl)

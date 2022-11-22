@@ -56,9 +56,9 @@ def _df_with_strindex(df: pd.DataFrame, num_of_ts: int):
 
 def _what(pfl: PfLine) -> str:
     return {
-        pfline.Kind.PRICE_ONLY: "price",
-        pfline.Kind.VOLUME_ONLY: "volume",
-        pfline.Kind.ALL: "price and volume",
+        pfline.Kind.PRICE: "price",
+        pfline.Kind.VOLUME: "volume",
+        pfline.Kind.COMPLETE: "price and volume",
     }[pfl.kind]
 
 

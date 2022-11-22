@@ -60,27 +60,27 @@ class SinglePfLine(PfLine):
 
     @property
     def w(self) -> pd.Series:
-        if self.kind in [Kind.VOLUME_ONLY, Kind.ALL]:
+        if self.kind in [Kind.VOLUME, Kind.COMPLETE]:
             return pd.Series(self.q / self.index.duration, name="w").pint.to("MW")
         return pd.Series(np.nan, self.index, name="w", dtype="pint[MW]")
 
     @property
     def q(self) -> pd.Series:
-        if self.kind in [Kind.VOLUME_ONLY, Kind.ALL]:
+        if self.kind in [Kind.VOLUME, Kind.COMPLETE]:
             return self._df["q"]
         return pd.Series(np.nan, self.index, name="q", dtype="pint[MWh]")
 
     @property
     def p(self) -> pd.Series:
-        if self.kind is Kind.PRICE_ONLY:
+        if self.kind is Kind.PRICE:
             return self._df["p"]
-        elif self.kind is Kind.ALL:
+        elif self.kind is Kind.COMPLETE:
             return pd.Series(self.r / self.q, name="p").pint.to("Eur/MWh")
         return pd.Series(np.nan, self.index, name="p", dtype="pint[Eur/MWh]")
 
     @property
     def r(self) -> pd.Series:
-        if self.kind in [Kind.REVENUE_ONLY, Kind.ALL]:
+        if self.kind in [Kind.REVENUE, Kind.COMPLETE]:
             return self._df["r"]
         return pd.Series(np.nan, self.index, name="r", dtype="pint[Eur]")
 
@@ -88,13 +88,13 @@ class SinglePfLine(PfLine):
     def kind(self) -> Kind:
         has_q, has_p, has_r = (col in self._df for col in "qpr")
         if has_q and not has_p and not has_r:
-            return Kind.VOLUME_ONLY
+            return Kind.VOLUME
         if not has_q and has_p and not has_r:
-            return Kind.PRICE_ONLY
+            return Kind.PRICE
         if not has_q and not has_p and has_r:
-            return Kind.REVENUE_ONLY
+            return Kind.REVENUE
         if has_q and not has_p and has_r:
-            return Kind.ALL
+            return Kind.COMPLETE
         raise ValueError(f"Unexpected columns for ._df: {self._df.columns}.")
 
     def df(
@@ -109,9 +109,9 @@ class SinglePfLine(PfLine):
         return pd.DataFrame(series)
 
     def asfreq(self, freq: str = "MS") -> SinglePfLine:
-        if self.kind is Kind.PRICE_ONLY:
+        if self.kind is Kind.PRICE:
             df = tools.changefreq.averagable(self.df("p"), freq)
-        elif self.kind is Kind.VOLUME_ONLY:
+        elif self.kind is Kind.VOLUME:
             df = tools.changefreq.summable(self.df("q"), freq)
         else:  # self.kind is Kind.ALL
             df = tools.changefreq.summable(self.df("qr"), freq)
@@ -124,9 +124,9 @@ class SinglePfLine(PfLine):
                 " details (number of holidays, weekends, offpeak hours, etc) cannot be taken into account."
             )
         # Use averageble data, which is necessary for mapping months (or longer) of unequal length (leap years).
-        if self.kind is Kind.PRICE_ONLY:
+        if self.kind is Kind.PRICE:
             df = self.df("p")
-        elif self.kind is Kind.VOLUME_ONLY:
+        elif self.kind is Kind.VOLUME:
             df = self.df("w")
         else:  # self.kind is Kind.ALL
             df = self.df("wp")
@@ -150,9 +150,9 @@ class SinglePfLine(PfLine):
 
     def __bool__(self) -> bool:
         # False if all relevant timeseries are 0.
-        if self.kind is Kind.PRICE_ONLY:
+        if self.kind is Kind.PRICE:
             return not np.allclose(self.p.pint.magnitude, 0)
-        elif self.kind is Kind.VOLUME_ONLY:
+        elif self.kind is Kind.VOLUME:
             return not np.allclose(self.w.pint.magnitude, 0)
         else:  # kind is Kind.ALL
             return not (

@@ -2,14 +2,15 @@ from typing import Any, Mapping
 
 import pandas as pd
 import pytest
+
 from portfolyo import Kind, dev, testing, tools
 from portfolyo.core.pfline import multi_helper
 
 
 @pytest.mark.parametrize("freq", ["MS", "D"])
-@pytest.mark.parametrize("kind1", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY])
-@pytest.mark.parametrize("kind2", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY, None])
-@pytest.mark.parametrize("kind3", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY, None])
+@pytest.mark.parametrize("kind1", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
+@pytest.mark.parametrize("kind2", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE, None])
+@pytest.mark.parametrize("kind3", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE, None])
 def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
     """Test if conversions are done correctly and inconsistent kind raises error."""
 
@@ -26,7 +27,7 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
 
     elif len(dic) == 2:
         kset = set(kinds)
-        if len(kset) != 1 and kset != set([Kind.PRICE_ONLY, Kind.VOLUME_ONLY]):
+        if len(kset) != 1 and kset != set([Kind.PRICE, Kind.VOLUME]):
             # Can only combine 2 pflines if they have the same kind or are 'q' and 'p'
             with pytest.raises(ValueError):
                 _ = multi_helper.verify_and_trim_dict(dic)
