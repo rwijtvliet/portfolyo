@@ -41,6 +41,13 @@ Installation
    pip install portfolyo
 
 
+NB: this package is under active development and the API will change without prior notice. To ensure your code will continue to work, pin the version number that you install:
+
+.. code-block:: bash
+
+   pip install portfolyo==x.x.x
+
+
 --------
 Contents
 --------

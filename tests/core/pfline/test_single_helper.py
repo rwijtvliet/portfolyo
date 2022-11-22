@@ -1,5 +1,7 @@
+import numpy as np
 import pandas as pd
 import pytest
+
 from portfolyo import dev, testing, tools
 from portfolyo.core.pfline import single_helper
 from portfolyo.tools.unit import Q_
@@ -11,17 +13,17 @@ def assert_w_q_compatible(freq, w, q):
     elif freq == "H":
         testing.assert_series_equal(q, w * Q_(1, "h"), check_names=False)
     elif freq == "D":
-        assert (q > w * Q_(22.99, "h")).all()
-        assert (q < w * Q_(25.01, "h")).all()
+        assert (q >= w * Q_(22.99, "h")).all()
+        assert (q <= w * Q_(25.01, "h")).all()
     elif freq == "MS":
-        assert (q > w * 27 * Q_(24, "h")).all()
-        assert (q < w * 32 * Q_(24, "h")).all()
+        assert (q >= w * 27 * Q_(24, "h")).all()
+        assert (q <= w * 32 * Q_(24, "h")).all()
     elif freq == "QS":
-        assert (q > w * 89 * Q_(24, "h")).all()
-        assert (q < w * 93 * Q_(24, "h")).all()
+        assert (q >= w * 89 * Q_(24, "h")).all()
+        assert (q <= w * 93 * Q_(24, "h")).all()
     elif freq == "AS":
-        assert (q > w * Q_(8759.9, "h")).all()
-        assert (q < w * Q_(8784.1, "h")).all()
+        assert (q >= w * Q_(8759.9, "h")).all()
+        assert (q <= w * Q_(8784.1, "h")).all()
     else:
         raise ValueError("Uncaught value for freq: {freq}.")
 
@@ -82,7 +84,7 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
     df = dev.get_dataframe(i, columns)
     dic = {key: df[key] for key in columns}
 
-    if columns in ["r", "wq", "wqp", "wqr", "wpr", "qpr", "wqpr"]:  # error cases
+    if columns in ["wq", "wqp", "wqr", "wpr", "qpr", "wqpr"]:  # error cases
         with pytest.raises(ValueError):
             if inputtype == "dict":
                 _ = single_helper.make_dataframe(dic)
@@ -96,17 +98,19 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
     else:
         result = single_helper.make_dataframe(df)
 
-    # Expected result.
-    expected = df.rename_axis("ts_left")
+    # Expected result and testing.
+    df = df.rename_axis("ts_left")
     if columns == "p":  # kind is Kind.PRICE_ONLY
         expected = df[["p"]]
+        testing.assert_frame_equal(result, expected)
 
     elif columns in ["q", "w"]:  # kind is Kind.VOLUME_ONLY
         if columns == "w":
             df["q"] = df.w * df.w.index.duration
         expected = df[["q"]]
+        testing.assert_frame_equal(result, expected)
 
-    elif columns in ["pr", "qp", "wp", "qr", "wr"]:  # kind is Kind.ALL
+    elif columns in ["pr", "qp", "wp", "qr", "wr", "r"]:  # kind is Kind.ALL
         # fill dataframe first.
         if columns == "wp":
             df["q"] = df.w * df.w.index.duration
@@ -124,15 +128,21 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
             df["q"] = df.w * df.w.index.duration
             df["p"] = df.r / df.q
 
-        else:
+        elif columns == "qr":
             df["p"] = df.r / df.q
             df["w"] = df.q / df.index.duration
 
-        assert_p_q_r_compatible(result.r, df.p, result.q)
-        assert_w_q_compatible(freq, df.w, result.q)
-        expected = df[["q", "r"]].dropna()
+        elif columns == "r":
+            df["w"] = pd.Series(0, df.index, "pint[MW]")
+            df["q"] = pd.Series(0, df.index, "pint[MWh]")
+            df["p"] = pd.Series(np.nan, df.index, "pint[Eur/MWh]")
 
-    testing.assert_frame_equal(result, expected)
+        # Ensure we will be expecting the correct values.
+        assert_w_q_compatible(freq, df.w, result.q)
+        if columns != "r":
+            assert_p_q_r_compatible(result.r, df.p, result.q)
+        expected = df[["q", "r"]].dropna()
+        testing.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("freq1", ["15T", "D", "MS", "QS"])  # don't do all - many!

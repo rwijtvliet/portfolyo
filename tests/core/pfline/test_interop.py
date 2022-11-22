@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from pint import DimensionalityError, UndefinedUnitError
+
 from portfolyo.core.pfline import interop as io
 from portfolyo.tools.unit import Q_
 
@@ -41,11 +42,7 @@ def id_fn(data):
     [
         # One value
         # . unit-agnostic
-        (
-            23.0,
-            io.InOp(agn=23.0),
-            ValueError,
-        ),
+        (23.0, io.InOp(agn=23.0), ValueError),
         # . unitless
         (
             Q_(23.0, ""),

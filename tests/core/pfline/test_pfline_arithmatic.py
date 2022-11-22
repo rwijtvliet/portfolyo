@@ -301,6 +301,9 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         (i, Kind.ALL, {"nodim": 5.9}, Exception, None),
         (i, Kind.ALL, {"nodim": Q_(5.9, "")}, Exception, None),
         # . Add other 'all' pfline.
+        (i, Kind.ALL, Q_(6.0, "Eur"), SinglePfLine, Kind.ALL),
+        (i, Kind.ALL, dev.get_series(i, "r", _random=False), SinglePfLine, Kind.ALL),
+        (i, Kind.ALL, dev.get_dataframe(i, "r", _random=False), SinglePfLine, Kind.ALL),
         (
             i,
             Kind.ALL,
@@ -337,17 +340,14 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
             Kind.ALL,
         ),
         # . Add something else.
-        (i, Kind.ALL, Q_(6.0, "Eur"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "Eur/MWh"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "MW"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "MWh"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "h"), Exception, None),
         (i, Kind.ALL, dev.get_series(i, "p", _random=False), Exception, None),
-        (i, Kind.ALL, dev.get_series(i, "r", _random=False), Exception, None),
         (i, Kind.ALL, dev.get_series(i, "q", _random=False), Exception, None),
         (i, Kind.ALL, dev.get_series(i, "w", _random=False), Exception, None),
         (i, Kind.ALL, dev.get_dataframe(i, "p", _random=False), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "r", _random=False), Exception, None),
         (i, Kind.ALL, dev.get_dataframe(i, "q", _random=False), Exception, None),
         (i, Kind.ALL, dev.get_dataframe(i, "w", _random=False), Exception, None),
         (i, Kind.ALL, dev.get_dataframe(i, "wq", _random=False), Exception, None),
@@ -1523,8 +1523,8 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset1[Kind.PRICE_ONLY],
             Q_(4, "Eur"),
-            ValueError,
-            ValueError,
+            Exception,
+            Exception,
         ),
         # . Dim-agnostic or dimless series.
         (
