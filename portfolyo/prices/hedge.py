@@ -38,11 +38,11 @@ def _hedge(df: pd.DataFrame, how: str, po: bool) -> pd.Series:
     """
 
     if not po:
-        try:
+        if df.index.freq:
             # Use magnitude only, so that, if w and p are float series, their return
             # series are also floats (instead of dimensionless Quantities).
             df["dur"] = df.index.duration.pint.m
-        except (AttributeError, ValueError):
+        else:
             df["dur"] = 1
 
         # Get single power and price values.
