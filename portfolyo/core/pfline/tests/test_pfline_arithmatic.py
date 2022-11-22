@@ -1,8 +1,10 @@
-from portfolyo import PfLine, SinglePfLine, MultiPfLine, Q_, dev, testing, Kind  # noqa
-from typing import Dict, Any
-import portfolyo as pf
+from typing import Any, Dict
+
 import pandas as pd
 import pytest
+
+import portfolyo as pf
+from portfolyo import Q_, Kind, MultiPfLine, PfLine, SinglePfLine, dev, testing  # noqa
 
 # TODO: Multipfline
 # TODO: various timezones
@@ -211,23 +213,23 @@ i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
         (i, Kind.ALL, {"nodim": 5.9}, Exception, None),
         (i, Kind.ALL, {"nodim": Q_(5.9, "")}, Exception, None),
         # . Add other 'all' pfline.
+        (i, Kind.ALL, Q_(6.0, "Eur"), SinglePfLine, Kind.ALL),
+        (i, Kind.ALL, dev.get_series(i, "r"), SinglePfLine, Kind.ALL),
+        (i, Kind.ALL, dev.get_dataframe(i, "r"), SinglePfLine, Kind.ALL),
         (i, Kind.ALL, dev.get_dataframe(i, "qr"), SinglePfLine, Kind.ALL),
         (i, Kind.ALL, dev.get_dataframe(i, "qp"), SinglePfLine, Kind.ALL),
         (i, Kind.ALL, dev.get_dataframe(i, "pr"), SinglePfLine, Kind.ALL),
         (i, Kind.ALL, dev.get_singlepfline(i, Kind.ALL), SinglePfLine, Kind.ALL),
         (i, Kind.ALL, dev.get_multipfline(i, Kind.ALL), PfLine, Kind.ALL),
         # . Add something else.
-        (i, Kind.ALL, Q_(6.0, "Eur"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "Eur/MWh"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "MW"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "MWh"), Exception, None),
         (i, Kind.ALL, Q_(6.0, "h"), Exception, None),
         (i, Kind.ALL, dev.get_series(i, "p"), Exception, None),
-        (i, Kind.ALL, dev.get_series(i, "r"), Exception, None),
         (i, Kind.ALL, dev.get_series(i, "q"), Exception, None),
         (i, Kind.ALL, dev.get_series(i, "w"), Exception, None),
         (i, Kind.ALL, dev.get_dataframe(i, "p"), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "r"), Exception, None),
         (i, Kind.ALL, dev.get_dataframe(i, "q"), Exception, None),
         (i, Kind.ALL, dev.get_dataframe(i, "w"), Exception, None),
         (i, Kind.ALL, dev.get_dataframe(i, "wq"), Exception, None),
@@ -1366,8 +1368,8 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset1[Kind.PRICE_ONLY],
             Q_(4, "Eur"),
-            ValueError,
-            ValueError,
+            Exception,
+            Exception,
         ),
         # . Dim-agnostic or dimless series.
         (

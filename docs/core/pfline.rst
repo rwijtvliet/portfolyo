@@ -40,6 +40,8 @@ An important characteristic of a portfolio line is its "kind". The property ``Pf
 
   For each timestamp we have a volume (the contracted volume, both as energy and as power), a price (for which the volume was contracted) and a revenue (i.e., the multiplication of the energy and the price). 
 
+  Revenue-only information, e.g. cash flows related to financially settled options, are stored as this kind of portfolio line as well, but with a volume of 0 in each delivery period.
+
 Under the hood, not all information that can be retrieved by the user is stored; redundant information is discarded and recalculated whenever necessary. For the volume, for example, only the energy is stored. The power can be calculated by dividing the energy (in MWh) by the duration of the timestamp (in h).
 
 --------------
@@ -340,7 +342,7 @@ Kind of portfolio line                            Price-only                Volu
 ``-PfLine`` (negation)                            ✅ c1_                     ✅ c1_                     ✅ c1_                 
 ``PfLine ± float``                                ✅ p_                      ❌                         ❌                   
 ``PfLine ± price``                                ✅ c2_                     ❌                         ❌                   
-``PfLine ± volume``                               ❌                         ✅ c2_                     ❌                   
+``PfLine ± volume``                               ❌                         ✅ c2_                     ❌                                
 ``PfLine ± price-and-volume``                     ❌                         ❌                         ✅ c2_                 
 ``PfLine * float``                                ✅ c1_                     ✅ c1_                     ✅ c1_                 
 ``PfLine * price``                                ❌                         ✅ pv_                     ❌                   
