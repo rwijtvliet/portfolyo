@@ -2,6 +2,6 @@
 numpy==1.23.2
 pandas==1.4.1
 matplotlib==3.5.3
-pint==0.19
+pint<=0.19.2
 pint-pandas
 colorama
