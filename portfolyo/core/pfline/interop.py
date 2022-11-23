@@ -18,11 +18,31 @@ if TYPE_CHECKING:  # needed to avoid circular imports
 _ATTRIBUTES = ("w", "q", "p", "r", "nodim", "agn")
 
 
-@dataclass
+@dataclass(frozen=True)
 class InOp:
     """Class to check increase interoperability. Tries to extract power (w), energy (q),
     price (p), revenue (r), adimensional (nodim) and dim-agnostic (agn) information from
-    the provided data; initially without checking for consistency."""
+    the provided data.
+
+    Typical usage:
+
+    . Initialisation:
+        inop = Inop(w=..., q=..., ...)
+    or
+        inop = Inop.from_data(...)
+
+    . Turn all into timeseries:
+        inop = inop.to_timeseries()
+
+    . Assign unit-agnostic to unit-specific:
+        inop = inop.assign_agn('p')
+
+    . Fill the missing attributes as much as possible:
+        inop = inop.finalize()
+
+    . And finally, return as dataframe with columns 'w', 'q', 'p', 'r', 'nodim'
+        inop = inop.to_df()
+    """
 
     w: Union[tools.unit.Q_, pd.Series] = None
     q: Union[tools.unit.Q_, pd.Series] = None
@@ -33,23 +53,23 @@ class InOp:
 
     def __post_init__(self):
         # Add correct units and check type.
-        self.w = _set_unit(self.w, "w")
-        self.q = _set_unit(self.q, "q")
-        self.p = _set_unit(self.p, "p")
-        self.r = _set_unit(self.r, "r")
-        self.nodim = _set_unit(self.nodim, "nodim")
-        self.agn = _set_unit(self.agn, None)
+        object.__setattr__(self, "w", _set_unit(self.w, "w"))
+        object.__setattr__(self, "q", _set_unit(self.q, "q"))
+        object.__setattr__(self, "p", _set_unit(self.p, "p"))
+        object.__setattr__(self, "r", _set_unit(self.r, "r"))
+        object.__setattr__(self, "nodim", _set_unit(self.nodim, "nodim"))
+        object.__setattr__(self, "agn", _set_unit(self.agn, None))
 
     @classmethod
     def from_data(cls, data):
         return _from_data(data)
 
-    def to_timeseries(self, index=None):
+    def to_timeseries(self, ref_index=None) -> InOp:
         """Turn all values into timeseries or None. If none of the attributes is a
-        timeseries, and no ``index`` is provided, raise Error. If >1 is a timeseries,
+        timeseries, and no ``ref_index`` is provided, raise Error. If >1 is a timeseries,
         store only the timestamps where they overlap (i.e., intersection)."""
         # Get index.
-        indices = [] if index is None else [index]
+        indices = [] if ref_index is None else [ref_index]
         for attr in _ATTRIBUTES:
             if isinstance(val := getattr(self, attr), pd.Series):
                 indices.append(val.index)
@@ -65,12 +85,13 @@ class InOp:
             elif isinstance(val, pd.Series):
                 kwargs[attr] = val.loc[index]
             elif isinstance(val, tools.unit.Q_):
-                kwargs[attr] = pd.Series(val.m, index, dtype=f"pint[{val.units:P}]")
+                kwargs[attr] = pd.Series(val.m, index, dtype=f"pint[{val.units:~P}]")
             else:  # float
                 kwargs[attr] = pd.Series(val, index)
+        # Return as new InOp instance.
         return InOp(**kwargs)
 
-    def assign_agn(self, da: str = None):
+    def assign_agn(self, da: str = None) -> InOp:
         """Set dimension-agnostic part as specific dimension (unless it's None)."""
         if self.agn is None or da is None:
             return self
@@ -78,26 +99,109 @@ class InOp:
         # return InOp(**{**{a: getattr(self, a) for a in keep}, da: self.agn})
         return self.drop("agn") | InOp(**{da: self.agn})
 
-    def drop(self, da: str):
+    def drop(self, da: str) -> InOp:
         """Drop part of the information and return new InOp object."""
         return InOp(**{attr: getattr(self, attr) for attr in _ATTRIBUTES if attr != da})
 
-    def __bool__(self):
+    def finalize(self) -> InOp:
+        """Fill as much of the data as possible. All data must be None or timeseries, and
+        self.agn must have been assigned (or dropped)."""
+
+        self._assert_noagn_and_all_timeseries()
+
+        # If we land here, there is no self.agn, and all other attributes are timeseries (or None).
+
+        w, q, p, r, nodim = self.w, self.q, self.p, self.r, self.nodim
+
+        # Volumes.
+        if w is not None and q is not None:
+            testing.assert_series_equal(w, q / q.index.duration, check_names=False)
+        elif w is not None and q is None:
+            q = w * w.index.duration
+        elif w is None and q is not None:
+            w = q / q.index.duration
+        elif w is None and q is None and p is not None and r is not None:
+            q = r / p
+            w = q / q.index.duration
+
+        # If we land here, there are no more options to find w and q.
+        # They are consistent with each other but might be inconsistent with p and r.
+
+        # Price.
+        if p is None and q is not None and r is not None:
+            p = r / q
+
+        # If we land here, there are no more options to find p.
+        # It may be inconsistent with w, q and r.
+
+        # Revenue.
+        if r is None and q is not None and p is not None:
+            r = q * p
+
+        # If we land here, there are no more options to find r.
+        # It may be inconsistent with w, q and p.
+
+        # Consistency.
+        if q is not None and p is not None and r is not None:
+            testing.assert_series_equal(r, q * p)
+
+        return InOp(w=w, q=q, p=p, r=r, nodim=nodim)
+
+    def to_df(self) -> pd.DataFrame:
+        """Create dataframe with (at most) columns w, q, p, r, nodim. All data must be
+        None or timeseries, and self.agn must have been assigned (or dropped). Also, you'll
+        probably want to have `.finalize()`d the object."""
+
+        self._assert_noagn_and_all_timeseries()
+
+        # If we land here, there is no self.agn, and all other attributes are timeseries (or None).
+
+        series = {}
+        for attr in _ATTRIBUTES:
+            val = getattr(self, attr)
+            if val is None:
+                continue
+            series[attr] = val
+
+        return pd.DataFrame(series)
+
+    def _assert_noagn_and_all_timeseries(self):
+        """Raise Error if object (still) has agnostic data or if not all data are timeseries."""
+        if self.agn is not None:
+            raise ValueError(
+                "Object contains agnostic data; first use `.assign_agn()`."
+            )
+
+        # Guard clause.
+        errors = {}
+        for attr in _ATTRIBUTES:
+            val = getattr(self, attr)
+            if val is None:
+                continue
+            if isinstance(val, pd.Series):
+                continue
+            errors[attr] = type(val)
+        if errors:
+            raise ValueError(
+                "Object contains non-timeseries data; first use `.to_timeseries()`."
+            )
+
+    def __bool__(self) -> bool:
         return not all(getattr(self, attr) is None for attr in _ATTRIBUTES)
 
-    def __or__(self, other):
+    def __or__(self, other: InOp) -> InOp:
         return _union(self, other)
 
     __ror__ = __or__
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         return _equal(self, other)
 
 
 def _set_unit(
     v: Union[float, int, tools.unit.Q_, pd.Series], attr: str
 ) -> Union[float, tools.unit.Q, pd.Series]:
-    """Add unit (if no unit set yet) or convert to unit."""
+    """Set unit (if none set yet) or convert to unit."""
     if v is None:
         return None
 
@@ -199,7 +303,7 @@ def _from_data(
         or isinstance(data, Mapping)
     ):
 
-        def dimabbr(key):
+        def dimabbr(key):  # following keys return 'w': 'w', ('w', 'pf1'), ('pf1', 'w')
             if key in _ATTRIBUTES:
                 return key
             elif not isinstance(key, str) and isinstance(key, Iterable):
@@ -227,7 +331,7 @@ def _from_data(
     )
 
 
-def _multiple_union(inops) -> InOp:
+def _multiple_union(inops: Iterable[InOp]) -> InOp:
     inop_result = None
     for inop in inops:
         inop_result |= inop

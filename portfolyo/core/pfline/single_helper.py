@@ -28,7 +28,7 @@ def make_dataframe(data) -> pd.DataFrame:
     if isinstance(data, interop.InOp):
         inop = data
     else:
-        inop = interop.InOp.from_data(data).to_timeseries()
+        inop = interop.InOp.from_data(data)
 
     # Check data types.
     if inop.agn is not None or inop.nodim is not None:
@@ -43,6 +43,7 @@ def make_dataframe(data) -> pd.DataFrame:
         )
 
     # Make actual dataframe.
+    return inop.to_timeseries().finalize().to_df()
     return _dataframe_from_series(inop.w, inop.q, inop.p, inop.r)
 
 
