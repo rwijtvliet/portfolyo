@@ -2,10 +2,12 @@
 
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable
-from portfolyo import dev, PfLine, SinglePfLine, MultiPfLine, FREQUENCIES, Kind  # noqa
-from portfolyo.tools import stamps
+
 import pandas as pd
 import pytest
+
+from portfolyo import FREQUENCIES, Kind, MultiPfLine, PfLine, SinglePfLine, dev  # noqa
+from portfolyo.tools import stamps
 
 
 def id_fn(data: Any):
@@ -91,7 +93,7 @@ all_cases = [
     for r in "r "
     if not w == q == p == r == " "
 ]  # all combinations of w, q, p, r
-error_cases = ["r", "wq", *[case for case in all_cases if len(case) >= 3]]
+error_cases = ["wq", *[case for case in all_cases if len(case) >= 3]]
 
 
 def dict_testcases(i, has_unit, typ) -> Iterable[InitTestcase]:
@@ -122,7 +124,7 @@ def dict_testcases(i, has_unit, typ) -> Iterable[InitTestcase]:
                 expectedkind = Kind.VOLUME_ONLY
             elif keys in ["p"]:
                 expectedkind = Kind.PRICE_ONLY
-            elif keys in ["wp", "wr", "qp", "qr", "pr"]:
+            elif keys in ["wp", "wr", "qp", "qr", "pr", "r"]:
                 expectedkind = Kind.ALL
             else:
                 raise ValueError("Unexpected case")
@@ -143,7 +145,7 @@ def df_testcases(i, has_unit, typ) -> Iterable[InitTestcase]:
             expectedkind = Kind.VOLUME_ONLY
         elif cols in ["p"]:
             expectedkind = Kind.PRICE_ONLY
-        elif cols in ["wp", "wr", "qp", "qr", "pr"]:
+        elif cols in ["wp", "wr", "qp", "qr", "pr", "r"]:
             expectedkind = Kind.ALL
         else:
             raise ValueError("Unexpected case")
@@ -160,6 +162,8 @@ def timeseries_testcases(i, has_unit, typ) -> Iterable[InitTestcase]:
             expectedkind = Kind.PRICE_ONLY
         elif typ is SinglePfLine and has_unit and name in ["w", "q"]:
             expectedkind = Kind.VOLUME_ONLY
+        elif typ is SinglePfLine and has_unit and name == "r":
+            expectedkind = Kind.ALL
         else:
             expectedkind = Exception
         testcases.append(InitTestcase("data:ts", data_in, expectedkind))
@@ -236,8 +240,9 @@ def test_singlepfline_init_2(itd: InitTestcase):
 
 
 @pytest.mark.parametrize("itd", **data_in_function(MultiPfLine))
-def test_multipfline_init_2(itd: InitTestcase):
+def do_test_multipfline_init_2(itd: InitTestcase):
     """Test if MultiPfLine can be initialized correctly, and attributes return correct values."""
+    pass
     # TODO: first specify, how multipfline should be initializable
     # data_in, expected_kind = itd.data_in, itd.expected_kind
     # if type(expected_kind) is type and issubclass(expected_kind, Exception):

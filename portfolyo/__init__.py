@@ -25,7 +25,8 @@ from .tools.stamps import (
     right_to_left,
 )
 
-from .tools.frames import fill_gaps, wavg, standardize
+from .tools import frames, nits, zones, stamps
+from .tools.frames import fill_gaps, wavg, standardize, set_frequency
 from .tools.nits import Q_
 from .tools.zones import force_tzaware, force_tzagnostic
 
