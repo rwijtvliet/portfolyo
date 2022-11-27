@@ -10,17 +10,18 @@ Convert volume [MW] and price [Eur/MWh] timeseries using base, peak, offpeak tim
 .. Hourly varying values --> Peak and offpeak values.
 """
 
-from typing import Union, Iterable
-from . import utils
-from ..core import changefreq
-from ..tools.types import Value, Stamp
-from ..tools.stamps import freq_up_or_down
-from ..tools.frames import trim_frame
-from ..tools import nits
-import pandas as pd
-import numpy as np
+import datetime as dt
 import warnings
+from typing import Iterable, Union
 
+import numpy as np
+import pandas as pd
+
+from .. import tools
+from . import utils
+
+Stamp = Union[dt.datetime, pd.Timestamp]
+Value = Union[float, int, tools.unit.Q_]
 
 BPO = ("base", "peak", "offpeak")
 
@@ -231,7 +232,7 @@ def tseries2singlebpo(s: pd.Series, prefix: str = "") -> pd.Series:
 
     # Handle possible units.
     if units is not None:
-        sout = sout.astype(nits.pintunit_remove(units))
+        sout = sout.astype(f"pint[{units}]")
     return sout
 
 
@@ -289,7 +290,7 @@ def tseries2bpoframe(s: pd.Series, freq: str = "MS", prefix: str = "") -> pd.Dat
         )
 
     # Remove partial data
-    s = trim_frame(s, freq)
+    s = tools.trim.frame(s, freq)
 
     # Handle possible units.
     sin, units = (s.pint.magnitude, s.pint.units) if hasattr(s, "pint") else (s, None)
@@ -299,7 +300,7 @@ def tseries2bpoframe(s: pd.Series, freq: str = "MS", prefix: str = "") -> pd.Dat
 
     # Handle possible units.
     if units is not None:
-        sout = sout.astype(nits.pintunit_remove(units))
+        sout = sout.astype(f"pint[{units}]")
     return sout.unstack()
 
 
@@ -358,7 +359,7 @@ def bpoframe2tseries(
 
     df = bpoframe.rename({f"{prefix}{bpo}": bpo for bpo in BPO}, axis=1)  # remove prefx
     df = complete_bpoframe(df)  # make sure we have peak and offpeak columns
-    df = changefreq.averagable(df[["peak", "offpeak"]], freq)
+    df = tools.changefreq.averagable(df[["peak", "offpeak"]], freq)
     df["ispeak"] = df.index.map(utils.is_peak_hour)
 
     return df["offpeak"].where(df["ispeak"], df["peak"])
@@ -424,7 +425,7 @@ def tseries2tseries(s: pd.Series, freq: str = "MS") -> pd.Series:
 
     # Handle possible units.
     if units is not None:
-        sout = sout.astype(nits.pintunit_remove(units))
+        sout = sout.astype(f"pint[{units}]")
     return sout
 
 
@@ -481,7 +482,7 @@ def bpoframe2bpoframe(
         raise ValueError(
             f"Parameter ``freq`` must be one of 'MS', 'QS', 'AS'; got {freq}."
         )
-    if freq_up_or_down(bpoframe.index.freq, freq) == 1:
+    if tools.freq.up_or_down(bpoframe.index.freq, freq) == 1:
         warnings.warn(
             "This conversion includes upsampling, e.g. from yearly to monthly values."
         )

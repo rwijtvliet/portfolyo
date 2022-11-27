@@ -5,7 +5,7 @@ Module with mixins, to add 'plot-functionality' to PfLine and PfState classes.
 from __future__ import annotations
 
 from ...visualize import visualize as vis
-from ...tools import stamps
+from ... import tools
 
 from typing import Dict, TYPE_CHECKING
 import numpy as np
@@ -85,7 +85,7 @@ class PfLinePlot:
             The figure object to which the series was plotted.
         """
         # Plot on category axis if freq monthly or longer, else on time axis.
-        is_category = stamps.freq_shortest(self.index.freq, "MS") == "MS"
+        is_category = tools.freq.shortest(self.index.freq, "MS") == "MS"
 
         # If columns are specified, plot these. Else: take defaults, based on what's available
         if cols is None:
@@ -180,7 +180,7 @@ class PfStatePlot:
 
         # If freq is MS or longer: use categorical axes. Plot volumes in MWh.
         # If freq is D or shorter: use time axes. Plot volumes in MW.
-        is_category = stamps.freq_shortest(self.index.freq, "MS") == "MS"
+        is_category = tools.freq.shortest(self.index.freq, "MS") == "MS"
 
         # Volumes.
         if is_category:
@@ -260,7 +260,7 @@ def plot_pfstates(dic: Dict[str, PfState], freq: str = "MS") -> plt.Figure:
 
         # If freq is MS or longer: use categorical axes. Plot volumes in MWh.
         # If freq is D or shorter: use time axes. Plot volumes in MW.
-        is_category = stamps.freq_shortest(pfs.index.freq, "MS") == "MS"
+        is_category = tools.freq.shortest(pfs.index.freq, "MS") == "MS"
 
         # Portfolio name.
         axes[0].text(

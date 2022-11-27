@@ -1,9 +1,11 @@
 """Create somewhat realistic curves."""
 from typing import Tuple
-import pandas as pd
+
 import numpy as np
-from ..tools import nits
+import pandas as pd
+
 from ..prices.utils import is_peak_hour
+from ..tools import unit  # noqa # ensure we use current ureg
 
 
 def w_offtake(
@@ -169,7 +171,7 @@ def wp_sourced(
 
     # Add unit if wanted.
     if has_unit:
-        wunit = nits.pintunit_remove(w_unit) if w_unit is not None else "pint[MW]"
+        wunit = f"pint[{w_unit:P}]" if w_unit is not None else "pint[MW]"
         w = w.astype(wunit)
         p = p.astype("pint[Eur/MWh]")
     return w, p
