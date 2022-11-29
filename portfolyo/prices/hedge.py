@@ -1,10 +1,12 @@
 """Functionality to hedge an offtake profile with a price profile."""
 
-from .utils import is_peak_hour
-from . import convert
-from ..tools import frames, nits
 from typing import Tuple
+
 import pandas as pd
+
+from .. import tools
+from . import convert
+from .utils import is_peak_hour
 
 
 def _hedge(df: pd.DataFrame, how: str, po: bool) -> pd.Series:
@@ -36,21 +38,23 @@ def _hedge(df: pd.DataFrame, how: str, po: bool) -> pd.Series:
     """
 
     if not po:
-        try:
+        if df.index.freq:
             # Use magnitude only, so that, if w and p are float series, their return
             # series are also floats (instead of dimensionless Quantities).
             df["dur"] = df.index.duration.pint.m
-        except (AttributeError, ValueError):
+        else:
             df["dur"] = 1
 
         # Get single power and price values.
         p_hedge = (df.p * df.dur).sum() / df.dur.sum()
-        if how.lower().startswith("vol"):  # volume hedge
+        if how == "vol":  # volume hedge
             # solve for w_hedge: sum (w * duration) == w_hedge * sum (duration)
             w_hedge = (df.w * df.dur).sum() / df.dur.sum()
-        else:  # value hedge
+        elif how == "val":  # value hedge
             # solve for w_hedge: sum (w * duration * p) == w_hedge * sum (duration * p)
             w_hedge = (df.w * df.dur * df.p).sum() / (df.dur * df.p).sum()
+        else:
+            raise ValueError(f"Parameter `how` must be 'val' or 'vol'; got {how}.")
         return pd.Series({"w": w_hedge, "p": p_hedge})
     else:
         apply_f = lambda df: _hedge(df, how, po=False)  # noqa
@@ -106,7 +110,8 @@ def hedge(
         po = w.index.freq in ["15T", "H"] and freq != "D"
     if po and not (w.index.freq in ["15T", "H"] and freq != "D"):
         raise ValueError(
-            "Split into peak and offpeak only possible when (a) hedging with monthly (or longer) products, and (b) if timeseries have hourly (or shorter) values."
+            "Split into peak and offpeak only possible when (a) hedging with monthly (or "
+            "longer) products, and (b) if timeseries have hourly (or shorter) values."
         )
 
     # Handle possible units.
@@ -115,7 +120,7 @@ def hedge(
 
     # Only keep full periods of overlapping timestamps.
     i = win.index.intersection(pin.index)
-    df = frames.trim_frame(pd.DataFrame({"w": win, "p": pin}).loc[i, :], freq)
+    df = tools.trim.frame(pd.DataFrame({"w": win, "p": pin}).loc[i, :], freq)
     if len(df) == 0:
         return df["w"], df["p"]  # No full periods; don't do hedge; return empty series
 
@@ -128,8 +133,6 @@ def hedge(
 
     # Handle possible units.
     if wunits or punits:
-        df = df.astype(
-            {"w": nits.pintunit_remove(wunits), "p": nits.pintunit_remove(punits)}
-        )
+        df = df.astype({"w": f"pint[{wunits:P}]", "p": f"pint[{punits:P}]"})
 
     return df["w"], df["p"]

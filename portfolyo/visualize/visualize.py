@@ -2,15 +2,16 @@
 Visualize portfolio lines, etc.
 """
 
-from ..tools import stamps, nits
-
-from typing import List, Optional, Iterable
-from collections import namedtuple
-from matplotlib import pyplot as plt
-import matplotlib as mpl
-import pandas as pd
-import numpy as np
 import colorsys
+from collections import namedtuple
+from typing import Iterable, List, Optional
+
+import matplotlib as mpl
+import numpy as np
+import pandas as pd
+from matplotlib import pyplot as plt
+
+from .. import tools
 
 mpl.style.use("seaborn")
 
@@ -132,7 +133,7 @@ def _categories(ax: plt.Axes, s: pd.Series, cat: bool = None) -> Optional[Iterab
     # We use categorical data if...
     if (ax.lines or ax.collections or ax.containers) and ax.xaxis.have_units():
         create = True  # ...ax already has category axis; or
-    elif cat is None and stamps.freq_shortest(s.index.freq, "MS") == "MS":
+    elif cat is None and tools.freq.shortest(s.index.freq, "MS") == "MS":
         create = True  # ...it's the default for the given frequency; or
     elif cat is True:
         create = True  # ...user wants it.
@@ -198,15 +199,15 @@ def plot_timeseries_as_bar(
     else:  # Bad combination: bar graph on time-axis. But allow anyway.
 
         # This is slow if there are many elements.
-        # x = s.index + 0.5 * (s.index.ts_right - s.index)
+        # x = s.index + 0.5 * (s.index.right - s.index)
         # width = pd.Timedelta(hours=s.index.duration.median().to("h").magnitude * 0.8)
         # ax.bar(x.values, s.values, width, **kwargs)
 
         # This is faster.
-        delta = s.index.ts_right - s.index
+        delta = s.index.right - s.index
         x = np.array(list(zip(s.index + 0.1 * delta, s.index + 0.9 * delta))).flatten()
         magnitudes = np.array([[v, 0] for v in s.values.quantity.magnitude]).flatten()
-        values = nits.PA_(magnitudes, s.values.quantity.units)
+        values = tools.unit.PA_(magnitudes, s.values.quantity.units)
         ax.fill_between(x, 0, values, step="post", **kwargs)
 
         add_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
@@ -221,7 +222,7 @@ def plot_timeseries_as_area(
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     splot = s.copy()  # modified with additional (repeated) datapoint
-    splot[splot.index.ts_right[-1]] = splot.values[-1]
+    splot[splot.index.right[-1]] = splot.values[-1]
 
     # Plot and add labels to datapoints.
     categories = _categories(ax, s, cat)
@@ -238,7 +239,7 @@ def plot_timeseries_as_area(
     else:
 
         ax.fill_between(splot.index, 0, splot.values, step="post", **kwargs)
-        delta = s.index.ts_right - s.index
+        delta = s.index.right - s.index
         add_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
 
 
@@ -251,7 +252,7 @@ def plot_timeseries_as_step(
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     splot = s.copy()  # modified with additional (repeated) datapoint
-    splot[splot.index.ts_right[-1]] = splot.values[-1]
+    splot[splot.index.right[-1]] = splot.values[-1]
 
     # Plot add labels to datapoints
     categories = _categories(ax, s, cat)
@@ -268,7 +269,7 @@ def plot_timeseries_as_step(
     else:
 
         ax.step(splot.index, splot.values, where="post", **kwargs)
-        delta = s.index.ts_right - s.index
+        delta = s.index.right - s.index
         add_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
 
 
@@ -294,8 +295,8 @@ def plot_timeseries_as_hline(
 
     else:
 
-        delta = s.index.ts_right - s.index
-        ax.hlines(s.values, s.index, s.index.ts_right, **kwargs)
+        delta = s.index.right - s.index
+        ax.hlines(s.values, s.index, s.index.right, **kwargs)
         add_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, False)
 
 

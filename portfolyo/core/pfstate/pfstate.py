@@ -5,16 +5,16 @@ certain moment in time (e.g., at the current moment, without any historic data).
 
 from __future__ import annotations
 
-
-from .pfstate_helper import make_pflines
-from ..ndframelike import NDFrameLike
-from ..pfline import PfLine, MultiPfLine
-from ..mixins import PfStateText, PfStatePlot, OtherOutput
-from ...tools import frames
-
-from typing import Iterable, Optional, Union
-import pandas as pd
 import warnings
+from typing import Iterable, Optional, Union
+
+import pandas as pd
+
+from ... import tools
+from ..mixins import OtherOutput, PfStatePlot, PfStateText
+from ..ndframelike import NDFrameLike
+from ..pfline import MultiPfLine, PfLine
+from .pfstate_helper import make_pflines
 
 
 class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
@@ -190,8 +190,8 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         for part in ("offtakevolume", "pnl_cost", "sourced", "unsourced"):
             fl = True if part == "pnl_cost" else flatten  # always flatten pnl_cost
             dfin = self[part].df(cols, fl, has_units=has_units)
-            dfs.append(frames.add_header(dfin, part))
-        return frames.concat(dfs, axis=1)
+            dfs.append(tools.frame.add_header(dfin, part))
+        return tools.frame.concat(dfs, axis=1)
 
     # Methods that return new class instance.
 

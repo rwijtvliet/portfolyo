@@ -1,16 +1,18 @@
 """Testing of pandas objects, taking into account they may have units."""
 
 import functools
-from ..tools import nits
-import pandas as pd
+
 import numpy as np
+import pandas as pd
+
+from .. import tools
 
 
 @functools.wraps(pd.testing.assert_frame_equal)
 def assert_frame_equal(left, right, *args, **kwargs):
     # Dataframes equal even if *order* of columns is not the same.
-    left = nits.drop_units(left).sort_index(axis=1)
-    right = nits.drop_units(right).sort_index(axis=1)
+    left = tools.unit.drop_units(left).sort_index(axis=1)
+    right = tools.unit.drop_units(right).sort_index(axis=1)
     left = left.replace([np.inf, -np.inf], np.nan)
     right = right.replace([np.inf, -np.inf], np.nan)
     pd.testing.assert_frame_equal(left, right, *args, **kwargs)

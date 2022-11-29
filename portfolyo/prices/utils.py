@@ -1,9 +1,11 @@
 """Utilities for calculating / manipulating price data."""
 
-from ..tools import stamps
-from ..tools.nits import Q_
 from typing import Tuple, Union
+
 import pandas as pd
+
+from .. import tools
+from ..tools.unit import Q_
 
 
 def is_peak_hour(
@@ -32,7 +34,22 @@ def is_peak_hour(
     return ts_left.hour >= 8 and ts_left.hour < 20 and ts_left.isoweekday() < 6
 
 
-duration_base = stamps.duration
+def duration_base(
+    ts_left: Union[pd.Timestamp, pd.DatetimeIndex], freq: str = None
+) -> Union[Q_, pd.Series]:
+    """
+    Total duration of base periods in a timestamp.
+
+    See also
+    --------
+    .tools.duration
+    """
+    if isinstance(ts_left, pd.DatetimeIndex):
+        hours = (duration_base(ts, freq) for ts in ts_left)  # has unit
+        return pd.Series(hours, ts_left, dtype="pint[h]")
+
+    # Assume it's a single timestamp.
+    return tools.duration.stamp(ts_left, freq)
 
 
 def duration_peak(
@@ -43,19 +60,19 @@ def duration_peak(
 
     See also
     --------
-    .tools.stamps.duration
+    .tools.duration
     """
     if freq is None:
         freq = ts_left.freq
 
-    if freq not in stamps.FREQUENCIES:
+    if freq not in tools.freq.FREQUENCIES:
         raise ValueError(
-            f"Parameter ``freq`` must be one of {', '.join(stamps.FREQUENCIES)}; got {freq}."
+            f"Parameter ``freq`` must be one of {', '.join(tools.freq.FREQUENCIES)}; got {freq}."
         )
 
     if isinstance(ts_left, pd.DatetimeIndex):
         if freq in ["15T", "H"]:
-            return stamps.duration(ts_left, freq) * is_peak_hour(ts_left)
+            return tools.duration.index(ts_left, freq) * is_peak_hour(ts_left)
         elif freq == "D":
             hours = ts_left.map(lambda ts: ts.isoweekday() < 6) * 12  # no unit
             return pd.Series(hours, ts_left, dtype="pint[h]")  # works even during dst
@@ -66,11 +83,11 @@ def duration_peak(
 
     # Assume it's a single timestamp.
     if freq in ["15T", "H"]:
-        return stamps.duration(ts_left, freq) * is_peak_hour(ts_left)
+        return tools.duration.stamp(ts_left, freq) * is_peak_hour(ts_left)
     elif freq == "D":
         return Q_(0 if ts_left.isoweekday() >= 6 else 12, "h")
     else:
-        ts_right = stamps.ts_right(ts_left, freq)
+        ts_right = tools.right.stamp(ts_left, freq)
         days = pd.date_range(ts_left, ts_right, freq="D", inclusive="left")
         return Q_(sum(days.map(lambda day: day.isoweekday() < 6) * 12), "h")
 
@@ -83,7 +100,7 @@ def duration_offpeak(
 
     See also
     --------
-    .tools.stamps.duration
+    .tools.duration
     """
     return duration_base(ts_left, freq) - duration_peak(ts_left, freq)
 
@@ -107,6 +124,9 @@ def duration_bpo(
     -------
     Series (if ts_left is Timestamp) or DataFrame (if ts_left is DatetimeIndex).
     """
+    if freq is None and isinstance(ts_left, pd.DatetimeIndex):
+        freq = ts_left.freq
+
     b = duration_base(ts_left, freq)  # quantity or pint-series
     p = duration_peak(ts_left, freq)  # quantity or pint-series
 
@@ -140,8 +160,8 @@ def delivery_period(
 
     if period_type in ["m", "q", "a"]:
         freq = period_type.upper() + "S"
-        ts_left = stamps.floor_ts(ts_left_trade, freq, front_count)
-        ts_right = stamps.floor_ts(ts_left, freq, 1)
+        ts_left = tools.floor.stamp(ts_left_trade, freq, front_count)
+        ts_right = tools.floor.stamp(ts_left, freq, 1)
     elif period_type == "d":
         ts_left = ts_trade.floor("d") + pd.Timedelta(days=front_count)
         ts_right = ts_left + pd.Timedelta(days=1)

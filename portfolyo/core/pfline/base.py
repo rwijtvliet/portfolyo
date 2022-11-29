@@ -4,18 +4,19 @@ Abstract Base Class for PfLine.
 
 from __future__ import annotations
 
+from abc import abstractmethod
+from enum import Enum
+from typing import TYPE_CHECKING, Iterable, Union
+
+import pandas as pd
+
+from ... import tools
+from ...prices import convert, hedge
+from ...prices.utils import duration_bpo
+from ..mixins import OtherOutput, PfLinePlot, PfLineText
 
 # from . import single, multi, interop  #<-- moved to end of file
 from ..ndframelike import NDFrameLike
-from ..mixins import PfLineText, PfLinePlot, OtherOutput
-from ...prices.utils import duration_bpo
-from ...prices import convert, hedge
-from ...tools.types import Quantity, Value
-
-from abc import abstractmethod
-from enum import Enum
-from typing import Iterable, Union, TYPE_CHECKING
-import pandas as pd
 
 # Developer notes: we would like to be able to handle 2 cases with volume AND financial
 # information. We would like to...
@@ -35,8 +36,8 @@ import pandas as pd
 
 
 if TYPE_CHECKING:
-    from .single import SinglePfLine  # noqa
     from .multi import MultiPfLine  # noqa
+    from .single import SinglePfLine  # noqa
 
 
 class Kind(Enum):
@@ -143,6 +144,34 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         ...
 
     @abstractmethod
+    def map_to_year(self, year: int, holiday_country: str = None) -> PfLine:
+        """Transfer the data to a hypothetical other year.
+
+        Parameters
+        ----------
+        year : int
+            Year to transfer the data to.
+        holiday_country : str, optional (default: None)
+            Country or region for which to assume the holidays. E.g. 'DE' (Germany), 'NL'
+            (Netherlands), or 'USA'. See ``holidays.list_supported_countries()`` for
+            allowed values.
+
+        Returns
+        -------
+        PfLine
+
+        Notes
+        -----
+        Useful for daily data and shorter. Copies over the data but takes weekdays (and
+        holidays) target year into consideration. See ``portfolyo.map_frame_as_year()``
+        for more information.
+        Inaccurate for monthly data and longer, because we only have one value per month,
+        and can therefore not take different number of holidays/weekends (i.e., offpeak
+        hours) into consideration.
+        """
+        ...
+
+    @abstractmethod
     def __bool__(self) -> bool:
         """Return True if object (i.e., its children) contains any non-zero data."""
         ...
@@ -194,12 +223,15 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         # Design decision: could also be non-flattened if self.kind is not ALL
         return single.SinglePfLine({"p": self.p})
 
-    def _set_col_val(self, col: str, val: pd.Series | Value) -> SinglePfLine:
+    def _set_col_val(
+        self, col: str, val: Union[pd.Series, float, int, tools.unit.Q_]
+    ) -> SinglePfLine:
         """Set or update a timeseries and return the modified instance."""
 
         if col == "r" and self.kind is Kind.ALL:
             raise NotImplementedError(
-                "Cannot set `r` on a price-and-volume portfolio line; first select `.volume` or `.price` before applying `.set_r()`."
+                "Cannot set `r` on a price-and-volume portfolio line; first select `.volume`"
+                " or `.price` before applying `.set_r()`."
             )
 
         inop = interop.InOp(**{col: val}).to_timeseries(self.index)
@@ -212,41 +244,19 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
             data["q"] = self.q
         return single.SinglePfLine(data)
 
-        # # val is now None, a PfLine, or dimless Series.
-
-        # # Get pd.Series of other, in correct unit.
-        # if isinstance(val, float) or isinstance(val, int):
-        #     val = pd.Series(val, self.index)
-        # elif isinstance(val, Quantity):
-        #     val = pd.Series(val.magnitude, self.index, dtype=nits.g(val.units))
-
-        # if self.kind is Kind.ALL and col == "r":
-        #     raise NotImplementedError(
-        #         "Cannot set `r`; first select `.volume` or `.price` before applying `.set_r()`."
-        #     )
-        # # Create pd.DataFrame.
-        # # TODO: Use InOp
-        # data = {col: val.astype(nits.pintunit(nits.name2unit(col)))}
-        # if col in ["w", "q", "r"] and self.kind in [Kind.PRICE_ONLY, Kind.ALL]:
-        #     data["p"] = self.p
-        # elif col in ["p", "r"] and self.kind in [Kind.VOLUME_ONLY, Kind.ALL]:
-        #     data["q"] = self.q
-        # df = pd.DataFrame(data)
-        # return single.SinglePfLine(df)
-
-    def set_w(self, w: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
+    def set_w(self, w: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
         """Set or update power timeseries [MW]; returns modified (and flattened) instance."""
         return self._set_col_val("w", w)
 
-    def set_q(self, q: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
+    def set_q(self, q: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
         """Set or update energy timeseries [MWh]; returns modified (and flattened) instance."""
         return self._set_col_val("q", q)
 
-    def set_p(self, p: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
+    def set_p(self, p: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
         """Set or update price timeseries [Eur/MWh]; returns modified (and flattened) instance."""
         return self._set_col_val("p", p)
 
-    def set_r(self, r: Union[pd.Series, float, int, Quantity]) -> SinglePfLine:
+    def set_r(self, r: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
         """Set or update revenue timeseries [MW]; returns modified (and flattened) instance."""
         return self._set_col_val("r", r)
 
@@ -373,6 +383,6 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
 
 # Must be at end, because they depend on PfLine existing.
-from . import single, multi, interop, enable_arithmatic  # noqa
+from . import enable_arithmatic, interop, multi, single  # noqa
 
 enable_arithmatic.apply()
