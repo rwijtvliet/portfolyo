@@ -25,7 +25,7 @@ def assert_w_q_compatible(freq, w, q):
         assert (q >= w * Q_(8759.9, "h")).all()
         assert (q <= w * Q_(8784.1, "h")).all()
     else:
-        raise ValueError("Uncaught value for freq: {freq}.")
+        raise ValueError(f"Uncaught value for freq: {freq}.")
 
 
 def assert_p_q_r_compatible(r, p, q):
