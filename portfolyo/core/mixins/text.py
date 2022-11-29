@@ -64,18 +64,11 @@ def _what(pfl: PfLine) -> str:
 
 def _index_info(i: pd.DatetimeIndex) -> Iterable[str]:
     """Info about the index."""
-    left = [
-        ". Delivery period:      ",
-        f"         timezone: {i.tz or 'none'}  ",
-        f"     start-of-day: {i[0].time()}  ",
+    return [
+        f". Start: {i[0]                    } (incl)    . Timezone    : {i.tz or 'none'}  ",
+        f". End  : {tools.right.index(i)[-1]} (excl)    . Start-of-day: {i[0].time()}  ",
+        f". Freq : {i.freq} ({len(i)} datapoints)",
     ]
-    right = [
-        f"start: {i[0]} (incl)",
-        f"  end: {tools.right.index(i)[-1]} (excl)",
-        f" freq: {i.freq} ({len(i)} datapoints)",
-    ]
-    maxlen = max(len(line) for line in left)
-    return [f"{lft.ljust(maxlen)}{rgt}" for lft, rgt in zip(left, right)]
 
 
 def _children_info(pfl: PfLine) -> Iterable[str]:
