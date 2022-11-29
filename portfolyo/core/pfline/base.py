@@ -43,16 +43,29 @@ if TYPE_CHECKING:
 class Kind(Enum):
     """Enumerate what kind of information (which dimensions) is present in a PfLine."""
 
-    VOLUME = "vol"
-    PRICE = "pri"
-    REVENUE = "rev"
-    COMPLETE = "all"
+    # abbreviation, available columns, summable (pfl1 + pfl2) columns, function for changefreq
+    VOLUME = "vol", "wq", "q", tools.changefreq.summable
+    PRICE = "pri", "p", "p", tools.changefreq.averagable
+    REVENUE = "rev", "r", "r", tools.changefreq.summable
+    COMPLETE = "all", "wqpr", "qr", tools.changefreq.summable
+
+    @property
+    def available(self):
+        return list(self.value[1])
+
+    @property
+    def summable(self):
+        return list(self.value[2])
+
+    @property
+    def changefreqfn(self):
+        return self.value[3]
 
     def __repr__(self):
-        return f"<{self.value}>"
+        return f"<{self.value[0]}>"
 
     def __str__(self):
-        return self.value
+        return self.value[0]
 
 
 class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
@@ -122,7 +135,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
     @abstractmethod
     def df(
-        self, cols: Iterable[str], flatten: bool = True, has_units: bool = False
+        self, cols: Iterable[str] = None, flatten: bool = True, has_units: bool = False
     ) -> pd.DataFrame:
         """DataFrame for portfolio line in default units.
 
@@ -205,16 +218,6 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
             Kind.COMPLETE: "qr",
         }[self.kind]
 
-    @property
-    def available(self) -> str:  # which time series have values
-        """Attributes/columns that are available. One of {'wq', 'p', 'wqpr'}."""
-        return {
-            Kind.VOLUME: "wq",
-            Kind.PRICE: "p",
-            Kind.REVENUE: "r",
-            Kind.COMPLETE: "wqpr",
-        }[self.kind]
-
     def flatten(self) -> SinglePfLine:
         """Return flat instance, i.e., without children."""
         return single.SinglePfLine(self)
@@ -242,19 +245,16 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
     def _set_col_val(
         self, col: str, val: Union[pd.Series, float, int, tools.unit.Q_]
     ) -> SinglePfLine:
-        """Set or update a timeseries and return the modified instance.
-        Priorities in case kind is ALL: (1) If possible, keep original volumes. (2) If
-        volumes are being updated, keep original prices.
-        """
+        """Set or update a timeseries and return the modified instance."""
 
-        inop = interop.InOp(**{col: val}).to_timeseries(self.index)
+        if self.kind is Kind.COMPLETE:
+            raise ValueError(
+                "Cannot set column value when ``.kind`` is Kind.COMPLETE. First select "
+                "the data you wish to keep, e.g. with ``.price``, ``.volume`` or ``.revenue``."
+            )
 
-        # Create input data for new (flat) instance.
-        data = {col: getattr(inop, col)}
-        if col in ["w", "q", "r"] and "p" in self.available:
-            data["p"] = self.p
-        elif col in ["p", "r"] and "q" in self.available:
-            data["q"] = self.q
+        data = {col: s for col, s in self.df(flatten=True)}
+        data.update({col: val})
         return single.SinglePfLine(data)
 
     def set_w(self, w: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
@@ -324,11 +324,11 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
         # Get values.
         dfs = []
-        if "w" in self.available:
+        if "w" in self.kind.available:
             vals = convert.tseries2bpoframe(self.w, freq)
             vals.columns = pd.MultiIndex.from_product([vals.columns, ["w"]])
             dfs.append(vals)
-        if "p" in self.available:
+        if "p" in self.kind.available:
             vals = convert.tseries2bpoframe(self.p, freq)
             vals.columns = pd.MultiIndex.from_product([vals.columns, ["p"]])
             dfs.append(vals)
@@ -340,10 +340,10 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         df = pd.concat([df, durs], axis=1)
 
         # Add additional values and sort.
-        if "q" in self.available:
+        if "q" in self.kind.available:
             for prod in prods:
                 df[(prod, "q")] = df[(prod, "w")] * df[(prod, "duration")]
-        if "r" in self.available:
+        if "r" in self.kind.available:
             for prod in prods:
                 df[(prod, "r")] = (
                     df[(prod, "q")] * df[(prod, "p")]

@@ -39,7 +39,7 @@ def test_makedataframe_freqtz(freq, tz):
 
     i = dev.get_index(freq, tz)
     q = dev.get_series(i, "q")
-    result1 = single_helper.make_dataframe({"q": q})
+    result1 = single_helper.kind_and_dataframe({"q": q})
 
     expected = pd.DataFrame({"q": q})
     expected.index.freq = freq
@@ -48,7 +48,7 @@ def test_makedataframe_freqtz(freq, tz):
 
     if tz:
         w = q / q.index.duration
-        result2 = single_helper.make_dataframe({"w": w})
+        result2 = single_helper.kind_and_dataframe({"w": w})
         testing.assert_frame_equal(
             result2, expected, check_names=False, check_dtype=False
         )
@@ -87,16 +87,16 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
     if columns in ["wq", "wqp", "wqr", "wpr", "qpr", "wqpr"]:  # error cases
         with pytest.raises(ValueError):
             if inputtype == "dict":
-                _ = single_helper.make_dataframe(dic)
+                _ = single_helper.kind_and_dataframe(dic)
             else:
-                _ = single_helper.make_dataframe(df)
+                _ = single_helper.kind_and_dataframe(df)
         return
 
     # Actual result.
     if inputtype == "dict":
-        result = single_helper.make_dataframe(dic)
+        result = single_helper.kind_and_dataframe(dic)
     else:
-        result = single_helper.make_dataframe(df)
+        result = single_helper.kind_and_dataframe(df)
 
     # Expected result and testing.
     df = df.rename_axis("ts_left")
@@ -163,7 +163,7 @@ def test_makedataframe_unequalfrequencies(freq1, freq2, columns):
 
     dic = {columns[0]: s1, columns[1]: s2}
     with pytest.raises(ValueError):
-        _ = single_helper.make_dataframe(dic)
+        _ = single_helper.kind_and_dataframe(dic)
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
@@ -186,10 +186,10 @@ def test_makedataframe_unequaltimeperiods(freq, overlap, tz):
     if not overlap:
         # raise ValueError("The two timeseries do not have anything in common.")
         with pytest.raises(ValueError):
-            result = single_helper.make_dataframe({"q": s1, "r": s2})
+            result = single_helper.kind_and_dataframe({"q": s1, "r": s2})
         return
 
-    result = single_helper.make_dataframe({"q": s1, "r": s2})
+    result = single_helper.kind_and_dataframe({"q": s1, "r": s2})
     testing.assert_index_equal(result.index, intersection)
     testing.assert_series_equal(result.q, s1.loc[intersection])
     testing.assert_series_equal(result.r, s2.loc[intersection])

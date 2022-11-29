@@ -182,7 +182,7 @@ def pfl_as_string(pfl: PfLine, flatten: bool, num_of_ts: int, color: bool) -> st
     lines.extend(_index_info(pfl.index))
     if isinstance(pfl, pfline.MultiPfLine):
         lines.extend(_children_info(pfl))
-    cols = pfl.available
+    cols = pfl.kind.available
     if flatten:
         lines.extend(_dataheader(cols))
         lines.extend([""])

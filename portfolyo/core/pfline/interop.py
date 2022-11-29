@@ -37,8 +37,8 @@ class InOp:
     . Assign unit-agnostic to unit-specific:
         inop = inop.assign_agn('p')
 
-    . Fill the missing attributes as much as possible:
-        inop = inop.finalize()
+    . Check for consistency and fill the missing attributes as much as possible:
+        inop = inop.make_consistent()
 
     . And finally, return as dataframe with columns 'w', 'q', 'p', 'r', 'nodim'
         inop = inop.to_df()
@@ -85,7 +85,7 @@ class InOp:
             elif isinstance(val, pd.Series):
                 kwargs[attr] = val.loc[index]
             elif isinstance(val, tools.unit.Q_):
-                kwargs[attr] = pd.Series(val.m, index, dtype=f"pint[{val.units:~P}]")
+                kwargs[attr] = pd.Series(val.m, index, dtype=f"pint[{val.units:P}]")
             else:  # float
                 kwargs[attr] = pd.Series(val, index)
         # Return as new InOp instance.
@@ -103,7 +103,7 @@ class InOp:
         """Drop part of the information and return new InOp object."""
         return InOp(**{attr: getattr(self, attr) for attr in _ATTRIBUTES if attr != da})
 
-    def finalize(self) -> InOp:
+    def make_consistent(self) -> InOp:
         """Fill as much of the data as possible. All data must be None or timeseries, and
         self.agn must have been assigned (or dropped)."""
 
@@ -136,21 +136,28 @@ class InOp:
 
         # Revenue.
         if r is None and q is not None and p is not None:
-            r = q * p
+            r = q * p  # works OK, but edge case: p==nan or p==inf. If q==0, assume r=0.
+            mask = np.isclose(q.pint.m, 0) & (p.isna() | np.isinf(p.pint.m))
+            if mask.any():
+                r[mask] = 0
 
         # If we land here, there are no more options to find r.
         # It may be inconsistent with w, q and p.
 
         # Consistency.
         if q is not None and p is not None and r is not None:
-            testing.assert_series_equal(r, q * p)
+            # Edge case: remove rows where (p==nan or p==inf) and q==0 before judging consistency.
+            mask = np.isclose(q.pint.m, 0) & (p.isna() | np.isinf(p.pint.m))
+            testing.assert_series_equal(
+                r[~mask], p[~mask] * q[~mask], check_names=False
+            )
 
         return InOp(w=w, q=q, p=p, r=r, nodim=nodim)
 
     def to_df(self) -> pd.DataFrame:
         """Create dataframe with (at most) columns w, q, p, r, nodim. All data must be
         None or timeseries, and self.agn must have been assigned (or dropped). Also, you'll
-        probably want to have `.finalize()`d the object."""
+        probably want to have run the `.make_consistent()` method."""
 
         self._assert_noagn_and_all_timeseries()
 

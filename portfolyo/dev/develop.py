@@ -128,7 +128,12 @@ def get_singlepfline(
     """Get single portfolio line, i.e. without children."""
     if not isinstance(kind, Kind):
         kind = Kind(kind)
-    columns = {Kind.VOLUME: "q", Kind.PRICE: "p", Kind.COMPLETE: "qr"}[kind]
+    columns = {
+        Kind.VOLUME: "q",
+        Kind.PRICE: "p",
+        Kind.REVENUE: "r",
+        Kind.COMPLETE: "qr",
+    }[kind]
     return SinglePfLine(get_dataframe(i, columns))
 
 

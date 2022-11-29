@@ -51,52 +51,51 @@ class MultiPfLine(PfLine, Mapping):
 
     @property
     def w(self) -> pd.Series:
-        if self.kind in [Kind.VOLUME, Kind.COMPLETE]:
-            return pd.Series(self.q / self.index.duration, name="w").pint.to("MW")
-        return pd.Series(np.nan, self.index, name="w", dtype="pint[MW]")
+        if "w" not in self.kind.available:
+            # No volume available.
+            return pd.Series(np.nan, self.index, name="w", dtype="pint[MW]")
+        if self.kind is Kind.COMPLETE and (qp := self._qp_children) is not None:
+            # One of the children has a sensible timeseries for .w
+            return qp[Kind.VOLUME].w
+        # All children have a sensible timeseries for .w
+        return sum(child.w for child in self._children.values()).rename("w")
 
     @property
     def q(self) -> pd.Series:
-        if self.kind is Kind.VOLUME:
-            # All children have a sensible timeseries for .q
-            return sum(child.q for child in self._children.values()).rename("q")
-        elif self.kind is Kind.COMPLETE:
-            if (qp_children := self._qp_children) is not None:
-                # One of the children has a sensible timeseries for .q
-                return qp_children[Kind.VOLUME].q
-            # All children have a sensible timeseries for .q
-            return sum(child.q for child in self._children.values()).rename("q")
-        # No volume available.
-        return pd.Series(np.nan, self.index, name="q", dtype="pint[MWh]")
+        if "q" not in self.kind.available:
+            # No volume available.
+            return pd.Series(np.nan, self.index, name="q", dtype="pint[MWh]")
+        if self.kind is Kind.COMPLETE and (qp := self._qp_children) is not None:
+            # One of the children has a sensible timeseries for .q
+            return qp[Kind.VOLUME].q
+        # All children have a sensible timeseries for .q
+        return sum(child.q for child in self._children.values()).rename("q")
 
     @property
     def p(self) -> pd.Series:
-        if self.kind is Kind.PRICE:
-            # All children have a sensible timeseries for .p
-            return sum(child.p for child in self._children.values()).rename("p")
-        elif self.kind is Kind.COMPLETE:
-            if (qp_children := self._qp_children) is not None:
+        if "p" not in self.kind.available:
+            # No price available.
+            return pd.Series(np.nan, self.index, name="p", dtype="pint[Eur/MWh]")
+        if self.kind is Kind.COMPLETE:
+            if (qp := self._qp_children) is not None:
                 # One of the children has a sensible timeseries for .p
-                return qp_children[Kind.PRICE].p
+                return qp[Kind.PRICE].p
             # Price is weighted average of children's prices.
             return pd.Series(self.r / self.q, name="p").pint.to("Eur/MWh")
-        # No price available.
-        return pd.Series(np.nan, self.index, name="p", dtype="pint[Eur/MWh]")
+        # All children have a sensible timeseries for .p
+        return sum(child.p for child in self._children.values()).rename("p")
 
     @property
     def r(self) -> pd.Series:
-        if self.kind is Kind.REVENUE:
-            # All children have a sensible timeseries for .r
-            return sum(child.r for child in self._children.values()).rename("r")
-        elif self.kind is Kind.COMPLETE:
-            if (qp_children := self._qp_children) is not None:
-                # One of the children has a sensible timeseries for .p and .q
-                q, p = qp_children[Kind.VOLUME].q, qp_children[Kind.PRICE].p
-                return pd.Series(q * p, name="r").pint.to("Eur")
-            # All children have a sensible timeseries for .r
-            return sum(child.r for child in self._children.values()).rename("r")
-        # No revenue available.
-        return pd.Series(np.nan, self.index, name="r", dtype="pint[Eur]")
+        if "r" not in self.kind.available:
+            # No revenue available.
+            return pd.Series(np.nan, self.index, name="r", dtype="pint[Eur]")
+        if self.kind is Kind.COMPLETE and (qp := self._qp_children) is not None:
+            # One of the children has a sensible timeseries for .p and .q
+            q, p = qp[Kind.VOLUME].q, qp[Kind.PRICE].p
+            return pd.Series(q * p, name="r").pint.to("Eur")
+        # All children have a sensible timeseries for .q
+        return sum(child.r for child in self._children.values()).rename("r")
 
     @property
     def kind(self) -> Kind:
@@ -114,7 +113,7 @@ class MultiPfLine(PfLine, Mapping):
     ) -> pd.DataFrame:
         if flatten:
             # TODO: just do self.flatten().df()?
-            cols = self.available if cols is None else cols
+            cols = self.kind.available if cols is None else cols
             series = {col: getattr(self, col) for col in cols}
             if not has_units:
                 series = {key: s.pint.m for key, s in series.items()}

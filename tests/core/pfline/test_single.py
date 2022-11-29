@@ -57,7 +57,7 @@ def test_singlepfline_access(columns):
             # testing.assert_series_equal(result[col], expected) # access by item is deprecated
             testing.assert_series_equal(getattr(result.df(col), col), expected)
             testing.assert_series_equal(result.df(col)[col], expected)
-        elif col not in result.available:
+        elif col not in result.kind.available:
             assert getattr(result, col).isna().all()
             # assert result[col].isna().all() # access by item is deprecated
             assert getattr(result.df(col), col).isna().all()
@@ -158,7 +158,7 @@ def test_singlepfline_setseries(kind, col):
 
     result = getattr(pfl_in, f"set_{col}")(s)
     testing.assert_series_equal(getattr(result, col), s)
-    assert col in result.available
+    assert col in result.kind.available
     if kind is Kind.VOLUME and col in ["w", "q"]:
         expectedkind = Kind.VOLUME
     elif kind is Kind.PRICE and col == "p":
