@@ -229,7 +229,7 @@ The ``PfLine.index`` property returns the ``pandas.DatetimeIndex`` that applies 
    # --- hide: start ---
    print(repr(pfl.index))
 
-For convenience, ``portfolyo`` adds a ``.duration`` and a ``right`` property to the ``pandas.DatetimeIndex`` class, which do as we would predict:
+For convenience, ``portfolyo`` adds a ``.duration`` and a ``right`` property to the ``pandas.DatetimeIndex`` closs, which do as we would predict:
 
 .. exec_code::
 
