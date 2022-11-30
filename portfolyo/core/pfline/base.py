@@ -49,6 +49,12 @@ class Kind(Enum):
     REVENUE = "rev", "r", "r", tools.changefreq.summable
     COMPLETE = "all", "wqpr", "qr", tools.changefreq.summable
 
+    @classmethod
+    def _missing_(cls, val):
+        for member in cls:
+            if member.value[0] == val:
+                return member
+
     @property
     def available(self):
         return list(self.value[1])
