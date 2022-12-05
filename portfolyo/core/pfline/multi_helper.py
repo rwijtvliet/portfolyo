@@ -87,7 +87,7 @@ def _intersect_indices(children: Dict[str, PfLine]) -> Dict[str, PfLine]:
 
     # Check/fix indices.
     # Workaround for error in pandas intersection (#46702):
-    idx = tools.intersection.index(*indices)
+    idx = tools.intersect.indices(*indices)
     if len(idx) == 0:
         raise ValueError("PfLine indices describe non-overlapping periods.")
 
