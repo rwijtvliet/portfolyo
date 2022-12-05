@@ -14,7 +14,7 @@ s1 = pd.Series(val1, idx1)
 idx2 = pd.date_range("2020-08", freq="MS", periods=12)
 val2 = 200 + 50 * np.random.random(len(idx2))
 s2 = pd.Series(val2, idx2)
-idx_i = idx1.intersect(idx2).sort_values()
+idx_i = idx1.intersection(idx2).sort_values()
 s1_i = s1.loc[idx_i]
 s2_i = s2.loc[idx_i]
 idx_u = idx1.union(idx2).sort_values()
