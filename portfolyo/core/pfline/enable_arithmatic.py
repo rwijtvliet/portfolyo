@@ -141,10 +141,11 @@ def _divide_pflines(pfl1: PfLine, pfl2: PfLine) -> pd.Series:
         )
 
     if pfl1.kind is Kind.PRICE_ONLY:
-        s = pfl1.p / pfl2.p
+        series = pfl1.p, pfl2.p
     else:  # self.kind is Kind.VOlUME_ONLY
-        s = pfl1.q / pfl2.q
-    s = s.dropna().resample(pfl1.index.freq).asfreq()
+        series = pfl1.q, pfl2.q
+    series = tools.intersect(*series)
+    s = series[0] / series[1]
     return s.rename("fraction")  # pint[dimensionless]
 
 
