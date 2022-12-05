@@ -111,6 +111,12 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
     @property
     @abstractmethod
+    def kind(self) -> Kind:
+        """Kind of data that is stored in the instance."""
+        ...
+
+    @property
+    @abstractmethod
     def w(self) -> pd.Series:
         """(Flattened) power timeseries in [MW]."""
         ...
@@ -131,12 +137,6 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
     @abstractmethod
     def r(self) -> pd.Series:
         """(Flattened) revenue timeseries in [Eur]."""
-        ...
-
-    @property
-    @abstractmethod
-    def kind(self) -> Kind:
-        """Kind of data that is stored in the instance."""
         ...
 
     @abstractmethod
@@ -162,6 +162,24 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
         -------
         pd.DataFrame
         """
+        ...
+
+    @property
+    @abstractmethod
+    def volume(self) -> SinglePfLine:
+        """Return (flattened) volume-only PfLine."""
+        ...
+
+    @property
+    @abstractmethod
+    def price(self) -> SinglePfLine:
+        """Return (flattened) price-only PfLine."""
+        ...
+
+    @property
+    @abstractmethod
+    def revenue(self) -> SinglePfLine:
+        """Return (flattened) revenue-only PfLine."""
         ...
 
     @abstractmethod
@@ -227,26 +245,6 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
     def flatten(self) -> SinglePfLine:
         """Return flat instance, i.e., without children."""
         return single.SinglePfLine(self)
-
-    @property
-    def volume(self) -> SinglePfLine:
-        """Return (flattened) volume-only PfLine."""
-        # Design decision: could also be non-flattened.
-        # if isinstance(self, multi.MultiPfLine):
-        #     return multi.MultiPfLine({name: child.volume for name, child in self.items){}})
-        return single.SinglePfLine({"q": self.q})
-
-    @property
-    def price(self) -> SinglePfLine:
-        """Return (flattened) price-only PfLine."""
-        # Design decision: could also be non-flattened - if self.kind is PRICE
-        return single.SinglePfLine({"p": self.p})
-
-    @property
-    def revenue(self) -> SinglePfLine:
-        """Return (flattened) revenue-only PfLine."""
-        # Design decision: could also be non-flattened.
-        return single.SinglePfLine({"r": self.r})
 
     def _set_col_val(
         self, col: str, val: Union[pd.Series, float, int, tools.unit.Q_]
@@ -354,7 +352,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
                 df[(prod, "r")] = (
                     df[(prod, "q")] * df[(prod, "p")]
                 ).pint.to_base_units()
-        i = pd.MultiIndex.from_product([prods, ("duration", *self.available)])
+        i = pd.MultiIndex.from_product([prods, ("duration", *self.kind.available)])
         return df[i]
 
     def hedge_with(

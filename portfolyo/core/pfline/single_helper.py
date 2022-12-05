@@ -2,26 +2,28 @@
 
 from __future__ import annotations
 
-from typing import Any, Tuple
+from typing import Any
 
 import pandas as pd
 
+# from . import single, multi  #<-- moved to end of file
 from . import base, interop
 from .base import Kind
 
 
-def kind_and_dataframe(data: Any) -> Tuple[Kind, pd.DataFrame]:
+def dataframe(data: Any, __internal: bool = False) -> pd.DataFrame:
     """From data, create a DataFrame with columns `w` and `q`, or column `p`, or column
     `r`, or all (`w`, `q`, `p`, `r`); with relevant units set to them. Also, do some data
     verification."""
     # Shortcut if PfLine is passed.
-    if isinstance(data, base.PfLine):
+    if isinstance(data, single.SinglePfLine):
+        return data._df
+    if isinstance(data, multi.MultiPfLine):
         # return data.flatten()._df  <-- don't use, causes infinite recursion due to __init__ calls.
-        # Works for SinglePfLine and MultiPfLine.
-        kind = data.kind
-        df = pd.DataFrame({col: getattr(data, col) for col in data.kind.available})
-        return kind, df
-        # TODO: if SinglePfLine, return data._df
+        return pd.DataFrame({col: getattr(data, col) for col in data.kind.available})
+    # Shortcut if called internally.
+    if __internal and isinstance(data, pd.DataFrame):
+        return data
 
     # Turn into interoperability object.
     if isinstance(data, interop.InOp):
@@ -42,12 +44,10 @@ def kind_and_dataframe(data: Any) -> Tuple[Kind, pd.DataFrame]:
         )
 
     # Make actual dataframe.
-    df = inop.to_timeseries().make_consistent().to_df()
-    kind = kind_from_df(df)
-    return kind, df
+    return inop.to_timeseries().make_consistent().to_df()
 
 
-def kind_from_df(df: pd.DataFrame) -> base.Kind:
+def kind(df: pd.DataFrame) -> base.Kind:
     """Kind of data, based on columns in (consistent) dataframe."""
     has_w, has_q, has_p, has_r = (col in df for col in "wqpr")
     if has_w and has_q and not has_p and not has_r:
@@ -111,3 +111,7 @@ def kind_from_df(df: pd.DataFrame) -> base.Kind:
 #         raise ValueError("Passed values for ``q``, ``p`` and ``r`` not consistent.")
 # q, r = q.pint.to_base_units(), r.pint.to_base_units()
 # return pd.DataFrame({"q": q, "r": r}).dropna()  # kind is ALL
+
+
+# Must be at end, because they depend on PfLine existing.
+from . import multi, single  # noqa

@@ -27,7 +27,6 @@ class SinglePfLine(PfLine):
         all timeseries. Most commonly a ``pandas.DataFrame`` or a dictionary of
         ``pandas.Series``, but may also be e.g. another PfLine object.
 
-
     Returns
     -------
     SinglePfLine
@@ -47,12 +46,21 @@ class SinglePfLine(PfLine):
         # Otherwise, do normal thing.
         return super().__new__(cls, data)
 
-    def __init__(self, data: Union[PfLine, Dict, pd.DataFrame, pd.Series]):
+    def __init__(
+        self,
+        data: Union[PfLine, Dict, pd.DataFrame, pd.Series],
+        __internal: bool = False,
+    ):
         if self is data:
             return  # don't continue initialisation, it's already the correct object
-        self._kind, self._df = single_helper.kind_and_dataframe(data)
+        self._df = single_helper.dataframe(data, __internal)
+        self._kind = single_helper.kind(self._df)
 
     # Implementation of ABC methods.
+
+    @property
+    def kind(self) -> Kind:
+        return self._kind
 
     @property
     def index(self) -> pd.DatetimeIndex:
@@ -82,10 +90,6 @@ class SinglePfLine(PfLine):
             return pd.Series(np.nan, self.index, name="r", dtype="pint[Eur]")
         return self._df["r"]
 
-    @property
-    def kind(self) -> Kind:
-        return self._kind
-
     def df(
         self, cols: Iterable[str] = None, *args, has_units: bool = True, **kwargs
     ) -> pd.DataFrame:
@@ -96,6 +100,30 @@ class SinglePfLine(PfLine):
         if not has_units:
             series = {col: s.pint.m for col, s in series.items()}
         return pd.DataFrame(series)
+
+    @property
+    def volume(self) -> SinglePfLine:
+        if self.kind is Kind.VOLUME:
+            return self
+        if self.kind is Kind.COMPLETE:
+            return SinglePfLine(self._df[["w", "q"]], __internal=True)
+        raise ValueError("This portfolio line doesn't contain volumes.")
+
+    @property
+    def price(self) -> SinglePfLine:
+        if self.kind is Kind.PRICE:
+            return self
+        if self.kind is Kind.COMPLETE:
+            return SinglePfLine(self._df[["p"]], __internal=True)
+        raise ValueError("This portfolio line doesn't contain prices.")
+
+    @property
+    def revenue(self) -> SinglePfLine:
+        if self.kind is Kind.REVENUE:
+            return self
+        if self.kind is Kind.COMPLETE:
+            return SinglePfLine(self._df[["r"]], __internal=True)
+        raise ValueError("This portfolio line doesn't contain revenues.")
 
     def asfreq(self, freq: str = "MS") -> SinglePfLine:
         fn = self.kind.changefreqfn

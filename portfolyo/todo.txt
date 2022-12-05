@@ -4,3 +4,138 @@
 .. start of deliveryperiod (offset_hours)
 
 . split base, peak, offpeak function into index and stamp
+
+---
+
+Use cases:
+
+[x] = easy / doable / done
+[ ] = more difficult / to-do
+
+1) FWC data as flat-price-PfLine:
+.. increase by xx Eur/MWh or multiply with factor [x]
+.. decompose in peak and offpeak [x]
+.. change frequency [x]
+
+2) Sourced futures as flat-complete-PfLine:
+.. extract price-part, volume-part, or revenue-part (as flat PfLine) [x]
+.. decompose in peak and offpeak [x]
+.. change frequency [x]
+
+3) Sourced futures as nested-complete-PfLine:
+.. extract price-part, volume-part, or revenue-part [ ] --> volume-part and revenue-part can be nested; price-part must be flattened.
+.. change frequency [x]
+
+4) Offtake with contract prices as flat-complete-PfLine:
+.. Increase offtake while keeping prices the same [ ] 
+.. change frequency [x]
+
+5) Offtake with contract prices, combining a nestad-volume-PfLine with a nested-price-PfLine
+   (e.g. volumes = current offtake + expected churn)
+   (e.g. prices = energyprice + risk premium A + risk premium B)
+.. [ ]
+
+
+---
+
+Use-case (5) requires that we can create a complete-PfLine 
+from a nested-volume-PfLine and a nested-price-PfLine, or 
+from a nested-volume-PfLine and a nested-revenue-PfLine.
+These constituent PfLines should stay separate in the complete-PfLine. 
+
+Possible implementations:
+
+A)
+
+Allow nested-PfLines to have hetrogeneous children.
+  So: if all children are price/volume/revenue-PfLines, the containing PfLine is also a price/volume/revenue-PfLine,
+  and if children are a mix of two (volume and price, or volume and revenue), the containing PfLine is a complete-PfLine.
+  Not allowed: mixing price and revenue or esp. mixing all three (volume, price, and revenue)
+
+  Consequences:
+  .. All children need to be named, but a name is not always available. E.g., 
+     combining a flat-volume-PfLine with a nested-price-PfLine, we don't have a name for
+     the volume-PfLine.
+  
+
+B) 
+
+*ALL* complete-PfLines are a combination of two non-complete-PfLines, stored under 
+  the _vol, _pri, or _rev attribute (one of which is None). Each of these can be a flat
+  or a nested PfLine.
+
+  Consequences:
+  .. We have the following objects and their "core data"
+     . flat-volume, flat-price, flat-revenue: dataframe
+     . nested-volume, nested-price, nested-revenue: dictionary of PfLines (=children)
+     . flat-complete: two flat-noncomplete-PfLines (_vol, _pri, _rev)
+     . nested-complete: two noncomplete-PfLines (_vol, _pri, _rev), of which at least 1 is nested, 
+                    OR: dictionary of PfLines (=children)
+  .. Difficulty: handling both types of nested-complete-PfLines: the ones which are a collection
+     of >1 complete-PfLines (like "sourced") and the ones which are a collection of 2 non-complete
+     PfLines (like "offtake-with-contract-prices").
+     .. Nested-complete-PfLine which is a collection of complete-PfLins:
+         sourced = nested-complete
+         . "spot" = flat-complete
+         . . _vol = flat-volume
+         . . _rev = flat-revenue
+         . "forward" = nested-complete
+         . . "quarters" = complete
+         . . . _vol = flat-volume-PfLine
+         . . . _rev = flat-revenue-PfLine
+         . . "months" = flat-complete
+         . . . _vol = flat-volume-PfLine
+         . . . _rev = flat-revenue-PfLine
+     .. Nested-complete-PfLine which is a collection of a price-PfLine and a volume-PfLine
+         offtake = nested-complete
+         . _vol = nested-volume
+         . . "current_offtake" = flat-volume
+         . . "expected_churn" = flat-volume
+         . _pri = nested-price
+         . . "energy" = flate-price
+         . . "premiumA" = flate-price
+         . . "premiumB" = flate-price
+     What's the API of both 
+
+
+------
+
+Wanted/Useful operations:
+
+Flat/nested-vol/pri/rev-PfLine, here: flat/nested-revenue-PfLine:
+. . add revenue
+    --> API: flat-rev-PfLine + flat-rev <1>                    = flat-rev-PfLine
+    --> API: flat-rev-PfLine + nested-rev <2>                  = NOTIMPLEMENTED
+    --> API: nested-rev-PfLine + nested-rev <2>                = nested-rev-PfLine
+    --> API: nested-rev-PfLine + flat-rev <1>                  = NOTIMPLEMENTED
+        <1> flat-rev-PfLine, or anything that can be turned into it, like pint-Quantity or pint-Series
+        <2> nested-rev-PfLine, or anything that can be turned into it, like dictionary of children
+. . multiply with or divide by dimensionless factor
+    --> API: flat/nested-rev-PfLine * float-Series <3>         = flat/nested-rev-PfLine
+        <3> float-Series, or anything that can be turned into it, like single float
+. . multiply with or divide by revenue
+    --> API: flat-rev-PfLine / flat-rev <1>                    = dimless-Series
+    --> API: flat-rev-PfLine / nested-rev <2>                  = NOTIMPLEMENTED
+    --> API: nested-rev-PfLine / Any                           = NOTIMPLEMENTED
+. . multiply with or divide by price or volume
+    --> API: flat/nested-rev-PfLine / flat-pri <1>             = flat/nested-pri-PfLine
+    --> API: flat/nested-rev-PfLine / nested-pri <2>           = NOTIMPLEMENTED
+. . union with unit-having value
+    --> API: flat-rev-PfLine | flat-pri <1>                    = flat-all-PfLine <*>
+    --> API: flat-rev-PfLine | nested-pri <2>                  = nested-all-PfLine <*>
+    --> API: nested-rev-PfLine | flat-pri <1>                  = nested-all-PfLine <*>
+    --> API: nested-rev-PfLine | nested-pri <2>                = nested-all-PfLine <*>
+        <*> How to implement all-PfLine? TODO!
+
+. . extract pint-Series:
+    --> API: .w, .q, .p, .r                                    = pint-Series
+. . extract pint-DataFrame:
+    --> API: .df()                                             = pint-DataFrame
+. . extract PfLine:
+    --> API: .volume, .price, .revenue                         = flat/nested-PfLine
+. . flatten:
+    --> API: .flatten()                                        = flat-rev-PfLine
+
+
+
+

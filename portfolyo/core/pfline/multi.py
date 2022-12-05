@@ -14,6 +14,7 @@ import pandas as pd
 
 from . import multi_helper
 from .base import Kind, PfLine
+from .single import SinglePfLine
 
 
 class MultiPfLine(PfLine, Mapping):
@@ -44,6 +45,12 @@ class MultiPfLine(PfLine, Mapping):
             self[name] = child
 
     # Implementation of ABC methods.
+
+    @property
+    def kind(self) -> Kind:
+        if self._heterogeneous_children:
+            return Kind.COMPLETE
+        return next(iter(self._children.values())).kind
 
     @property
     def index(self) -> pd.DatetimeIndex:
@@ -97,12 +104,6 @@ class MultiPfLine(PfLine, Mapping):
         # All children have a sensible timeseries for .q
         return sum(child.r for child in self._children.values()).rename("r")
 
-    @property
-    def kind(self) -> Kind:
-        if self._heterogeneous_children:
-            return Kind.COMPLETE
-        return next(iter(self._children.values())).kind
-
     def df(
         self,
         cols: Iterable[str] = None,
@@ -132,6 +133,27 @@ class MultiPfLine(PfLine, Mapping):
             df.columns = pd.MultiIndex.from_tuples(((*item, *keys) for item in oldcol))
         # Finally: put all together in big new dataframe.
         return pd.concat(dfs, axis=1)
+
+    @property
+    def volume(self) -> SinglePfLine:
+        if self.kind is Kind.VOLUME or self.kind is Kind.COMPLETE:
+            # Design decision: could also be non-flattened.
+            return SinglePfLine(self.df("wq", flatten=True), __internal=True)
+        raise ValueError("This portfolio line doesn't contain volumes.")
+
+    @property
+    def price(self) -> SinglePfLine:
+        if self.kind is Kind.PRICE or self.kind is Kind.COMPLETE:
+            # Design decision: could also be non-flattened IF it's a PRICE PfLine.
+            return SinglePfLine(self.df("p", flatten=True), __internal=True)
+        raise ValueError("This portfolio line doesn't contain prices.")
+
+    @property
+    def revenue(self) -> SinglePfLine:
+        if self.kind is Kind.REVENUE or self.kind is Kind.COMPLETE:
+            # Design decision: could also be non-flattened.
+            return SinglePfLine(self.df("r", flatten=True), __internal=True)
+        raise ValueError("This portfolio line doesn't contain revenues.")
 
     def asfreq(self, freq: str = "MS") -> MultiPfLine:
         if self._heterogeneous_children:
