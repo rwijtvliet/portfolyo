@@ -53,7 +53,7 @@ class InOp:
         for attr in _ATTRIBUTES:
             if isinstance(val := getattr(self, attr), pd.Series):
                 indices.append(val.index)
-        index = tools.intersect.index(*indices)  # raises error if none passed
+        index = tools.intersect.indices(*indices)  # raises error if none passed
         if not len(index):
             raise ValueError("Data has no overlapping timestamps.")
         # Save all values as timeseries.
