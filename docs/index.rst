@@ -30,7 +30,7 @@ Portfolyo
 Portfolyo is a Python package to analyse and manipulate **timeseries** related to **power 
 and gas offtake portfolios**.
 
-A good place to start learing about this package is :doc:`the quickstart guide<tutorial/quickstart>`.
+A good place to start learing about this package is the :doc:`quickstart guide<tutorial/quickstart>`.
 
 ------------
 Installation
