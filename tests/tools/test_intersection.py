@@ -137,9 +137,9 @@ def do_test_intersection(
     # Error case.
     if type(expected_startdate) is type and issubclass(expected_startdate, Exception):
         with pytest.raises(expected_startdate):
-            tools.intersection.index(*idxs)
+            tools.intersect.index(*idxs)
         return
     # Normal case.
-    result = tools.intersection.index(*idxs)
+    result = tools.intersect.index(*idxs)
     expected = idx(expected_startdate, expected_starttime, expected_tz, expected_freq)
     testing.assert_index_equal(result, expected)
