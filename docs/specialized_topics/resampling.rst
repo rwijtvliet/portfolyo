@@ -137,4 +137,4 @@ The reason for the higher price in the previous example, is that, there, it is w
 Resampling with ``portfolyo``
 -----------------------------
 
-When changing the frequency of a ``PfLine`` or ``PfState`` object, the considerations above are automatically taken into account. If you are in the situation of having to change the frequency of a ``pandas.Series`` or ``DataFrame`` with a ``DatetimeIndex``, however, the relevant functions are also available at the ``portfolyo.changefreq`` module.
+When changing the frequency of a ``PfLine`` or ``PfState`` object, the considerations above are automatically taken into account. If you are in the situation of having to change the frequency of a ``pandas.Series`` or ``DataFrame`` with a ``DatetimeIndex``, however, the relevant functions are also available at the ``portfolyo.tools.changefreq`` module.

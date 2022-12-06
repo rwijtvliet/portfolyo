@@ -195,8 +195,8 @@ Footnotes
        :emphasize-lines: 3,4
 
        >>> idx = pandas.date_range("2023", freq="AS", periods=2)
-       >>> s0 = pandas.Series([50, 56], idx)  # unit-agnostic
-       >>> s1 = s0.astype("pint[Eur/MWh]")  # unit-aware
+       >>> s_agn = pandas.Series([50, 56], idx)  # unit-agnostic
+       >>> s1 = s_agn.astype("pint[Eur/MWh]")  # unit-aware
 
        >>> s2 = pandas.Series([50, 56], idx, dtype="pint[Eur/MWh]")  # same as s1
 
