@@ -53,10 +53,10 @@ def get_frames(
             startnum = 0
             index = idx
         else:
-            startnum = idx.get_loc(ref_idx[0])
+            startnum = idx.get_loc(ref_idx[0]) if len(ref_idx) > 0 else 0
             index = ref_idx
         # Create series.
-        fr = pd.Series(range(startnum, startnum + len(index)), index)
+        fr = pd.Series(range(startnum, startnum + len(index)), index, dtype=int)
         # Possibly turn into dataframe.
         if i % 2 == 0:
             fr = pd.DataFrame({"a": fr})

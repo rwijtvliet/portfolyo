@@ -144,7 +144,7 @@ def _divide_pflines(pfl1: PfLine, pfl2: PfLine) -> pd.Series:
         series = pfl1.p, pfl2.p
     else:  # self.kind is Kind.VOlUME_ONLY
         series = pfl1.q, pfl2.q
-    series = tools.intersect(*series)
+    series = tools.intersect.frames(*series)
     s = series[0] / series[1]
     return s.rename("fraction")  # pint[dimensionless]
 
