@@ -9,7 +9,7 @@ from . import (
     floor,
     frame,
     freq,
-    intersection,
+    intersect,
     isboundary,
     leftandright,
     peakperiod,

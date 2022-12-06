@@ -124,9 +124,9 @@ def frame(
         raise ValueError(
             f"This data seems to have a frequency {freq_input}, which is different from the frequency"
             f" the user wants to force on it {force_freq}. Note that the ``force_freq`` parameter is"
-            " for filling gaps in thte input data. It should not be used for resampling! If the"
+            " for filling gaps in the input data. It should not be used for resampling! If the"
             " data has e.g. daily values but you want monthly values, use ``force_freq='D'``, and"
-            " pass the return value to one of the functions in the ``portfolyo.changefreq`` module."
+            " pass the return value to one of the functions in the ``portfolyo.tools.changefreq`` module."
         )
 
     # Now the data has frequency set. It is tz-aware (possibly with wrong tz) or tz-agnostic.
