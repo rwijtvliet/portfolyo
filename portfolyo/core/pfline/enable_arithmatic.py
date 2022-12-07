@@ -122,9 +122,9 @@ def _multiply_pfline_and_dimensionlessseries(pfl: PfLine, s: pd.Series):
     # Scale the price p (kind == 'p') or the volume q (kind == 'q'), returning PfLine of same kind.
     if isinstance(pfl, multi.MultiPfLine):
         return multi.MultiPfLine({name: child * s for name, child in pfl.items()})
-    df = pfl.df(pfl.summable).mul(s, axis=0)  # multiplication with index-alignment
-    df = df.dropna().resample(pfl.index.freq).asfreq()
-    return single.SinglePfLine(df)
+    df = pfl.df(pfl.summable)
+    df, s = tools.intersect.frames(df, s)  # keep only common rows
+    return single.SinglePfLine(df.mul(s, axis=0))
 
 
 @_assert_index_compatibility
