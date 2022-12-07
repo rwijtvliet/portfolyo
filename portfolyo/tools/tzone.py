@@ -90,6 +90,8 @@ def force_aware(
     The frequency of ``fr``'s index must be set (or inferrable). Common reasons why this
     is not possible:
     * Timestamps are missing from the index; add them with ``fr.resample().asfreq()``
+      (don't forget the ``offset`` argument for daily-or-longer frequencies that do not
+      have a day start at midnight).
     * The index is not tz-aware but implies a certain timezone; localize it with
       ``fr.tz_localize()``.
 
@@ -154,6 +156,8 @@ def force_agnostic(
     The frequency of ``fr``'s index must be set (or inferrable). Common reasons why this
     is not possible:
     * Timestamps are missing from the index; add them with ``fr.resample().asfreq()``
+      (don't forget the ``offset`` argument for daily-or-longer frequencies that do not
+      have a day start at midnight).
     * The index is not tz-aware but implies a certain timezone; localize it with
       ``fr.tz_localize()``.
 
