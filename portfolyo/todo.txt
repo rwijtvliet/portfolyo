@@ -108,34 +108,74 @@ Flat/nested-vol/pri/rev-PfLine, here: flat/nested-revenue-PfLine:
     --> API: flat-rev-PfLine + nested-rev <2>                  = NOTIMPLEMENTED
     --> API: nested-rev-PfLine + nested-rev <2>                = nested-rev-PfLine
     --> API: nested-rev-PfLine + flat-rev <1>                  = NOTIMPLEMENTED
-        <1> flat-rev-PfLine, or anything that can be turned into it, like pint-Quantity or pint-Series
-        <2> nested-rev-PfLine, or anything that can be turned into it, like dictionary of children
+. . add float, add volume, add price, add complete             = NOTIMPLEMENTED
 . . multiply with or divide by dimensionless factor
     --> API: flat/nested-rev-PfLine * float-Series <3>         = flat/nested-rev-PfLine
-        <3> float-Series, or anything that can be turned into it, like single float
 . . multiply with or divide by revenue
     --> API: flat-rev-PfLine / flat-rev <1>                    = dimless-Series
     --> API: flat-rev-PfLine / nested-rev <2>                  = NOTIMPLEMENTED
-    --> API: nested-rev-PfLine / Any                           = NOTIMPLEMENTED
+    --> API: nested-rev-PfLine / flat/nested-rev               = NOTIMPLEMENTED
+    --> API: flat/nested-rev-PfLine * flat/nested-rev          = NOTIMPLEMENTED
 . . multiply with or divide by price or volume
     --> API: flat/nested-rev-PfLine / flat-pri <1>             = flat/nested-pri-PfLine
     --> API: flat/nested-rev-PfLine / nested-pri <2>           = NOTIMPLEMENTED
-. . union with unit-having value
-    --> API: flat-rev-PfLine | flat-pri <1>                    = flat-all-PfLine <*>
-    --> API: flat-rev-PfLine | nested-pri <2>                  = nested-all-PfLine <*>
-    --> API: nested-rev-PfLine | flat-pri <1>                  = nested-all-PfLine <*>
-    --> API: nested-rev-PfLine | nested-pri <2>                = nested-all-PfLine <*>
-        <*> How to implement all-PfLine? TODO!
-
+. . union with price or volume or revenue
+    --> API: flat-rev-PfLine | flat-rev <1>                    = NOTIMPLEMENTED
+    --> API: flat-rev-PfLine | flat-pri <1>                    = flat-com-PfLine
+    --> API: flat-rev-PfLine | flat-vol <1>                    = flat-com-PfLine
+    --> API: flat-rev-PfLine | flat-com <1>                    = NOTIMPLEMENTED
+    --> API: flat-rev-PfLine | nested-pri <2>                  = nested2-com-PfLine <*>
+    --> API: nested-rev-PfLine | flat-pri <1>                  = nested-com-PfLine <*>
+    --> API: nested-rev-PfLine | nested-pri <2>                = nested-com-PfLine <*>
 . . extract pint-Series:
     --> API: .w, .q, .p, .r                                    = pint-Series
 . . extract pint-DataFrame:
     --> API: .df()                                             = pint-DataFrame
 . . extract PfLine:
-    --> API: .volume, .price, .revenue                         = flat/nested-PfLine
+    --> API: .revenue                                          = flat/nested-rev-PfLine
+    --> API: .volume, .price                                   = NOTIMPLEMENTED
 . . flatten:
     --> API: .flatten()                                        = flat-rev-PfLine
+<*> How to implement com-PfLine? TODO!
+<1> flat-xxx-PfLine, or anything that can be turned into it, like pint-Quantity or pint-Series
+<2> nested-xxx-PfLine, or anything that can be turned into it, like dictionary of children
+<3> float-Series, or anything that can be turned into it, like single float
 
 
+
+Flat/Nested1/Nested2-com-PfLine:
+(Nested1 = collection of com-PfLines. 
+ Nested2 = collection of one vol-PfLine and >= 1 pri-PfLines, or one vol-PfLine and >= 1 rev-PfLines.)
+. . add complete
+    --> API: flat-com-PfLine + flat-com <1>                    = flat-com-PfLine
+    --> API: flat-com-PfLine + nested-com <2>                  = NOTIMPLEMENTED
+    --> API: nested1-com-PfLine + flat-com <1>                 = NOTIMPLEMENTED
+    --> API: nested1-com-PfLine + nested1-com <2>              = nested1-com-PfLine
+    --> API: nested1-com-PfLine + nested2-com <2>              = NOTIMPLEMENTED
+    --> API: nested2-com-PfLine + flat-com <1>                 = NOTIMPLEMENTED
+    --> API: nested2-com-PfLine + nested1-com <2>              = NOTIMPLEMENTED
+    --> API: nested2-com-PfLine + nested2-com <2>              = NOTIMPLEMENTED*
+        *not implemented, because unclear what to do
+. . add float, add volume, add price, add revenue              = NOTIMPLEMENTED
+. . multiply with or divide by dimensionless factor
+    --> API: flat/nested-com-PfLine * float-Series <3>         = flat/nested-com-PfLine
+        (multiply volumes and revenues)
+. . multiply with or divide by complete
+    --> API: flat-com-PfLine / flat-com <1>                    = dimless-Series
+    --> API: flat-com-PfLine / nested-com <2>                  = NOTIMPLEMENTED
+    --> API: nested-com-PfLine / Any                           = NOTIMPLEMENTED
+. . multiply with or divide by volume, price, revenue          = NOTIMPLEMENTED
+. . union
+    --> API: flat-com-PfLine | Any                             = NOTIMPLEMENTED
+    --> API: nested-com-PfLine | Any                           = NOTIMPLEMENTED
+. . extract pint-Series:
+    --> API: .w, .q, .p, .r                                    = pint-Series
+. . extract pint-DataFrame:
+    --> API: .df()                                             = pint-DataFrame
+. . extract PfLine:
+    --> API: .revenue                                          = flat/nested-rev-PfLine
+    --> API: .volume, .price                                   = NOTIMPLEMENTED
+. . flatten:
+    --> API: .flatten()                                        = flat-all-PfLine
 
 

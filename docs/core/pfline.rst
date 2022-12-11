@@ -202,7 +202,7 @@ If we want to extract more than one timeseries, we can use the ``.df()`` method,
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
-   # continuation from previous code example
+   # continuation of previous code example
    pfl.df(units=False)
    # --- hide: start ---
    print('\n' + repr(pfl.df(units=False)))
@@ -224,7 +224,7 @@ The ``PfLine.index`` property returns the ``pandas.DatetimeIndex`` that applies 
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
-   # continuation from previous code example
+   # continuation of previous code example
    pfl.index
    # --- hide: start ---
    print(repr(pfl.index))
@@ -239,7 +239,7 @@ For convenience, ``portfolyo`` adds a ``.duration`` and a ``right`` property to 
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
-   # continuation from previous code example
+   # continuation of previous code example
    pfl.index.duration, pfl.index.right
    # --- hide: start ---
    print(repr(pfl.index.duration),'\n', repr(pfl.index.right))
@@ -259,7 +259,7 @@ From ``pandas`` we know the ``.loc[]`` property which allows us to select a slic
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
-   # continuation from previous code example
+   # continuation of previous code example
    pfl.loc['2024':'2025']
    # --- hide: start ---
    print(pfl.loc['2024':'2025'])
@@ -291,7 +291,7 @@ The data can be shown graphically with the ``.plot()`` method:
    index = pd.date_range('2024', freq='AS', periods=3)
    pfl = pf.PfLine(pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index))
    # --- hide: stop ---
-   # continuation from previous code example
+   # continuation of previous code example
    pfl.plot()
    # --- hide: start ---
    pfl.plot().savefig('docs/savefig/fig_plot_pfl.png')
@@ -308,7 +308,7 @@ Alternatively, the data can be saved as an Excel workbook with the ``.to_excel()
 
 .. code-block::
 
-   # continuation from previous code example
+   # continuation of previous code example
    pfl.to_clipboard()
    pfl.to_excel("sourced_volume.xlsx")
 
@@ -327,7 +327,7 @@ Using the ``.asfreq()`` method, we can quickly and correctly downsample our data
    index = pd.date_range('2024', freq='AS', periods=3)
    pfl = pf.PfLine(pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index))
    # --- hide: stop ---
-   # continuation from previous code example
+   # continuation of previous code example
    pfl.asfreq('QS')
    # --- hide: start ---
    print(repr(pfl.asfreq('QS')))
@@ -341,7 +341,7 @@ For more information about resampling in general, see :doc:`this page<../special
 Arithmatic
 ----------
 
-There are many ways to change and interact with ``PfLine`` instances. An intuitive way is through arithmatic, described below. The operations are grouped by the type of the other operand, and colors are used to more easily indicate the type of the output value.
+There are many ways to change and interact with ``PfLine`` instances. An intuitive way is through arithmatic, described below. The operations are grouped by the operator, and colors are used to more easily indicate the type of the output value.
 
 General remarks:
 
@@ -366,31 +366,22 @@ General remarks:
 
 * When doing arithmatic with a flat portfolio line, the result is again a flat portfolio line.
 
-* When doing arithmatic with a nested portfolio line, the children are kept if it is possible. This is when:
+* When doing arithmatic with a nested portfolio line, the children are also present in the result. 
 
-  - multiplying with or dividing by a factor (incl. negating the portfolio line); or
+* Arithmatic does not do silent conversions, and raises an ``Exception`` in case of ambiguity. E.g.:
+  
+  - When adding a ``float`` value to a ``PRICE`` portfolio line. Instead, use the value to create a ``pint.Quantity`` using ``pf.Q_()``. 
 
-  - adding or subtracting another nested portfolio line.
-
-  In all other cases, the portfolio line is flattened before the operation. This is when:
-
-  - multiplying with or dividing by something else (i.e., a volume, price, or revenue (value, timeseries, portfolio line)).
-
-  - adding or subtracting something else (i.e., a single value or a flat portfolio line); 
-
-  The reason for flattening, in these cases, is that there is no "natural"/"logical" way to define what the outcome should be. 
+  - Some operations are only possible if one or both of the operands is flat. A nested portfolio line can be flattened with the ``.flatten()`` method. 
 
 * The usual relationship between addition and multiplication holds. E.g., for a given portfolio line ``pfl``, the following two calculations have the same return value: ``pfl + pfl`` and ``2 * pfl``.
 
-Floats or dimensionless
-=======================
+Addition and subtraction
+========================
 
-* Multiplying or dividing a portfolio line with/by a float or dimensionless value scales the portfolio line values by that amount. For complete portfolio lines, the volumes and revenues are scaled while the price remains unchanged.
+* Addition and subtraction are only possible between operands of similar dimenions. E.g., to a price-only portfolio line, a price can be added, but not e.g. a volume. 
 
-* Negation is defined as multiplication with -1.
-
-* Addition/subtraction of a float value to/from a portfolio line is sloppy, as the unit is missing. For price-only and revenue-only portfolio lines, a float value is given the benefit of the doubt and interpreted as a price (or revenue) in the default unit. A value that is explicitly dimensionless raises an error in all cases.
-
+* Even if the both operands have the same dimension, they must both be nested or both be flat. E.g., a flat price can be added to a flat price-only portfolio line, but not to a nested price-only portfolio line. Two nested price-only portfolio lines can be added.   
 
 ================================================= =============== ============== ================ =================
 \                                                 Kind of portfolio line
@@ -398,63 +389,166 @@ Floats or dimensionless
 \                                                 🟨               🟩              🟦                🟫
 \                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``-PfLine`` (negation)                            🟨 c1_           🟩 c1_          🟦 c1_            🟫 c1_          
-``PfLine / float``                                🟨 c1_           🟩 c1_          🟦 c1_            🟫 c1_           
-``PfLine * float``                                🟨 c1_           🟩 c1_          🟦 c1_            🟫 c1_          
-``PfLine ± float``                                ❌               👁 p_           👁 r_             ❌             
+``PfLine`` ± volume                               🟨 e_            ❌              ❌                ❌              
+``PfLine`` ± price                                ❌               🟩 e_           ❌                ❌              
+``PfLine`` ± revenue                              ❌               ❌              🟦 e_             ❌           
+``PfLine`` ± complete                             ❌               ❌              ❌                🟫 e_        
 ================================================= =============== ============== ================ =================
 
 Notes:
 
-.. _c1:  
+.. _e:   
 
-c1
-  For nested portfolio lines: the children are retained in the operation.
+e
+   "Equal": both operands must be flat or both must be nested.
 
-.. _p:
- 
-p
-  Float value(s) interpreted as price in default unit; see the :ref:`section below <volprirev>`.
 
-.. _r:
+Here are several examples.
 
-r
-  Float value(s) interpreted as revenue in default unit; see the :ref:`section below <volprirev>`.
+* Adding a volume to a volume-only portfolio line: 
 
-Here are two examples:
+  .. exec_code::
+       
+     import portfolyo as pf, pandas as pd
+     index = pd.date_range('2024', freq='AS', periods=3)
+     vol = pf.PfLine(pd.Series([4, 4.6, 3], index, dtype='pint[MW]'))
+     vol + pf.Q_(10, 'GWh')
+     # --- hide: start ---
+     print(repr(vol + pf.Q_(10, 'GWh')))
+  
+* When adding (or subtracting) two nested portfolio lines, the children are merged: 
+
+  .. exec_code::
+       
+     # --- hide: start ---
+     import portfolyo as pf, pandas as pd
+     index = pd.date_range('2024', freq='AS', periods=3)
+     # --- hide: stop ---
+     # continuation of previous code example
+     vol_2 = pf.PfLine({
+         'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
+         'B': pd.Series([1, -1.8, 1.9], index, dtype='pint[MW]')
+     }) 
+     vol_3 = pf.PfLine({
+         'B': pd.Series([0.5, 0.2, 1.9], index, dtype='pint[MW]'), 
+         'C': pd.Series([2, 2.2, 3.8], index, dtype='pint[MW]')
+     }) 
+     diff = vol_2 - vol_3
+  
+     print([name for name in diff])
+     diff['B']
+     # --- hide: start ---
+     print('')
+     print(repr(diff['B']))
+  
+* We cannot add a flat and a nested portfolio line... 
+
+  .. exec_code::
+       
+     # --- hide: start ---
+     import portfolyo as pf, pandas as pd
+     index = pd.date_range('2024', freq='AS', periods=3)
+     vol = pf.PfLine(pd.Series([4, 4.6, 3], index, dtype='pint[MW]'))
+     vol_2 = pf.PfLine({
+         'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
+         'B': pd.Series([1, -1.8, 1.9], index, dtype='pint[MW]')
+     })      
+     # --- hide: stop ---
+     # continuation of previous code example
+     vol + vol_2
+     # --- hide: start ---
+     print(repr(vol + vol_2))
+
+  but must either flatten the nested one (and the result is a flat portfolio line)...
+
+  .. exec_code::
+       
+     # --- hide: start ---
+     import portfolyo as pf, pandas as pd
+     index = pd.date_range('2024', freq='AS', periods=3)
+     vol = pf.PfLine(pd.Series([4, 4.6, 3], index, dtype='pint[MW]'))
+     vol_2 = pf.PfLine({
+         'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
+         'B': pd.Series([1, -1.8, 1.9], index, dtype='pint[MW]')
+     })      
+     # --- hide: stop ---
+     # continuation of previous code example
+     vol + vol_2.flatten()
+     # --- hide: start ---
+     print(repr(vol + vol_2.flatten()))
+
+  or we must give the flat one a name (and the result is a nested portfolio line)...
+
+  .. exec_code::
+       
+     # --- hide: start ---
+     import portfolyo as pf, pandas as pd
+     index = pd.date_range('2024', freq='AS', periods=3)
+     vol = pf.PfLine(pd.Series([4, 4.6, 3], index, dtype='pint[MW]'))
+     vol_2 = pf.PfLine({
+         'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
+         'B': pd.Series([1, -1.8, 1.9], index, dtype='pint[MW]')
+     })      
+     # --- hide: stop ---
+     # continuation of previous code example
+     vol_2 + {'D': vol}
+     # --- hide: start ---
+     print(repr(vol_2 + {'D': vol}))
+
+
+Scaling
+=======
+
+We can scale a portfolio line by multiplication with / division by a dimensionless (e.g. ``float``) value. 
+
+* This applied to flat and nested portfolio line, regardless of the kind.
+
+* The result is a portfolio line of the same kind.
+
+* If the portfolio line is nested, the scaling applies to all children.
+
+* For complete portfolio lines, the volume and revenue are scaled, while the price remains unchanged.
+
+Negation is defined as multiplication with -1.
+
+================================================= =============== ============== ================ =================
+\                                                 Kind of portfolio line
+------------------------------------------------- -----------------------------------------------------------------
+\                                                 🟨               🟩              🟦                🟫
+\                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
+================================================= =============== ============== ================ =================
+``-PfLine`` (negation)                            🟨               🟩              🟦                🟫              
+``PfLine * dimensionless``                        🟨               🟩              🟦                🟫              
+``PfLine / dimensionless``                        🟨               🟩              🟦                🟫               
+================================================= =============== ============== ================ =================
+
+For example:
 
 .. exec_code::
      
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='MS', periods=3)
    vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
-   vol * 2  # uniform factor
+   vol * 2  # multiplication with factor results in scaled portfolio line 
    # --- hide: start ---
    print(repr(vol * 2))
 
-.. exec_code::
 
-   # --- hide: start ---  
-   import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='MS', periods=3)
-   vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
-   # --- hide: stop ---
-   # continuation from previous code example
-   vol * pd.Series([1.1, 1.2, 1.5], index)  # individual factors
-   # --- hide: start ---
-   print(repr(vol * pd.Series([1.1, 1.2, 1.5], index)))
+.. _calcratio:
 
+Calculating ratio 
+=================
 
-.. _volprirev:
+We can calculate the ratio of two portfolyo lines by dividing them.
 
-Volumes, prices, and/or revenues
-================================
+* The portfolio lines must both be flat, and of the same kind.
 
-* Addition/subtraction is only defined for information of the same kind: we can add a volume to a volume portfolio line, but not to any other portfolio line. The result is a portfolio line of the same kind.
+* The result is a dimensionless ``pandas.Series``.
 
-* The same goes for division, though this is not defined for complete portfolio lines. For the other kinds, the result is a series of floats.
+* None of the operands may be nested. First ``.flatten()`` if necessary. 
 
-* Multiplication is only defined for information of *different* kind: we can multiply a volume to a price-only portfolio line, but not to a volume-only portfolio line. The result is a complete portfolio line in which the operands are combined.
+* None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
+
 
 ================================================= =============== ============== ================ =================
 \                                                 Kind of portfolio line
@@ -462,69 +556,142 @@ Volumes, prices, and/or revenues
 \                                                 🟨               🟩              🟦                🟫
 \                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``PfLine ± volume``                               🟨 c2_           ❌              ❌                ❌            
-``PfLine ± price``                                ❌               🟩 c2_          ❌                ❌            
-``PfLine ± revenue``                              ❌               ❌              🟦 c2_            ❌            
-``PfLine ± complete``                             ❌               ❌              ❌                🟫 c2_        
-``PfLine / volume``                               ⬜ sf_           ❌              ❌                ❌            
-``PfLine / price``                                ❌               ⬜ sf_          ❌                ❌            
-``PfLine / revenue``                              ❌               ❌              ⬜ sf_            ❌            
-``PfLine / complete``                             ❌               ❌              ❌                ❌            
-``PfLine * volume``                               ❌               🟫              🟫                ❌            
-``PfLine * price``                                🟫               ❌              🟫                ❌            
-``PfLine * revenue``                              🟫               🟫              ❌                ❌            
-``PfLine * complete``                             ❌               ❌              ❌                ❌            
+``PfLine / volume``                               ⬜ 2f_           ❌              (❌)              ❌              
+``PfLine / price``                                ❌               ⬜ 2f_          (❌)              ❌              
+``PfLine / revenue``                              ❌               ❌              ⬜ 2f_            ❌              
 ================================================= =============== ============== ================ =================
-
 
 Notes:
 
-.. _c2:
+.. _2f:
+ 
+2f
+  Both operands must be flat.
 
-c2
-  For nested portfolio lines: the children are retained in the operation *IF* the other operand is also a nested portfolio line. (Both operands' children are in the returned portfolio line). Otherwise, it is flattened before the operation.
+(❌)
+  This operation is allowed but does not result in ratio. It is described in the section changekind_ below.
 
-.. _sf:
+For example:
 
-sf
-  Returns ``pandas.Series`` of floats.
+.. exec_code::
+     
+   # --- hide: start ---
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='MS', periods=3)
+   vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
+   # --- hide: stop ---
+   # continuation of previous code example
+   vol / pf.Q_(200, 'MW')  # division by volume results in dimensionless series
+   # --- hide: start ---
+   print(repr(vol / pf.Q_(200, 'MW')))
 
 
-Here are several examples.
+.. _changekind:
 
-* When adding (or subtracting) two nested portfolio lines, the children are merged: 
+Changing kind
+=============
 
-  .. exec_code::
-       
-     import portfolyo as pf, pandas as pd
-     index = pd.date_range('2024', freq='AS', periods=3)
-     pfl_1 = pf.PfLine({
-         'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
-         'B': pd.Series([1, -1.8, 1.9], index, dtype='pint[MW]')
-     }) 
-     pfl_2 = pf.PfLine({
-         'B': pd.Series([0.5, 0.2, 1.9], index, dtype='pint[MW]'), 
-         'C': pd.Series([2, 2.2, 3.8], index, dtype='pint[MW]')
-     }) 
-     diff = pfl_1 - pfl_2
-  
-     print([name for name in diff])
-     diff['B']
-     # --- hide: start ---
-     print(repr(diff['B']))
-  
-* The multiplication of two distinct portfolio lines (e.g. a price-only and a volume-only portfolio line) results in a "complete" portfolio line:
+We can turn one kind of portfolio line into another kind, by multiplying with or division by the correct (third) kind. 
 
-  .. exec_code::
-       
-     import portfolyo as pf, pandas as pd
-     index = pd.date_range('2024', freq='MS', periods=3)
-     vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
-     pri = pf.PfLine(pd.Series([20, 22, 18], index, dtype='pint[Eur/MWh]')) 
-     pfl = vol * pri
-     pfl
-     # --- hide: start ---
-     print(repr(vol * pri))
+* Concrete, these are the possibilities:
+
+   - Multiplying a flat volume portfolio line with a flat price portfolio line results in a flat revenue portfolio line.
+   
+   - Dividing a flat revenue portfolio line by a flat price portfolio line results in a flat volume portfolio line.
+
+   - Dividing a flat revenue portfolio line by a flat volume portfolio line results in a flat price portfolio line.
+
+* At most one of the operands may be nested. First ``.flatten()`` if necessary.
+
+* If one of the operands is nested, the value of the flat operand is combined with each child of the nested one. 
+
+* None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
+
+* To combine two portfolio lines into a complete portfolio line, see the section union_, below.
+
+================================================= =============== ============== ================ =================
+\                                                 Kind of portfolio line
+------------------------------------------------- -----------------------------------------------------------------
+\                                                 🟨               🟩              🟦                🟫
+\                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
+================================================= =============== ============== ================ =================
+``PfLine * volume``                               ❌               🟦 ≥1f_          ❌                ❌              
+``PfLine * price``                                🟦 ≥1f_           ❌              ❌                ❌              
+``PfLine / volume``                               (❌)             ❌              🟩 ≥1f_            ❌              
+``PfLine / price``                                ❌               (❌)            🟨 ≥1f_            ❌              
+================================================= =============== ============== ================ =================
+
+Notes:
+
+.. _≥1f:
+
+≥1f
+  At least one of the operands must be flat.
+
+(❌)
+  This operation is allowed but results in a ratio. It is described in the section calcratio_ above.
+
+
+Here is an examples:
+
+.. exec_code::
+     
+   # --- hide: start ---  
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='MS', periods=3)
+   vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
+   # --- hide: stop ---
+   # continuation of previous code example
+   vol * pf.Q_(100, 'Eur/MWh')  # multiplication with price results in revenue
+   # --- hide: start ---
+   print(repr(vol * pf.Q_(100, 'Eur/MWh')))
+
+
+.. _union:
+
+Union into complete portfolio line
+==================================
+
+We can combine portfolio lines of distinct kind into a complete portfolio line. We use the union operator ``|`` for this.
+
+* At most one of the operands may be nested. First ``.flatten()`` if necessary.
+
+* If one of the operands is nested, the value of the flat operand is combined with each child of the nested one. 
+  TODO: nested-volume | price --> nested-complete possible
+  TODO: volume | nested-price --> nested-complete not possible
+
+* None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
+
+
+================================================= =============== ============== ================ =================
+\                                                 Kind of portfolio line
+------------------------------------------------- -----------------------------------------------------------------
+\                                                 🟨               🟩              🟦                🟫
+\                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
+================================================= =============== ============== ================ =================
+``PfLine | volume``                               ❌               🟫 of_          🟫 of_            ❌              
+``PfLine | price``                                🟫 of_           ❌              🟫 of_            ❌              
+``PfLine | revenue``                              🟫 of_           🟫 of_          ❌                ❌              
+================================================= =============== ============== ================ =================
+
+.. _of:
+
+of
+  "One flat": At least one of the operands must be flat.
+
+
+.. exec_code::
+     
+   # --- hide: start ---  
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='MS', periods=3)
+   vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
+   # --- hide: stop ---
+   # continuation of previous code example
+   vol | pf.Q_(100, 'Eur/MWh')  # union with price results in complete portfolio line
+   # --- hide: start ---
+   print(repr(vol | pf.Q_(100, 'Eur/MWh')))
+
 
 
 --------------
@@ -586,7 +753,7 @@ For portfolio lines with (quarter)hourly data, the ``.po()`` method splits the v
    (offtake * prices).plot()
    hedge.plot()
    # --- hide: stop ---
-   # continuation from previous code example
+   # continuation of previous code example
    offtake.po()
    # --- hide: start ---
    print(repr(offtake.po()))
