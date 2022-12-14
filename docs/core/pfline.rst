@@ -509,7 +509,7 @@ We can scale a portfolio line by multiplication with / division by a dimensionle
 
 * For complete portfolio lines, the volume and revenue are scaled, while the price remains unchanged.
 
-Negation is defined as multiplication with -1.
+Negation is implemented as multiplication with -1.
 
 ================================================= =============== ============== ================ =================
 \                                                 Kind of portfolio line
@@ -593,13 +593,13 @@ Changing kind
 
 We can turn one kind of portfolio line into another kind, by multiplying with or division by the correct (third) kind. 
 
-* Concrete, these are the possibilities:
+* Concrete, because price * volume = revenue, we have these possibilities:
 
-   - Multiplying a flat volume portfolio line with a flat price portfolio line results in a flat revenue portfolio line.
+   - Multiplying a volume portfolio line with a price portfolio line results in a revenue portfolio line.
    
-   - Dividing a flat revenue portfolio line by a flat price portfolio line results in a flat volume portfolio line.
+   - Dividing a revenue portfolio line by a price portfolio line results in a volume portfolio line.
 
-   - Dividing a flat revenue portfolio line by a flat volume portfolio line results in a flat price portfolio line.
+   - Dividing a revenue portfolio line by a volume portfolio line results in a price portfolio line.
 
 * At most one of the operands may be nested. First ``.flatten()`` if necessary.
 
@@ -615,15 +615,15 @@ We can turn one kind of portfolio line into another kind, by multiplying with or
 \                                                 🟨               🟩              🟦                🟫
 \                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``PfLine * volume``                               ❌               🟦 ≥1f_          ❌                ❌              
-``PfLine * price``                                🟦 ≥1f_           ❌              ❌                ❌              
-``PfLine / volume``                               (❌)             ❌              🟩 ≥1f_            ❌              
-``PfLine / price``                                ❌               (❌)            🟨 ≥1f_            ❌              
+``PfLine * volume``                               ❌               🟦 `≥1f`_       ❌                ❌              
+``PfLine * price``                                🟦 `≥1f`_        ❌              ❌                ❌              
+``PfLine / volume``                               (❌)             ❌              🟩 `≥1f`_         ❌              
+``PfLine / price``                                ❌               (❌)            🟨 `≥1f`_         ❌              
 ================================================= =============== ============== ================ =================
 
 Notes:
 
-.. _≥1f:
+.. _`≥1f`:
 
 ≥1f
   At least one of the operands must be flat.
@@ -656,9 +656,10 @@ We can combine portfolio lines of distinct kind into a complete portfolio line. 
 
 * At most one of the operands may be nested. First ``.flatten()`` if necessary.
 
-* If one of the operands is nested, the value of the flat operand is combined with each child of the nested one. 
-  TODO: nested-volume | price --> nested-complete possible
-  TODO: volume | nested-price --> nested-complete not possible
+* If both operands are flat portfolio lines, the result is a flat complete portfolio line.
+
+* If one of the operands is nested, the flat operand is combined with each of its children. 
+
 
 * None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
 
@@ -669,16 +670,17 @@ We can combine portfolio lines of distinct kind into a complete portfolio line. 
 \                                                 🟨               🟩              🟦                🟫
 \                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``PfLine | volume``                               ❌               🟫 of_          🟫 of_            ❌              
-``PfLine | price``                                🟫 of_           ❌              🟫 of_            ❌              
-``PfLine | revenue``                              🟫 of_           🟫 of_          ❌                ❌              
+``PfLine | volume``                               ❌               🟫 `≥1f`_       🟫 `≥1f`_         ❌              
+``PfLine | price``                                🟫 `≥1f`_        ❌              🟫 `≥1f`_         ❌              
+``PfLine | revenue``                              🟫 `≥1f`_        🟫 `≥1f`_       ❌                ❌              
 ================================================= =============== ============== ================ =================
 
-.. _of:
+.. _`≥1f`:
 
-of
-  "One flat": At least one of the operands must be flat.
+≥1f
+  At least one of the operands must be flat.
 
+Example with flat portfolio lines:
 
 .. exec_code::
      
@@ -691,6 +693,29 @@ of
    vol | pf.Q_(100, 'Eur/MWh')  # union with price results in complete portfolio line
    # --- hide: start ---
    print(repr(vol | pf.Q_(100, 'Eur/MWh')))
+
+Combining a nested volume portfolio line with a flat price:
+
+.. exec_code::
+
+# --- hide: start ---  
+
+   index = pd.date_range('2024', freq='MS', periods=3)
+   # volumes
+   existing_customers = pd.Series([250, 250, 250], index, dtype='pint[MW]') 
+   expected_churn = pd.Series([-10, -15, -20], index, dtype='pint[MW]') 
+   # prices
+   energy_price = pd.Series([60, 70, 65], index, dtype='pint[Eur/MWh]')
+   risk_premium = pd.Series([5, 5, 5.5], index, dtype='pint[Eur/MWh]')
+
+   # nested pf-lines
+   volume = pf.PfLine({'existing': existing_customers, 'churn': expected_churn})
+   price = pf.PfLine({'energy': energy_price, 'premium': risk_premium})
+
+   union1 = volume | price.flatten()
+   union1
+   # --- hide: start ---
+   print(repr(union1))
 
 
 
