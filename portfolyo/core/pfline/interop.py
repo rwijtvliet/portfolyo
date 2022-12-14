@@ -104,7 +104,9 @@ def _set_unit(
     unit = tools.unit.from_name(attr) if attr else None
 
     if unit is None:  # should be unit-agnostic
-        if isinstance(v, int) or isinstance(v, float):
+        if isinstance(v, float):
+            return v
+        if isinstance(v, int):
             return float(v)
         if isinstance(v, pd.Series) and isinstance(v.index, pd.DatetimeIndex):
             v = _timeseries_of_floats_or_pint(v)  # float-series or pint-series
@@ -119,8 +121,12 @@ def _set_unit(
         )
 
     else:  # should be unit-aware
-        if isinstance(v, float) or isinstance(v, int) or isinstance(v, tools.unit.Q_):
-            return tools.unit.Q_(v, unit)  # add unit or convert to unit
+        if isinstance(v, float):
+            return tools.unit.Q_(v, unit)  # add unit
+        if isinstance(v, int):
+            return tools.unit.Q_(float(v), unit)  # add unit
+        if isinstance(v, tools.unit.Q_):
+            return tools.unit.Q_(v, unit)  # convert to unit
         if isinstance(v, pd.Series) and isinstance(v.index, pd.DatetimeIndex):
             v = _timeseries_of_floats_or_pint(v)  # float-series or pint-series
             return v.astype(f"pint[{unit:P}]")
