@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 import pandas as pd
 
+from ... import tools
 from . import base, interop, multi, single
 from .base import Kind
 
@@ -45,20 +46,24 @@ class PfLineFlattenedWarning(Warning):
     pass
 
 
-def _assert_freq_compatibility(fn):
-    """Check frequency compatible before calling the wrapped function"""
+def _assert_index_compatibility(fn):
+    """Check if indices are compatible before calling the wrapped function."""
 
     def wrapper(o1, o2):
         if o1.index.freq != o2.index.freq:
             raise NotImplementedError(
                 "Cannot do arithmatic with timeseries of unequal frequency."
             )
+        if o1.index[0].time() != o2.index[0].time():
+            raise NotImplementedError(
+                "Cannot do arithmatic with timeseries that have unequal start-of-day."
+            )
         return fn(o1, o2)
 
     return wrapper
 
 
-@_assert_freq_compatibility
+@_assert_index_compatibility
 def _add_pflines(pfl1: PfLine, pfl2: PfLine):
     """Add two pflines."""
     if pfl1.kind is not pfl2.kind:
@@ -84,15 +89,15 @@ def _add_pflines(pfl1: PfLine, pfl2: PfLine):
             PfLineFlattenedWarning,
         )
 
-    # at least one of them is a SinglePfLine.
-    # Get addition and keep only common rows, and resample to keep freq (possibly re-adds gaps in middle).
+    # At least one of them is a SinglePfLine.
+
     dfs = [pfl.df(pfl.summable, flatten=True) for pfl in [pfl1, pfl2]]
-    df = sum(dfs).dropna().resample(pfl1.index.freq).asfreq()
-    return single.SinglePfLine(df)
+    dfs = tools.intersect.frames(*dfs)  # keep only common rows
+    return single.SinglePfLine(sum(dfs))
 
 
 # TODO: Decide if this should return a Single or Multi PfLine
-@_assert_freq_compatibility
+@_assert_index_compatibility
 def _multiply_pflines(pfl1: PfLine, pfl2: PfLine):
     """Multiply two pflines."""
     if set([pfl1.kind, pfl2.kind]) != {Kind.PRICE, Kind.VOLUME}:
@@ -111,18 +116,18 @@ def _multiply_pflines(pfl1: PfLine, pfl2: PfLine):
     return single.SinglePfLine(data)
 
 
-@_assert_freq_compatibility
+@_assert_index_compatibility
 def _multiply_pfline_and_dimensionlessseries(pfl: PfLine, s: pd.Series):
     """Multiply pfline and dimensionless series."""
     # Scale the price p (kind == 'p') or the volume q (kind == 'q'), returning PfLine of same kind.
     if isinstance(pfl, multi.MultiPfLine):
         return multi.MultiPfLine({name: child * s for name, child in pfl.items()})
-    df = pfl.df(pfl.summable).mul(s, axis=0)  # multiplication with index-alignment
-    df = df.dropna().resample(pfl.index.freq).asfreq()
-    return single.SinglePfLine(df)
+    df = pfl.df(pfl.summable)
+    df, s = tools.intersect.frames(df, s)  # keep only common rows
+    return single.SinglePfLine(df.mul(s, axis=0))
 
 
-@_assert_freq_compatibility
+@_assert_index_compatibility
 def _divide_pflines(pfl1: PfLine, pfl2: PfLine) -> pd.Series:
     """Divide two pflines."""
     if pfl1.kind is not pfl2.kind or pfl1.kind is Kind.COMPLETE:
@@ -136,10 +141,13 @@ def _divide_pflines(pfl1: PfLine, pfl2: PfLine) -> pd.Series:
         )
 
     if pfl1.kind is Kind.PRICE:
-        s = pfl1.p / pfl2.p
-    else:  # self.kind is Kind.VOlUME_ONLY
-        s = pfl1.q / pfl2.q
-    s = s.dropna().resample(pfl1.index.freq).asfreq()
+        series = pfl1.p, pfl2.p
+    elif pfl1.kind is Kind.VOLUME:
+        series = pfl1.q, pfl2.q
+    elif pfl1.kind is Kind.REVENUE:
+        series = pfl1.r, pfl2.r
+    series = tools.intersect.frames(*series)
+    s = series[0] / series[1]
     return s.rename("fraction")  # pint[dimensionless]
 
 

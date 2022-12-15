@@ -99,7 +99,7 @@ def test_verifydict_unequaltimeperiods(freq, overlap):
     spfl2 = dev.get_singlepfline(i2, "all")
     dic = {"PartA": spfl1, "PartB": spfl2}
 
-    intersection = tools.intersection.index(spfl1.index, spfl2.index)
+    intersection = tools.intersect.indices(spfl1.index, spfl2.index)
 
     if not overlap:
         # raise error (two portfoliolines do not have anything in common.)

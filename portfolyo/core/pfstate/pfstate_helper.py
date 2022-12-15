@@ -58,11 +58,11 @@ def make_pflines(
     # . Lengths of offtakevolume and sourced.
     if sourced is not None:
         # Workaround for error in pandas intersection (#46702):
-        idx = tools.intersection.index(offtakevolume.index, sourced.index)
+        idx = tools.intersect.indices(offtakevolume.index, sourced.index)
         offtakevolume = offtakevolume.loc[idx]
         sourced = sourced.loc[idx]
     # . Length of unsourcedprice.
-    if len(tools.intersection.index(offtakevolume.index, unsourcedprice.index)) < len(
+    if len(tools.intersect.indices(offtakevolume.index, unsourcedprice.index)) < len(
         offtakevolume.index
     ):
         raise ValueError(
