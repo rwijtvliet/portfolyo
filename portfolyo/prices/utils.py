@@ -15,7 +15,6 @@ german_peakperiod = tools.peakperiod.factory(dt.time(8), dt.time(20), [1, 2, 3, 
 def is_peak_hour(
     ts_left: Union[pd.Timestamp, pd.DatetimeIndex]
 ) -> Union[bool, pd.Series]:
-    # TODO: Replace with tools.peakperiod
     """
     Boolean value indicating if a timestamp is in a peak period or not.
 
@@ -36,7 +35,7 @@ def is_peak_hour(
             "Calling this function with a single timestamp is deprecated and will be removed in a future version",
             FutureWarning,
         )
-        return is_peak_hour(pd.DatetimeIndex([ts_left], freq="H"))[0]
+        return is_peak_hour(pd.DatetimeIndex([ts_left], freq="15T"))[0]
 
     return german_peakperiod(ts_left)
 
@@ -178,11 +177,12 @@ def delivery_period(
         ts_left = tools.floor.stamp(ts_trade, "D", front_count, start_of_day)
         ts_right = tools.right.stamp(ts_left, "D")
     elif period_type == "s":
-        ts_left, ts_right = delivery_period(ts_trade, "q", front_count * 2 - 1)
-        nextq = pd.offsets.QuarterBegin(1, startingMonth=1)
-        ts_right = ts_right + nextq  # make 6 months long
+        front_count_q = front_count * 2 - 1
+        ts_left, ts_right = delivery_period(ts_trade, "q", front_count_q, start_of_day)
+        ts_right = tools.right.stamp(ts_right, "QS")  # make 6 months long
         if ts_left.month % 2 == 1:  # season must start on even month
-            ts_left, ts_right = ts_left + nextq, ts_right + nextq
+            ts_left = tools.right.stamp(ts_left, "QS")
+            ts_right = tools.right.stamp(ts_right, "QS")
     else:
         raise ValueError(
             f"Parameter ``period_type`` must be one of 'd', 'm', 'q', 's', 'a'; got '{period_type}'."
