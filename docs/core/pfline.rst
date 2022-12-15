@@ -654,12 +654,17 @@ Union into complete portfolio line
 
 We can combine portfolio lines of distinct kind into a complete portfolio line. We use the union operator ``|`` for this.
 
+Current version:
+
+* None of the operands may be nested. First ``.flatten()`` if necessary.
+
+Future version:
+
 * At most one of the operands may be nested. First ``.flatten()`` if necessary.
 
 * If both operands are flat portfolio lines, the result is a flat complete portfolio line.
 
 * If one of the operands is nested, the flat operand is combined with each of its children. 
-
 
 * None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
 
