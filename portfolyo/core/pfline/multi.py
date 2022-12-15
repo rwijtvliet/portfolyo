@@ -7,14 +7,16 @@ their name.
 from __future__ import annotations
 
 import warnings
-from typing import Any, Dict, Iterable, Mapping, Union
+from typing import Any, Dict, Iterable, Mapping, Union, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
 
 from . import multi_helper
 from .base import Kind, PfLine
-from .single import SinglePfLine
+
+if TYPE_CHECKING:
+    from .single import SinglePfLine
 
 
 class MultiPfLine(PfLine, Mapping):
