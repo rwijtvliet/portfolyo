@@ -74,7 +74,10 @@ def offpeak(
     offpeak value(s)
     """
     fr = utils.duration_bpo(ts_left, freq)  # Series or DataFrame
-    return (base * fr["base"] - peak * fr["peak"]) / fr["offpeak"]
+    b, p, o = fr["base"], fr["peak"], fr["offpeak"]
+    if isinstance(fr, pd.DataFrame):
+        b, p, o = b.values, p.values, o.values
+    return (base * b - peak * p) / o
 
 
 def peak(
@@ -90,7 +93,11 @@ def peak(
     .offpeak
     """
     fr = utils.duration_bpo(ts_left, freq)  # Series or DataFrame
-    return (base * fr["base"] - offpeak * fr["offpeak"]) / fr["peak"]
+    b, p, o = fr["base"], fr["peak"], fr["offpeak"]
+    if isinstance(fr, pd.DataFrame):
+        b, p, o = b.values, p.values, o.values
+
+    return (base * b - offpeak * o) / p
 
 
 def base(
@@ -106,7 +113,10 @@ def base(
     .offpeak
     """
     fr = utils.duration_bpo(ts_left, freq)  # Series or DataFrame
-    return (peak * fr["peak"] + offpeak * fr["offpeak"]) / fr["base"]
+    b, p, o = fr["base"], fr["peak"], fr["offpeak"]
+    if isinstance(fr, pd.DataFrame):
+        b, p, o = b.values, p.values, o.values
+    return (peak * p + offpeak * o) / b
 
 
 def complete_bpoframe(partial_bpoframe: pd.DataFrame, prefix: str = "") -> pd.DataFrame:
