@@ -62,14 +62,14 @@ def timeseries_testcase(i: pd.DataFrame, has_unit: bool, name: str) -> pd.Series
     return dev.get_series(i, name, has_unit)
 
 
-def singlepfline_testcase(i: pd.DatetimeIndex, kind: str) -> SinglePfLine:
-    """Create singlepfline to test initialisation."""
-    return dev.get_singlepfline(i, kind)
+def flatpfline_testcase(i: pd.DatetimeIndex, kind: str) -> SinglePfLine:
+    """Create flatpfline to test initialisation."""
+    return dev.get_flatpfline(i, kind)
 
 
-def multipfline_testcase(i: pd.DatetimeIndex, kind: str) -> MultiPfLine:
-    """Create multipfline to test initialisation."""
-    return dev.get_multipfline(i, kind)
+def nestedpfline_testcase(i: pd.DatetimeIndex, kind: str) -> MultiPfLine:
+    """Create nestedpfline to test initialisation."""
+    return dev.get_nestedpfline(i, kind)
 
 
 # Functions that create iterable of Test Case from which a PfLine can be instatiated (or not).
@@ -106,7 +106,7 @@ def dict_testcases(i, has_unit, typ) -> Iterable[InitTestcase]:
             elif keys in error_cases:
                 expectedkind = Exception
             elif typ is MultiPfLine:
-                # under special circumstances, a multipfline can be created from dictionary of timeseries
+                # under special circumstances, a nestedpfline can be created from dictionary of timeseries
                 expectedkind = Exception
                 if variation == 1 and "r" not in keys:
                     k = ""
@@ -169,11 +169,11 @@ def timeseries_testcases(i, has_unit, typ) -> Iterable[InitTestcase]:
     return testcases
 
 
-def singlepfline_testcases(i, typ) -> Iterable[InitTestcase]:
-    """Create several testcases with a singlepfline as input data."""
+def flatpfline_testcases(i, typ) -> Iterable[InitTestcase]:
+    """Create several testcases with a flatpfline as input data."""
     testcases = []
     for kind in [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY]:
-        data_in = singlepfline_testcase(i, kind)
+        data_in = flatpfline_testcase(i, kind)
         if typ is MultiPfLine:
             expectedkind = Exception
         else:
@@ -182,11 +182,11 @@ def singlepfline_testcases(i, typ) -> Iterable[InitTestcase]:
     return testcases
 
 
-def multipfline_testcases(i, typ) -> Iterable[InitTestcase]:
-    """Create several testcases with a multipfline as input data."""
+def nestedpfline_testcases(i, typ) -> Iterable[InitTestcase]:
+    """Create several testcases with a nestedpfline as input data."""
     testcases = []
     for kind in [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY]:
-        data_in = multipfline_testcase(i, kind)
+        data_in = nestedpfline_testcase(i, kind)
         expectedkind = kind
         testcases.append(InitTestcase("data:ts", data_in, expectedkind))
     return testcases
@@ -205,8 +205,8 @@ def all_testcases(typ) -> Iterable[InitTestcase]:
                         *dict_testcases(i, has_unit, typ),
                         *df_testcases(i, has_unit, typ),
                         *timeseries_testcases(i, has_unit, typ),
-                        *singlepfline_testcases(i, typ),
-                        *multipfline_testcases(i, typ),
+                        *flatpfline_testcases(i, typ),
+                        *nestedpfline_testcases(i, typ),
                     ]
                     for case in cases:
                         case.id += f"-{id_fn(case.data_in)}"
@@ -222,7 +222,7 @@ def data_in_function(typ) -> Dict[str, Iterable]:
 
 
 @pytest.mark.parametrize("itd", **data_in_function(SinglePfLine))
-def test_singlepfline_init_2(itd: InitTestcase):
+def test_flatpfline_init_2(itd: InitTestcase):
     """Test if SinglePfLine can be initialized correctly, and attributes return correct values."""
     data_in, expected_kind = itd.data_in, itd.expected_kind
     if type(expected_kind) is type and issubclass(expected_kind, Exception):
@@ -235,10 +235,10 @@ def test_singlepfline_init_2(itd: InitTestcase):
 
 
 @pytest.mark.parametrize("itd", **data_in_function(MultiPfLine))
-def do_test_multipfline_init_2(itd: InitTestcase):
+def do_test_nestedpfline_init_2(itd: InitTestcase):
     """Test if MultiPfLine can be initialized correctly, and attributes return correct values."""
     pass
-    # TODO: first specify, how multipfline should be initializable
+    # TODO: first specify, how nestedpfline should be initializable
     # data_in, expected_kind = itd.data_in, itd.expected_kind
     # if type(expected_kind) is type and issubclass(expected_kind, Exception):
     #     with pytest.raises(expected_kind):

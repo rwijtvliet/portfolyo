@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from portfolyo import Kind, dev, testing, tools
-from portfolyo.core.pfline import multi_helper
+from portfolyo.core.pfline import nested_helper
 
 
 @pytest.mark.parametrize("freq", ["MS", "D"])
@@ -20,7 +20,7 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
     for k, kind in enumerate([kind1, kind2, kind3]):
         if kind is not None:
             kinds.append(kind)
-            dic[f"part_{k}"] = dev.get_singlepfline(i, kind)
+            dic[f"part_{k}"] = dev.get_flatpfline(i, kind)
 
     if len(dic) == 1:
         pass
@@ -30,17 +30,17 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
         if len(kset) != 1 and kset != set([Kind.PRICE, Kind.VOLUME]):
             # Can only combine 2 pflines if they have the same kind or are 'q' and 'p'
             with pytest.raises(ValueError):
-                _ = multi_helper.verify_and_trim_dict(dic)
+                _ = nested_helper.verify_and_trim_dict(dic)
             return
 
     elif len(dic) == 3:
         if len(set(kinds)) != 1:
             # Can only combine 3 pflines if they have the same kind.
             with pytest.raises(ValueError):
-                _ = multi_helper.verify_and_trim_dict(dic)
+                _ = nested_helper.verify_and_trim_dict(dic)
             return
 
-    result = multi_helper.verify_and_trim_dict(dic)
+    result = nested_helper.verify_and_trim_dict(dic)
     assert result == dic
 
 
@@ -58,19 +58,19 @@ def test_verifydict_frequencyconsistency(freq1, freq2):
     i1 = pd.date_range(**kwargs, freq=freq1)
     i2 = pd.date_range(**kwargs, freq=freq2)
 
-    spfl1 = dev.get_singlepfline(i1, "all")
-    spfl2 = dev.get_singlepfline(i2, "all")
+    spfl1 = dev.get_flatpfline(i1, "all")
+    spfl2 = dev.get_flatpfline(i2, "all")
 
     dic = {"PartA": spfl1, "PartB": spfl2}
 
     if freq1 != freq2:
         # Expect error.
         with pytest.raises(ValueError):
-            _ = multi_helper.verify_and_trim_dict(dic)
+            _ = nested_helper.verify_and_trim_dict(dic)
         return
     else:
         # Expect no error.
-        _ = multi_helper.verify_and_trim_dict(dic)
+        _ = nested_helper.verify_and_trim_dict(dic)
 
 
 @pytest.mark.parametrize("freq", ["15T", "H", "D", "MS"])
@@ -95,8 +95,8 @@ def test_verifydict_unequaltimeperiods(freq, overlap):
         tz="Europe/Berlin",
     )
 
-    spfl1 = dev.get_singlepfline(i1, "all")
-    spfl2 = dev.get_singlepfline(i2, "all")
+    spfl1 = dev.get_flatpfline(i1, "all")
+    spfl2 = dev.get_flatpfline(i2, "all")
     dic = {"PartA": spfl1, "PartB": spfl2}
 
     intersection = tools.intersect.indices(spfl1.index, spfl2.index)
@@ -104,10 +104,10 @@ def test_verifydict_unequaltimeperiods(freq, overlap):
     if not overlap:
         # raise error (two portfoliolines do not have anything in common.)
         with pytest.raises(ValueError):
-            result = multi_helper.verify_and_trim_dict(dic)
+            result = nested_helper.verify_and_trim_dict(dic)
         return
 
-    result = multi_helper.verify_and_trim_dict(dic)
+    result = nested_helper.verify_and_trim_dict(dic)
     for name, child in result.items():
         testing.assert_series_equal(child.q, dic[name].loc[intersection].q)
         testing.assert_series_equal(child.r, dic[name].loc[intersection].r)
@@ -150,7 +150,7 @@ input_df_3 = pd.concat(
     ],
 )
 def test_makemapping(input: Any, expected: Mapping):
-    result = multi_helper.make_mapping(input)
+    result = nested_helper.make_mapping(input)
     assert isinstance(result, Mapping)
     assert set(key for key in result) == set(key for key in expected)
     for key, result_val in result.items():

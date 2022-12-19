@@ -5,7 +5,7 @@ import warnings
 from typing import Any, Iterable
 
 from ... import tools
-from ..pfline import Kind, MultiPfLine, PfLine, SinglePfLine  # noqa
+from ..pfline import FlatPfLine, Kind, NestedPfLine, PfLine  # noqa
 
 
 def make_pflines(

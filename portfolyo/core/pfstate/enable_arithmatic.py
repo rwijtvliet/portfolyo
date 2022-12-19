@@ -39,7 +39,7 @@ def _prep_data(value, refindex: pd.DatetimeIndex) -> Union[pd.Series, PfLine, Pf
         if name not in ["p", "q", "w"]:
             return value  # has know unit, but none from which PfLine can be made
 
-        return pfline.SinglePfLine({name: value})
+        return pfline.FlatPfLine({name: value})
 
     # Just a single value.
     if isinstance(value, int) or isinstance(value, float):
@@ -68,7 +68,9 @@ def _add_pfstates(pfs1: pfstate.PfState, pfs2: pfstate.PfState) -> pfstate.PfSta
     return pfstate.PfState(offtakevolume, unsourcedprice, sourced)
 
 
-def _multiply_pfstate_and_series(pfs: pfstate.PfState, s: pd.Series) -> pfstate.PfState:
+def _nestedply_pfstate_and_series(
+    pfs: pfstate.PfState, s: pd.Series
+) -> pfstate.PfState:
     """Multiply pfstate and Series."""
     # Scale up volumes (and revenues), leave prices unchanged.
     return pfstate.PfState(pfs.offtakevolume * s, pfs.unsourcedprice, pfs.sourced * s)
@@ -139,9 +141,9 @@ class PfStateArithmatic:
 
         # Other is a Series (but not containing [power], [energy] or [price]).
         if isinstance(other, pd.Series):
-            return _multiply_pfstate_and_series(self, other)
+            return _nestedply_pfstate_and_series(self, other)
 
-        raise NotImplementedError("This multiplication is not defined.")
+        raise NotImplementedError("This nestedplication is not defined.")
 
     __rmul__ = __mul__
 

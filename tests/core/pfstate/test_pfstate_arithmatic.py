@@ -5,16 +5,8 @@ import pandas as pd
 import pytest
 
 import portfolyo as pf
-from portfolyo import (
-    Q_,
-    Kind,
-    MultiPfLine,
-    PfLine,
-    PfState,  # noqa
-    SinglePfLine,
-    dev,
-    testing,
-)
+from portfolyo import PfState  # noqa
+from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine, dev, testing
 
 
 def id_fn(data: Any):
@@ -27,9 +19,9 @@ def id_fn(data: Any):
         return f"Series (idx: {''.join(str(i) for i in data.index)})"
     elif isinstance(data, pd.DataFrame):
         return f"Df (columns: {''.join(str(c) for c in data.columns)})"
-    elif isinstance(data, SinglePfLine):
+    elif isinstance(data, FlatPfLine):
         return f"Singlepfline_{data.kind}"
-    elif isinstance(data, MultiPfLine):
+    elif isinstance(data, NestedPfLine):
         return f"Multipfline_{data.kind}"
     elif isinstance(data, str):
         return data

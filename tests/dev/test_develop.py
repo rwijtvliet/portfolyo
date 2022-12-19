@@ -100,11 +100,11 @@ def test_dataframe(freq, tz, start, cols, name_has_unit, request_unit):
         ("AS", "2020"),
     ],
 )
-def test_singlemultipfline(freq, tz, start, kind):
-    """Test singlepfline and multipfline creation."""
+def test_flatnestedpfline(freq, tz, start, kind):
+    """Test flatpfline and nestedpfline creation."""
     i = None if freq is None else dev.get_index(freq, tz, start)
-    _ = dev.get_singlepfline(i, kind)
-    _ = dev.get_multipfline(i, kind)
+    _ = dev.get_flatpfline(i, kind)
+    _ = dev.get_nestedpfline(i, kind)
 
 
 @pytest.mark.parametrize("max_nlevels", [1, 2, 3])
@@ -124,6 +124,6 @@ def test_singlemultipfline(freq, tz, start, kind):
 def test_pfline(freq, tz, start, kind, max_nlevels):
     """Test that pfline can be created."""
     i = None if freq is None else dev.get_index(freq, tz, start)
-    pfl = dev.get_pfline(i, kind, max_nlevels)
+    pfl = dev.get_randompfline(i, kind, max_nlevels)
     if max_nlevels == 1:
-        assert isinstance(pfl, pf.SinglePfLine)
+        assert isinstance(pfl, pf.FlatPfLine)

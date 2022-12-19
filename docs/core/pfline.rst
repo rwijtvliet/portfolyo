@@ -135,7 +135,7 @@ Flat or Nested
 
 As seen in the final initialisation example, we can create *nested* portfolio lines, where a portfolio line contains one or more named children (which are also portfolio lines). This in contrast to the *'flat'* portfolio lines we created in the first initialisation example. 
 
-.. note:: When checking the types, you will see that these are actually different classes. The flat portfolio line is an instance of the ``SinglePfLine`` class, whereas the portfolio line which has nesting is an instance of the ``MultiPfLine`` class. Both are descendents of the ``PfLine`` base class. When initialising a ``PfLine``, the correct type will be returned based on the input data. 
+.. note:: When checking the types, you will see that these are actually different classes. The flat portfolio line is an instance of the ``FlatPfLine`` class, whereas the portfolio line which has nesting is an instance of the ``NestedPfLine`` class. Both are descendents of the ``PfLine`` base class. When initialising a ``PfLine``, the correct type will be returned based on the input data. 
 
 For nested portfolio lines, we are always looking at and working with the the top level, i.e., the sum/aggregate - unless explicitly stated otherwise by the user.
 

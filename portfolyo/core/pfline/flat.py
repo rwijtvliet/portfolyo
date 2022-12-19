@@ -6,30 +6,32 @@ Dataframe-like class to hold general energy-related timeseries; either volume ([
 from __future__ import annotations
 
 import warnings
-from typing import Dict, Iterable, Union
+from typing import Dict, Iterable, Mapping, Union
 
 import numpy as np
 import pandas as pd
 
 from ... import tools
 from ...testing import testing
-from . import single_helper
+from . import flat_helper
 from .base import Kind, PfLine
 
 
-class SinglePfLine(PfLine):
+class FlatPfLine(PfLine):
     """Flat portfolio line, i.e., without children. Has a single dataframe.
 
     Parameters
     ----------
     data: Any
-        Generally: object with one or more attributes or items ``w``, ``q``, ``r``, ``p``;
+        Generally: mapping with one or more attributes or items ``w``, ``q``, ``r``, ``p``;
         all timeseries. Most commonly a ``pandas.DataFrame`` or a dictionary of
         ``pandas.Series``, but may also be e.g. another PfLine object.
+        If they contain a (distinct) ``pint`` data type, ``data`` may also be a single
+        ``pandas.Series`` or a collection of ``pandas.Series``.
 
     Returns
     -------
-    SinglePfLine
+    FlatPfLine
 
     Notes
     -----
@@ -39,107 +41,92 @@ class SinglePfLine(PfLine):
     converted into the standard units.
     """
 
-    def __new__(cls, data):
+    def __new__(cls, data, *args, **kwargs):
         # Catch case where data is already a valid class instance.
-        if isinstance(data, SinglePfLine):
+        if isinstance(data, FlatPfLine):
             return data
         # Otherwise, do normal thing.
-        return super().__new__(cls, data)
+        return super().__new__(cls)
 
     def __init__(
         self,
-        data: Union[PfLine, Dict, pd.DataFrame, pd.Series],
-        __internal: bool = False,
+        data: Union[Mapping, PfLine, Dict, pd.DataFrame, pd.Series],
+        _internal: bool = False,
     ):
         if self is data:
             return  # don't continue initialisation, it's already the correct object
-        self._df = single_helper.dataframe(data, __internal)
-        self._kind = single_helper.kind(self._df)
+        self._df = flat_helper.dataframe(data, _internal)
+        self._kind = flat_helper.kind(self._df)
 
     # Implementation of ABC methods.
 
-    @property
-    def kind(self) -> Kind:
-        return self._kind
+    kind: Kind = property(lambda self: self._kind)
+    index: pd.DatetimeIndex = property(lambda self: self._df.index)
 
-    @property
-    def index(self) -> pd.DatetimeIndex:
-        return self._df.index
+    def _get_series(self, col, unit) -> pd.Series:
+        if col not in self._df.columns:
+            return pd.Series(np.nan, self.index, name=col, dtype=f"pint[{unit}]")
+        return self._df[col]
 
-    @property
-    def w(self) -> pd.Series:
-        if "w" not in self.kind.available:
-            return pd.Series(np.nan, self.index, name="w", dtype="pint[MW]")
-        return self._df["w"]
-
-    @property
-    def q(self) -> pd.Series:
-        if "q" not in self.kind.available:
-            return pd.Series(np.nan, self.index, name="q", dtype="pint[MWh]")
-        return self._df["q"]
-
-    @property
-    def p(self) -> pd.Series:
-        if "p" not in self.kind.available:
-            return pd.Series(np.nan, self.index, name="p", dtype="pint[Eur/MWh]")
-        return self._df["p"]
-
-    @property
-    def r(self) -> pd.Series:
-        if "r" not in self.kind.available:
-            return pd.Series(np.nan, self.index, name="r", dtype="pint[Eur]")
-        return self._df["r"]
+    w: pd.Series = property(lambda self: self._get_series("w", "MW"))
+    q: pd.Series = property(lambda self: self._get_series("q", "MWh"))
+    p: pd.Series = property(lambda self: self._get_series("p", "Eur/MWh"))
+    r: pd.Series = property(lambda self: self._get_series("r", "Eur"))
 
     def df(
         self, cols: Iterable[str] = None, *args, has_units: bool = True, **kwargs
     ) -> pd.DataFrame:
         # *args, **kwargs needed because base class has this signature.
         if cols is None:
-            cols = self.kind.available
-        series = {col: getattr(self, col) for col in cols}
+            cols = self._df.columns
+        series = {col: getattr(self, col) for col in cols}  # handles missing cols
         if not has_units:
             series = {col: s.pint.m for col, s in series.items()}
         return pd.DataFrame(series)
 
     @property
-    def volume(self) -> SinglePfLine:
+    def volume(self) -> FlatPfLine:
         if self.kind is Kind.VOLUME:
             return self
         if self.kind is Kind.COMPLETE:
-            return SinglePfLine(self._df[["w", "q"]], __internal=True)
+            return FlatPfLine(self._df[["w", "q"]], _internal=True)
         raise ValueError("This portfolio line doesn't contain volumes.")
 
     @property
-    def price(self) -> SinglePfLine:
+    def price(self) -> FlatPfLine:
         if self.kind is Kind.PRICE:
             return self
         if self.kind is Kind.COMPLETE:
-            return SinglePfLine(self._df[["p"]], __internal=True)
+            return FlatPfLine(self._df[["p"]], _internal=True)
         raise ValueError("This portfolio line doesn't contain prices.")
 
     @property
-    def revenue(self) -> SinglePfLine:
+    def revenue(self) -> FlatPfLine:
         if self.kind is Kind.REVENUE:
             return self
         if self.kind is Kind.COMPLETE:
-            return SinglePfLine(self._df[["r"]], __internal=True)
+            return FlatPfLine(self._df[["r"]], _internal=True)
         raise ValueError("This portfolio line doesn't contain revenues.")
 
-    def asfreq(self, freq: str = "MS") -> SinglePfLine:
-        fn = self.kind.changefreqfn
-        df = self.df(self.kind.summable)
-        return SinglePfLine(fn(df, freq))
-        # if self.kind is Kind.VOLUME:
-        #     df = tools.changefreq.summable(self.df("q"), freq)
-        # elif self.kind is Kind.PRICE:
-        #     df = tools.changefreq.averagable(self.df("p"), freq)
-        # elif self.kind is Kind.REVEVUE:
-        #     df = tools.changefreq.summable(self.df("r"), freq)
-        # else:  # self.kind is Kind.COMPLETE
-        #     df = tools.changefreq.summable(self.df("qr"), freq)
-        # return SinglePfLine(df)
+    def flatten(self) -> FlatPfLine:
+        return self
 
-    def map_to_year(self, year: int, holiday_country: str = None) -> SinglePfLine:
+    def asfreq(self, freq: str = "MS") -> FlatPfLine:
+        if self.kind is Kind.VOLUME:
+            df = self._df[["q"]]
+            fn = tools.changefreq.summable
+        elif self.kind is Kind.PRICE:
+            df = self._df[["p"]]
+            fn = tools.changefreq.averagable
+        elif self.kind is Kind.REVENUE:
+            df = self._df[["r"]]
+            fn = tools.changefreq.summable
+        else:  # self.kind is Kind.COMPLETE
+            df = self._df[["q", "r"]]
+            fn = tools.changefreq.summable
+        return FlatPfLine(fn(df, freq))
+
+    def map_to_year(self, year: int, holiday_country: str = None) -> FlatPfLine:
         if tools.freq.shortest(self.index.freq, "MS") == "MS":
             warnings.warn(
                 "This PfLine has a monthly frequency or longer; changing the year is inaccurate, as"
@@ -147,16 +134,14 @@ class SinglePfLine(PfLine):
             )
         # Use averageble data, which is necessary for mapping months (or longer) of unequal length (leap years).
         if self.kind is Kind.VOLUME:
-            df = self.df("w")
+            df = self._df[["w"]]
         elif self.kind is Kind.PRICE:
-            df = self.df("p")
+            df = self._df[["p"]]
         elif self.kind is Kind.REVENUE:
-            df = self.df("r")  # TODO: correct?
+            df = self._df[["r"]]  # TODO: correct?
         else:  # self.kind is Kind.COMPLETE
-            df = self.df("wp")
-        return SinglePfLine(
-            tools.changeyear.map_frame_to_year(df, year, holiday_country)
-        )
+            df = self._df[["w", "p"]]
+        return FlatPfLine(tools.changeyear.map_frame_to_year(df, year, holiday_country))
 
     @property
     def loc(self) -> _LocIndexer:
@@ -170,20 +155,19 @@ class SinglePfLine(PfLine):
             return True
         except AssertionError:
             return False
-        # return self._df.pint.to_base_units().equals(other._df.pint.to_base_units())
 
     def __bool__(self) -> bool:
         # False if all relevant timeseries are 0.
         if self.kind is Kind.VOLUME:
-            return not np.allclose(self.w.pint.magnitude, 0)
+            return not np.allclose(self._df["w"].pint.magnitude, 0)
         elif self.kind is Kind.PRICE:
-            return not np.allclose(self.p.pint.magnitude, 0)
+            return not np.allclose(self._df["p"].pint.magnitude, 0)
         elif self.kind is Kind.REVENUE:
-            return not np.allclose(self.r.pint.magnitude, 0)
+            return not np.allclose(self._df["r"].pint.magnitude, 0)
         else:  # kind is Kind.COMPLETE
             return not (
-                np.allclose(self.w.pint.magnitude, 0)
-                and np.allclose(self.r.pint.magnitude, 0)
+                np.allclose(self._df["w"].pint.magnitude, 0)
+                and np.allclose(self._df["r"].pint.magnitude, 0)
             )
 
     def __setitem__(self, *args, **kwargs):
@@ -201,11 +185,11 @@ class SinglePfLine(PfLine):
 
 
 class _LocIndexer:
-    """Helper class to obtain SinglePfLine instance, whose index is subset of original index."""
+    """Helper class to obtain FlatPfLine instance, whose index is subset of original index."""
 
-    def __init__(self, spfl):
-        self.spfl = spfl
+    def __init__(self, pfl: FlatPfLine):
+        self.pfl = pfl
 
-    def __getitem__(self, arg) -> SinglePfLine:
-        new_df = self.spfl.df().loc[arg]
-        return SinglePfLine(new_df)
+    def __getitem__(self, arg) -> FlatPfLine:
+        new_df = self.pfl._df.loc[arg]
+        return FlatPfLine(new_df, _internal=True)

@@ -15,7 +15,7 @@ from ...prices import convert, hedge
 from ...prices.utils import duration_bpo
 from ..mixins import OtherOutput, PfLinePlot, PfLineText
 
-# from . import single, multi, interop  #<-- moved to end of file
+# from . import flat, multi, interop  #<-- moved to end of file
 from ..ndframelike import NDFrameLike
 
 # Developer notes: we would like to be able to handle 2 cases with volume AND financial
@@ -26,18 +26,18 @@ from ..ndframelike import NDFrameLike
 # ... keep price information even if the volume q == 0, because at a later time this price
 #   might still be needed, e.g. if a perfect hedge becomes unperfect. So: we want to be
 #   able to store q and p.
-# Both cases can be catered to. The first as a 'SinglePfLine', where the timeseries for
+# Both cases can be catered to. The first as a 'FlatPfLine', where the timeseries for
 # q and r are used in the instance creation. The price is not defined at the timestamp in
 # the example, but can be calculated for other timestamps, and downsampling is also still
 # possble.
-# The second is a bit more complex. It is possible as a 'MultiPfLine'. This has then 2
-# 'SinglePfLine' instances as its children: one made from each of the timeseries for q
+# The second is a bit more complex. It is possible as a 'NestedPfLine'. This has then 2
+# 'FlatPfLine' instances as its children: one made from each of the timeseries for q
 # and p.
 
 
 if TYPE_CHECKING:
-    from .multi import MultiPfLine  # noqa
-    from .single import SinglePfLine  # noqa
+    from .flat import FlatPfLine  # noqa
+    from .nested import NestedPfLine  # noqa
 
 
 class Kind(Enum):
@@ -80,7 +80,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
     a combination of all.
     """
 
-    def __new__(cls, data):
+    def __new__(cls, data=None):
         if cls is not PfLine:
             # User actually called a descendent class.
             return super().__new__(cls)
@@ -93,9 +93,8 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
         # User called PfLine and data must be processed by a descendent's __init__
 
-        subclasses = [single.SinglePfLine, multi.MultiPfLine]
         errors = {}
-        for subcls in subclasses:
+        for subcls in [flat.FlatPfLine, nested.NestedPfLine]:
             # Try passing data to subclasses to see if they can handle it.
             try:
                 return subcls(data)
@@ -166,20 +165,25 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
     @property
     @abstractmethod
-    def volume(self) -> SinglePfLine:
+    def volume(self) -> FlatPfLine:
         """Return (flattened) volume-only PfLine."""
         ...
 
     @property
     @abstractmethod
-    def price(self) -> SinglePfLine:
+    def price(self) -> FlatPfLine:
         """Return (flattened) price-only PfLine."""
         ...
 
     @property
     @abstractmethod
-    def revenue(self) -> SinglePfLine:
+    def revenue(self) -> FlatPfLine:
         """Return (flattened) revenue-only PfLine."""
+        ...
+
+    @abstractmethod
+    def flatten(self) -> FlatPfLine:
+        """Return flat instance, i.e., without children."""
         ...
 
     @abstractmethod
@@ -231,24 +235,20 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
     # Implemented directly here.
 
-    @property
-    def summable(self) -> str:
-        """Which attributes/colums of this PfLine can be added to those of other PfLines
-        to get consistent/correct new PfLine."""
-        return {
-            Kind.VOLUME: "q",
-            Kind.PRICE: "p",
-            Kind.REVENUE: "r",
-            Kind.COMPLETE: "qr",
-        }[self.kind]
-
-    def flatten(self) -> SinglePfLine:
-        """Return flat instance, i.e., without children."""
-        return single.SinglePfLine(self)
+    # @property
+    # def summable(self) -> str:
+    #     """Which attributes/colums of this PfLine can be added to those of other PfLines
+    #     to get consistent/correct new PfLine."""
+    #     return {
+    #         Kind.VOLUME: "q",
+    #         Kind.PRICE: "p",
+    #         Kind.REVENUE: "r",
+    #         Kind.COMPLETE: "qr",
+    #     }[self.kind]
 
     def _set_col_val(
         self, col: str, val: Union[pd.Series, float, int, tools.unit.Q_]
-    ) -> SinglePfLine:
+    ) -> FlatPfLine:
         """Set or update a timeseries and return the modified instance."""
 
         if self.kind is Kind.COMPLETE:
@@ -259,25 +259,25 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
 
         data = {col: s for col, s in self.df(flatten=True)}
         data.update({col: val})
-        return single.SinglePfLine(data)
+        return flat.FlatPfLine(data)
 
-    def set_w(self, w: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
+    def set_w(self, w: Union[pd.Series, float, int, tools.unit.Q_]) -> FlatPfLine:
         """Set or update power timeseries [MW]; returns modified (and flattened) instance."""
         return self._set_col_val("w", w)
 
-    def set_q(self, q: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
+    def set_q(self, q: Union[pd.Series, float, int, tools.unit.Q_]) -> FlatPfLine:
         """Set or update energy timeseries [MWh]; returns modified (and flattened) instance."""
         return self._set_col_val("q", q)
 
-    def set_p(self, p: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
+    def set_p(self, p: Union[pd.Series, float, int, tools.unit.Q_]) -> FlatPfLine:
         """Set or update price timeseries [Eur/MWh]; returns modified (and flattened) instance."""
         return self._set_col_val("p", p)
 
-    def set_r(self, r: Union[pd.Series, float, int, tools.unit.Q_]) -> SinglePfLine:
+    def set_r(self, r: Union[pd.Series, float, int, tools.unit.Q_]) -> FlatPfLine:
         """Set or update revenue timeseries [MW]; returns modified (and flattened) instance."""
         return self._set_col_val("r", r)
 
-    def set_volume(self, other: PfLine) -> SinglePfLine:
+    def set_volume(self, other: PfLine) -> FlatPfLine:
         """Set or update volume information; returns modified (and flattened) instance."""
         if not isinstance(other, PfLine) or other.kind is not Kind.VOLUME:
             raise ValueError(
@@ -285,7 +285,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
             )
         return self.set_q(other.q)
 
-    def set_price(self, other: PfLine) -> SinglePfLine:
+    def set_price(self, other: PfLine) -> FlatPfLine:
         """Set or update price information; returns modified (and flattened) instance."""
         if not isinstance(other, PfLine) or other.kind is not Kind.PRICE:
             raise ValueError(
@@ -293,7 +293,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
             )
         return self.set_p(other.p)
 
-    def set_revenue(self, other: PfLine) -> SinglePfLine:
+    def set_revenue(self, other: PfLine) -> FlatPfLine:
         """Set or update revenue information; returns modified (and flattened) instance."""
         if not isinstance(other, PfLine) or other.kind is not Kind.REVENUE:
             raise ValueError(
@@ -404,10 +404,10 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
             )
 
         wout, pout = hedge.hedge(self.w, p.p, how, freq, po)
-        return single.SinglePfLine({"w": wout, "p": pout})
+        return flat.FlatPfLine({"w": wout, "p": pout})
 
 
 # Must be at end, because they depend on PfLine existing.
-from . import enable_arithmatic, interop, multi, single  # noqa
+from . import enable_arithmatic, flat, interop, nested  # noqa
 
 enable_arithmatic.apply()

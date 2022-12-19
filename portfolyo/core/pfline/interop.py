@@ -10,10 +10,10 @@ import numpy as np
 import pandas as pd
 
 from ... import testing, tools
-from . import base, single
+from . import base, flat
 
 if TYPE_CHECKING:  # needed to avoid circular imports
-    from .single import SinglePfLine
+    from .flat import FlatPfLine
 
 _ATTRIBUTES = ("w", "q", "p", "r", "nodim", "agn")
 
@@ -391,7 +391,7 @@ def _equal(inop1: InOp, inop2: InOp) -> InOp:
 
 def pfline_or_nodimseries(
     data: Any, ref_index: pd.DatetimeIndex, agn_default: str = None
-) -> Union[None, pd.Series, SinglePfLine]:
+) -> Union[None, pd.Series, FlatPfLine]:
     """Turn ``data`` into PfLine if dimension-aware. If not, turn into Series."""
 
     # Already a PfLine.
@@ -410,13 +410,14 @@ def pfline_or_nodimseries(
 
     elif inop.agn is not None:
         raise ValueError(
-            "Cannot do this operation. If you meant to specify data of a certain dimension / unit, try making it more "
-            "explicit by specifying 'w', 'p', etc. as e.g. a dictionary key, or by setting the unit."
+            "Cannot do this operation. If you meant to specify data of a certain dimension"
+            " or unit, make it more explicit, either by specifying 'w', 'p', etc. as e.g."
+            " a dictionary key, or by setting a unit e.g. in a pint Quantity."
         )
 
     elif inop.nodim is None:
         # Only dimension-aware data was supplied; must be able to turn into PfLine.
-        return single.SinglePfLine(inop)
+        return flat.FlatPfLine(inop)
 
     elif inop.p is inop.q is inop.w is inop.r is None:
         # Only dimensionless data was supplied; is Series of factors.
@@ -424,5 +425,5 @@ def pfline_or_nodimseries(
 
     else:
         raise NotImplementedError(
-            "Cannot do arithmatic; found a mix of dimension-aware and dimensionless data."
+            "Found a mix of dimension-aware and dimensionless data."
         )

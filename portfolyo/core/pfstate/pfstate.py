@@ -13,7 +13,7 @@ import pandas as pd
 from ... import tools
 from ..mixins import OtherOutput, PfStatePlot, PfStateText
 from ..ndframelike import NDFrameLike
-from ..pfline import MultiPfLine, PfLine
+from ..pfline import NestedPfLine, PfLine
 from .pfstate_helper import make_pflines
 
 
@@ -148,7 +148,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     @property
     def pnl_cost(self):
-        return MultiPfLine({"sourced": self.sourced, "unsourced": self.unsourced})
+        return NestedPfLine({"sourced": self.sourced, "unsourced": self.unsourced})
 
     @property
     def sourcedfraction(self) -> pd.Series:
