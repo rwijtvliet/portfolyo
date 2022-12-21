@@ -13,33 +13,6 @@ from .base import Kind
 if TYPE_CHECKING:  # needed to avoid circular imports
     from .base import PfLine
 
-# Compatibility:
-#
-# General
-#
-# Physically true:
-# unitA + unitA = unitA
-# unitA * dimensionless = unitA
-# unitA / dimensionless = unitA
-# dimensionless / unitA = 1/unitA
-#
-# In addition, accepted as true:
-# unitA + dimension-agnostic = unitA
-# Eur/MWh * MWh -> all-PfLine
-# Eur/MWh * MW -> all-PfLine
-#
-#
-# Implementation
-#
-# Before anything else: turn 'other' into p-PfLine or q-PfLine if possible, or else into
-# a pd.Series. So, if other is single quantity, or pd.Series, in Eur/MWh, MW, or MWh,
-# this is turned into p-PfLine or q-PfLine.
-#                 other
-#                 0 or 0.0 or None                                 => return self
-#                 Eur/MWh                                          => p-PfLine
-#                 MW, MWh                                          => q-PfLine
-#                 other unit or dimensionless                      => pd.Series
-
 
 def _assert_index_compatibility(fn):
     """Check if indices are compatible before calling the wrapped function."""

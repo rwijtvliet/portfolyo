@@ -136,7 +136,8 @@ class InOp:
 
         # Revenue.
         if r is None and q is not None and p is not None:
-            r = q * p  # works OK, but edge case: p==nan or p==inf. If q==0, assume r=0.
+            r = q * p
+            # Make correction for edge case: p unknown (nan or inf) and q==0 --> assume r=0
             mask = np.isclose(q.pint.m, 0) & (p.isna() | np.isinf(p.pint.m))
             if mask.any():
                 r[mask] = 0
@@ -146,10 +147,14 @@ class InOp:
 
         # Consistency.
         if q is not None and p is not None and r is not None:
-            # Edge case: remove rows where (p==nan or p==inf) and q==0 before judging consistency.
-            mask = np.isclose(q.pint.m, 0) & (p.isna() | np.isinf(p.pint.m))
+            # Check for consistency, but ignore edge cases:
+            # - p unknown (nan or inf) and q==0 --> ignore
+            # - q unknown (nan or inf) and p==0 --> ignore
+            ign1 = np.isclose(q.pint.m, 0) & (p.isna() | np.isinf(p.pint.m))
+            ign2 = np.isclose(p.pint.m, 0) & (q.isna() | np.isinf(q.pint.m))
+            ignore = ign1 | ign2
             testing.assert_series_equal(
-                r[~mask], p[~mask] * q[~mask], check_names=False
+                r[~ignore], p[~ignore] * q[~ignore], check_names=False
             )
 
         return InOp(w=w, q=q, p=p, r=r, nodim=nodim)
@@ -397,6 +402,12 @@ def pfline_or_nodimseries(
     # Already a PfLine.
     if isinstance(data, base.PfLine):
         return data
+
+    # Can be turned into a PfLine.
+    try:
+        return base.PfLine(data)
+    except ValueError:
+        pass
 
     # Turn into InOp object with timeseries.
     inop = InOp.from_data(data).assign_agn(agn_default).to_timeseries(ref_index)
