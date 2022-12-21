@@ -231,12 +231,12 @@ def tseries2singlebpo(s: pd.Series, prefix: str = "") -> pd.Series:
     sin, units = (s.pint.magnitude, s.pint.units) if hasattr(s, "pint") else (s, None)
 
     # Do calculations. Use normal mean, because all rows have same duration.
-    grouped = sin.groupby(utils.is_peak_hour).mean()
+    is_peak = utils.is_peak_hour(sin.index)
     sout = pd.Series(
         {
             f"{prefix}base": sin.mean(),
-            f"{prefix}peak": grouped.get(True, np.nan),
-            f"{prefix}offpeak": grouped.get(False, np.nan),
+            f"{prefix}peak": sin[is_peak].mean(),
+            f"{prefix}offpeak": sin[~is_peak].mean(),
         }
     )
 
@@ -370,7 +370,7 @@ def bpoframe2tseries(
     df = bpoframe.rename({f"{prefix}{bpo}": bpo for bpo in BPO}, axis=1)  # remove prefx
     df = complete_bpoframe(df)  # make sure we have peak and offpeak columns
     df = tools.changefreq.averagable(df[["peak", "offpeak"]], freq)
-    df["ispeak"] = df.index.map(utils.is_peak_hour)
+    df["ispeak"] = utils.is_peak_hour(df.index)
 
     return df["offpeak"].where(df["ispeak"], df["peak"])
 
