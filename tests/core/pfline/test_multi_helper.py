@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Any, Mapping
 
 import pandas as pd
@@ -44,24 +45,22 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
     assert result == dic
 
 
+@lru_cache()
+def pfl_for_frequencyconsistency(freq: str):
+    i = pd.date_range("2020", "2021", inclusive="left", tz="Europe/Berlin", freq=freq)
+    return dev.get_singlepfline(i, "pri", _random=False)
+
+
+@pytest.mark.slow
 @pytest.mark.parametrize("freq1", ["15T", "D", "MS", "QS"])  # don't do all - many!
 @pytest.mark.parametrize("freq2", ["15T", "H", "D", "MS", "QS"])
 def test_verifydict_frequencyconsistency(freq1, freq2):
     """Test if error is raised when creating a dictionary from pflines with unequal frequencies."""
 
-    kwargs = {
-        "start": "2020",
-        "end": "2021",
-        "inclusive": "left",
-        "tz": "Europe/Berlin",
+    dic = {
+        f"part_{i}": pfl_for_frequencyconsistency(freq)
+        for i, freq in enumerate([freq1, freq2])
     }
-    i1 = pd.date_range(**kwargs, freq=freq1)
-    i2 = pd.date_range(**kwargs, freq=freq2)
-
-    spfl1 = dev.get_singlepfline(i1, "all")
-    spfl2 = dev.get_singlepfline(i2, "all")
-
-    dic = {"PartA": spfl1, "PartB": spfl2}
 
     if freq1 != freq2:
         # Expect error.
@@ -73,30 +72,32 @@ def test_verifydict_frequencyconsistency(freq1, freq2):
         _ = multi_helper.verify_and_trim_dict(dic)
 
 
+@lru_cache()
+def pfl_for_unequaltimeperiods_1(freq: str):
+    i = pd.date_range(
+        "2020-01-01", "2020-06-01", freq=freq, inclusive="left", tz="Europe/Berlin"
+    )
+    return dev.get_singlepfline(i, "all", _random=False)
+
+
+@lru_cache()
+def pfl_for_unequaltimeperiods_2(start: str, freq: str):
+    i = pd.date_range(
+        start, "2020-09-01", freq=freq, inclusive="left", tz="Europe/Berlin"
+    )
+    return dev.get_singlepfline(i, "all", _random=False)
+
+
+@pytest.mark.slow
 @pytest.mark.parametrize("freq", ["15T", "H", "D", "MS"])
 @pytest.mark.parametrize("overlap", [True, False])
 def test_verifydict_unequaltimeperiods(freq, overlap):
     """Test if only intersection is kept for overlapping pflines, and error is raised
     for non-overlapping pflines."""
 
-    i1 = pd.date_range(
-        start="2020-01-01",
-        end="2020-06-01",
-        freq=freq,
-        inclusive="left",
-        tz="Europe/Berlin",
-    )
     start = "2020-03-01" if overlap else "2020-07-01"
-    i2 = pd.date_range(
-        start=start,
-        end="2020-09-01",
-        freq=freq,
-        inclusive="left",
-        tz="Europe/Berlin",
-    )
-
-    spfl1 = dev.get_singlepfline(i1, "all")
-    spfl2 = dev.get_singlepfline(i2, "all")
+    spfl1 = pfl_for_unequaltimeperiods_1(freq)
+    spfl2 = pfl_for_unequaltimeperiods_2(start, freq)
     dic = {"PartA": spfl1, "PartB": spfl2}
 
     intersection = tools.intersect.indices(spfl1.index, spfl2.index)
