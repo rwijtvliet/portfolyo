@@ -115,7 +115,10 @@ class InOp:
 
         # Volumes.
         if w is not None and q is not None:
-            testing.assert_series_equal(w, q / q.index.duration, check_names=False)
+            try:
+                testing.assert_series_equal(w, q / q.index.duration, check_names=False)
+            except AssertionError as e:
+                raise ValueError("Values for w and q are not consistent.") from e
         elif w is not None and q is None:
             q = w * w.index.duration
         elif w is None and q is not None:
@@ -153,9 +156,12 @@ class InOp:
             ign1 = np.isclose(q.pint.m, 0) & (p.isna() | np.isinf(p.pint.m))
             ign2 = np.isclose(p.pint.m, 0) & (q.isna() | np.isinf(q.pint.m))
             ignore = ign1 | ign2
-            testing.assert_series_equal(
-                r[~ignore], p[~ignore] * q[~ignore], check_names=False
-            )
+            try:
+                testing.assert_series_equal(
+                    r[~ignore], p[~ignore] * q[~ignore], check_names=False
+                )
+            except AssertionError as e:
+                raise ValueError("Values for r, p, and q are not consistent.") from e
 
         return InOp(w=w, q=q, p=p, r=r, nodim=nodim)
 

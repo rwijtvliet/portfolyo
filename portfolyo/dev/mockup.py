@@ -106,7 +106,7 @@ def p_marketprices(
         if i.freq == "15T":  # repeat every value 4 times
             b = np.array([[bb, bb, bb, bb] for bb in b]).flatten()
         b = b[: len(i)]  # slice in case i is very short
-        pa = np.convolve(-1 + 2 * i.map(is_peak_hour), b / sum(b), mode="same")
+        pa = np.convolve(-1 + 2 * is_peak_hour(i), b / sum(b), mode="same")
     else:
         pa = np.zeros(len(i))
     # Values

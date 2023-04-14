@@ -35,9 +35,13 @@ def _assert_index_compatibility(fn):
 def _add_pflines(pfl1: PfLine, pfl2: PfLine):
     """Add two pflines."""
     if pfl1.kind is not pfl2.kind:
-        raise NotImplementedError("Cannot add portfolio lines of unequal kind.")
+        raise NotImplementedError(
+            "Cannot add or subtract portfolio lines of unequal kind."
+        )
     if type(pfl1) is not type(pfl2):  # ONE is NestedPfLine, ONE is FlatPfLine.
-        raise TypeError("Addition only possible for 2 flat, or 2 nested, PfLines.")
+        raise TypeError(
+            "Addition and subtraction only possible for 2 flat, or 2 nested, PfLines."
+        )
 
     if isinstance(pfl1, nested.NestedPfLine):  # NestedPfLines.
         # Collect children and add those with same name.
@@ -52,9 +56,18 @@ def _add_pflines(pfl1: PfLine, pfl2: PfLine):
         return nested.NestedPfLine(new_children)
 
     # FlatPfLines.
+
     new_df = sum(tools.intersect.frames(pfl1._df, pfl2._df))  # keep only common rows
     if pfl1.kind is Kind.COMPLETE:
         new_df["p"] = new_df["r"] / new_df["q"]
+
+    # new_dfs = tools.intersect.frames(pfl1._df, pfl2._df)  # keep only common rows
+    # new_df = sum(new_dfs)
+    # if pfl1.kind is Kind.COMPLETE:
+    #     # Calculate price from wavg instead of r/q, to handle edge case p1==p2, q==0.
+    #     values = pd.DataFrame({"1": new_dfs[0].p, "2": new_dfs[1].p})
+    #     weights = pd.DataFrame({"1": new_dfs[0].q, "2": new_dfs[1].q})
+    #     new_df["p"] = tools.wavg.dataframe(values, weights, axis=1)
     return flat.FlatPfLine(new_df, _internal=True)
 
 
@@ -81,15 +94,15 @@ def _multiply_pflines(pfl1: PfLine, pfl2: PfLine):
 def _multiply_pfline_and_dimensionlessseries(pfl: PfLine, s: pd.Series):
     """Multiply pfline and dimensionless series."""
 
-    if isinstance(pfl, nested.NestedPfLine):
+    if isinstance(pfl, nested.NestedPfLine):  # NestedPfLine
         return nested.NestedPfLine({name: child * s for name, child in pfl.items()})
 
     # FlatPfLine.
 
-    def val(col: str) -> int:  # multiply with -1, unless it's price of complete df
-        return 1 if (pfl.kind is Kind.COMPLETE and col == "p") else s
-
-    new_df = pd.DataFrame({col: series * val(col) for col, series in pfl._df.items()})
+    s, df = tools.intersect.frames(s, pfl._df)
+    new_df = pd.DataFrame({col: series * s for col, series in df.items()})
+    if pfl.kind is Kind.COMPLETE:  # correction
+        new_df["p"] = new_df["r"] / new_df["q"]
     return flat.FlatPfLine(new_df, _internal=True)
 
 
@@ -113,6 +126,8 @@ def _divide_pflines(pfl1: PfLine, pfl2: PfLine) -> Union[pd.Series, PfLine]:
             series = pfl1.r, pfl2.r
         series = tools.intersect.frames(*series)
         s = series[0] / series[1]
+        if not len(s):
+            raise ValueError("Data has no overlapping timestamps.")
         return s.rename("fraction")  # pint[dimensionless]
 
     # Unequal kind.

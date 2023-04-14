@@ -222,16 +222,16 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
     # Dunder methods.
 
     @abstractmethod
-    def __setitem__(self, *args, **kwargs):  # Add or overwrite child
-        ...
-
-    @abstractmethod
     def __getitem__(self, *args, **kwargs):  # Get child
         ...
 
-    @abstractmethod
-    def __delitem__(self, *args, **kwargs):  # Remove child
-        ...
+    # Class should be immutable; remove __setitem__ and __delitem__
+    # @abstractmethod
+    # def __setitem__(self, *args, **kwargs):  # Add or overwrite child
+    #     ...
+    # @abstractmethod
+    # def __delitem__(self, *args, **kwargs):  # Remove child
+    #     ...
 
     # Implemented directly here.
 
@@ -257,8 +257,13 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
                 "the data you wish to keep, e.g. with ``.price``, ``.volume`` or ``.revenue``."
             )
 
-        data = {col: s for col, s in self.df(flatten=True)}
-        data.update({col: val})
+        data = {col: s for col, s in self.df(flatten=True).items()}
+        # Ensure volume can be overwritten, by removing conflicting volume information.
+        if col == "q" and "w" in data:
+            del data["w"]
+        elif col == "w" and "q" in data:
+            del data["q"]
+        data[col] = val
         return flat.FlatPfLine(data)
 
     def set_w(self, w: Union[pd.Series, float, int, tools.unit.Q_]) -> FlatPfLine:

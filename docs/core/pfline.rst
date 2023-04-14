@@ -152,9 +152,9 @@ The following common operations on nested portfolio lines are implemented:
 
 * We can iterate over all children with ``for name in pfl`` or ``for (name, child) in pfl.items()``.
 
-* We can add a new child to a portfolio - or overwrite an existing one - by setting it with ``pfl['southwest'] = ...``. This is done in-place, meaning we change the object (``pfl`` in this example). We can also *keep* the original portfolio line and get a reference to the new object with ``pfl_new = pfl.set_child('southwest', ...)``.
+* We can add a new child to a portfolio with ``pfl_new = pfl.set_child('southwest', ...)``. this returns a reference to the new object; the original object is unchanged. (It is immutable by design.)
 
-* We can remove a child from the portfolio with e.g. ``del pfl['southeast']``. Again, this operation is done in-place; the corresponding method that leaves the original object unchanged is ``pfl_new = pfl.drop_child('southeast')``. At least one child should remain.
+* Likewise, we can remove a child from the portfolio with ``pfl_new = pfl.drop_child('southeast')``. At least one child should remain.
 
 * If we are no longer interested in the particulars of each child, we can keep only the top-level information with the ``.flatten()`` method, which returns a flattened copy of the object.
 
@@ -455,9 +455,9 @@ Here are several examples.
      })      
      # --- hide: stop ---
      # continuation of previous code example
-     vol + vol_2
+     # vol + vol_2  # raises Error
      # --- hide: start ---
-     print(repr(vol + vol_2))
+     # print(repr(vol + vol_2))
 
   but must either flatten the nested one (and the result is a flat portfolio line)...
 
@@ -615,15 +615,15 @@ We can turn one kind of portfolio line into another kind, by multiplying with or
 \                                                 🟨               🟩              🟦                🟫
 \                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``PfLine * volume``                               ❌               🟦 `≥1f`_       ❌                ❌              
-``PfLine * price``                                🟦 `≥1f`_        ❌              ❌                ❌              
-``PfLine / volume``                               (❌)             ❌              🟩 `≥1f`_         ❌              
-``PfLine / price``                                ❌               (❌)            🟨 `≥1f`_         ❌              
+``PfLine * volume``                               ❌               🟦 `≥1fl`_       ❌                ❌              
+``PfLine * price``                                🟦 `≥1fl`_        ❌              ❌                ❌              
+``PfLine / volume``                               (❌)             ❌              🟩 `≥1fl`_         ❌              
+``PfLine / price``                                ❌               (❌)            🟨 `≥1fl`_         ❌              
 ================================================= =============== ============== ================ =================
 
 Notes:
 
-.. _`≥1f`:
+.. _`≥1fl`:
 
 ≥1f
   At least one of the operands must be flat.
@@ -755,16 +755,16 @@ Using the ``.hedge_with()`` method, the volume timeseries in a portfolio line is
    # Create hedge
    hedge = offtake.hedge_with(prices, 'vol')
    # Compare the two:
-   (offtake * prices).plot()
+   (offtake | prices).plot()
    hedge.plot()
    # --- hide: start ---
-   (offtake * prices).plot().savefig('docs/savefig/fig_offtake.png')
+   (offtake | prices).plot().savefig('docs/savefig/fig_offtake.png')
    hedge.plot().savefig('docs/savefig/fig_hedge.png')
 
 .. image:: ../savefig/fig_offtake.png
    
 .. image:: ../savefig/fig_hedge.png
-
+ 
 
 ----------------
 Peak and offpeak
@@ -778,10 +778,6 @@ For portfolio lines with (quarter)hourly data, the ``.po()`` method splits the v
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024-04-01', '2024-06-01', freq='H', inclusive='left')
    offtake = pf.PfLine(pf.dev.w_offtake(index))  # mock offtake volumes
-   prices = pf.PfLine(pf.dev.p_marketprices(index)) # mock market prices
-   hedge = offtake.hedge_with(prices, 'vol') # Create hedge
-   (offtake * prices).plot()
-   hedge.plot()
    # --- hide: stop ---
    # continuation of previous code example
    offtake.po()

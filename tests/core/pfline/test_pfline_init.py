@@ -124,10 +124,12 @@ def get_testcase_B(
         has_unit = inputtype is InputTypeB.MULTILEVELDF_UNIT
         data_in = {}
         for c in range(3):
-            if kind is Kind.PRICE:
-                columns = "p"
-            elif kind is Kind.VOLUME:
+            if kind is Kind.VOLUME:
                 columns = random.choice(("w", "q"))
+            elif kind is Kind.PRICE:
+                columns = "p"
+            elif kind is Kind.REVENUE:
+                columns = "r"
             else:
                 columns = random.choice(["wp", "wr", "qp", "qr", "pr"])
             data_in[f"child{c}"] = (
@@ -136,7 +138,12 @@ def get_testcase_B(
 
     elif inputtype in [InputTypeB.DICTINITIABLE_NOUNIT, InputTypeB.DICTINITIABLE_UNIT]:
         has_unit = inputtype is InputTypeB.DICTINITIABLE_UNIT
-        columns = {Kind.PRICE: "p", Kind.VOLUME: "w", Kind.COMPLETE: "wp"}[kind]
+        columns = {
+            Kind.PRICE: "p",
+            Kind.VOLUME: "w",
+            Kind.REVENUE: "r",
+            Kind.COMPLETE: "wp",
+        }[kind]
         data_in = pd.concat(
             [
                 dev.get_dataframe(i, columns, has_unit),

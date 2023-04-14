@@ -143,7 +143,7 @@ def test_flatpfline_asfreqimpossible(freq, newfreq, kind):
         _ = pfl.asfreq(newfreq)
 
 
-@pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
+@pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE, Kind.REVENUE])
 @pytest.mark.parametrize("col", ["w", "q", "p", "r"])
 def test_flatpfline_setseries(kind, col):
     """Test if series can be set on existing pfline."""
@@ -151,8 +151,8 @@ def test_flatpfline_setseries(kind, col):
     pfl_in = dev.get_flatpfline(kind=kind)
     s = dev.get_series(pfl_in.index, col)
 
-    if kind is Kind.COMPLETE and col == "r":  # Expecting error
-        with pytest.raises(NotImplementedError):
+    if kind is Kind.COMPLETE:  # Expecting error
+        with pytest.raises(Exception):
             _ = pfl_in.set_r(s)
         return
 
@@ -163,6 +163,8 @@ def test_flatpfline_setseries(kind, col):
         expectedkind = Kind.VOLUME
     elif kind is Kind.PRICE and col == "p":
         expectedkind = Kind.PRICE
+    elif kind is Kind.REVENUE and col == "r":
+        expectedkind = Kind.REVENUE
     else:
         expectedkind = Kind.COMPLETE
     assert result.kind is expectedkind

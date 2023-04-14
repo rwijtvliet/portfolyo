@@ -13,11 +13,6 @@ def make_pflines(
 ) -> Iterable[PfLine]:
     """Take offtake, unsourced, sourced information. Do some data massaging and return
     3 PfLines: for offtake volume, unsourced price, and sourced price and volume.
-
-    Note
-    ----
-    Does not intersect the indices; each component maintains its individual index. (In
-    PfState, the offtake's index is used.)
     """
     # Ensure unsourced and offtake are specified.
     if offtakevolume is None or unsourcedprice is None:
@@ -55,19 +50,19 @@ def make_pflines(
     ]
     if len(set(freqs)) != 1:
         raise ValueError("PfLines have unequal frequency; resample first.")
-    # . Lengths of offtakevolume and sourced.
+    # . Keep only overlapping part of indices.
+    idx = offtakevolume.index
+    if len(tools.intersect.indices(idx, unsourcedprice.index)) < len(idx):
+        raise ValueError(
+            "Parameter ``unsourcedprice``: does not cover entire delivery period of ``offtakevolume``."
+        )
+    unsourcedprice = unsourcedprice.loc[idx]
     if sourced is not None:
         # Workaround for error in pandas intersection (#46702):
-        idx = tools.intersect.indices(offtakevolume.index, sourced.index)
-        offtakevolume = offtakevolume.loc[idx]
+        if len(tools.intersect.indices(idx, sourced.index)) < len(idx):
+            raise ValueError(
+                "Parameter ``sourced``: does not cover entire delivery period of ``offtakevolume``."
+            )
         sourced = sourced.loc[idx]
-    # . Length of unsourcedprice.
-    if len(tools.intersect.indices(offtakevolume.index, unsourcedprice.index)) < len(
-        offtakevolume.index
-    ):
-        raise ValueError(
-            "Parameter ``unsourcedprice``: does not cover entire delivery"
-            " period of ``offtakevolume`` (and ``sourced``, if specified)."
-        )
 
     return offtakevolume, unsourcedprice, sourced

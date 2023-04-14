@@ -248,19 +248,15 @@ class Testcases:
         cls, non_error_outcomedict: Dict[TestcaseConfig, ER]
     ) -> Iterable[Testcase]:
         outcomedict = {**cls._complete_outcomedict, **non_error_outcomedict}
-        return [
-            testcase
-            for config, er in outcomedict.items()
-            for testcase in cls.from_config(config, er)
-        ]
+        for config, er in outcomedict.items():
+            for testcase in cls.from_config(config, er):
+                yield testcase  # generator to save memory (?)
 
     @classmethod
     def from_config(cls, config: TestcaseConfig, er: ER) -> Iterable[Testcase]:
-        return [
-            Testcase(tp.pfl, tv.value, er)
-            for tp in cls._testpfls.fetch(config.pfl_kind, config.pfl_nestedness)
-            for tv in cls._testvalues.fetch(config.value_kind, config.value_nestedness)
-        ]
+        for tp in cls._testpfls.fetch(config.pfl_kind, config.pfl_nestedness):
+            for tv in cls._testvalues.fetch(config.value_kind, config.value_nestedness):
+                yield Testcase(tp.pfl, tv.value, er)
 
 
 @pytest.mark.parametrize("operation", ["add", "radd", "sub", "rsub"])

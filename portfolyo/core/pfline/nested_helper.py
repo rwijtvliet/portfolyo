@@ -37,7 +37,7 @@ def children_and_kind(children: Dict[str, PfLine]) -> Tuple[Dict[str, PfLine], K
     # Keep only overlapping part of indices.
     idx = tools.intersect.indices(*[child.index for child in children.values()])
     if len(idx) == 0:
-        raise ValueError("PfLine indices do not overlap.")
+        raise ValueError("PfLine indices have no overlap.")
     children = {name: child.loc[idx] for name, child in children.items()}
 
     # Kind of children.

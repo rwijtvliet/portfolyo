@@ -79,7 +79,7 @@ class FlatPfLine(PfLine):
         # *args, **kwargs needed because base class has this signature.
         if cols is None:
             cols = self._df.columns
-        series = {col: getattr(self, col) for col in cols}  # handles missing cols
+        series = {col: getattr(self, col) for col in cols if col in "wqpr"}
         if not has_units:
             series = {col: s.pint.m for col, s in series.items()}
         return pd.DataFrame(series)
@@ -170,14 +170,14 @@ class FlatPfLine(PfLine):
                 and np.allclose(self._df["r"].pint.magnitude, 0)
             )
 
-    def __setitem__(self, *args, **kwargs):
-        raise TypeError("Flat portfolio line; cannot add (or change) children.")
-
     def __getitem__(self, *args, **kwargs):
         raise TypeError("Flat portfolio line is not subscriptable (has no children).")
 
-    def __delitem__(self, name: str):
-        raise TypeError("Flat portfolio line; cannot remove children.")
+    # # Class should be immutable; remove __setitem__ and __delitem__
+    # def __setitem__(self, *args, **kwargs):
+    #     raise TypeError("Flat portfolio line; cannot add (or change) children.")
+    # def __delitem__(self, name: str):
+    #     raise TypeError("Flat portfolio line; cannot remove children.")
 
     # Additional methods, unique to this class.
 

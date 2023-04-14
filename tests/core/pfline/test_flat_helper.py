@@ -109,17 +109,16 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
     df = df.rename_axis("ts_left")
     if columns == "p":  # kind is Kind.PRICE
         expected = df[["p"]]
-        testing.assert_frame_equal(result, expected)
 
     elif columns in ["q", "w"]:  # kind is Kind.VOLUME
         if columns == "w":
-            df["q"] = df.w * df.w.index.duration
-        expected = df[["q"]]
-        testing.assert_frame_equal(result, expected)
+            df["q"] = df.w * df.index.duration
+        else:
+            df["w"] = df.q / df.index.duration
+        expected = df[["w", "q"]]
 
     elif columns == "r":  # kind is Kind.REVENUE
         expected = df[["r"]]
-        testing.assert_frame_equal(result, expected)
 
     else:  # kind is Kind.ALL
         # fill dataframe first.
@@ -145,8 +144,7 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
             expected["p"] = expected.r / expected.q
             expected["w"] = expected.q / expected.index.duration
 
-        # Ensure we will be expecting the correct values.
-        testing.assert_frame_equal(result, expected)
+    testing.assert_frame_equal(result, expected)
 
 
 @pytest.mark.parametrize("freq1", ["15T", "MS", "AS"])  # don't do all - many!

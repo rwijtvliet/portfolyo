@@ -81,10 +81,9 @@ class NestedPfLine(PfLine, Mapping):
         **kwargs,
     ) -> pd.DataFrame:
         if flatten:
-            # TODO: just do self.flatten().df()?
             if cols is None:
                 cols = self._df.columns
-            series = {col: getattr(self, col) for col in cols}  # handles missing cols
+            series = {col: getattr(self, col) for col in cols if col in "wqpr"}
             if not has_units:
                 series = {col: s.pint.m for col, s in series.items()}
             return pd.DataFrame(series)
@@ -94,20 +93,6 @@ class NestedPfLine(PfLine, Mapping):
         for name, child in self.items():
             dfs.append(tools.frame.add_header(child.df(cols, flatten=False), name))
         return tools.frame.concat(dfs, 1)
-
-        # # TODO: remove following section
-        # dfs = [self.df(cols, True)]
-        # dfdicts = [{name: child.df(cols, False)} for name, child in self.items()]
-        # dfs.extend([pd.concat(dfdict, axis=1) for dfdict in dfdicts])
-        # # Then: make all have same number of levels.
-        # n_target = max([df.columns.nlevels for df in dfs])
-        # for df in dfs:
-        #     n_current = df.columns.nlevels
-        #     keys = [""] * (n_target - n_current)
-        #     oldcol = df.columns if n_current > 1 else [[item] for item in df.columns]
-        #     df.columns = pd.MultiIndex.from_tuples(((*item, *keys) for item in oldcol))
-        # # Finally: put all together in big new dataframe.
-        # return pd.concat(dfs, axis=1)
 
     @property
     def volume(self) -> NestedPfLine:
@@ -171,7 +156,7 @@ class NestedPfLine(PfLine, Mapping):
 
     def _prepare_child(self, name: str, child: Union[PfLine, Any]) -> PfLine:
         """Assure that name can be used for a child, and that child is PfLine."""
-        if name in dir(self):  # cannot use hasattr(): runs the code in the properties
+        if name in dir(self):  # don't use hasattr(): it runs the code in the properties
             raise ValueError(
                 f"Cannot name child '{name}', this is a reserved attribute name."
             )
@@ -183,23 +168,23 @@ class NestedPfLine(PfLine, Mapping):
             child = PfLine(child)
         return child
 
-    def __setitem__(self, name: str, child: Union[PfLine, Any]):
-        children = {**self._children, name: self._prepare_child(name, child)}
-        self._children, _ = nested_helper.children_and_kind(children)
-        self._df = nested_helper.dataframe(self._children, self._kind)
-
     def __getitem__(self, name: str):
         if name not in self._children:
             raise KeyError(f"Portfolio line does not have child with name '{name}'.")
         return self._children[name]
 
-    def __delitem__(self, name: str):
-        if name not in self._children:
-            raise KeyError(f"Portfolio line does not have child with name '{name}'.")
-        if len(self._children) == 1:
-            raise RuntimeError("Cannot remove the last child of a portfolio line.")
-        del self._children[name]
-        self._df = nested_helper.dataframe(self._children, self._kind)
+    # Class should be immutable; remove __setitem__ and __delitem__
+    # def __setitem__(self, name: str, child: Union[PfLine, Any]):
+    #     children = {**self._children, name: self._prepare_child(name, child)}
+    #     self._children, _ = nested_helper.children_and_kind(children)
+    #     self._df = nested_helper.dataframe(self._children, self._kind)
+    # def __delitem__(self, name: str):
+    #     if name not in self._children:
+    #         raise KeyError(f"Portfolio line does not have child with name '{name}'.")
+    #     if len(self._children) == 1:
+    #         raise RuntimeError("Cannot remove the last child of a portfolio line.")
+    #     del self._children[name]
+    #     self._df = nested_helper.dataframe(self._children, self._kind)
 
     # Additional methods, unique to this class.
 
