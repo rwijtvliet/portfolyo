@@ -110,8 +110,7 @@ class NestedPfLine(PfLine, Mapping):
             return self
         if self.kind is Kind.COMPLETE:
             raise ValueError(
-                "This is a complete portfolio line, i.e., that also contains volume "
-                "information. To get its prices, first .flatten() it."
+                "This is a complete portfolio line. To get its prices, first .flatten() it."
             )
         raise ValueError("This portfolio line doesn't contain prices.")
 

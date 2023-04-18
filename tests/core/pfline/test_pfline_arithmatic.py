@@ -10,7 +10,7 @@ from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine, dev, testing  
 _seed = 3  # any fixed seed
 
 
-# TODO: nestedPfLine, quantity, float, 0
+# TODO: nestedPfLine, quantity, float, 0, negation
 
 
 def id_fn(data: Any):
@@ -40,10 +40,8 @@ def id_fn(data: Any):
     return type(data).__name__
 
 
-tz = "Europe/Berlin"
-
 # Set 1.
-i1 = pd.date_range("2020", freq="MS", periods=3, tz=tz)
+i1 = pd.date_range("2020", freq="MS", periods=3, tz="Europe/Berlin")
 ref_series = {
     "q": pd.Series([-3.5, 5, -5], i1),
     "p": pd.Series([300.0, 150, 100], i1),
@@ -72,7 +70,7 @@ flatset1 = {
 }
 
 # Set 2. Partial overlap with set 1.
-i2 = pd.date_range("2020-02", freq="MS", periods=3, tz=tz)
+i2 = pd.date_range("2020-02", freq="MS", periods=3, tz="Europe/Berlin")
 
 series2 = {
     "q": pd.Series([-15.0, -20, -4], i2),
@@ -87,15 +85,15 @@ flatset2 = {
     Kind.COMPLETE: PfLine({"q": series2["q"], "r": series2["r"]}),
     "nodim": series2["nodim"],
 }
-i12 = pd.date_range("2020-02", freq="MS", periods=2, tz=tz)
+i12 = pd.date_range("2020-02", freq="MS", periods=2, tz="Europe/Berlin")
 
 # Portfolio lines without overlap.
-i3 = pd.date_range("2022", freq="MS", periods=3, tz=tz)
+i3 = pd.date_range("2022", freq="MS", periods=3, tz="Europe/Berlin")
 flatset3 = {kind: dev.get_flatpfline(i3, kind, _seed=_seed) for kind in Kind}
 flatset3["nodim"] = dev.get_series(i3)
 
 # Portfolio lines with other frequency.
-i4 = pd.date_range("2020", freq="D", periods=3, tz=tz)
+i4 = pd.date_range("2020", freq="D", periods=3, tz="Europe/Berlin")
 flatset4 = {kind: dev.get_flatpfline(i4, kind, _seed=_seed) for kind in Kind}
 flatset4["nodim"] = dev.get_series(i4)
 

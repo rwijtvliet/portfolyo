@@ -216,7 +216,7 @@ def test_pfs_negation():
         (pfs1, "+", pfs3, Exception),
         (pfs1, "-", pfs3, Exception),
         (pfs1, "*", pfs3, Exception),
-        (pfs1, "/", pfs3, emptydivision),
+        (pfs1, "/", pfs3, ValueError),
         # Other PfState with incorrect frequency.
         (pfs1, "+", pfs4, Exception),
         (pfs1, "-", pfs4, Exception),

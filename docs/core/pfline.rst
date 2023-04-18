@@ -229,7 +229,7 @@ The ``PfLine.index`` property returns the ``pandas.DatetimeIndex`` that applies 
    # --- hide: start ---
    print(repr(pfl.index))
 
-For convenience, ``portfolyo`` adds a ``.duration`` and a ``right`` property to the ``pandas.DatetimeIndex`` closs, which do as we would predict:
+For convenience, ``portfolyo`` adds a ``.duration`` and a ``right`` property to the ``pandas.DatetimeIndex`` class, which do as we would predict:
 
 .. exec_code::
 
@@ -607,7 +607,7 @@ We can turn one kind of portfolio line into another kind, by multiplying with or
 
 * None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
 
-* To combine two portfolio lines into a complete portfolio line, see the section union_, below.
+* To combine two portfolio lines into a complete portfolio line, see the section :ref:`union`, below.
 
 ================================================= =============== ============== ================ =================
 \                                                 Kind of portfolio line
@@ -629,7 +629,7 @@ Notes:
   At least one of the operands must be flat.
 
 (❌)
-  This operation is allowed but results in a ratio. It is described in the section calcratio_ above.
+  This operation is allowed but results in a ratio. It is described in the section :ref:`calcratio` above.
 
 
 Here is an examples:
@@ -703,8 +703,7 @@ Combining a nested volume portfolio line with a flat price:
 
 .. exec_code::
 
-# --- hide: start ---  
-
+   # --- hide: start ---  
    index = pd.date_range('2024', freq='MS', periods=3)
    # volumes
    existing_customers = pd.Series([250, 250, 250], index, dtype='pint[MW]') 

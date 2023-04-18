@@ -87,8 +87,8 @@ def _divide_pfstates(pfs1: pfstate.PfState, pfs2: pfstate.PfState) -> pd.DataFra
         ("unsourcedprice", "price"),
         ("pnl_cost", "price"),
     ]:
-        pfl1 = getattr(getattr(pfs1, top), bottom)
-        pfl2 = getattr(getattr(pfs2, top), bottom)
+        pfl1 = getattr(getattr(pfs1, top).flatten(), bottom)
+        pfl2 = getattr(getattr(pfs2, top).flatten(), bottom)
         top = top.replace("unsourcedprice", "unsourced")
         series[(top, bottom)] = pfl1 / pfl2
     return pd.DataFrame(series)
