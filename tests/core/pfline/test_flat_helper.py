@@ -156,7 +156,12 @@ def test_makedataframe_unequalfrequencies(freq1, freq2, columns):
     if freq1 == freq2:
         pytest.skip("Only testing unequal frequencies.")
 
-    kwargs = {"start": "2020", "end": "2021", "closed": "left", "tz": "Europe/Berlin"}
+    kwargs = {
+        "start": "2020",
+        "end": "2021",
+        "inclusive": "left",
+        "tz": "Europe/Berlin",
+    }
     i1 = pd.date_range(**kwargs, freq=freq1)
     i2 = pd.date_range(**kwargs, freq=freq2)
 
