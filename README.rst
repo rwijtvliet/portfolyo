@@ -5,8 +5,8 @@ portfolyo
    :target: https://pypi.org/project/portfolyo
    :alt: Pypi
 
-.. image:: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci.yaml/badge.svg
-   :target: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci.yaml
+.. image:: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci-on-pullreq.yaml/badge.svg
+   :target: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci-on-pullreq.yaml
    :alt: Github - CI
 
 .. image:: https://github.com/rwijtvliet/portfolyo/actions/workflows/pre-commit.yaml/badge.svg

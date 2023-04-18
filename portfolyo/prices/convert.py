@@ -74,7 +74,10 @@ def offpeak(
     offpeak value(s)
     """
     fr = utils.duration_bpo(ts_left, freq)  # Series or DataFrame
-    return (base * fr["base"] - peak * fr["peak"]) / fr["offpeak"]
+    b, p, o = fr["base"], fr["peak"], fr["offpeak"]
+    if isinstance(fr, pd.DataFrame):
+        b, p, o = b.values, p.values, o.values
+    return (base * b - peak * p) / o
 
 
 def peak(
@@ -90,7 +93,11 @@ def peak(
     .offpeak
     """
     fr = utils.duration_bpo(ts_left, freq)  # Series or DataFrame
-    return (base * fr["base"] - offpeak * fr["offpeak"]) / fr["peak"]
+    b, p, o = fr["base"], fr["peak"], fr["offpeak"]
+    if isinstance(fr, pd.DataFrame):
+        b, p, o = b.values, p.values, o.values
+
+    return (base * b - offpeak * o) / p
 
 
 def base(
@@ -106,7 +113,10 @@ def base(
     .offpeak
     """
     fr = utils.duration_bpo(ts_left, freq)  # Series or DataFrame
-    return (peak * fr["peak"] + offpeak * fr["offpeak"]) / fr["base"]
+    b, p, o = fr["base"], fr["peak"], fr["offpeak"]
+    if isinstance(fr, pd.DataFrame):
+        b, p, o = b.values, p.values, o.values
+    return (peak * p + offpeak * o) / b
 
 
 def complete_bpoframe(partial_bpoframe: pd.DataFrame, prefix: str = "") -> pd.DataFrame:
@@ -221,12 +231,12 @@ def tseries2singlebpo(s: pd.Series, prefix: str = "") -> pd.Series:
     sin, units = (s.pint.magnitude, s.pint.units) if hasattr(s, "pint") else (s, None)
 
     # Do calculations. Use normal mean, because all rows have same duration.
-    grouped = sin.groupby(utils.is_peak_hour).mean()
+    is_peak = utils.is_peak_hour(sin.index)
     sout = pd.Series(
         {
             f"{prefix}base": sin.mean(),
-            f"{prefix}peak": grouped.get(True, np.nan),
-            f"{prefix}offpeak": grouped.get(False, np.nan),
+            f"{prefix}peak": sin[is_peak].mean(),
+            f"{prefix}offpeak": sin[~is_peak].mean(),
         }
     )
 
@@ -360,7 +370,7 @@ def bpoframe2tseries(
     df = bpoframe.rename({f"{prefix}{bpo}": bpo for bpo in BPO}, axis=1)  # remove prefx
     df = complete_bpoframe(df)  # make sure we have peak and offpeak columns
     df = tools.changefreq.averagable(df[["peak", "offpeak"]], freq)
-    df["ispeak"] = df.index.map(utils.is_peak_hour)
+    df["ispeak"] = utils.is_peak_hour(df.index)
 
     return df["offpeak"].where(df["ispeak"], df["peak"])
 

@@ -1,3 +1,4 @@
+from functools import lru_cache
 from typing import Any, Mapping
 
 import pandas as pd
@@ -37,6 +38,13 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
     assert result_kind is kind1
 
 
+@lru_cache()
+def pfl_for_frequencyconsistency(freq: str):
+    i = pd.date_range("2020", "2021", inclusive="left", tz="Europe/Berlin", freq=freq)
+    return dev.get_singlepfline(i, "pri", _random=False)
+
+
+@pytest.mark.slow
 @pytest.mark.parametrize("freq1", ["15T", "D", "MS", "QS"])  # don't do all - many!
 @pytest.mark.parametrize("freq2", ["15T", "H", "D", "MS", "QS"])
 def test_verifydict_frequencyconsistency(freq1, freq2):
@@ -66,6 +74,23 @@ def test_verifydict_frequencyconsistency(freq1, freq2):
         _ = nested_helper.children_and_kind(children)
 
 
+@lru_cache()
+def pfl_for_unequaltimeperiods_1(freq: str):
+    i = pd.date_range(
+        "2020-01-01", "2020-06-01", freq=freq, inclusive="left", tz="Europe/Berlin"
+    )
+    return dev.get_singlepfline(i, "all", _random=False)
+
+
+@lru_cache()
+def pfl_for_unequaltimeperiods_2(start: str, freq: str):
+    i = pd.date_range(
+        start, "2020-09-01", freq=freq, inclusive="left", tz="Europe/Berlin"
+    )
+    return dev.get_singlepfline(i, "all", _random=False)
+
+
+@pytest.mark.slow
 @pytest.mark.parametrize("freq", ["15T", "H", "D", "MS"])
 @pytest.mark.parametrize("overlap", [True, False])
 def test_verifydict_unequaltimeperiods(freq, overlap):
