@@ -48,7 +48,7 @@ s_difffreq = dev.get_series(i_difffreq, "")
             PfLine({"p": s_ref * 10}),
             PfLine({"w": s_ref + 20, "p": s_ref * 20}),
         ),
-        (  # Too little information at offtake.
+        (  # Incorrect kind at offtake.
             PfLine({"p": s_ref + 1}),
             PfLine({"p": s_ref * 10, "w": s_ref + 10}),
             PfLine({"w": s_ref + 20, "p": s_ref * 20}),
@@ -56,7 +56,7 @@ s_difffreq = dev.get_series(i_difffreq, "")
             None,
             None,
         ),
-        (  # Too little information at unsourcedprice.
+        (  # Incorrect kind at unsourcedprice.
             PfLine({"w": s_ref}),
             PfLine({"w": s_ref + 10}),
             PfLine({"w": s_ref + 20, "p": s_ref * 20}),
@@ -64,7 +64,7 @@ s_difffreq = dev.get_series(i_difffreq, "")
             None,
             None,
         ),
-        (  # Too little information at sourced.
+        (  # Incorrect kind at sourced.
             PfLine({"w": s_ref}),
             PfLine({"p": s_ref * 10}),
             PfLine({"w": s_ref + 20}),
@@ -72,7 +72,7 @@ s_difffreq = dev.get_series(i_difffreq, "")
             None,
             None,
         ),
-        (  # Too little information at sourced.
+        (  # Incorrect kind at sourced.
             PfLine({"w": s_ref}),
             PfLine({"p": s_ref * 10}),
             PfLine({"p": s_ref * 20}),
@@ -88,31 +88,23 @@ s_difffreq = dev.get_series(i_difffreq, "")
             PfLine({"p": s_ref * 10}),
             None,
         ),
-        (  # Unequal periods.
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_more * 10}),
-            PfLine({"w": s_less + 20, "p": s_less * 20}),
-            PfLine({"w": s_ref}).loc[i_less],
-            PfLine({"p": s_more * 10}),
-            PfLine({"w": s_less + 20, "p": s_less * 20}),
-        ),
-        (  # Unequal periods.
+        (  # Unequal periods; result is trimmed.
             PfLine({"w": s_ref}),
             PfLine({"p": s_more * 10}),
             PfLine({"w": s_more + 20, "p": s_more * 20}),
             PfLine({"w": s_ref}),
-            PfLine({"p": s_more * 10}),
+            PfLine({"p": s_more * 10}).loc[i_ref],
             PfLine({"w": s_more + 20, "p": s_more * 20}).loc[i_ref],
         ),
-        (  # Enough sourced prices even though looks like there are not.
-            PfLine({"w": s_more}),
-            PfLine({"p": s_ref * 10}),
+        (  # Unequal periods; error (intersection; not enough sourced volume).
+            PfLine({"w": s_ref}),
+            PfLine({"p": s_more * 10}),
             PfLine({"w": s_less + 20, "p": s_less * 20}),
-            PfLine({"w": s_more}).loc[i_less],
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_less + 20, "p": s_less * 20}),
+            ValueError,
+            None,
+            None,
         ),
-        (  # Error: not enough unsourced prices
+        (  # Unequal periods; error (intersection; not enough unsourced prices).
             PfLine({"w": s_ref}),
             PfLine({"p": s_less * 10}),
             PfLine({"w": s_more + 20, "p": s_more * 20}),
@@ -133,10 +125,10 @@ s_difffreq = dev.get_series(i_difffreq, "")
             {"p": s_more * 10},
             None,
             PfLine({"w": s_ref}),
-            PfLine({"p": s_more * 10}),
+            PfLine({"p": s_more * 10}).loc[i_ref],
             None,
         ),
-        (  # Not passing PfLines.
+        (  # Not passing PfLines; error (intersection)
             {"w": s_more},
             {"p": s_ref * 10},
             None,
@@ -183,7 +175,7 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
     assert result.offtakevolume == o_exp
     assert result.unsourcedprice == u_exp
     if s_exp is None:
-        sourced_exp = PfLine(pd.DataFrame({"p": 0, "w": 0}, o_exp.index))
+        sourced_exp = PfLine(pd.DataFrame({"q": 0, "r": 0}, o_exp.index))
     else:
         sourced_exp = s_exp
     assert result.sourced == sourced_exp
@@ -312,19 +304,7 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
             PfLine({"p": s_ref * 10}),
             PfLine(pd.DataFrame({"q": 0.0, "r": 0.0}, i_ref)),
         ),
-        (  # Unequal periods.
-            s_ref,
-            None,
-            s_less + 20,
-            None,
-            s_less * 20,
-            None,
-            s_more * 10,
-            PfLine({"w": s_ref}).loc[i_less],
-            PfLine({"p": s_more * 10}),
-            PfLine({"w": s_less + 20, "p": s_less * 20}),
-        ),
-        (  # Unequal periods.
+        (  # Unequal periods, no problem.
             s_ref,
             None,
             s_more + 20,
@@ -333,22 +313,22 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
             None,
             s_more * 10,
             PfLine({"w": s_ref}),
-            PfLine({"p": s_more * 10}),
+            PfLine({"p": s_more * 10}).loc[i_ref],
             PfLine({"w": s_more + 20, "p": s_more * 20}).loc[i_ref],
         ),
-        (  # Enough sourced prices even though looks like there are not.
-            s_more,
+        (  # Unequal periods, error (not enough sourced).
+            s_ref,
             None,
             s_less + 20,
             None,
             s_less * 20,
             None,
-            s_ref * 10,
-            PfLine({"w": s_more}).loc[i_less],
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_less + 20, "p": s_less * 20}),
+            s_more * 10,
+            ValueError,
+            None,
+            None,
         ),
-        (  # Error: not enough unsourced prices
+        (  # Unequal periods, error (not enough unsourced).
             s_ref,
             None,
             s_more + 20,
@@ -446,11 +426,11 @@ def test_pfstate_consistency_uniformfreq():
 def test_pfstate_consistency_unequalfreq():
     """Test if all values are consistent as expected."""
     # Starting values. (qo defined as being positive.)
-    qo, qs, rs, pu = s_ref, s_ref + 20, s_less * 20, s_more * 10
+    qo, qs, rs, pu = s_less, s_ref + 20, s_less * 20, s_more * 10
     # Create PfState.
     result = PfState.from_series(qo=-qo, qs=qs, rs=rs, pu=pu)
     # Expected.
-    qo, qs, rs, pu = qo.loc[i_less], qs.loc[i_less], rs.loc[i_less], pu
+    qo, qs, rs, pu = qo.loc[i_less], qs.loc[i_less], rs.loc[i_less], pu.loc[i_less]
     o_exp = PfLine({"q": -qo})
     s_exp = PfLine({"q": qs, "r": rs})
     u_exp = PfLine({"p": pu})
@@ -493,7 +473,7 @@ def test_pfstate_consistency_nosourcing():
     # Create PfState.
     result = PfState.from_series(qo=-qo, pu=pu)
     # Expected.
-    qo, qs, rs, pu = qo, pd.Series(0.0, i_ref), pd.Series(0.0, i_ref), pu
+    qo, qs, rs, pu = qo, pd.Series(0.0, i_ref), pd.Series(0.0, i_ref), pu.loc[i_ref]
     o_exp = PfLine({"q": -qo})
     s_exp = PfLine({"q": qs, "r": rs})
     u_exp = PfLine({"p": pu})

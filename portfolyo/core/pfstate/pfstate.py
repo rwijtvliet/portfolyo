@@ -13,7 +13,7 @@ import pandas as pd
 from ... import tools
 from ..mixins import OtherOutput, PfStatePlot, PfStateText
 from ..ndframelike import NDFrameLike
-from ..pfline import MultiPfLine, PfLine
+from ..pfline import NestedPfLine, PfLine
 from .pfstate_helper import make_pflines
 
 
@@ -24,19 +24,16 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
     ----------
     offtakevolume: PfLine (volume-only)
     unsourcedprice: PfLine (price-only)
-        Must be specified for at least the time period covering the offtake. If it
-        covers any more time, the values are stored, but not shown unless explicitly
-        accessing the .unsourcedprice property.
     sourced : PfLine (price-and-volume), optional
-        - If not specified, assume no sourcing has taken place.
-        - If specified, the intersection of the index of the offtake volume and that of
-          the sourcing are kept.
+        If not specified, assume no sourcing has taken place.
+
+    All PfLines are trimmed to the length of the offtakevolume.
 
     Notes
     -----
     Sign conventions:
     - Volumes (`q`, `w`): >0 if volume flows into the portfolio.
-    - Revenues (`r`): >0 if money flows out of the portfolio (i.e., costs).
+    - Revenues (`r`): >0 if money flows out of the portfolio. Income is negative.
     - Prices (`p`): normally positive.
 
     Attributes
@@ -140,7 +137,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     @property
     def unsourced(self) -> PfLine:
-        return -(self.offtake.volume + self.sourced.volume) * self.unsourcedprice
+        return -(self.offtake.volume + self.sourced.volume) | self.unsourcedprice
 
     @property
     def netposition(self) -> PfLine:
@@ -148,7 +145,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     @property
     def pnl_cost(self):
-        return MultiPfLine({"sourced": self.sourced, "unsourced": self.unsourced})
+        return NestedPfLine({"sourced": self.sourced, "unsourced": self.unsourced})
 
     @property
     def sourcedfraction(self) -> pd.Series:

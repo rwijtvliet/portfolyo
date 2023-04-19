@@ -37,29 +37,34 @@ def _hedge(df: pd.DataFrame, how: str, po: bool) -> pd.Series:
     of equal duration.
     """
 
-    if not po:
-        if df.index.freq:
-            # Use magnitude only, so that, if w and p are float series, their return
-            # series are also floats (instead of dimensionless Quantities).
-            df["dur"] = df.index.duration.pint.m
-        else:
-            df["dur"] = 1
+    # Split into peak and offpeak.
 
-        # Get single power and price values.
-        p_hedge = (df.p * df.dur).sum() / df.dur.sum()
-        if how == "vol":  # volume hedge
-            # solve for w_hedge: sum (w * duration) == w_hedge * sum (duration)
-            w_hedge = (df.w * df.dur).sum() / df.dur.sum()
-        elif how == "val":  # value hedge
-            # solve for w_hedge: sum (w * duration * p) == w_hedge * sum (duration * p)
-            w_hedge = (df.w * df.dur * df.p).sum() / (df.dur * df.p).sum()
-        else:
-            raise ValueError(f"Parameter `how` must be 'val' or 'vol'; got {how}.")
-        return pd.Series({"w": w_hedge, "p": p_hedge})
-    else:
+    if po:
         apply_f = lambda df: _hedge(df, how, po=False)  # noqa
-        s = df.groupby(is_peak_hour).apply(apply_f)
+        # s = df.groupby(is_peak_hour).apply(apply_f) # calls group_f on EACH ts
+        s = df.groupby(is_peak_hour(df.index)).apply(apply_f)  # calls group_f on index
         return s.rename(index={True: "peak", False: "offpeak"}).stack()
+
+    # Don't split into peak and offpeak.
+
+    if df.index.freq:
+        # Use magnitude only, so that, if w and p are float series, their return
+        # series are also floats (instead of dimensionless Quantities).
+        df["dur"] = df.index.duration.pint.m
+    else:
+        df["dur"] = 1
+
+    # Get single power and price values.
+    p_hedge = (df.p * df.dur).sum() / df.dur.sum()
+    if how == "vol":  # volume hedge
+        # solve for w_hedge: sum (w * duration) == w_hedge * sum (duration)
+        w_hedge = (df.w * df.dur).sum() / df.dur.sum()
+    elif how == "val":  # value hedge
+        # solve for w_hedge: sum (w * duration * p) == w_hedge * sum (duration * p)
+        w_hedge = (df.w * df.dur * df.p).sum() / (df.dur * df.p).sum()
+    else:
+        raise ValueError(f"Parameter `how` must be 'val' or 'vol'; got {how}.")
+    return pd.Series({"w": w_hedge, "p": p_hedge})
 
 
 def hedge(
@@ -126,10 +131,13 @@ def hedge(
 
     # Do actual hedge.
     group_f = convert.group_function(freq, po)
-    vals = df.groupby(group_f).apply(lambda df: _hedge(df, how, False))
+    grouped_i = pd.MultiIndex.from_arrays(group_f(df.index))  # calls group_f on index
+    apply_f = lambda df: _hedge(df, how, False)  # noqa
+    # vals = df.groupby(group_f).apply(apply_f) # calls group_f on EACH ts
+    vals = df.groupby(grouped_i).apply(apply_f)
     vals.index = pd.MultiIndex.from_tuples(vals.index)
     for c in ["w", "p"]:
-        df[c] = df[c].groupby(group_f).transform(lambda gr: vals.loc[gr.name, c])
+        df[c] = df[c].groupby(grouped_i).transform(lambda gr: vals.loc[gr.name, c])
 
     # Handle possible units.
     if wunits or punits:

@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 
 from .. import tools
+from ..tools.unit import Q_
 
 
 @functools.wraps(pd.testing.assert_frame_equal)
@@ -45,3 +46,30 @@ def assert_series_equal(left, right, *args, **kwargs):
 
 
 assert_index_equal = pd.testing.assert_index_equal
+
+
+def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):
+    """Assert if timeseries with power- and energy-values are consistent."""
+    if freq == "15T":
+        assert_series_equal(q, w * Q_(0.25, "h"), check_names=False)
+    elif freq == "H":
+        assert_series_equal(q, w * Q_(1, "h"), check_names=False)
+    elif freq == "D":
+        assert (q >= w * Q_(22.99, "h")).all()
+        assert (q <= w * Q_(25.01, "h")).all()
+    elif freq == "MS":
+        assert (q >= w * 27 * Q_(24, "h")).all()
+        assert (q <= w * 32 * Q_(24, "h")).all()
+    elif freq == "QS":
+        assert (q >= w * 89 * Q_(24, "h")).all()
+        assert (q <= w * 93 * Q_(24, "h")).all()
+    elif freq == "AS":
+        assert (q >= w * Q_(8759.9, "h")).all()
+        assert (q <= w * Q_(8784.1, "h")).all()
+    else:
+        raise ValueError(f"Uncaught value for freq: {freq}.")
+
+
+def assert_p_q_r_compatible(r: pd.Series, p: pd.Series, q: pd.Series):
+    """Assert if timeseries with revenue-, power-, and energy-values are consistent."""
+    assert_series_equal(r, q * p, check_names=False)

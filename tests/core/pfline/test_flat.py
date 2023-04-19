@@ -1,8 +1,8 @@
-from portfolyo import testing, dev, SinglePfLine, MultiPfLine, FREQUENCIES, Kind  # noqa
-import pandas as pd
 import numpy as np
+import pandas as pd
 import pytest
 
+from portfolyo import FREQUENCIES, FlatPfLine, Kind, NestedPfLine, dev, testing  # noqa
 
 # @dataclass
 # class InteropTestObject:
@@ -41,11 +41,11 @@ import pytest
 
 
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
-def test_singlepfline_access(columns):
+def test_flatpfline_access(columns):
     """Test if core data can be accessed by item and attribute."""
 
     df = dev.get_dataframe(columns=columns)
-    result = SinglePfLine(df)
+    result = FlatPfLine(df)
 
     testing.assert_index_equal(result.index, df.index)
     # testing.assert_index_equal(result["index"], df.index)# access by item is deprecated
@@ -57,7 +57,7 @@ def test_singlepfline_access(columns):
             # testing.assert_series_equal(result[col], expected) # access by item is deprecated
             testing.assert_series_equal(getattr(result.df(col), col), expected)
             testing.assert_series_equal(result.df(col)[col], expected)
-        elif col not in result.available:
+        elif col not in result.kind.available:
             assert getattr(result, col).isna().all()
             # assert result[col].isna().all() # access by item is deprecated
             assert getattr(result.df(col), col).isna().all()
@@ -77,14 +77,14 @@ rr = [p * q for p, q in zip(pp, qq)]
 @pytest.mark.parametrize(
     "pfls",
     [
-        (SinglePfLine({"w": w}) for w in ww),
-        (SinglePfLine({"q": q}) for q in qq),
-        (SinglePfLine({"p": p}) for p in pp),
-        (SinglePfLine({"p": p, "w": w}) for w, p in zip(ww, pp)),
-        (SinglePfLine({"w": w, "r": r}) for w, r in zip(ww, rr)),
+        (FlatPfLine({"w": w}) for w in ww),
+        (FlatPfLine({"q": q}) for q in qq),
+        (FlatPfLine({"p": p}) for p in pp),
+        (FlatPfLine({"p": p, "w": w}) for w, p in zip(ww, pp)),
+        (FlatPfLine({"w": w, "r": r}) for w, r in zip(ww, rr)),
     ],
 )
-def test_singlepfline_asfreqcorrect1(pfls):
+def test_flatpfline_asfreqcorrect1(pfls):
     """Test if changing frequency is done correctly (when it's possible), for uniform pflines."""
     for pfl_in in pfls:
         for expected_out in pfls:
@@ -97,7 +97,7 @@ def test_singlepfline_asfreqcorrect1(pfls):
 @pytest.mark.parametrize("freq", ["H", "D", "MS", "QS", "AS"])
 @pytest.mark.parametrize("newfreq", ["H", "D", "MS", "QS", "AS"])
 @pytest.mark.parametrize("columns", ["pr", "qr", "pq", "wp", "wr"])
-def test_singlepfline_asfreqcorrect2(freq, newfreq, columns, tz):
+def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
     """Test if changing frequency is done correctly (when it's possible)."""
 
     # Includes at 2 full years
@@ -108,15 +108,15 @@ def test_singlepfline_asfreqcorrect2(freq, newfreq, columns, tz):
 
     i = pd.date_range(start, end, freq=freq, tz=tz)
     df = dev.get_dataframe(i, columns)
-    pfl1 = SinglePfLine(df)
+    pfl1 = FlatPfLine(df)
     pfl2 = pfl1.asfreq(newfreq)
 
     # Compare the dataframes, only keep time intervals that are in both objects.
-    if pfl1.kind is Kind.PRICE_ONLY:
+    if pfl1.kind is Kind.PRICE:
         df1, df2 = pfl1.p * pfl1.index.duration, pfl2.p * pfl2.index.duration
     else:
         cols = ["q"]
-        if pfl1.kind is Kind.ALL:
+        if pfl1.kind is Kind.COMPLETE:
             cols.append("r")
         df1, df2 = pfl1.df()[cols], pfl2.df()[cols]
 
@@ -132,37 +132,39 @@ def test_singlepfline_asfreqcorrect2(freq, newfreq, columns, tz):
 
 @pytest.mark.parametrize("freq", ["15T", "H", "D"])
 @pytest.mark.parametrize("newfreq", ["MS", "QS", "AS"])
-@pytest.mark.parametrize("kind", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY])
-def test_singlepfline_asfreqimpossible(freq, newfreq, kind):
+@pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
+def test_flatpfline_asfreqimpossible(freq, newfreq, kind):
     """Test if changing frequency raises error if it's impossible."""
 
     periods = {"H": 200, "15T": 2000, "D": 20}[freq]
     i = pd.date_range("2020-04-06", freq=freq, periods=periods, tz="Europe/Berlin")
-    pfl = dev.get_singlepfline(i, kind)
+    pfl = dev.get_flatpfline(i, kind)
     with pytest.raises(ValueError):
         _ = pfl.asfreq(newfreq)
 
 
-@pytest.mark.parametrize("kind", [Kind.ALL, Kind.VOLUME_ONLY, Kind.PRICE_ONLY])
+@pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE, Kind.REVENUE])
 @pytest.mark.parametrize("col", ["w", "q", "p", "r"])
-def test_singlepfline_setseries(kind, col):
+def test_flatpfline_setseries(kind, col):
     """Test if series can be set on existing pfline."""
 
-    pfl_in = dev.get_singlepfline(kind=kind)
+    pfl_in = dev.get_flatpfline(kind=kind)
     s = dev.get_series(pfl_in.index, col)
 
-    if kind is Kind.ALL and col == "r":  # Expecting error
-        with pytest.raises(NotImplementedError):
+    if kind is Kind.COMPLETE:  # Expecting error
+        with pytest.raises(Exception):
             _ = pfl_in.set_r(s)
         return
 
     result = getattr(pfl_in, f"set_{col}")(s)
     testing.assert_series_equal(getattr(result, col), s)
-    assert col in result.available
-    if kind is Kind.VOLUME_ONLY and col in ["w", "q"]:
-        expectedkind = Kind.VOLUME_ONLY
-    elif kind is Kind.PRICE_ONLY and col == "p":
-        expectedkind = Kind.PRICE_ONLY
+    assert col in result.kind.available
+    if kind is Kind.VOLUME and col in ["w", "q"]:
+        expectedkind = Kind.VOLUME
+    elif kind is Kind.PRICE and col == "p":
+        expectedkind = Kind.PRICE
+    elif kind is Kind.REVENUE and col == "r":
+        expectedkind = Kind.REVENUE
     else:
-        expectedkind = Kind.ALL
+        expectedkind = Kind.COMPLETE
     assert result.kind is expectedkind
