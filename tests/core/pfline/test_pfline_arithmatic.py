@@ -35,7 +35,7 @@ def id_fn(data: Any):
         return data.__name__
     elif isinstance(data, Kind):
         return str(data)
-    elif isinstance(data, Testcase):
+    elif isinstance(data, Case):
         return f"{id_fn(data.value1)}-{data.operation}-{id_fn(data.value2)}-{id_fn(data.expected)}"
     return type(data).__name__
 
@@ -107,17 +107,11 @@ flatset6["nodim"] = dev.get_series(i6)
 
 
 @dataclass(frozen=True)
-class Testcase:
+class Case:
     value1: Any
     operation: str
     value2: Any
     expected: Any
-
-
-def cols(kind: Kind):
-    return {Kind.VOLUME: "q", Kind.PRICE: "p", Kind.REVENUE: "r", Kind.COMPLETE: "qr"}[
-        kind
-    ]
 
 
 def dimlessseries(s: pd.Series) -> pd.Series:
@@ -129,30 +123,34 @@ def additiontestcases():
     for kind in Kind:
         pfl = ref_flatset[kind]
         # . ref + 1
-        series = {c: ref_series[c] + series1[c] for c in cols(kind)}
-        yield Testcase(pfl, "+", flatset1[kind], PfLine(series))
+        series = {c: ref_series[c] + series1[c] for c in kind.summable}
+        yield Case(pfl, "+", flatset1[kind], PfLine(series))
         # . ref + 2
-        series = {c: ref_series[c].loc[i12] + series2[c].loc[i12] for c in cols(kind)}
-        yield Testcase(pfl, "+", flatset2[kind], PfLine(series))
-    yield Testcase(ref_flatset[Kind.VOLUME], "+", flatset3[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "+", flatset4[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "+", flatset5[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "+", flatset6[Kind.VOLUME], Exception)
+        series = {
+            c: ref_series[c].loc[i12] + series2[c].loc[i12] for c in kind.summable
+        }
+        yield Case(pfl, "+", flatset2[kind], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "+", flatset3[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "+", flatset4[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "+", flatset5[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "+", flatset6[Kind.VOLUME], Exception)
 
 
 def subtractiontestcases():
     for kind in Kind:
         pfl = ref_flatset[kind]
         # . ref - 1
-        series = {c: ref_series[c] - series1[c] for c in cols(kind)}
-        yield Testcase(pfl, "-", flatset1[kind], PfLine(series))
+        series = {c: ref_series[c] - series1[c] for c in kind.summable}
+        yield Case(pfl, "-", flatset1[kind], PfLine(series))
         # . ref - 2
-        series = {c: ref_series[c].loc[i12] - series2[c].loc[i12] for c in cols(kind)}
-        yield Testcase(pfl, "-", flatset2[kind], PfLine(series))
-    yield Testcase(ref_flatset[Kind.VOLUME], "-", flatset3[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "-", flatset4[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "-", flatset5[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "-", flatset6[Kind.VOLUME], Exception)
+        series = {
+            c: ref_series[c].loc[i12] - series2[c].loc[i12] for c in kind.summable
+        }
+        yield Case(pfl, "-", flatset2[kind], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "-", flatset3[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "-", flatset4[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "-", flatset5[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "-", flatset6[Kind.VOLUME], Exception)
 
 
 def multiplicationtestcases():
@@ -160,22 +158,22 @@ def multiplicationtestcases():
     for kind in Kind:
         pfl = ref_flatset[kind]
         # . ref * 1
-        series = {c: ref_series[c] * series1["nodim"] for c in cols(kind)}
-        yield Testcase(pfl, "*", flatset1["nodim"], PfLine(series))
+        series = {c: ref_series[c] * series1["nodim"] for c in kind.summable}
+        yield Case(pfl, "*", flatset1["nodim"], PfLine(series))
         # . ref * 2
         series = {
-            c: ref_series[c].loc[i12] * series2["nodim"].loc[i12] for c in cols(kind)
+            c: ref_series[c].loc[i12] * series2["nodim"].loc[i12] for c in kind.summable
         }
-        yield Testcase(pfl, "*", flatset2["nodim"], PfLine(series))
-    yield Testcase(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.REVENUE], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "*", flatset3["nodim"], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "*", flatset4["nodim"], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "*", flatset5["nodim"], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "*", flatset6["nodim"], Exception)
+        yield Case(pfl, "*", flatset2["nodim"], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.REVENUE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset3["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset4["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset5["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset6["nodim"], Exception)
     # volume * price
     series = {"r": ref_series["q"] * series1["p"]}
-    yield Testcase(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.PRICE], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.PRICE], PfLine(series))
 
 
 def divisiontestcases():
@@ -183,94 +181,94 @@ def divisiontestcases():
     for kind in Kind:
         pfl = ref_flatset[kind]
         # . ref / 1
-        series = {c: ref_series[c] / series1["nodim"] for c in cols(kind)}
-        yield Testcase(pfl, "/", flatset1["nodim"], PfLine(series))
+        series = {c: ref_series[c] / series1["nodim"] for c in kind.summable}
+        yield Case(pfl, "/", flatset1["nodim"], PfLine(series))
         # . ref / 2
         series = {
-            c: ref_series[c].loc[i12] / series2["nodim"].loc[i12] for c in cols(kind)
+            c: ref_series[c].loc[i12] / series2["nodim"].loc[i12] for c in kind.summable
         }
-        yield Testcase(pfl, "/", flatset2["nodim"], PfLine(series))
-    yield Testcase(ref_flatset[Kind.VOLUME], "/", flatset3["nodim"], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "/", flatset4["nodim"], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "/", flatset5["nodim"], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "/", flatset6["nodim"], Exception)
+        yield Case(pfl, "/", flatset2["nodim"], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset3["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset4["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset5["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset6["nodim"], Exception)
     # something / same thing
     for kind in [Kind.VOLUME, Kind.PRICE, Kind.REVENUE]:
-        c = cols(kind)
+        c = kind.summable[0]  # only one element
         pfl = ref_flatset[kind]
         # . ref / 1
         series = dimlessseries(ref_series[c] / series1[c])
-        yield Testcase(pfl, "/", flatset1[kind], series)
+        yield Case(pfl, "/", flatset1[kind], series)
         # . ref / 2
         series = dimlessseries(ref_series[c].loc[i12] / series2[c].loc[i12])
-        yield Testcase(pfl, "/", flatset2[kind], series)
-    yield Testcase(ref_flatset[Kind.COMPLETE], "/", flatset1[Kind.COMPLETE], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "/", flatset3[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "/", flatset4[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "/", flatset5[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "/", flatset6[Kind.VOLUME], Exception)
+        yield Case(pfl, "/", flatset2[kind], series)
+    yield Case(ref_flatset[Kind.COMPLETE], "/", flatset1[Kind.COMPLETE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset3[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset4[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset5[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset6[Kind.VOLUME], Exception)
     # revenue / something
     pfl = ref_flatset[Kind.REVENUE]
     series = {"q": ref_series["r"] / series1["p"]}
-    yield Testcase(pfl, "/", flatset1[Kind.PRICE], PfLine(series))
+    yield Case(pfl, "/", flatset1[Kind.PRICE], PfLine(series))
     series = {"p": ref_series["r"] / series1["q"]}
-    yield Testcase(pfl, "/", flatset1[Kind.VOLUME], PfLine(series))
+    yield Case(pfl, "/", flatset1[Kind.VOLUME], PfLine(series))
 
 
 def uniontestcases():
     # something | something else
     for kind in [Kind.VOLUME, Kind.PRICE, Kind.REVENUE]:
         pfl = ref_flatset[kind]
-        c = cols(kind)
+        c = kind.summable[0]  # only one element
 
         for kind_other in [Kind.VOLUME, Kind.PRICE]:
             if kind is kind_other:
                 continue
-            c_other = cols(kind_other)
+            c_other = kind_other.summable[0]  # only one element
 
             # . ref | 1
             series = {c: ref_series[c], c_other: series1[c_other]}
-            yield Testcase(pfl, "|", flatset1[kind_other], PfLine(series))
+            yield Case(pfl, "|", flatset1[kind_other], PfLine(series))
             # . ref | 2
             series = {c: ref_series[c].loc[i12], c_other: series2[c_other].loc[i12]}
-            yield Testcase(pfl, "|", flatset2[kind_other], PfLine(series))
-    yield Testcase(ref_flatset[Kind.VOLUME], "|", flatset1[Kind.VOLUME], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "|", flatset1[Kind.COMPLETE], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "|", flatset3[Kind.PRICE], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "|", flatset4[Kind.PRICE], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "|", flatset5[Kind.PRICE], Exception)
-    yield Testcase(ref_flatset[Kind.VOLUME], "|", flatset6[Kind.PRICE], Exception)
+            yield Case(pfl, "|", flatset2[kind_other], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset1[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset1[Kind.COMPLETE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset3[Kind.PRICE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset4[Kind.PRICE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset5[Kind.PRICE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset6[Kind.PRICE], Exception)
 
 
 @pytest.mark.parametrize("testcase", additiontestcases(), ids=id_fn)
 @pytest.mark.parametrize("order", ["", "reversed"])
-def test_addition(testcase: Testcase, order: str):
+def test_addition(testcase: Case, order: str):
     do_test(testcase, order)
 
 
 @pytest.mark.parametrize("testcase", subtractiontestcases(), ids=id_fn)
-def test_subtraction(testcase: Testcase):
+def test_subtraction(testcase: Case):
     do_test(testcase)
 
 
 @pytest.mark.parametrize("testcase", multiplicationtestcases(), ids=id_fn)
 @pytest.mark.parametrize("order", ["", "reversed"])
-def test_multiplication(testcase: Testcase, order: str):
+def test_multiplication(testcase: Case, order: str):
     do_test(testcase, order)
 
 
 @pytest.mark.parametrize("testcase", divisiontestcases(), ids=id_fn)
-def test_division(testcase: Testcase):
+def test_division(testcase: Case):
     do_test(testcase)
 
 
 @pytest.mark.parametrize("testcase", uniontestcases(), ids=id_fn)
 @pytest.mark.parametrize("order", ["", "reversed"])
-def test_union(testcase: Testcase, order):
+def test_union(testcase: Case, order):
     do_test(testcase, order)
 
 
-def do_test(tc: Testcase, order: str = ""):
+def do_test(tc: Case, order: str = ""):
     """Test if addition, subtraction, multiplication, division, union return correct values."""
 
     def calc():

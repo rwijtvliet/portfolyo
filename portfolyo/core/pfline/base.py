@@ -43,11 +43,11 @@ if TYPE_CHECKING:
 class Kind(Enum):
     """Enumerate what kind of information (which dimensions) is present in a PfLine."""
 
-    # abbreviation, available columns, summable (pfl1 + pfl2) columns, function for changefreq
-    VOLUME = "vol", "wq", "q", tools.changefreq.summable
-    PRICE = "pri", "p", "p", tools.changefreq.averagable
-    REVENUE = "rev", "r", "r", tools.changefreq.summable
-    COMPLETE = "all", "wqpr", "qr", tools.changefreq.summable
+    # abbreviation, available columns, summable (pfl1 + pfl2) columns
+    VOLUME = "vol", "wq", "q"
+    PRICE = "pri", "p", "p"
+    REVENUE = "rev", "r", "r"
+    COMPLETE = "all", "wqpr", "qr"
 
     @classmethod
     def _missing_(cls, val):
@@ -57,15 +57,11 @@ class Kind(Enum):
 
     @property
     def available(self):
-        return list(self.value[1])
+        return tuple(self.value[1])
 
     @property
     def summable(self):
-        return list(self.value[2])
-
-    @property
-    def changefreqfn(self):
-        return self.value[3]
+        return tuple(self.value[2])
 
     def __repr__(self):
         return f"<{self.value[0]}>"
@@ -225,26 +221,14 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, OtherOutput):
     def __getitem__(self, *args, **kwargs):  # Get child
         ...
 
-    # Class should be immutable; remove __setitem__ and __delitem__
-    # @abstractmethod
-    # def __setitem__(self, *args, **kwargs):  # Add or overwrite child
-    #     ...
-    # @abstractmethod
-    # def __delitem__(self, *args, **kwargs):  # Remove child
-    #     ...
-
     # Implemented directly here.
 
-    # @property
-    # def summable(self) -> str:
-    #     """Which attributes/colums of this PfLine can be added to those of other PfLines
-    #     to get consistent/correct new PfLine."""
-    #     return {
-    #         Kind.VOLUME: "q",
-    #         Kind.PRICE: "p",
-    #         Kind.REVENUE: "r",
-    #         Kind.COMPLETE: "qr",
-    #     }[self.kind]
+    # Class should be immutable; remove __setitem__ and __delitem__
+    def __setitem__(self, *args, **kwargs):
+        raise TypeError("PfLine instances are immutable.")
+
+    def __delitem__(self, *args, **kwargs):
+        raise TypeError("PfLine instances are immutable.")
 
     def _set_col_val(
         self, col: str, val: Union[pd.Series, float, int, tools.unit.Q_]
