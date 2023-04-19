@@ -152,8 +152,10 @@ def _divide_pflines(pfl1: PfLine, pfl2: PfLine) -> Union[pd.Series, PfLine]:
 def _unite_pflines(pfl1: PfLine, pfl2: PfLine) -> PfLine:
     """Unite two pflines."""
 
-    if isinstance(pfl1, nested.NestedPfLine) or isinstance(pfl2, nested.NestedPfLine):
-        raise NotImplementedError("Union only possible between 2 flat PfLines.")
+    if isinstance(pfl1, nested.NestedPfLine) and isinstance(pfl2, nested.NestedPfLine):
+        raise NotImplementedError(
+            "Union only possible if at most 1 of the PfLines is nested."
+        )
 
     kinds = {pfl1.kind: pfl1, pfl2.kind: pfl2}
     if pfl1.kind is pfl2.kind:
@@ -164,14 +166,28 @@ def _unite_pflines(pfl1: PfLine, pfl2: PfLine) -> PfLine:
             " select e.g. .volume or .price."
         )
 
-    data = {}
-    if (pfl := kinds.get(Kind.VOLUME)) is not None:
-        data["q"] = pfl.q
-    if (pfl := kinds.get(Kind.PRICE)) is not None:
-        data["p"] = pfl.p
-    if (pfl := kinds.get(Kind.REVENUE)) is not None:
-        data["r"] = pfl.r
-    return flat.FlatPfLine(data)
+    if isinstance(pfl1, flat.FlatPfLine) and isinstance(pfl2, flat.FlatPfLine):
+        data = {}
+        if (pfl := kinds.get(Kind.VOLUME)) is not None:
+            data["q"] = pfl.q
+        if (pfl := kinds.get(Kind.PRICE)) is not None:
+            data["p"] = pfl.p
+        if (pfl := kinds.get(Kind.REVENUE)) is not None:
+            data["r"] = pfl.r
+        return flat.FlatPfLine(data)
+
+    # One is nested.
+
+    if Kind.REVENUE in kinds.keys():
+        raise NotImplementedError(
+            "Can only do union between flat and nested PfLine if they are a volume"
+            " and a price PfLine."
+        )
+    if isinstance(pfl1, nested.NestedPfLine):
+        nested_one, flat_one = pfl1, pfl2
+    else:
+        nested_one, flat_one = pfl2, pfl1
+    return nested.NestedPfLine({n: child | flat_one for n, child in nested_one.items()})
 
 
 class PfLineArithmatic:

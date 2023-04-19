@@ -615,15 +615,15 @@ We can turn one kind of portfolio line into another kind, by multiplying with or
 \                                                 🟨               🟩              🟦                🟫
 \                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``PfLine * volume``                               ❌               🟦 `≥1fl`_       ❌                ❌              
-``PfLine * price``                                🟦 `≥1fl`_        ❌              ❌                ❌              
-``PfLine / volume``                               (❌)             ❌              🟩 `≥1fl`_         ❌              
-``PfLine / price``                                ❌               (❌)            🟨 `≥1fl`_         ❌              
+``PfLine * volume``                               ❌               🟦 `≥1f`_       ❌                ❌              
+``PfLine * price``                                🟦 `≥1f`_        ❌              ❌                ❌              
+``PfLine / volume``                               (❌)             ❌              🟩 `≥1f`_         ❌              
+``PfLine / price``                                ❌               (❌)            🟨 `≥1f`_         ❌              
 ================================================= =============== ============== ================ =================
 
 Notes:
 
-.. _`≥1fl`:
+.. _`≥1f`:
 
 ≥1f
   At least one of the operands must be flat.
@@ -654,19 +654,13 @@ Union into complete portfolio line
 
 We can combine portfolio lines of distinct kind into a complete portfolio line. We use the union operator ``|`` for this.
 
-Current version:
-
-* None of the operands may be nested. First ``.flatten()`` if necessary.
-
-Future version:
+* None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
 
 * At most one of the operands may be nested. First ``.flatten()`` if necessary.
 
-* If both operands are flat portfolio lines, the result is a flat complete portfolio line.
+* If both operands are flat portfolio lines, the result is a flat complete portfolio line. Both operands must be volume-only, price-only, or revenue-only.
 
-* If one of the operands is nested, the flat operand is combined with each of its children. 
-
-* None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
+* If one of the operands is nested, the flat operand is combined with each of its children. Both operands must be volume-only or price-only.
 
 
 ================================================= =============== ============== ================ =================
@@ -675,15 +669,20 @@ Future version:
 \                                                 🟨               🟩              🟦                🟫
 \                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``PfLine | volume``                               ❌               🟫 `≥1f`_       🟫 `≥1f`_         ❌              
-``PfLine | price``                                🟫 `≥1f`_        ❌              🟫 `≥1f`_         ❌              
-``PfLine | revenue``                              🟫 `≥1f`_        🟫 `≥1f`_       ❌                ❌              
+``PfLine | volume``                               ❌               🟫 `≥1f⠀`_      🟫 `2f⠀`_          ❌              
+``PfLine | price``                                🟫 `≥1f⠀`_       ❌              🟫 `2f⠀`_          ❌              
+``PfLine | revenue``                              🟫 `2f⠀`_        🟫 `2f⠀`_       ❌                ❌              
 ================================================= =============== ============== ================ =================
 
-.. _`≥1f`:
+.. _`≥1f⠀`:
 
 ≥1f
   At least one of the operands must be flat.
+
+.. _`2f⠀`:
+ 
+2f
+  Both operands must be flat.
 
 Example with flat portfolio lines:
 
@@ -703,7 +702,7 @@ Combining a nested volume portfolio line with a flat price:
 
 .. exec_code::
 
-   # --- hide: start ---  
+   import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='MS', periods=3)
    # volumes
    existing_customers = pd.Series([250, 250, 250], index, dtype='pint[MW]') 
