@@ -52,6 +52,10 @@ table {
 table tbody tr td p {
   margin-bottom: 0.5em;
 }
+table thead tr th.head {
+  padding-bottom: 0em;
+  padding-top: 0em;
+}
 table tbody tr td p a.reference.internal {
   background: #2D2D2D;
   color: #EBEBEB;
