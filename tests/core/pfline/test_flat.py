@@ -93,6 +93,7 @@ def test_flatpfline_asfreqcorrect1(pfls):
 
 
 # . check correct working of attributes .asfreq().
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("freq", ["H", "D", "MS", "QS", "AS"])
 @pytest.mark.parametrize("newfreq", ["H", "D", "MS", "QS", "AS"])

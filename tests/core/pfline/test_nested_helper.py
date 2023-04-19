@@ -37,7 +37,7 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
     assert result_kind is kind1
 
 
-@pytest.mark.slow
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("freq1", ["15T", "D", "MS", "QS"])  # don't do all - many!
 @pytest.mark.parametrize("freq2", ["15T", "H", "D", "MS", "QS"])
 def test_verifydict_frequencyconsistency(freq1, freq2):
@@ -67,7 +67,7 @@ def test_verifydict_frequencyconsistency(freq1, freq2):
         _ = nested_helper.children_and_kind(children)
 
 
-@pytest.mark.slow
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("freq", ["15T", "H", "D", "MS"])
 @pytest.mark.parametrize("overlap", [True, False])
 def test_verifydict_unequaltimeperiods(freq, overlap):
