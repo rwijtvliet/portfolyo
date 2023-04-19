@@ -2,8 +2,6 @@
 Visualize portfolio lines, etc.
 """
 
-import colorsys
-from collections import namedtuple
 from typing import Iterable, List, Optional
 
 import matplotlib as mpl
@@ -12,6 +10,7 @@ import pandas as pd
 from matplotlib import pyplot as plt
 
 from .. import tools
+from .categories import Categories, Category  # noqa
 
 mpl.style.use("seaborn")
 
@@ -55,52 +54,19 @@ mpl.style.use("seaborn")
 # pick the correct graph type.
 #
 
-
-class Color(namedtuple("RGB", ["r", "g", "b"])):
-    """Class to create an rgb color tuple, with additional methods."""
-
-    def lighten(self, value):
-        """Lighten the color by fraction ``value`` (between 0 and 1). If < 0, darken."""
-        hu, li, sa = np.array(colorsys.rgb_to_hls(*mpl.colors.to_rgb(self)))
-        li += value * ((1 - li) if value > 0 else li)
-        return Color(*[min(max(p, 0), 1) for p in colorsys.hls_to_rgb(hu, li, sa)])
-
-    def darken(self, value):
-        """Darken the color by fraction ``value`` (between 0 and 1)."""
-        return self.lighten(self, -value)
-
-    light = property(lambda self: self.lighten(0.3))
-    xlight = property(lambda self: self.lighten(0.6))
-    dark = property(lambda self: self.lighten(-0.3))
-    xdark = property(lambda self: self.lighten(-0.6))
+MAX_XLABELS = 20
 
 
-class Colors:
-    class General:
-        PURPLE = Color(0.549, 0.110, 0.706)
-        GREEN = Color(0.188, 0.463, 0.165)
-        BLUE = Color(0.125, 0.247, 0.600)
-        ORANGE = Color(0.961, 0.533, 0.114)
-        RED = Color(0.820, 0.098, 0.114)
-        YELLOW = Color(0.945, 0.855, 0.090)
-        LBLUE = Color(0.067, 0.580, 0.812)
-        LGREEN = Color(0.325, 0.773, 0.082)
-        BLACK = Color(0, 0, 0)
-        WHITE = Color(1, 1, 1)
-
-    class LbCd:  # Lichtblick corporate design
-        YELLOW = Color(*mpl.colors.to_rgb("#FA9610"))
-        SMOKE = Color(*mpl.colors.to_rgb("#465B68"))
-        BERRY = Color(*mpl.colors.to_rgb("#D4496A"))
-        AQUA = Color(*mpl.colors.to_rgb("#0BA3C1"))
-        GREEN = Color(*mpl.colors.to_rgb("#077144"))
-        MOSS = Color(*mpl.colors.to_rgb("#658A7C"))
-
-    class Wqpr:  # Standard colors when plotting a portfolio
-        w = Color(*mpl.colors.to_rgb("#0E524F")).lighten(0.15)
-        q = Color(*mpl.colors.to_rgb("#0E524F"))
-        r = Color(*mpl.colors.to_rgb("#8B7557"))
-        p = Color(*mpl.colors.to_rgb("#E53454"))
+def use_categories(ax: plt.Axes, s: pd.Series, cat: bool = None) -> bool:
+    """Determine if plot should be made with category axis (True) or datetime axis (False)."""
+    # We use categorical data if...
+    if (ax.lines or ax.collections or ax.containers) and ax.xaxis.have_units():
+        return True  # ...ax already has category axis; or
+    elif cat is None and tools.freq.shortest(s.index.freq, "MS") == "MS":
+        return True  # ...it's the default for the given frequency; or
+    elif cat is True:
+        return True  # ...user wants it.
+    return False
 
 
 def _index2labels(index: pd.DatetimeIndex) -> List[str]:
@@ -170,15 +136,26 @@ def plot_timeseries_as_jagged(
     ``linestyle`` and ``marker`` to specify line style and/or marker style. (Default: line only)."""
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
-    # Plot.
-    categories = _categories(ax, s, cat)
-    if categories:
-        xx = categories
-    else:
-        xx = s.index
-    ax.plot(xx, s.values, **kwargs)
+    # # Plot.
+    # categories = _categories(ax, s, cat)
+    # if categories:
+    #     xplot = np.arange(len(categories))
+    #     ax.plot(xplot, s.values, **kwargs)
+    #     ax.set_xticks(xplot, categories)
+    #     add_labels(ax, xplot, s.values, labelfmt, False)  # add labels to datapoints
+    # else:
+    #     ax.plot(s.index, s.values, **kwargs)
+    #     add_labels(ax, s.index, s.values, labelfmt, False)  # add labels to datapoints
 
-    add_labels(ax, xx, s.values, labelfmt, False)  # add labels to datapoints
+    # Plot.
+    if use_categories(ax, s, cat):
+        categories = Categories(s)
+        ax.plot(categories.x(), categories.y(), **kwargs)
+        ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
+        add_labels(ax, categories.x(), categories.y(), labelfmt, False)
+    else:
+        ax.plot(s.index, s.values, **kwargs)
+        add_labels(ax, s.index, s.values, labelfmt, False)  # add labels to datapoints
 
 
 @append_to_doc(docstringliteral_plotparameters)
@@ -190,11 +167,20 @@ def plot_timeseries_as_bar(
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     # Plot and add labels to datapoints.
-    categories = _categories(ax, s, cat)
-    if categories:
+    # categories = _categories(ax, s, cat)
+    # if categories:
 
-        ax.bar(categories, s.values, 0.8, **kwargs)
-        add_labels(ax, categories, s.values, labelfmt, True)
+    #     # Use position (0, 1, ...) instead of label (2020-Jan, Feb, ...) because label repeats.
+    #     xplot = np.arange(len(categories))
+    #     ax.bar(xplot, s.values, 0.8, **kwargs)
+    #     ax.set_xticks(xplot, categories)
+    #     add_labels(ax, xplot, s.values, labelfmt, True)
+
+    if use_categories(ax, s, cat):
+        categories = Categories(s)
+        ax.bar(categories.x(), categories.y(), 0.8, **kwargs)
+        ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
+        add_labels(ax, categories.x(), categories.y(), labelfmt, True)
 
     else:  # Bad combination: bar graph on time-axis. But allow anyway.
 
@@ -232,9 +218,11 @@ def plot_timeseries_as_area(
         ax.fill_between(
             xplot - 0.5, 0, splot.values, step="post", **kwargs
         )  # center around x-tick
-        ax.set_xticks(xplot)
-        ax.set_xticklabels([*categories, ""])
+        ax.set_xticks(xplot, [*categories, ""])
+        # ax.set_xticklabels()
         add_labels(ax, range(len(s)), s.values, labelfmt, True)
+
+        # TODO: change to use Categories
 
     else:
 
@@ -262,9 +250,9 @@ def plot_timeseries_as_step(
         ax.step(
             xplot - 0.5, splot.values, where="post", **kwargs
         )  # center around x-tick
-        ax.set_xticks(xplot)
-        ax.set_xticklabels([*categories, ""])
+        ax.set_xticks(xplot, [*categories, ""])
         add_labels(ax, range(len(s)), s.values, labelfmt, True)
+        # TODO: change to use Categories
 
     else:
 
@@ -292,6 +280,7 @@ def plot_timeseries_as_hline(
         ax.set_xticks(x)
         ax.set_xticklabels(categories)
         add_labels(ax, x, s.values, labelfmt, False)
+        # TODO: change to use Categories
 
     else:
 
