@@ -104,7 +104,8 @@ def do_test_index(ts, freq, tz, expected_hours):
     # Must specify timezone in timestamp (instead of index) to avoid confusion at DST-changeover.
     i = pd.date_range(pd.Timestamp(ts, tz=tz), freq=freq, periods=2)
     result = tools.duration.index(i)
-    expected = pd.Series(expected_hours, i, dtype="pint[h]", name="duration")
+    float_hours = [float(h) for h in expected_hours]  # turn into floats
+    expected = pd.Series(float_hours, i, dtype="pint[h]", name="duration")
     testing.assert_series_equal(result, expected)
 
 
