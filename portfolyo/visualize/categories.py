@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Any, Iterable, Union
 
 import numpy as np
 import pandas as pd
@@ -34,18 +34,18 @@ class Categories:
         return categories
 
     def _get_subset(self, attr: str, max_count: int = None) -> Iterable:
-        return [getattr(cat, attr) for cat in self.categories(max_count)]
+        values = [getattr(cat, attr) for cat in self.categories(max_count)]
+        if not isinstance(values[0], tools.unit.Q_):
+            return np.array(values)
+        unit = values[0].units
+        magnitudes = [value.to(unit).m for value in values]
+        return tools.unit.PA_(magnitudes, unit)
 
     def x(self, max_count: int = None) -> Iterable[int]:
         return self._get_subset("x", max_count)
 
-    def y(self, max_count: int = None) -> Iterable[int]:
-        values = self._get_subset("y", max_count)
-        if not isinstance(values[0], tools.unit.Q_):
-            return values
-        unit = values[0].units
-        magnitudes = [value.to(unit).m for value in values]
-        return tools.unit.PA_(magnitudes, unit)
+    def y(self, max_count: int = None) -> Iterable[Union[float, tools.unit.Q_]]:
+        return self._get_subset("y", max_count)
 
     def ts(self, max_count: int = None) -> Iterable[pd.Timestamp]:
         return self._get_subset("ts", max_count)
