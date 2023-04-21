@@ -656,7 +656,7 @@ We can combine portfolio lines of distinct kind into a complete portfolio line. 
 
 * None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
 
-* Both operands must be flat portfoio lines. First ``.flatten()`` if necessary.
+* Both operands must be flat. If necessary, first ``.flatten()`` a nested portfolio line.
 
 ================================================= =============== ============== ================ =================
 \                                                 Kind of portfolio line
