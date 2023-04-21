@@ -656,12 +656,7 @@ We can combine portfolio lines of distinct kind into a complete portfolio line. 
 
 * None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
 
-* At most one of the operands may be nested. First ``.flatten()`` if necessary.
-
-* If both operands are flat portfolio lines, the result is a flat complete portfolio line. Both operands must be volume-only, price-only, or revenue-only.
-
-* If one of the operands is nested, the flat operand is combined with each of its children. Both operands must be volume-only or price-only.
-
+* Both operands must be flat portfoio lines. First ``.flatten()`` if necessary.
 
 ================================================= =============== ============== ================ =================
 \                                                 Kind of portfolio line
@@ -669,15 +664,11 @@ We can combine portfolio lines of distinct kind into a complete portfolio line. 
 \                                                 🟨               🟩              🟦                🟫
 \                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``PfLine | volume``                               ❌               🟫 `≥1f⠀`_      🟫 `2f⠀`_          ❌              
-``PfLine | price``                                🟫 `≥1f⠀`_       ❌              🟫 `2f⠀`_          ❌              
+``PfLine | volume``                               ❌               🟫 `2f⠀`_       🟫 `2f⠀`_          ❌              
+``PfLine | price``                                🟫 `2f⠀`_        ❌              🟫 `2f⠀`_          ❌              
 ``PfLine | revenue``                              🟫 `2f⠀`_        🟫 `2f⠀`_       ❌                ❌              
 ================================================= =============== ============== ================ =================
 
-.. _`≥1f⠀`:
-
-≥1f
-  At least one of the operands must be flat.
 
 .. _`2f⠀`:
  
@@ -698,27 +689,25 @@ Example with flat portfolio lines:
    # --- hide: start ---
    print(repr(vol | pf.Q_(100, 'Eur/MWh')))
 
-Combining a nested volume portfolio line with a flat price:
+.. Combining a nested volume portfolio line with a flat price:
 
-.. exec_code::
+   .. import portfolyo as pf, pandas as pd
+   .. index = pd.date_range('2024', freq='MS', periods=3)
+   .. # volumes
+   .. existing_customers = pd.Series([250, 250, 250], index, dtype='pint[MW]') 
+   .. expected_churn = pd.Series([-10, -15, -20], index, dtype='pint[MW]') 
+   .. # prices
+   .. energy_price = pd.Series([60, 70, 65], index, dtype='pint[Eur/MWh]')
+   .. risk_premium = pd.Series([5, 5, 5.5], index, dtype='pint[Eur/MWh]')
 
-   import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='MS', periods=3)
-   # volumes
-   existing_customers = pd.Series([250, 250, 250], index, dtype='pint[MW]') 
-   expected_churn = pd.Series([-10, -15, -20], index, dtype='pint[MW]') 
-   # prices
-   energy_price = pd.Series([60, 70, 65], index, dtype='pint[Eur/MWh]')
-   risk_premium = pd.Series([5, 5, 5.5], index, dtype='pint[Eur/MWh]')
+   .. # nested pf-lines
+   .. volume = pf.PfLine({'existing': existing_customers, 'churn': expected_churn})
+   .. price = pf.PfLine({'energy': energy_price, 'premium': risk_premium})
 
-   # nested pf-lines
-   volume = pf.PfLine({'existing': existing_customers, 'churn': expected_churn})
-   price = pf.PfLine({'energy': energy_price, 'premium': risk_premium})
-
-   union1 = volume | price.flatten()
-   union1
-   # --- hide: start ---
-   print(repr(union1))
+   .. union1 = volume | price.flatten()
+   .. union1
+   .. # --- hide: start ---
+   .. print(repr(union1))
 
 
 
