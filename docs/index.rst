@@ -52,10 +52,9 @@ NB: this package is under active development and the API will change without pri
 Contents
 --------
 
-.. toctree::
-   :maxdepth: 1
+..    :maxdepth: 1
 
-   ./index
+..    ./index
 
 .. toctree::
    :maxdepth: 2

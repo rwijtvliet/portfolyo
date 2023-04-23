@@ -28,7 +28,7 @@ jobs:
           pip install -r requirements-test.txt     
 
       - name: Run tests
-        run: python -B -m pytest -m "not slow"
+        run: python -B -m pytest -m "not only_on_pr"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1

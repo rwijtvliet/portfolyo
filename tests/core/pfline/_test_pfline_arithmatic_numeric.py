@@ -111,7 +111,7 @@ class Testpfls:
     def fetch(self, kind: Kind = None, nestedness: str = None) -> Iterable[Testpfl]:
         testpfls: Iterable[Testpfl] = self._testpfls
         if kind is not None:
-            testpfls = [tp for tp in testpfls if tp.kind == kind]
+            testpfls = [tp for tp in testpfls if tp.kind is kind]
         if nestedness is not None:
             testpfls = [tp for tp in testpfls if tp.nestedness == nestedness]
         return testpfls

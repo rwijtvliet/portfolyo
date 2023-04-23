@@ -17,7 +17,7 @@ import portfolyo as pf
 LENGTHS = [100, 1000, 10_000, 100_000, 300_000]
 RUNS = [10, 10, 10, 3, 1]
 
-SHEET_NAME = "refactored"
+SHEET_NAME = "new_major_version"
 
 
 def total_size(o, handlers={}, verbose=False):

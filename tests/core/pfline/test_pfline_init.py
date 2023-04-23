@@ -163,7 +163,7 @@ def anyerror(*args):
     return None
 
 
-@pytest.mark.slow
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
@@ -201,7 +201,7 @@ def test_init_A(
         assert len(result)
 
 
-@pytest.mark.slow
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("kind", Kind)

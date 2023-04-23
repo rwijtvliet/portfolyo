@@ -317,8 +317,8 @@ def do_test_index(i: pd.DatetimeIndex, trimfreq: str, expected: pd.DatetimeIndex
 def do_test_series(
     i: pd.DatetimeIndex, trimfreq: str, i_expected: pd.DatetimeIndex, with_units: bool
 ):
-    dtype = "pint[MW]" if with_units else float
-    fr = pd.Series(range(len(i)), i, dtype=dtype)
+    dtype = "pint[MW]" if with_units else float  # always create float series first
+    fr = pd.Series(range(len(i)), i, dtype=float).astype(dtype)
     expected = expected_series(i, i_expected, dtype)
 
     result = tools.trim.frame(fr, trimfreq)
@@ -328,8 +328,8 @@ def do_test_series(
 def do_test_dataframe(
     i: pd.DatetimeIndex, trimfreq: str, i_expected: pd.DatetimeIndex, with_units: bool
 ):
-    dtype = "pint[MW]" if with_units else float
-    fr = pd.DataFrame({"a": range(len(i))}, i, dtype=dtype)
+    dtype = "pint[MW]" if with_units else float  # always create float series first
+    fr = pd.DataFrame({"a": pd.Series(range(len(i)), i, dtype=float).astype(dtype)})
     expected = pd.DataFrame({"a": expected_series(i, i_expected, dtype)})
 
     result = tools.trim.frame(fr, trimfreq)
@@ -342,4 +342,6 @@ def expected_series(i, i_expected, dtype):
             break
     else:
         raise ValueError
-    return pd.Series(range(num, num + len(i_expected)), i_expected, dtype=dtype)
+    return pd.Series(range(num, num + len(i_expected)), i_expected, dtype=float).astype(
+        dtype
+    )

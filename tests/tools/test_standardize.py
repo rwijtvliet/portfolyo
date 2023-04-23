@@ -89,6 +89,7 @@ def test_standardize_DST(
         pd.testing.assert_frame_equal(result, expected)
 
 
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("in_tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("out_tz", [None, "Europe/Berlin"])
@@ -133,6 +134,7 @@ def test_standardize_convert(freq, in_tz, floating, series_or_df, bound, out_tz)
     assert result.index.freq == freq
 
 
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("in_tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("floating", [True, False])

@@ -153,7 +153,7 @@ def _unite_pflines(pfl1: PfLine, pfl2: PfLine) -> PfLine:
     """Unite two pflines."""
 
     if isinstance(pfl1, nested.NestedPfLine) or isinstance(pfl2, nested.NestedPfLine):
-        raise NotImplementedError("Union only possible between 2 flat PfLines.")
+        raise NotImplementedError("Can only do union if both PfLines are flat.")
 
     kinds = {pfl1.kind: pfl1, pfl2.kind: pfl2}
     if pfl1.kind is pfl2.kind:
