@@ -33,7 +33,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
     -----
     Sign conventions:
     - Volumes (`q`, `w`): >0 if volume flows into the portfolio.
-    - Revenues (`r`): >0 if money flows out of the portfolio. Income is negative.
+    - Revenues (`r`): >0 if money flows out of the portfolio. Consequently, income is negative.
     - Prices (`p`): normally positive.
 
     Attributes
@@ -56,11 +56,9 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         Does not follow sign conventions (see 'Notes' above); volumes are <0 if
         portfolio is short and >0 if long. Identical to `.unsourced`, but with sign
         change for volumes and revenues (but not prices).
-    procurement : price-and-volume PfLine
+    pnl_cost : price-and-volume PfLine
         The expected costs needed to source the offtake volume; the sum of the sourced
         and unsourced positions.
-    index : pandas.DateTimeIndex
-        Left timestamp of each delivery period under consideration.
     """
 
     @classmethod
