@@ -187,10 +187,10 @@ def test_pfs_negation():
         (pfs1, "*", 2, mul_pfs1_2),
         (pfs1, "/", 2, div_pfs1_2),
         # Constant with unit.
-        (pfs1, "+", Q_(4, "MWh"), Exception),
-        (pfs1, "-", Q_(4, "MWh"), Exception),
-        (pfs1, "*", Q_(4, "MWh"), Exception),
-        (pfs1, "/", Q_(4, "MWh"), Exception),
+        (pfs1, "+", Q_(4.0, "MWh"), Exception),
+        (pfs1, "-", Q_(4.0, "MWh"), Exception),
+        (pfs1, "*", Q_(4.0, "MWh"), Exception),
+        (pfs1, "/", Q_(4.0, "MWh"), Exception),
         # Series without unit.
         (pfs1, "+", dataset1["nodim"], Exception),
         (pfs1, "-", dataset1["nodim"], Exception),
