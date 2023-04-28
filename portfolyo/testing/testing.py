@@ -53,16 +53,16 @@ def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):
     if freq == "15T":
         assert_series_equal(q, w * Q_(0.25, "h"), check_names=False)
     elif freq == "H":
-        assert_series_equal(q, w * Q_(1, "h"), check_names=False)
+        assert_series_equal(q, w * Q_(1.0, "h"), check_names=False)
     elif freq == "D":
         assert (q >= w * Q_(22.99, "h")).all()
         assert (q <= w * Q_(25.01, "h")).all()
     elif freq == "MS":
-        assert (q >= w * 27 * Q_(24, "h")).all()
-        assert (q <= w * 32 * Q_(24, "h")).all()
+        assert (q >= w * 27 * Q_(24.0, "h")).all()
+        assert (q <= w * 32 * Q_(24.0, "h")).all()
     elif freq == "QS":
-        assert (q >= w * 89 * Q_(24, "h")).all()
-        assert (q <= w * 93 * Q_(24, "h")).all()
+        assert (q >= w * 89 * Q_(24.0, "h")).all()
+        assert (q <= w * 93 * Q_(24.0, "h")).all()
     elif freq == "AS":
         assert (q >= w * Q_(8759.9, "h")).all()
         assert (q <= w * Q_(8784.1, "h")).all()

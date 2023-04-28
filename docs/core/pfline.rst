@@ -412,9 +412,9 @@ Here are several examples.
      import portfolyo as pf, pandas as pd
      index = pd.date_range('2024', freq='AS', periods=3)
      vol = pf.PfLine(pd.Series([4, 4.6, 3], index, dtype='pint[MW]'))
-     vol + pf.Q_(10, 'GWh')
+     vol + pf.Q_(10.0, 'GWh')
      # --- hide: start ---
-     print(repr(vol + pf.Q_(10, 'GWh')))
+     print(repr(vol + pf.Q_(10.0, 'GWh')))
   
 * When adding (or subtracting) two nested portfolio lines, the children are merged: 
 
@@ -581,9 +581,9 @@ For example:
    vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
    # --- hide: stop ---
    # continuation of previous code example
-   vol / pf.Q_(200, 'MW')  # division by volume results in dimensionless series
+   vol / pf.Q_(200.0, 'MW')  # division by volume results in dimensionless series
    # --- hide: start ---
-   print(repr(vol / pf.Q_(200, 'MW')))
+   print(repr(vol / pf.Q_(200.0, 'MW')))
 
 
 .. _changekind:
@@ -642,9 +642,9 @@ Here is an examples:
    vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
    # --- hide: stop ---
    # continuation of previous code example
-   vol * pf.Q_(100, 'Eur/MWh')  # multiplication with price results in revenue
+   vol * pf.Q_(100.0, 'Eur/MWh')  # multiplication with price results in revenue
    # --- hide: start ---
-   print(repr(vol * pf.Q_(100, 'Eur/MWh')))
+   print(repr(vol * pf.Q_(100.0, 'Eur/MWh')))
 
 
 .. _union:
@@ -685,9 +685,9 @@ Example with flat portfolio lines:
    vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
    # --- hide: stop ---
    # continuation of previous code example
-   vol | pf.Q_(100, 'Eur/MWh')  # union with price results in complete portfolio line
+   vol | pf.Q_(100.0, 'Eur/MWh')  # union with price results in complete portfolio line
    # --- hide: start ---
-   print(repr(vol | pf.Q_(100, 'Eur/MWh')))
+   print(repr(vol | pf.Q_(100.0, 'Eur/MWh')))
 
 .. Combining a nested volume portfolio line with a flat price:
 

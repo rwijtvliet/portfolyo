@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, Mapping, Tuple
-
+from collections import defaultdict
 import pandas as pd
 
 from ... import tools
@@ -43,7 +43,12 @@ def children_and_kind(children: Dict[str, PfLine]) -> Tuple[Dict[str, PfLine], K
     # Kind of children.
     kindset = set([child.kind for child in children.values()])
     if len(kindset) != 1:
-        raise ValueError(f"All children must be of the same kind; found {kindset}.")
+        kinds1 = defaultdict(list)
+        for name, child in children.items():
+            kinds1[child.kind].append(name)
+        kinds2 = {kind: ", ".join(names) for kind, names in kinds1.items()}
+        kinds3 = " and ".join([f"{kind} ({names})" for kind, names in kinds2.items()])
+        raise ValueError(f"All children must be of the same kind; found {kinds3}.")
     kind = next(iter(kindset))
 
     return children, kind
