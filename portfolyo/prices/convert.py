@@ -306,7 +306,9 @@ def tseries2bpoframe(s: pd.Series, freq: str = "MS", prefix: str = "") -> pd.Dat
     sin, units = (s.pint.magnitude, s.pint.units) if hasattr(s, "pint") else (s, None)
 
     # Do calculations. Use normal mean, because all rows have same duration.
-    sout = sin.resample(freq).apply(lambda s: tseries2singlebpo(s, prefix))
+    sout = sin.resample(freq, group_keys=True).apply(
+        lambda s: tseries2singlebpo(s, prefix)
+    )
 
     # Handle possible units.
     if units is not None:
