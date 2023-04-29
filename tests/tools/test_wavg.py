@@ -11,16 +11,16 @@ from portfolyo import tools
 def test_wavg_valuesasseries1(weightsas: str, with_units: str):
     """Test if weighted average of a series is correctly calculated."""
     # Starting values.
-    values = pd.Series([100, 200, 300, -150])
+    values = pd.Series([100.0, 200, 300, -150])
     weights = [10, 10, 10, 20]
     if weightsas == "none":
         weights = None
         expected = 112.5
     elif weightsas == "list":
-        expected = 60
+        expected = 60.0
     elif weightsas == "series":
         weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
-        expected = 110
+        expected = 110.0
     # Add units.
     if with_units == "units":
         values = values.astype("pint[Eur/MWh]")

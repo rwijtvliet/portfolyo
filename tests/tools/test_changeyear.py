@@ -393,6 +393,7 @@ def test_mapindextoindex_daysandhours(
     testing.assert_series_equal(result, expected, check_names=False)
 
 
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("year_s", [2020, 2021])
 @pytest.mark.parametrize("year_t", [2020, 2021])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])

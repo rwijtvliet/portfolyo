@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from portfolyo import tools
 from portfolyo.tools.unit import Q_, ureg
 
@@ -30,21 +31,21 @@ def test_quantities_consistent(units):
 
 QUANTITY_IDENTITIES = [
     (
-        Q_(1, ureg.megawatthour),
-        Q_(1, ureg.MWh),
-        Q_(1, "MWh"),  # most common constructor
+        Q_(1.0, ureg.megawatthour),
+        Q_(1.0, ureg.MWh),
+        Q_(1.0, "MWh"),  # most common constructor
         ureg("1 MWH"),
         1 * ureg.megawatthour,
         1 * ureg.MWh,  # most common constructor
         1 * ureg("MWh"),
-        Q_(1000, ureg.kilowatthour),
-        Q_(1000, ureg.kWh),
-        Q_(1000, "kWh"),
+        Q_(1000.0, ureg.kilowatthour),
+        Q_(1000.0, ureg.kWh),
+        Q_(1000.0, "kWh"),
         ureg("1000 kWh"),
         1000 * ureg.kilowatthour,
         1000 * ureg.kWh,
         1000 * ureg("kWh"),
-        Q_(1e6, "Wh"),
+        Q_(1.0e6, "Wh"),
         1e6 * ureg.Wh,
         1e-3 * ureg.GWh,
         1e-6 * ureg.TWh,
@@ -55,10 +56,14 @@ QUANTITY_IDENTITIES = [
         1 * ureg.MW * ureg.h,
         1 * ureg.kW * 1000 * ureg.min * 60,
     ),
-    (Q_(23, "MW"), Q_("46 MWh") / (2 * ureg.h), Q_(23, "MWh") / ureg.h),
-    (30 * ureg.euro / (40 * ureg.kWh), 750 * ureg.euro_per_MWh, 75 * ureg.cent_per_kWh),
-    (30 * ureg.MWh / (40 * ureg.kWh), 750),
-    (30 * ureg.kWh / (40e6 * ureg.W * 3600 * ureg.s), 0.75e-3),
+    (Q_(23.0, "MW"), Q_("46 MWh") / (2 * ureg.h), Q_(23.0, "MWh") / ureg.h),
+    (
+        30.0 * ureg.euro / (40.0 * ureg.kWh),
+        750.0 * ureg.euro_per_MWh,
+        75.0 * ureg.cent_per_kWh,
+    ),
+    (30.0 * ureg.MWh / (40.0 * ureg.kWh), 750),
+    (30.0 * ureg.kWh / (40.0e6 * ureg.W * 3600 * ureg.s), 0.75e-3),
 ]
 
 

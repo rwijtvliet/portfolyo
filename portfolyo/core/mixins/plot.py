@@ -4,17 +4,18 @@ Module with mixins, to add 'plot-functionality' to PfLine and PfState classes.
 
 from __future__ import annotations
 
-from ...visualize import visualize as vis
-from ... import tools
+from typing import TYPE_CHECKING, Dict
 
-from typing import Dict, TYPE_CHECKING
-import numpy as np
 import matplotlib
+import numpy as np
 from matplotlib import pyplot as plt
 
+from ... import tools
+from ... import visualize as vis
+
 if TYPE_CHECKING:  # needed to avoid circular imports
-    from ..pfstate import PfState
     from ..pfline import PfLine
+    from ..pfstate import PfState
 
 
 DEFAULTHOW = {"r": "bar", "q": "bar", "p": "hline", "w": "area", "f": "area"}

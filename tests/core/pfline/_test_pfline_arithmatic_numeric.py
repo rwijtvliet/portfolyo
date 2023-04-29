@@ -111,7 +111,7 @@ class Testpfls:
     def fetch(self, kind: Kind = None, nestedness: str = None) -> Iterable[Testpfl]:
         testpfls: Iterable[Testpfl] = self._testpfls
         if kind is not None:
-            testpfls = [tp for tp in testpfls if tp.kind == kind]
+            testpfls = [tp for tp in testpfls if tp.kind is kind]
         if nestedness is not None:
             testpfls = [tp for tp in testpfls if tp.nestedness == nestedness]
         return testpfls
@@ -581,19 +581,19 @@ Testcases.multiple(
 Testcases.multiple(
     pflset_ref[Kind.VOLUME],
     ["add", "radd"],
-    [Q_(30, "MW"), Q_(0.03, "GW")],
+    [Q_(30.0, "MW"), Q_(0.03, "GW")],
     pflset_plus2[Kind.VOLUME],
 )
 Testcases.multiple(
     pflset_ref[Kind.VOLUME],
     "sub",
-    [Q_(30, "MW"), Q_(0.03, "GW")],
+    [Q_(30.0, "MW"), Q_(0.03, "GW")],
     pflset_minus2[Kind.VOLUME],
 )
 Testcases.multiple(
     pflset_ref[Kind.VOLUME],
     ["mul", "rmul", "div", "rdiv", "union", "runion"],
-    Q_(30, "MW"),
+    Q_(30.0, "MW"),
     ER.ERROR,
 )
 
@@ -1014,14 +1014,14 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         # . Explicitly dimensionless constant.
         (
             pflset_ref[Kind.PRICE],
-            Q_(4, ""),
+            Q_(4.0, ""),
             pf.FlatPfLine({"p": series_ref["p"] * 4}),
             pf.FlatPfLine({"p": series_ref["p"] / 4}),
         ),
         # . Fixed price constant.
         (
             pflset_ref[Kind.PRICE],
-            Q_(4, "Eur/MWh"),
+            Q_(4.0, "Eur/MWh"),
             Exception,
             (series_ref["p"] / 4).astype("pint[dimensionless]"),
         ),
@@ -1034,19 +1034,19 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         # . Fixed volume constant.
         (
             pflset_ref[Kind.PRICE],
-            Q_(4, "MWh"),
+            Q_(4.0, "MWh"),
             pf.FlatPfLine({"p": series_ref["p"], "q": 4}),
             Exception,
         ),
         (
             pflset_ref[Kind.PRICE],
-            Q_(4, "MW"),
+            Q_(4.0, "MW"),
             pf.FlatPfLine({"p": series_ref["p"], "w": 4}),
             Exception,
         ),
         (
             pflset_ref[Kind.PRICE],
-            Q_(4, "GW"),
+            Q_(4.0, "GW"),
             pf.FlatPfLine({"p": series_ref["p"], "w": 4000}),
             Exception,
         ),
@@ -1057,7 +1057,7 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
             Exception,
         ),
         # . Incorrect constant.
-        (pflset_ref[Kind.PRICE], Q_(4, "Eur"), Exception, Exception),
+        (pflset_ref[Kind.PRICE], Q_(4.0, "Eur"), Exception, Exception),
         # . Dim-agnostic or dimless series.
         (
             pflset_ref[Kind.PRICE],
@@ -1171,7 +1171,7 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         # . Explicitly dimensionless constant.
         (
             pflset_ref[Kind.COMPLETE],
-            Q_(6, ""),
+            Q_(6.0, ""),
             FlatPfLine({"w": series_ref["w"] * 6, "p": series_ref["p"]}),
             FlatPfLine({"w": series_ref["w"] / 6, "p": series_ref["p"]}),
         ),

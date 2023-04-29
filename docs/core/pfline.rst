@@ -412,9 +412,9 @@ Here are several examples.
      import portfolyo as pf, pandas as pd
      index = pd.date_range('2024', freq='AS', periods=3)
      vol = pf.PfLine(pd.Series([4, 4.6, 3], index, dtype='pint[MW]'))
-     vol + pf.Q_(10, 'GWh')
+     vol + pf.Q_(10.0, 'GWh')
      # --- hide: start ---
-     print(repr(vol + pf.Q_(10, 'GWh')))
+     print(repr(vol + pf.Q_(10.0, 'GWh')))
   
 * When adding (or subtracting) two nested portfolio lines, the children are merged: 
 
@@ -581,9 +581,9 @@ For example:
    vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
    # --- hide: stop ---
    # continuation of previous code example
-   vol / pf.Q_(200, 'MW')  # division by volume results in dimensionless series
+   vol / pf.Q_(200.0, 'MW')  # division by volume results in dimensionless series
    # --- hide: start ---
-   print(repr(vol / pf.Q_(200, 'MW')))
+   print(repr(vol / pf.Q_(200.0, 'MW')))
 
 
 .. _changekind:
@@ -615,15 +615,15 @@ We can turn one kind of portfolio line into another kind, by multiplying with or
 \                                                 🟨               🟩              🟦                🟫
 \                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``PfLine * volume``                               ❌               🟦 `≥1fl`_       ❌                ❌              
-``PfLine * price``                                🟦 `≥1fl`_        ❌              ❌                ❌              
-``PfLine / volume``                               (❌)             ❌              🟩 `≥1fl`_         ❌              
-``PfLine / price``                                ❌               (❌)            🟨 `≥1fl`_         ❌              
+``PfLine * volume``                               ❌               🟦 `≥1f`_       ❌                ❌              
+``PfLine * price``                                🟦 `≥1f`_        ❌              ❌                ❌              
+``PfLine / volume``                               (❌)             ❌              🟩 `≥1f`_         ❌              
+``PfLine / price``                                ❌               (❌)            🟨 `≥1f`_         ❌              
 ================================================= =============== ============== ================ =================
 
 Notes:
 
-.. _`≥1fl`:
+.. _`≥1f`:
 
 ≥1f
   At least one of the operands must be flat.
@@ -642,9 +642,9 @@ Here is an examples:
    vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
    # --- hide: stop ---
    # continuation of previous code example
-   vol * pf.Q_(100, 'Eur/MWh')  # multiplication with price results in revenue
+   vol * pf.Q_(100.0, 'Eur/MWh')  # multiplication with price results in revenue
    # --- hide: start ---
-   print(repr(vol * pf.Q_(100, 'Eur/MWh')))
+   print(repr(vol * pf.Q_(100.0, 'Eur/MWh')))
 
 
 .. _union:
@@ -654,20 +654,9 @@ Union into complete portfolio line
 
 We can combine portfolio lines of distinct kind into a complete portfolio line. We use the union operator ``|`` for this.
 
-Current version:
-
-* None of the operands may be nested. First ``.flatten()`` if necessary.
-
-Future version:
-
-* At most one of the operands may be nested. First ``.flatten()`` if necessary.
-
-* If both operands are flat portfolio lines, the result is a flat complete portfolio line.
-
-* If one of the operands is nested, the flat operand is combined with each of its children. 
-
 * None of the operands may be a complete portfolio line. First select the ``.volume``, ``.price`` or ``.revenue`` if necessary.
 
+* Both operands must be flat. If necessary, first ``.flatten()`` a nested portfolio line.
 
 ================================================= =============== ============== ================ =================
 \                                                 Kind of portfolio line
@@ -675,15 +664,16 @@ Future version:
 \                                                 🟨               🟩              🟦                🟫
 \                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``PfLine | volume``                               ❌               🟫 `≥1f`_       🟫 `≥1f`_         ❌              
-``PfLine | price``                                🟫 `≥1f`_        ❌              🟫 `≥1f`_         ❌              
-``PfLine | revenue``                              🟫 `≥1f`_        🟫 `≥1f`_       ❌                ❌              
+``PfLine | volume``                               ❌               🟫 `2f⠀`_       🟫 `2f⠀`_          ❌              
+``PfLine | price``                                🟫 `2f⠀`_        ❌              🟫 `2f⠀`_          ❌              
+``PfLine | revenue``                              🟫 `2f⠀`_        🟫 `2f⠀`_       ❌                ❌              
 ================================================= =============== ============== ================ =================
 
-.. _`≥1f`:
 
-≥1f
-  At least one of the operands must be flat.
+.. _`2f⠀`:
+ 
+2f
+  Both operands must be flat.
 
 Example with flat portfolio lines:
 
@@ -695,31 +685,29 @@ Example with flat portfolio lines:
    vol = pf.PfLine(pd.Series([100, 250, 100], index, dtype='pint[MW]')) 
    # --- hide: stop ---
    # continuation of previous code example
-   vol | pf.Q_(100, 'Eur/MWh')  # union with price results in complete portfolio line
+   vol | pf.Q_(100.0, 'Eur/MWh')  # union with price results in complete portfolio line
    # --- hide: start ---
-   print(repr(vol | pf.Q_(100, 'Eur/MWh')))
+   print(repr(vol | pf.Q_(100.0, 'Eur/MWh')))
 
-Combining a nested volume portfolio line with a flat price:
+.. Combining a nested volume portfolio line with a flat price:
 
-.. exec_code::
+   .. import portfolyo as pf, pandas as pd
+   .. index = pd.date_range('2024', freq='MS', periods=3)
+   .. # volumes
+   .. existing_customers = pd.Series([250, 250, 250], index, dtype='pint[MW]') 
+   .. expected_churn = pd.Series([-10, -15, -20], index, dtype='pint[MW]') 
+   .. # prices
+   .. energy_price = pd.Series([60, 70, 65], index, dtype='pint[Eur/MWh]')
+   .. risk_premium = pd.Series([5, 5, 5.5], index, dtype='pint[Eur/MWh]')
 
-   # --- hide: start ---  
-   index = pd.date_range('2024', freq='MS', periods=3)
-   # volumes
-   existing_customers = pd.Series([250, 250, 250], index, dtype='pint[MW]') 
-   expected_churn = pd.Series([-10, -15, -20], index, dtype='pint[MW]') 
-   # prices
-   energy_price = pd.Series([60, 70, 65], index, dtype='pint[Eur/MWh]')
-   risk_premium = pd.Series([5, 5, 5.5], index, dtype='pint[Eur/MWh]')
+   .. # nested pf-lines
+   .. volume = pf.PfLine({'existing': existing_customers, 'churn': expected_churn})
+   .. price = pf.PfLine({'energy': energy_price, 'premium': risk_premium})
 
-   # nested pf-lines
-   volume = pf.PfLine({'existing': existing_customers, 'churn': expected_churn})
-   price = pf.PfLine({'energy': energy_price, 'premium': risk_premium})
-
-   union1 = volume | price.flatten()
-   union1
-   # --- hide: start ---
-   print(repr(union1))
+   .. union1 = volume | price.flatten()
+   .. union1
+   .. # --- hide: start ---
+   .. print(repr(union1))
 
 
 

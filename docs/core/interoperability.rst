@@ -35,9 +35,9 @@ To pass a single value, the following objects can be used:
       
      # --- hide: start ---
      import portfolyo as pf
-     print(repr(pf.Q_(50, "Eur/MWh")))
+     print(repr(pf.Q_(50.0, "Eur/MWh")))
      # --- hide: stop ---
-     pf.Q_(50, "Eur/MWh")
+     pf.Q_(50.0, "Eur/MWh")
      
   The unit is converted to the default unit for its dimension once it is used in any of the ``portfolyo`` objects, see also :ref:`this section<nameunitcompatibility>` further below.
   
