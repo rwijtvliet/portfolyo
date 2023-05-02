@@ -1,6 +1,6 @@
 # List required packages in this file, one per line.
 numpy
-pandas>=1,<2
+panda>=2
 matplotlib
 pint<=0.19.2
 pint-pandas
