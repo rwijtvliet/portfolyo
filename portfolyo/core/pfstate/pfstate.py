@@ -123,10 +123,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     @property
     def sourced(self) -> PfLine:
-        if self._sourced is None:
-            return PfLine(pd.DataFrame({"q": 0, "r": 0}, self.index))
-        else:
-            return self._sourced
+        return self._sourced
 
     @property
     def offtake(self) -> PfLine:

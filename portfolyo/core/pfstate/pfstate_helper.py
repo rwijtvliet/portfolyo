@@ -4,6 +4,8 @@
 import warnings
 from typing import Any, Iterable
 
+import pandas as pd
+
 from ... import tools
 from ..pfline import FlatPfLine, Kind, NestedPfLine, PfLine  # noqa
 
@@ -64,5 +66,7 @@ def make_pflines(
                 "Parameter ``sourced``: does not cover entire delivery period of ``offtakevolume``."
             )
         sourced = sourced.loc[idx]
+    else:
+        sourced = PfLine(pd.DataFrame({"q": 0, "r": 0}, idx))
 
     return offtakevolume, unsourcedprice, sourced
