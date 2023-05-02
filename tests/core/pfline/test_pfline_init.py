@@ -1,14 +1,15 @@
-"""Test initialisation of PfLine, SinglePfLine, and MultiPfLine."""
+"""Test initialisation of PfLine, FlatPfLine, and NestedPfLine."""
 
+import random
 from dataclasses import dataclass
 from enum import Enum
-import random
 from typing import Any, Iterable
 
-import portfolyo as pf
 import pandas as pd
-from portfolyo import dev, Kind, PfLine, SinglePfLine, MultiPfLine
 import pytest
+
+import portfolyo as pf
+from portfolyo import FlatPfLine, Kind, NestedPfLine, PfLine, dev
 
 
 @dataclass
@@ -19,16 +20,16 @@ class InitTestcase:
 
 
 def _returntype(self, testtype):
-    if testtype is SinglePfLine:
-        return SinglePfLine if self.value[1] else Exception
-    elif testtype is MultiPfLine:
-        return MultiPfLine if self.value[2] else Exception
+    if testtype is FlatPfLine:
+        return FlatPfLine if self.value[1] else Exception
+    elif testtype is NestedPfLine:
+        return NestedPfLine if self.value[2] else Exception
     elif self is InputTypeA.SINGLEPFLINE:
-        return SinglePfLine
+        return FlatPfLine
     elif self is InputTypeA.MULTIPFLINE:
-        return MultiPfLine
+        return NestedPfLine
     else:
-        return SinglePfLine if self.value[1] else MultiPfLine
+        return FlatPfLine if self.value[1] else NestedPfLine
 
 
 class InputTypeA(Enum):
@@ -36,8 +37,8 @@ class InputTypeA(Enum):
     FLATDF = ("flatdf", True, False)  # name, can-be-turned-into-single, can-...-multi
     FLATDICT = ("flatdict", True, False)
     FLATSERIES = ("flatseries", True, False)
-    SINGLEPFLINE = ("singlepfline", True, False)
-    MULTIPFLINE = ("multipfline", True, True)
+    SINGLEPFLINE = ("flatpfline", True, False)
+    MULTIPFLINE = ("nestedpfline", True, True)
 
     returntype = _returntype
 
@@ -73,7 +74,7 @@ def get_testcase_A(
         if not has_unit:
             df = Exception
     elif inputtype is InputTypeA.SINGLEPFLINE:
-        data_in = SinglePfLine(df)
+        data_in = FlatPfLine(df)
     elif inputtype is InputTypeA.MULTIPFLINE:
         if columns in ["w", "q", "p", "qr", "wr"]:
             df1 = 0.4 * df
@@ -82,17 +83,17 @@ def get_testcase_A(
             othercol = columns.replace("p", "")
             df1 = df.mul({"p": 1, othercol: 0.4})
             df2 = df.mul({"p": 1, othercol: 0.6})
-        data_in = MultiPfLine({"a": SinglePfLine(df1), "b": SinglePfLine(df2)})
+        data_in = NestedPfLine({"a": FlatPfLine(df1), "b": FlatPfLine(df2)})
     else:
         raise ValueError("unknown inputtype")
 
     # Checks.
     if columns in ["w", "q"]:
-        kind = Kind.VOLUME_ONLY
+        kind = Kind.VOLUME
     elif columns in ["p"]:
-        kind = Kind.PRICE_ONLY
+        kind = Kind.PRICE
     else:
-        kind = Kind.ALL
+        kind = Kind.COMPLETE
 
     return InitTestcase(data_in, df, kind)
 
@@ -105,28 +106,30 @@ def get_testcase_B(
     # Data.
     if inputtype is InputTypeB.PFDICTSINGLE:
         data_in = {
-            "child1": dev.get_singlepfline(i, kind),
-            "child2": dev.get_singlepfline(i, kind),
+            "child1": dev.get_flatpfline(i, kind),
+            "child2": dev.get_flatpfline(i, kind),
         }
     elif inputtype is InputTypeB.PFDICTMULTI:
         data_in = {
-            "child1": dev.get_multipfline(i, kind),
-            "child2": dev.get_multipfline(i, kind),
+            "child1": dev.get_nestedpfline(i, kind),
+            "child2": dev.get_nestedpfline(i, kind),
         }
     elif inputtype is InputTypeB.PFDICTMIX:
         data_in = {
-            "child1": dev.get_singlepfline(i, kind),
-            "child2": dev.get_multipfline(i, kind),
+            "child1": dev.get_flatpfline(i, kind),
+            "child2": dev.get_nestedpfline(i, kind),
         }
     elif inputtype in [InputTypeB.MULTILEVELDF_NOUNIT, InputTypeB.MULTILEVELDF_UNIT]:
         # only check one initalisable inputtype
         has_unit = inputtype is InputTypeB.MULTILEVELDF_UNIT
         data_in = {}
         for c in range(3):
-            if kind is Kind.PRICE_ONLY:
-                columns = "p"
-            elif kind is Kind.VOLUME_ONLY:
+            if kind is Kind.VOLUME:
                 columns = random.choice(("w", "q"))
+            elif kind is Kind.PRICE:
+                columns = "p"
+            elif kind is Kind.REVENUE:
+                columns = "r"
             else:
                 columns = random.choice(["wp", "wr", "qp", "qr", "pr"])
             data_in[f"child{c}"] = (
@@ -135,7 +138,12 @@ def get_testcase_B(
 
     elif inputtype in [InputTypeB.DICTINITIABLE_NOUNIT, InputTypeB.DICTINITIABLE_UNIT]:
         has_unit = inputtype is InputTypeB.DICTINITIABLE_UNIT
-        columns = {Kind.PRICE_ONLY: "p", Kind.VOLUME_ONLY: "w", Kind.ALL: "wp"}[kind]
+        columns = {
+            Kind.PRICE: "p",
+            Kind.VOLUME: "w",
+            Kind.REVENUE: "r",
+            Kind.COMPLETE: "wp",
+        }[kind]
         data_in = pd.concat(
             [
                 dev.get_dataframe(i, columns, has_unit),
@@ -155,12 +163,13 @@ def anyerror(*args):
     return None
 
 
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
 @pytest.mark.parametrize("inputtype", InputTypeA)
 @pytest.mark.parametrize("has_unit", [True, False])
-@pytest.mark.parametrize("testtype", [PfLine, SinglePfLine, MultiPfLine])
+@pytest.mark.parametrize("testtype", [PfLine, FlatPfLine, NestedPfLine])
 def test_init_A(
     freq: str,
     tz: str,
@@ -188,15 +197,16 @@ def test_init_A(
         assert result is itc.data_in  # assert no copy but reference.
     pf.testing.assert_frame_equal(result_df, itc.expected_df.rename_axis("ts_left"))
     assert result.kind is itc.expected_kind
-    if expected_type is MultiPfLine:
+    if expected_type is NestedPfLine:
         assert len(result)
 
 
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("kind", Kind)
 @pytest.mark.parametrize("inputtype", InputTypeB)
-@pytest.mark.parametrize("testtype", [PfLine, SinglePfLine, MultiPfLine])
+@pytest.mark.parametrize("testtype", [PfLine, FlatPfLine, NestedPfLine])
 def test_init_B(
     freq: str,
     tz: str,

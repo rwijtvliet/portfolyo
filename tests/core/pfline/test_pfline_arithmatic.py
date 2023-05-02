@@ -1,13 +1,16 @@
+from dataclasses import dataclass
 from typing import Any, Dict
 
 import pandas as pd
 import pytest
 
 import portfolyo as pf
-from portfolyo import Q_, Kind, MultiPfLine, PfLine, SinglePfLine, dev, testing  # noqa
+from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine, dev, testing  # noqa
 
-# TODO: Multipfline
-# TODO: various timezones
+_seed = 3  # any fixed seed
+
+
+# TODO: nestedPfLine, quantity, float, 0, negation
 
 
 def id_fn(data: Any):
@@ -20,9 +23,9 @@ def id_fn(data: Any):
         return f"Series (idx: {''.join(str(i) for i in data.index)})"
     elif isinstance(data, pd.DataFrame):
         return f"Df (columns: {''.join(str(c) for c in data.columns)})"
-    elif isinstance(data, SinglePfLine):
+    elif isinstance(data, FlatPfLine):
         return f"Singlepfline_{data.kind}"
-    elif isinstance(data, MultiPfLine):
+    elif isinstance(data, NestedPfLine):
         return f"Multipfline_{data.kind}"
     elif isinstance(data, str):
         return data
@@ -32,1747 +35,270 @@ def id_fn(data: Any):
         return data.__name__
     elif isinstance(data, Kind):
         return str(data)
+    elif isinstance(data, Case):
+        return f"{id_fn(data.value1)}-{data.operation}-{id_fn(data.value2)}-{id_fn(data.expected)}"
     return type(data).__name__
 
 
-tz = "Europe/Berlin"
-i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
-# i1 = pd.date_range("2021", periods=20, freq="MS", tz=tz)  # same freq, part overlap
-# i2 = pd.date_range("2022-04", periods=20, freq="MS", tz=tz)  # same freq, no overlap
-# i3 = pd.date_range(
-#     "2020-04", periods=8000, freq="H", tz=tz
-# )  # shorter freq, part overlap
-# i4 = pd.date_range("2020", periods=8, freq="QS", tz=tz)  # longer freq, part overlap
-
-
-# TODO: check correct working of dunder methods. E.g. assert correct addition:
-# . . pflines having same or different kind
-# . . pflines having same or different frequency
-# . . pflines covering same or different time periods
-
-
-@pytest.mark.parametrize("operation", ["+", "-"])
-@pytest.mark.parametrize(
-    ("pfl_in_i", "pfl_in_kind", "value", "returntype", "returnkind"),
-    [
-        # Adding to volume pfline.
-        # . Add volume.
-        # . . single value
-        (i, Kind.VOLUME_ONLY, Q_(0, "MWh"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "Wh"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "kWh"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "MWh"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "GWh"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "W"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "kW"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "MW"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "GW"), PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, {"w": Q_(8.1, "GW")}, PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, {"w": 8.1}, PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, pd.Series([8.1], ["q"]), PfLine, Kind.VOLUME_ONLY),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.Series([8.1], ["q"]).astype("pint[MWh]"),
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.Series([Q_(8.1, "MWh")], ["q"]),
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (i, Kind.VOLUME_ONLY, pd.Series([8.1], ["w"]), PfLine, Kind.VOLUME_ONLY),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.Series([8.1], ["w"]).astype("pint[MW]"),
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.Series([Q_(8.1, "MW")], ["w"]),
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "J"), PfLine, Kind.VOLUME_ONLY),
-        # . . timeseries (series, df, pfline)
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_series(i, "q", _random=False),
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_series(i, "w", _random=False),
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, "q", _random=False),
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_singlepfline(i, Kind.VOLUME_ONLY, _random=False),
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_multipfline(i, Kind.VOLUME_ONLY, _random=False),
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        # . Add something else.
-        # . . single value
-        (i, Kind.VOLUME_ONLY, 0, PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, 0.0, PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, None, PfLine, Kind.VOLUME_ONLY),
-        (i, Kind.VOLUME_ONLY, 8.1, Exception, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, ""), Exception, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "Eur/MWh"), Exception, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "Eur"), Exception, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "h"), Exception, None),
-        (i, Kind.VOLUME_ONLY, Q_(0.0, "Eur/MWh"), Exception, None),
-        (i, Kind.VOLUME_ONLY, {"the_volume": Q_(8.1, "MWh")}, Exception, None),
-        # . . timeseries (series, df, pfline)
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.DataFrame({"the_volume": dev.get_series(i, "w", _random=False)}),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_series(i, "q", _random=False).pint.magnitude,
-            Exception,
-            None,
-        ),
-        (i, Kind.VOLUME_ONLY, dev.get_series(i, "p", _random=False), Exception, None),
-        (i, Kind.VOLUME_ONLY, dev.get_series(i, "r", _random=False), Exception, None),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, "p", _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, "qr", _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, "qp", _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_singlepfline(i, Kind.PRICE_ONLY, _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_multipfline(i, Kind.PRICE_ONLY, _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_singlepfline(i, Kind.ALL, _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_multipfline(i, Kind.ALL, _random=False),
-            Exception,
-            None,
-        ),
-        # Adding to price pfline.
-        # . Add dimension-agnostic.
-        (i, Kind.PRICE_ONLY, 12, PfLine, Kind.PRICE_ONLY),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_series(i, "p", _random=False).pint.magnitude,
-            PfLine,
-            Kind.PRICE_ONLY,
-        ),
-        # . Add price.
-        (i, Kind.PRICE_ONLY, Q_(0, "Eur/MWh"), PfLine, Kind.PRICE_ONLY),
-        (i, Kind.PRICE_ONLY, Q_(12.0, "Eur/MWh"), PfLine, Kind.PRICE_ONLY),
-        (i, Kind.PRICE_ONLY, Q_(12.0, "Eur/kWh"), PfLine, Kind.PRICE_ONLY),
-        (i, Kind.PRICE_ONLY, Q_(12.0, "cent/kWh"), PfLine, Kind.PRICE_ONLY),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_series(i, "p", _random=False),
-            PfLine,
-            Kind.PRICE_ONLY,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_singlepfline(i, Kind.PRICE_ONLY, _random=False),
-            PfLine,
-            Kind.PRICE_ONLY,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_multipfline(i, Kind.PRICE_ONLY, _random=False),
-            PfLine,
-            Kind.PRICE_ONLY,
-        ),
-        # . Add something else.
-        (i, Kind.PRICE_ONLY, 0, PfLine, Kind.PRICE_ONLY),
-        (i, Kind.PRICE_ONLY, 0.0, PfLine, Kind.PRICE_ONLY),
-        (i, Kind.PRICE_ONLY, None, PfLine, Kind.PRICE_ONLY),
-        (i, Kind.PRICE_ONLY, Q_(12.0, ""), Exception, None),  # explicitly dimensionless
-        (i, Kind.PRICE_ONLY, Q_(12.0, "Eur"), Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(12.0, "MWh"), Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(12.0, "h"), Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(0.0, "MWh"), Exception, None),
-        (i, Kind.PRICE_ONLY, dev.get_series(i, "q", _random=False), Exception, None),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_singlepfline(i, Kind.VOLUME_ONLY, _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_multipfline(i, Kind.VOLUME_ONLY, _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_singlepfline(i, Kind.ALL, _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_multipfline(i, Kind.ALL, _random=False),
-            Exception,
-            None,
-        ),
-        # Adding to 'complete' pfline.
-        # . Add dimension-agnostic.
-        (i, Kind.ALL, 5.9, Exception, None),
-        (
-            i,
-            Kind.ALL,
-            dev.get_series(i, "q", _random=False).pint.magnitude,
-            Exception,
-            None,
-        ),
-        (i, Kind.ALL, {"nodim": 5.9}, Exception, None),
-        (i, Kind.ALL, {"nodim": Q_(5.9, "")}, Exception, None),
-        # . Add other 'all' pfline.
-        (i, Kind.ALL, Q_(6.0, "Eur"), SinglePfLine, Kind.ALL),
-        (i, Kind.ALL, dev.get_series(i, "r", _random=False), SinglePfLine, Kind.ALL),
-        (i, Kind.ALL, dev.get_dataframe(i, "r", _random=False), SinglePfLine, Kind.ALL),
-        (
-            i,
-            Kind.ALL,
-            dev.get_dataframe(i, "qr", _random=False),
-            SinglePfLine,
-            Kind.ALL,
-        ),
-        (
-            i,
-            Kind.ALL,
-            dev.get_dataframe(i, "qp", _random=False),
-            SinglePfLine,
-            Kind.ALL,
-        ),
-        (
-            i,
-            Kind.ALL,
-            dev.get_dataframe(i, "pr", _random=False),
-            SinglePfLine,
-            Kind.ALL,
-        ),
-        (
-            i,
-            Kind.ALL,
-            dev.get_singlepfline(i, Kind.ALL, _random=False),
-            SinglePfLine,
-            Kind.ALL,
-        ),
-        (
-            i,
-            Kind.ALL,
-            dev.get_multipfline(i, Kind.ALL, _random=False),
-            PfLine,
-            Kind.ALL,
-        ),
-        # . Add something else.
-        (i, Kind.ALL, Q_(6.0, "Eur/MWh"), Exception, None),
-        (i, Kind.ALL, Q_(6.0, "MW"), Exception, None),
-        (i, Kind.ALL, Q_(6.0, "MWh"), Exception, None),
-        (i, Kind.ALL, Q_(6.0, "h"), Exception, None),
-        (i, Kind.ALL, dev.get_series(i, "p", _random=False), Exception, None),
-        (i, Kind.ALL, dev.get_series(i, "q", _random=False), Exception, None),
-        (i, Kind.ALL, dev.get_series(i, "w", _random=False), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "p", _random=False), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "q", _random=False), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "w", _random=False), Exception, None),
-        (i, Kind.ALL, dev.get_dataframe(i, "wq", _random=False), Exception, None),
-        (
-            i,
-            Kind.ALL,
-            dev.get_singlepfline(i, Kind.PRICE_ONLY, _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.ALL,
-            dev.get_multipfline(i, Kind.PRICE_ONLY, _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.ALL,
-            dev.get_singlepfline(i, Kind.VOLUME_ONLY, _random=False),
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.ALL,
-            dev.get_multipfline(i, Kind.VOLUME_ONLY, _random=False),
-            Exception,
-            None,
-        ),
-    ],
-    ids=id_fn,
-)
-@pytest.mark.parametrize("pfl_in_single_or_multi", ["single", "multi"])
-def test_pfl_addsub_kind(
-    pfl_in_i,
-    pfl_in_kind,
-    pfl_in_single_or_multi,
-    value,
-    returntype,
-    returnkind,
-    operation,
-):
-    """Test if addition and subtraction return correct object type and kind."""
-    if pfl_in_single_or_multi == "single":
-        pfl_in = dev.get_singlepfline(pfl_in_i, pfl_in_kind, _random=False)
-    else:
-        pfl_in = dev.get_multipfline(pfl_in_i, pfl_in_kind, _random=False)
-    # Check error is raised.
-    # (Not working due to implementation issue in pint and numpy: value + pfl_in, value - pfl_in)
-    if issubclass(returntype, Exception):
-        with pytest.raises(returntype):
-            _ = (pfl_in + value) if operation == "+" else (pfl_in - value)
-        return
-
-    # Check return type.
-    # (Not working due to implementation issue in pint and numpy: value + pfl_in, value - pfl_in)
-    result = (pfl_in + value) if operation == "+" else (pfl_in - value)
-    assert isinstance(result, returntype)
-    if returntype is PfLine:
-        assert result.kind is returnkind
-
-
-@pytest.mark.parametrize("operation", ["*", "/"])
-@pytest.mark.parametrize(
-    (
-        "pfl_in_i",
-        "pfl_in_kind",
-        "value",
-        "returntype_mul",
-        "returnkind_mul",
-        "returntype_div",
-        "returnkind_div",
-    ),
-    [
-        # Multiplying volume pfline.
-        # . Multiply with dimensionless value
-        # . . single value
-        (i, Kind.VOLUME_ONLY, 8.1, PfLine, Kind.VOLUME_ONLY, PfLine, Kind.VOLUME_ONLY),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            Q_(8.1, ""),
-            PfLine,
-            Kind.VOLUME_ONLY,
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        # . . timeseries (series, df)
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_series(i, "f", _random=False),
-            PfLine,
-            Kind.VOLUME_ONLY,
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_series(i, "f", _random=False).astype("pint[dimensionless]"),
-            PfLine,
-            Kind.VOLUME_ONLY,
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, ["nodim"], _random=False),
-            PfLine,
-            Kind.VOLUME_ONLY,
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, ["nodim"], _random=False).astype(
-                "pint[dimensionless]"
-            ),
-            PfLine,
-            Kind.VOLUME_ONLY,
-            PfLine,
-            Kind.VOLUME_ONLY,
-        ),
-        # . Multiply with volume
-        # . . single val
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "Wh"), Exception, None, pd.Series, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "kWh"), Exception, None, pd.Series, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "MWh"), Exception, None, pd.Series, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "GWh"), Exception, None, pd.Series, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "W"), Exception, None, pd.Series, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "kW"), Exception, None, pd.Series, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "MW"), Exception, None, pd.Series, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "GW"), Exception, None, pd.Series, None),
-        (i, Kind.VOLUME_ONLY, {"w": Q_(8.1, "GW")}, Exception, None, pd.Series, None),
-        (i, Kind.VOLUME_ONLY, {"w": 8.1}, Exception, None, pd.Series, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "J"), Exception, None, pd.Series, None),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.Series([8.1], ["q"]),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.Series([8.1], ["q"]).astype("pint[MWh]"),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.Series([Q_(8.1, "MWh")], ["q"]),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.Series([8.1], ["w"]),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.Series([8.1], ["w"]).astype("pint[MW]"),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            pd.Series([Q_(8.1, "MW")], ["w"]),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        # . . timeseries (series, df, pfline)
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, "q", _random=False),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_pfline(i, Kind.VOLUME_ONLY, _random=False),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_singlepfline(i, Kind.VOLUME_ONLY, _random=False),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_multipfline(i, Kind.VOLUME_ONLY, _random=False),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        # . Multiply with price
-        # . . single val
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "Eur/MWh"), PfLine, Kind.ALL, Exception, None),
-        (i, Kind.VOLUME_ONLY, Q_(8.1, "ctEur/kWh"), PfLine, Kind.ALL, Exception, None),
-        # . . timeseries (series, df, pfline)
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_series(i, "p", _random=False),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_dataframe(i, "p", _random=False),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_singlepfline(i, Kind.PRICE_ONLY, _random=False),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.VOLUME_ONLY,
-            dev.get_multipfline(i, Kind.PRICE_ONLY, _random=False),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        # Multiplying price pfline.
-        # . Multiply with dimensionless value
-        # . . single value
-        (i, Kind.PRICE_ONLY, 8.1, PfLine, Kind.PRICE_ONLY, PfLine, Kind.PRICE_ONLY),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            Q_(8.1, ""),
-            PfLine,
-            Kind.PRICE_ONLY,
-            PfLine,
-            Kind.PRICE_ONLY,
-        ),
-        # . . timeseries (series, df)
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_series(i, "f", _random=False),
-            PfLine,
-            Kind.PRICE_ONLY,
-            PfLine,
-            Kind.PRICE_ONLY,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_series(i, "f", _random=False).astype("pint[dimensionless]"),
-            PfLine,
-            Kind.PRICE_ONLY,
-            PfLine,
-            Kind.PRICE_ONLY,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_dataframe(i, ["nodim"], _random=False),
-            PfLine,
-            Kind.PRICE_ONLY,
-            PfLine,
-            Kind.PRICE_ONLY,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_dataframe(i, ["nodim"], _random=False).astype(
-                "pint[dimensionless]"
-            ),
-            PfLine,
-            Kind.PRICE_ONLY,
-            PfLine,
-            Kind.PRICE_ONLY,
-        ),
-        # . Multiply with volume
-        # . . single val
-        (i, Kind.PRICE_ONLY, Q_(8.1, "Wh"), PfLine, Kind.ALL, Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(8.1, "kWh"), PfLine, Kind.ALL, Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(8.1, "MWh"), PfLine, Kind.ALL, Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(8.1, "GWh"), PfLine, Kind.ALL, Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(8.1, "W"), PfLine, Kind.ALL, Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(8.1, "kW"), PfLine, Kind.ALL, Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(8.1, "MW"), PfLine, Kind.ALL, Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(8.1, "GW"), PfLine, Kind.ALL, Exception, None),
-        (i, Kind.PRICE_ONLY, {"w": Q_(8.1, "GW")}, PfLine, Kind.ALL, Exception, None),
-        (i, Kind.PRICE_ONLY, {"w": 8.1}, PfLine, Kind.ALL, Exception, None),
-        (i, Kind.PRICE_ONLY, Q_(8.1, "J"), PfLine, Kind.ALL, Exception, None),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            pd.Series([8.1], ["q"]),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            pd.Series([8.1], ["q"]).astype("pint[MWh]"),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            pd.Series([Q_(8.1, "MWh")], ["q"]),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            pd.Series([8.1], ["w"]),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            pd.Series([8.1], ["w"]).astype("pint[MW]"),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            pd.Series([Q_(8.1, "MW")], ["w"]),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        # . . timeseries (series, df, pfline)
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_dataframe(i, "q", _random=False),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_pfline(i, Kind.VOLUME_ONLY, _random=False),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_singlepfline(i, Kind.VOLUME_ONLY, _random=False),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_multipfline(i, Kind.VOLUME_ONLY, _random=False),
-            PfLine,
-            Kind.ALL,
-            Exception,
-            None,
-        ),
-        # . Multiply with price
-        # . . single val
-        (i, Kind.PRICE_ONLY, Q_(8.1, "Eur/MWh"), Exception, None, pd.Series, None),
-        (i, Kind.PRICE_ONLY, Q_(8.1, "ctEur/kWh"), Exception, None, pd.Series, None),
-        # . . timeseries (series, df, pfline)
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_series(i, "p", _random=False),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_dataframe(i, "p", _random=False),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_singlepfline(i, Kind.PRICE_ONLY, _random=False),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        (
-            i,
-            Kind.PRICE_ONLY,
-            dev.get_multipfline(i, Kind.PRICE_ONLY, _random=False),
-            Exception,
-            None,
-            pd.Series,
-            None,
-        ),
-        # Multiplying 'complete' pfline.
-        # . Multiply with dimensionless value
-        # . . single value
-        (
-            i,
-            Kind.ALL,
-            8.1,
-            PfLine,
-            Kind.ALL,
-            PfLine,
-            Kind.ALL,
-        ),
-        (
-            i,
-            Kind.ALL,
-            Q_(8.1, ""),
-            PfLine,
-            Kind.ALL,
-            PfLine,
-            Kind.ALL,
-        ),
-        # . . timeseries (series, df)
-        (
-            i,
-            Kind.ALL,
-            dev.get_series(i, "f", _random=False),
-            PfLine,
-            Kind.ALL,
-            PfLine,
-            Kind.ALL,
-        ),
-        (
-            i,
-            Kind.ALL,
-            dev.get_series(i, "f", _random=False).astype("pint[dimensionless]"),
-            PfLine,
-            Kind.ALL,
-            PfLine,
-            Kind.ALL,
-        ),
-        (
-            i,
-            Kind.ALL,
-            dev.get_dataframe(i, ["nodim"], _random=False),
-            PfLine,
-            Kind.ALL,
-            PfLine,
-            Kind.ALL,
-        ),
-        (
-            i,
-            Kind.ALL,
-            dev.get_dataframe(i, ["nodim"], _random=False).astype(
-                "pint[dimensionless]"
-            ),
-            PfLine,
-            Kind.ALL,
-            PfLine,
-            Kind.ALL,
-        ),
-    ],
-    ids=id_fn,
-)
-@pytest.mark.parametrize("pfl_in_single_or_multi", ["single", "multi"])
-def test_pfl_muldiv_kind(
-    pfl_in_i,
-    pfl_in_kind,
-    pfl_in_single_or_multi,
-    value,
-    returntype_mul,
-    returnkind_mul,
-    returntype_div,
-    returnkind_div,
-    operation,
-):
-    """Test if multiplication and division return correct object type and kind."""
-    if pfl_in_single_or_multi == "single":
-        pfl_in = dev.get_singlepfline(pfl_in_i, pfl_in_kind, _random=False)
-    else:
-        pfl_in = dev.get_multipfline(pfl_in_i, pfl_in_kind, _random=False)
-
-    returntype = returntype_mul if operation == "*" else returntype_div
-    returnkind = returnkind_mul if operation == "*" else returnkind_div
-
-    # if returntype is PfLine:
-    #     returntype = SinglePfLine if pfl_in_single_or_multi == "single" else MultiPfLine
-
-    if issubclass(returntype, Exception):
-        with pytest.raises(returntype):
-            _ = (pfl_in * value) if operation == "*" else (pfl_in / value)
-        return
-
-    # Check return type.
-    # (Not working due to implementation issue in pint and numpy: value * pfl_in, value / pfl_in)
-    result = (pfl_in * value) if operation == "*" else (pfl_in / value)
-    assert isinstance(result, returntype)
-    if returntype_mul is PfLine:
-        assert result.kind is returnkind
-
-
-i = pd.date_range("2020", freq="MS", periods=3, tz=tz)
+# Set 1.
+i1 = pd.date_range("2020", freq="MS", periods=3, tz="Europe/Berlin")
+ref_series = {
+    "q": pd.Series([-3.5, 5, -5], i1),
+    "p": pd.Series([300.0, 150, 100], i1),
+    "r": pd.Series([-1050.0, 750, -500], i1),
+    "nodim": pd.Series([2, -1.5, 10], i1),
+}
+ref_flatset = {
+    Kind.VOLUME: PfLine({"q": ref_series["q"]}),
+    Kind.PRICE: PfLine({"p": ref_series["p"]}),
+    Kind.REVENUE: PfLine({"r": ref_series["r"]}),
+    Kind.COMPLETE: PfLine({"q": ref_series["q"], "p": ref_series["p"]}),
+    "nodim": ref_series["nodim"],
+}
 series1 = {
-    "w": pd.Series([3.0, 5, -4], i),
-    "p": pd.Series([200.0, 100, 50], i),
-    "r": pd.Series([446400.0, 348000, -148600], i),
+    "q": pd.Series([-3.0, 4, -5], i1),
+    "p": pd.Series([400.0, 150, -100], i1),
+    "r": pd.Series([-1200.0, 600, 500], i1),
+    "nodim": pd.Series([1.0, -10, 2], i1),
 }
-pflset1 = {
-    Kind.VOLUME_ONLY: pf.SinglePfLine({"w": series1["w"]}),
-    Kind.PRICE_ONLY: pf.SinglePfLine({"p": series1["p"]}),
-    Kind.ALL: pf.SinglePfLine({"w": series1["w"], "p": series1["p"]}),
+flatset1 = {
+    Kind.VOLUME: PfLine({"q": series1["q"]}),
+    Kind.PRICE: PfLine({"p": series1["p"]}),
+    Kind.REVENUE: PfLine({"r": series1["r"]}),
+    Kind.COMPLETE: PfLine({"q": series1["q"], "p": series1["p"]}),
+    "nodim": series1["nodim"],
 }
+
+# Set 2. Partial overlap with set 1.
+i2 = pd.date_range("2020-02", freq="MS", periods=3, tz="Europe/Berlin")
+
 series2 = {
-    "w": pd.Series([15.0, -20, 4], i),
-    "p": pd.Series([400.0, 50, 50], i),
-    "r": pd.Series([4464000.0, -696000, 148600], i),
-    "nodim": pd.Series([2, -1.5, 10], i),
+    "q": pd.Series([-15.0, -20, -4], i2),
+    "p": pd.Series([400.0, 50, 50], i2),
+    "r": pd.Series([4000.0, 500, 500], i2),
+    "nodim": pd.Series([1.0, -2.0, 4], i2),
 }
-pflset2 = {
-    Kind.VOLUME_ONLY: pf.SinglePfLine({"w": series2["w"]}),
-    Kind.PRICE_ONLY: pf.SinglePfLine({"p": series2["p"]}),
-    Kind.ALL: pf.SinglePfLine({"w": series2["w"], "p": series2["p"]}),
+flatset2 = {
+    Kind.VOLUME: PfLine({"q": series2["q"]}),
+    Kind.PRICE: PfLine({"p": series2["p"]}),
+    Kind.REVENUE: PfLine({"r": series2["r"]}),
+    Kind.COMPLETE: PfLine({"q": series2["q"], "r": series2["r"]}),
+    "nodim": series2["nodim"],
 }
-neg_volume_pfl1 = pf.SinglePfLine({"w": -series1["w"]})
-neg_price_pfl1 = pf.SinglePfLine({"p": -series1["p"]})
-neg_all_pfl1 = pf.SinglePfLine({"w": -series1["w"], "r": -series1["r"]})
-add_volume_series = {"w": series1["w"] + series2["w"]}
-add_volume_pfl = pf.SinglePfLine({"w": add_volume_series["w"]})
-sub_volume_series = {"w": series1["w"] - series2["w"]}
-sub_volume_pfl = pf.SinglePfLine({"w": sub_volume_series["w"]})
-add_price_series = {"p": series1["p"] + series2["p"]}
-add_price_pfl = pf.SinglePfLine({"p": add_price_series["p"]})
-sub_price_series = {"p": series1["p"] - series2["p"]}
-sub_price_pfl = pf.SinglePfLine({"p": sub_price_series["p"]})
-add_all_series = {"w": series1["w"] + series2["w"], "r": series1["r"] + series2["r"]}
-add_all_pfl = pf.SinglePfLine({"w": add_all_series["w"], "r": add_all_series["r"]})
-sub_all_series = {"w": series1["w"] - series2["w"], "r": series1["r"] - series2["r"]}
-sub_all_pfl = pf.SinglePfLine({"w": sub_all_series["w"], "r": sub_all_series["r"]})
-mul_volume1_price2 = pf.SinglePfLine({"w": series1["w"], "p": series2["p"]})
-mul_volume2_price1 = pf.SinglePfLine({"w": series2["w"], "p": series1["p"]})
-div_volume1_volume2 = (series1["w"] / series2["w"]).astype("pint[dimensionless]")
-div_price1_price2 = (series1["p"] / series2["p"]).astype("pint[dimensionless]")
-mul_all1_dimless2 = pf.SinglePfLine(
-    {"w": series1["w"] * series2["nodim"], "p": series1["p"]}
-)
-div_all1_dimless2 = pf.SinglePfLine(
-    {"w": series1["w"] / series2["nodim"], "p": series1["p"]}
-)
+i12 = pd.date_range("2020-02", freq="MS", periods=2, tz="Europe/Berlin")
+
+# Portfolio lines without overlap.
+i3 = pd.date_range("2022", freq="MS", periods=3, tz="Europe/Berlin")
+flatset3 = {kind: dev.get_flatpfline(i3, kind, _seed=_seed) for kind in Kind}
+flatset3["nodim"] = dev.get_series(i3)
+
+# Portfolio lines with other frequency.
+i4 = pd.date_range("2020", freq="D", periods=3, tz="Europe/Berlin")
+flatset4 = {kind: dev.get_flatpfline(i4, kind, _seed=_seed) for kind in Kind}
+flatset4["nodim"] = dev.get_series(i4)
+
+# Portfolio lines with wrong timezone.
+i5 = pd.date_range("2022", freq="MS", periods=3, tz="Asia/Kolkata")
+flatset5 = {kind: dev.get_flatpfline(i5, kind, _seed=_seed) for kind in Kind}
+flatset5["nodim"] = dev.get_series(i5)
+i6 = pd.date_range("2022", freq="MS", periods=3, tz=None)
+flatset6 = {kind: dev.get_flatpfline(i6, kind, _seed=_seed) for kind in Kind}
+flatset6["nodim"] = dev.get_series(i6)
 
 
-@pytest.mark.parametrize(
-    ("pfl_in", "expected"),
-    [
-        (pflset1[Kind.VOLUME_ONLY], neg_volume_pfl1),
-        (pflset1[Kind.PRICE_ONLY], neg_price_pfl1),
-        (pflset1[Kind.ALL], neg_all_pfl1),
-    ],
-)
-def test_pfl_neg(pfl_in, expected):
-    """Test if portfolio lines can be negated and give correct result."""
-    result = -pfl_in
-    assert result == expected
+@dataclass(frozen=True)
+class Case:
+    value1: Any
+    operation: str
+    value2: Any
+    expected: Any
 
 
-@pytest.mark.parametrize("operation", ["+", "-"])
-@pytest.mark.parametrize(
-    ("pfl_in", "value", "expected_add", "expected_sub"),
-    [
-        # Adding to volume pfline.
-        # . Add constant without unit.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            0,
-            pflset1[Kind.VOLUME_ONLY],
-            pflset1[Kind.VOLUME_ONLY],
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            0.0,
-            pflset1[Kind.VOLUME_ONLY],
-            pflset1[Kind.VOLUME_ONLY],
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            None,
-            pflset1[Kind.VOLUME_ONLY],
-            pflset1[Kind.VOLUME_ONLY],
-        ),
-        # . Add constant with unit.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            Q_(12.0, "MW"),
-            pf.SinglePfLine({"w": pd.Series([15.0, 17, 8], i)}),
-            pf.SinglePfLine({"w": pd.Series([-9.0, -7, -16], i)}),
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"w": Q_(12.0, "MW")},
-            pf.SinglePfLine({"w": pd.Series([15.0, 17, 8], i)}),
-            pf.SinglePfLine({"w": pd.Series([-9.0, -7, -16], i)}),
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"w": 12.0},
-            pf.SinglePfLine({"w": pd.Series([15.0, 17, 8], i)}),
-            pf.SinglePfLine({"w": pd.Series([-9.0, -7, -16], i)}),
-        ),
-        # . Add constant in different unit
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            Q_(0.012, "GW"),
-            pf.SinglePfLine({"w": pd.Series([15.0, 17, 8], i)}),
-            pf.SinglePfLine({"w": pd.Series([-9.0, -7, -16], i)}),
-        ),
-        # . Add constant in different dimension.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            Q_(12.0, "MWh"),
-            pf.SinglePfLine({"q": pd.Series([2244.0, 3492, -2960], i)}),
-            pf.SinglePfLine({"q": pd.Series([2220.0, 3468, -2984], i)}),
-        ),
-        # . Add series without unit.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            series2["w"],
-            ValueError,
-            ValueError,
-        ),
-        # . Add series without name.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            series2["w"].astype("pint[MW]"),
-            add_volume_pfl,
-            sub_volume_pfl,
-        ),
-        # . Add series with useless name.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            series2["w"].rename("the_volume").astype("pint[MW]"),
-            add_volume_pfl,
-            sub_volume_pfl,
-        ),
-        # . Add series without name and with different unit
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            (series2["w"] * 1000).astype("pint[kW]"),
-            add_volume_pfl,
-            sub_volume_pfl,
-        ),
-        # . Add series out of order.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.Series([15.0, 4, -20], [i[0], i[2], i[1]]).astype("pint[MW]"),
-            ValueError,
-            ValueError,
-        ),
-        # . Add dataframe without unit.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.DataFrame({"w": series2["w"]}),
-            add_volume_pfl,
-            sub_volume_pfl,
-        ),
-        # . Add other pfline.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pflset2[Kind.VOLUME_ONLY],
-            add_volume_pfl,
-            sub_volume_pfl,
-        ),
-        # Adding to price pfline.
-        # . Add constant without unit.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            0,
-            pflset1[Kind.PRICE_ONLY],
-            pflset1[Kind.PRICE_ONLY],
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            0.0,
-            pflset1[Kind.PRICE_ONLY],
-            pflset1[Kind.PRICE_ONLY],
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            None,
-            pflset1[Kind.PRICE_ONLY],
-            pflset1[Kind.PRICE_ONLY],
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            12.0,
-            pf.SinglePfLine({"p": pd.Series([212.0, 112, 62], i)}),
-            pf.SinglePfLine({"p": pd.Series([188.0, 88, 38], i)}),
-        ),
-        # . Add constant with default unit.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            Q_(12.0, "Eur/MWh"),
-            pf.SinglePfLine({"p": pd.Series([212.0, 112, 62], i)}),
-            pf.SinglePfLine({"p": pd.Series([188.0, 88, 38], i)}),
-        ),
-        # . Add constant with non-default unit.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            Q_(1.2, "ct/kWh"),
-            pf.SinglePfLine({"p": pd.Series([212.0, 112, 62], i)}),
-            pf.SinglePfLine({"p": pd.Series([188.0, 88, 38], i)}),
-        ),
-        # . Add other pfline.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pflset2[Kind.PRICE_ONLY],
-            add_price_pfl,
-            sub_price_pfl,
-        ),
-        # Adding to full pfline.
-        # . Add constant without unit.
-        (
-            pflset1[Kind.ALL],
-            0,
-            pflset1[Kind.ALL],
-            pflset1[Kind.ALL],
-        ),
-        (
-            pflset1[Kind.ALL],
-            0.0,
-            pflset1[Kind.ALL],
-            pflset1[Kind.ALL],
-        ),
-        (
-            pflset1[Kind.ALL],
-            None,
-            pflset1[Kind.ALL],
-            pflset1[Kind.ALL],
-        ),
-        (
-            pflset1[Kind.ALL],
-            12.0,
-            ValueError,
-            ValueError,
-        ),
-        # . Add series without unit.
-        (
-            pflset1[Kind.ALL],
-            series2["w"],
-            ValueError,
-            ValueError,
-        ),
-        # . Add dataframe.
-        (
-            pflset1[Kind.ALL],
-            pd.DataFrame({"w": series2["w"], "p": series2["p"]}),
-            add_all_pfl,
-            sub_all_pfl,
-        ),
-        # . Add dataframe.
-        (
-            pflset1[Kind.ALL],
-            pd.DataFrame({"w": series2["w"], "r": series2["r"]}),
-            add_all_pfl,
-            sub_all_pfl,
-        ),
-        # . Add other pfline.
-        (
-            pflset1[Kind.ALL],
-            pflset2[Kind.ALL],
-            add_all_pfl,
-            sub_all_pfl,
-        ),
-    ],
-    ids=id_fn,
-)
-def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
-    """Test if portfolio lines can be added and subtracted and give correct result."""
-    expected = expected_add if operation == "+" else expected_sub
+def dimlessseries(s: pd.Series) -> pd.Series:
+    return s.astype("pint[dimensionless]").rename("fraction")
 
-    if isinstance(expected, type) and issubclass(expected, Exception):
-        with pytest.raises(expected):
-            _ = (pfl_in + value) if operation == "+" else (pfl_in - value)
+
+# Several expected results of arithmatic.
+def additiontestcases():
+    for kind in Kind:
+        pfl = ref_flatset[kind]
+        # . ref + 1
+        series = {c: ref_series[c] + series1[c] for c in kind.summable}
+        yield Case(pfl, "+", flatset1[kind], PfLine(series))
+        # . ref + 2
+        series = {
+            c: ref_series[c].loc[i12] + series2[c].loc[i12] for c in kind.summable
+        }
+        yield Case(pfl, "+", flatset2[kind], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "+", flatset3[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "+", flatset4[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "+", flatset5[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "+", flatset6[Kind.VOLUME], Exception)
+
+
+def subtractiontestcases():
+    for kind in Kind:
+        pfl = ref_flatset[kind]
+        # . ref - 1
+        series = {c: ref_series[c] - series1[c] for c in kind.summable}
+        yield Case(pfl, "-", flatset1[kind], PfLine(series))
+        # . ref - 2
+        series = {
+            c: ref_series[c].loc[i12] - series2[c].loc[i12] for c in kind.summable
+        }
+        yield Case(pfl, "-", flatset2[kind], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "-", flatset3[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "-", flatset4[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "-", flatset5[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "-", flatset6[Kind.VOLUME], Exception)
+
+
+def multiplicationtestcases():
+    # something * nodim
+    for kind in Kind:
+        pfl = ref_flatset[kind]
+        # . ref * 1
+        series = {c: ref_series[c] * series1["nodim"] for c in kind.summable}
+        yield Case(pfl, "*", flatset1["nodim"], PfLine(series))
+        # . ref * 2
+        series = {
+            c: ref_series[c].loc[i12] * series2["nodim"].loc[i12] for c in kind.summable
+        }
+        yield Case(pfl, "*", flatset2["nodim"], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.REVENUE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset3["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset4["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset5["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset6["nodim"], Exception)
+    # volume * price
+    series = {"r": ref_series["q"] * series1["p"]}
+    yield Case(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.PRICE], PfLine(series))
+
+
+def divisiontestcases():
+    # something / nodim
+    for kind in Kind:
+        pfl = ref_flatset[kind]
+        # . ref / 1
+        series = {c: ref_series[c] / series1["nodim"] for c in kind.summable}
+        yield Case(pfl, "/", flatset1["nodim"], PfLine(series))
+        # . ref / 2
+        series = {
+            c: ref_series[c].loc[i12] / series2["nodim"].loc[i12] for c in kind.summable
+        }
+        yield Case(pfl, "/", flatset2["nodim"], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset3["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset4["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset5["nodim"], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset6["nodim"], Exception)
+    # something / same thing
+    for kind in [Kind.VOLUME, Kind.PRICE, Kind.REVENUE]:
+        c = kind.summable[0]  # only one element
+        pfl = ref_flatset[kind]
+        # . ref / 1
+        series = dimlessseries(ref_series[c] / series1[c])
+        yield Case(pfl, "/", flatset1[kind], series)
+        # . ref / 2
+        series = dimlessseries(ref_series[c].loc[i12] / series2[c].loc[i12])
+        yield Case(pfl, "/", flatset2[kind], series)
+    yield Case(ref_flatset[Kind.COMPLETE], "/", flatset1[Kind.COMPLETE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset3[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset4[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset5[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "/", flatset6[Kind.VOLUME], Exception)
+    # revenue / something
+    pfl = ref_flatset[Kind.REVENUE]
+    series = {"q": ref_series["r"] / series1["p"]}
+    yield Case(pfl, "/", flatset1[Kind.PRICE], PfLine(series))
+    series = {"p": ref_series["r"] / series1["q"]}
+    yield Case(pfl, "/", flatset1[Kind.VOLUME], PfLine(series))
+
+
+def uniontestcases():
+    # something | something else
+    for kind in [Kind.VOLUME, Kind.PRICE, Kind.REVENUE]:
+        pfl = ref_flatset[kind]
+        c = kind.summable[0]  # only one element
+
+        for kind_other in [Kind.VOLUME, Kind.PRICE]:
+            if kind is kind_other:
+                continue
+            c_other = kind_other.summable[0]  # only one element
+
+            # . ref | 1
+            series = {c: ref_series[c], c_other: series1[c_other]}
+            yield Case(pfl, "|", flatset1[kind_other], PfLine(series))
+            # . ref | 2
+            series = {c: ref_series[c].loc[i12], c_other: series2[c_other].loc[i12]}
+            yield Case(pfl, "|", flatset2[kind_other], PfLine(series))
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset1[Kind.VOLUME], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset1[Kind.COMPLETE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset3[Kind.PRICE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset4[Kind.PRICE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset5[Kind.PRICE], Exception)
+    yield Case(ref_flatset[Kind.VOLUME], "|", flatset6[Kind.PRICE], Exception)
+
+
+@pytest.mark.parametrize("testcase", additiontestcases(), ids=id_fn)
+@pytest.mark.parametrize("order", ["", "reversed"])
+def test_addition(testcase: Case, order: str):
+    do_test(testcase, order)
+
+
+@pytest.mark.parametrize("testcase", subtractiontestcases(), ids=id_fn)
+def test_subtraction(testcase: Case):
+    do_test(testcase)
+
+
+@pytest.mark.parametrize("testcase", multiplicationtestcases(), ids=id_fn)
+@pytest.mark.parametrize("order", ["", "reversed"])
+def test_multiplication(testcase: Case, order: str):
+    do_test(testcase, order)
+
+
+@pytest.mark.parametrize("testcase", divisiontestcases(), ids=id_fn)
+def test_division(testcase: Case):
+    do_test(testcase)
+
+
+@pytest.mark.parametrize("testcase", uniontestcases(), ids=id_fn)
+@pytest.mark.parametrize("order", ["", "reversed"])
+def test_union(testcase: Case, order):
+    do_test(testcase, order)
+
+
+def do_test(tc: Case, order: str = ""):
+    """Test if addition, subtraction, multiplication, division, union return correct values."""
+
+    def calc():
+        val1, val2 = tc.value1, tc.value2
+        if order == "reversed" and not isinstance(val2, pd.Series):
+            # Series causes problems; does not refer to PfLine.__radd__, .__rmul__, etc.
+            val1, val2 = val2, val1
+        if tc.operation == "+":
+            return val1 + val2
+        elif tc.operation == "-":
+            return val1 - val2
+        elif tc.operation == "*":
+            return val1 * val2
+        elif tc.operation == "/":
+            return val1 / val2
+        elif tc.operation == "|":
+            return val1 | val2
+        raise NotImplementedError()
+
+    # Test error case.
+    if isinstance(tc.expected, type) and issubclass(tc.expected, Exception):
+        with pytest.raises(tc.expected):
+            _ = calc()
         return
 
-    result = (pfl_in + value) if operation == "+" else (pfl_in - value)
-    assert result == expected
-
-
-@pytest.mark.parametrize("operation", ["*", "/"])
-@pytest.mark.parametrize(
-    ("pfl_in", "value", "expected_mul", "expected_div"),
-    [
-        # Multiplying volume pfline.
-        # . (dimension-agnostic) constant.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            4.0,
-            pf.SinglePfLine({"w": series1["w"] * 4}),
-            pf.SinglePfLine({"w": series1["w"] / 4}),
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"agn": 4.0},
-            pf.SinglePfLine({"w": series1["w"] * 4}),
-            pf.SinglePfLine({"w": series1["w"] / 4}),
-        ),
-        # . Explicitly dimensionless constant.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            Q_(4.0, ""),
-            pf.SinglePfLine({"w": series1["w"] * 4}),
-            pf.SinglePfLine({"w": series1["w"] / 4}),
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"nodim": Q_(4.0, "")},
-            pf.SinglePfLine({"w": series1["w"] * 4}),
-            pf.SinglePfLine({"w": series1["w"] / 4}),
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"nodim": 4.0},
-            pf.SinglePfLine({"w": series1["w"] * 4}),
-            pf.SinglePfLine({"w": series1["w"] / 4}),
-        ),
-        # . Fixed price constant.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            Q_(4.0, "Eur/MWh"),
-            pf.SinglePfLine({"w": series1["w"], "p": 4}),
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"p": Q_(4.0, "Eur/MWh")},
-            pf.SinglePfLine({"w": series1["w"], "p": 4}),
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"p": Q_(0.4, "ctEur/kWh")},
-            pf.SinglePfLine({"w": series1["w"], "p": 4}),
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"p": 4.0},
-            pf.SinglePfLine({"w": series1["w"], "p": 4}),
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.Series([Q_(4.0, "Eur/MWh")], ["p"]),
-            pf.SinglePfLine({"w": series1["w"], "p": 4}),
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.Series([4.0], ["p"]),
-            pf.SinglePfLine({"w": series1["w"], "p": 4}),
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.Series([4.0], ["p"]).astype("pint[Eur/MWh]"),
-            pf.SinglePfLine({"w": series1["w"], "p": 4}),
-            Exception,
-        ),
-        # . Fixed volume constant.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"w": Q_(4.0, "MW")},
-            Exception,
-            (series1["w"] / 4).astype("pint[dimensionless]"),
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"w": 4.0},
-            Exception,
-            (series1["w"] / 4).astype("pint[dimensionless]"),
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.Series([Q_(4.0, "MW")], ["w"]),
-            Exception,
-            (series1["w"] / 4).astype("pint[dimensionless]"),
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.Series([4.0], ["w"]).astype("pint[MW]"),
-            Exception,
-            (series1["w"] / 4).astype("pint[dimensionless]"),
-        ),
-        (  # divide by fixed ENERGY not POWER
-            pflset1[Kind.VOLUME_ONLY],
-            pd.Series([4.0], ["q"]).astype("pint[MWh]"),
-            Exception,
-            (pflset1[Kind.VOLUME_ONLY].q.pint.m / 4).astype("pint[dimensionless]"),
-        ),
-        # . Constant with incorrect unit.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"r": 4.0},
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"q": 4.0, "w": 8.0},  # incompatible
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            Q_(4.0, "Eur"),
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"r": 4.0, "q": 12},
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"r": 4.0, "nodim": 4.0},
-            Exception,
-            Exception,
-        ),
-        # . Dim-agnostic or dimless series.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            series2["w"],  # has no unit
-            pf.SinglePfLine({"w": series1["w"] * series2["w"]}),
-            pf.SinglePfLine({"w": series1["w"] / series2["w"]}),
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            series2["w"].astype("pint[dimensionless]"),  # dimensionless
-            pf.SinglePfLine({"w": series1["w"] * series2["w"]}),
-            pf.SinglePfLine({"w": series1["w"] / series2["w"]}),
-        ),
-        # . Price series, dataframe, or PfLine
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            series2["p"].astype("pint[Eur/MWh]"),
-            mul_volume1_price2,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            series2["p"].rename("the_price").astype("pint[Eur/MWh]"),
-            mul_volume1_price2,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            (series2["p"] * 0.1).astype("pint[ct/kWh]"),
-            mul_volume1_price2,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.DataFrame({"p": series2["p"]}),
-            mul_volume1_price2,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.DataFrame({"p": (series2["p"] / 10).astype("pint[ct/kWh]")}),
-            mul_volume1_price2,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pflset2[Kind.PRICE_ONLY],
-            mul_volume1_price2,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.Series([50.0, 400, 50], [i[1], i[0], i[2]]).astype(
-                "pint[Eur/MWh]"
-            ),  # not standardized
-            ValueError,
-            ValueError,
-        ),
-        # . Volume series, dataframe, or pfline
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            series2["w"].astype("pint[MW]"),
-            Exception,
-            div_volume1_volume2,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pflset2[Kind.VOLUME_ONLY],
-            Exception,
-            div_volume1_volume2,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pflset2[Kind.VOLUME_ONLY].q,
-            Exception,
-            div_volume1_volume2,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            {"w": series2["w"]},
-            Exception,
-            div_volume1_volume2,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.DataFrame({"w": series2["w"]}),
-            Exception,
-            div_volume1_volume2,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pflset2[Kind.VOLUME_ONLY],  # other pfline
-            Exception,
-            div_volume1_volume2,
-        ),
-        # . Incorrect series, dataframe or pfline.
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            series2["r"].astype("pint[Eur]"),
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.DataFrame({"r": series2["r"]}),
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pd.DataFrame({"the_price": series2["p"].astype("pint[Eur/MWh]")}),
-            KeyError,
-            KeyError,
-        ),
-        (
-            pflset1[Kind.VOLUME_ONLY],
-            pflset2[Kind.ALL],
-            Exception,
-            Exception,
-        ),
-        # Multiplying price pfline.
-        # . (dimension-agnostic) constant.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            4,
-            pf.SinglePfLine({"p": series1["p"] * 4}),
-            pf.SinglePfLine({"p": series1["p"] / 4}),
-        ),
-        # . Explicitly dimensionless constant.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            Q_(4, ""),
-            pf.SinglePfLine({"p": series1["p"] * 4}),
-            pf.SinglePfLine({"p": series1["p"] / 4}),
-        ),
-        # . Fixed price constant.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            Q_(4, "Eur/MWh"),
-            Exception,
-            (series1["p"] / 4).astype("pint[dimensionless]"),
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            {"p": 4},
-            Exception,
-            (series1["p"] / 4).astype("pint[dimensionless]"),
-        ),
-        # . Fixed volume constant.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            Q_(4, "MWh"),
-            pf.SinglePfLine({"p": series1["p"], "q": 4}),
-            Exception,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            Q_(4, "MW"),
-            pf.SinglePfLine({"p": series1["p"], "w": 4}),
-            Exception,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            Q_(4, "GW"),
-            pf.SinglePfLine({"p": series1["p"], "w": 4000}),
-            Exception,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pd.Series([4], ["w"]).astype("pint[GW]"),
-            pf.SinglePfLine({"p": series1["p"], "w": 4000}),
-            Exception,
-        ),
-        # . Incorrect constant.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            Q_(4, "Eur"),
-            Exception,
-            Exception,
-        ),
-        # . Dim-agnostic or dimless series.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            series2["w"],  # has no unit
-            pf.SinglePfLine({"p": series1["p"] * series2["w"]}),
-            pf.SinglePfLine({"p": series1["p"] / series2["w"]}),
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            series2["w"].astype("pint[dimensionless]"),  # dimensionless
-            pf.SinglePfLine({"p": series1["p"] * series2["w"]}),
-            pf.SinglePfLine({"p": series1["p"] / series2["w"]}),
-        ),
-        # . Price series, dataframe, or PfLine
-        (
-            pflset1[Kind.PRICE_ONLY],
-            series2["p"].astype("pint[Eur/MWh]"),  # series
-            Exception,
-            div_price1_price2,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pflset2[Kind.PRICE_ONLY],  # pfline
-            Exception,
-            div_price1_price2,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pflset2[Kind.PRICE_ONLY].p,  # series
-            Exception,
-            div_price1_price2,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            {"p": series2["p"]},  # dict of series
-            Exception,
-            div_price1_price2,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pd.DataFrame({"p": series2["p"]}),  # dataframe
-            Exception,
-            div_price1_price2,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pflset2[Kind.PRICE_ONLY],  # other pfline
-            Exception,
-            div_price1_price2,
-        ),
-        # . Volume series, dataframe, or pfline
-        (
-            pflset1[Kind.PRICE_ONLY],
-            series2["w"].astype("pint[MW]"),
-            mul_volume2_price1,
-            Exception,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            (series2["w"] / 1000).astype("pint[GW]"),
-            mul_volume2_price1,
-            Exception,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            series2["w"].rename("the_volume").astype("pint[MW]"),
-            mul_volume2_price1,
-            Exception,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pd.DataFrame({"w": series2["w"]}),
-            mul_volume2_price1,
-            Exception,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pd.DataFrame({"w": (series2["w"] / 1000).astype("pint[GW]")}),
-            mul_volume2_price1,
-            Exception,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pflset2[Kind.VOLUME_ONLY],
-            mul_volume2_price1,
-            Exception,
-        ),
-        # . Incorrect series, dataframe or pfline.
-        (
-            pflset1[Kind.PRICE_ONLY],
-            series2["r"].astype("pint[Eur]"),
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pd.DataFrame({"r": series2["r"]}),
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pd.DataFrame({"the_price": series2["p"].astype("pint[Eur/MWh]")}),
-            KeyError,
-            KeyError,
-        ),
-        (
-            pflset1[Kind.PRICE_ONLY],
-            pflset2[Kind.ALL],
-            Exception,
-            Exception,
-        ),
-        # Multiplying 'complete' pfline.
-        # . (dimension-agnostic) constant.
-        (
-            pflset1[Kind.ALL],
-            6,
-            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
-        ),
-        # . Explicitly dimensionless constant.
-        (
-            pflset1[Kind.ALL],
-            Q_(6, ""),
-            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
-        ),
-        (
-            pflset1[Kind.ALL],
-            {"nodim": 6},
-            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
-        ),
-        (
-            pflset1[Kind.ALL],
-            pd.Series([6], ["nodim"]),
-            SinglePfLine({"w": series1["w"] * 6, "p": series1["p"]}),
-            SinglePfLine({"w": series1["w"] / 6, "p": series1["p"]}),
-        ),
-        # . Incorrect constant.
-        (
-            pflset1[Kind.ALL],
-            {"r": 4.0},
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.ALL],
-            {"q": 4.0, "w": 8.0},
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.ALL],
-            Q_(4.0, "Eur"),
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.ALL],
-            {"r": 4.0, "q": 12},
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.ALL],
-            {"r": 4.0, "nodim": 4.0},
-            Exception,
-            Exception,
-        ),
-        # . Dim-agnostic or dimless series.
-        (
-            pflset1[Kind.ALL],
-            series2["nodim"],  # dim-agnostic
-            mul_all1_dimless2,
-            div_all1_dimless2,
-        ),
-        (
-            pflset1[Kind.ALL],
-            series2["nodim"].astype("pint[dimensionless]"),  # dimless
-            mul_all1_dimless2,
-            div_all1_dimless2,
-        ),
-        (
-            pflset1[Kind.ALL],
-            {"nodim": series2["nodim"]},
-            mul_all1_dimless2,
-            div_all1_dimless2,
-        ),
-        (
-            pflset1[Kind.ALL],
-            pd.DataFrame({"nodim": series2["nodim"]}),
-            mul_all1_dimless2,
-            div_all1_dimless2,
-        ),
-        (
-            pflset1[Kind.ALL],
-            pd.DataFrame({"nodim": series2["nodim"].astype("pint[dimensionless]")}),
-            mul_all1_dimless2,
-            div_all1_dimless2,
-        ),
-        # . Incorrect series, dataframe or pfline.
-        (
-            pflset1[Kind.ALL],
-            {"r": series2["p"]},
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.ALL],
-            series2["p"].astype("pint[Eur/MWh]"),
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.ALL],
-            pflset2[Kind.PRICE_ONLY],
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.ALL],
-            pflset2[Kind.VOLUME_ONLY],
-            Exception,
-            Exception,
-        ),
-        (
-            pflset1[Kind.ALL],
-            pflset2[Kind.ALL],
-            Exception,
-            Exception,
-        ),
-    ],
-    ids=id_fn,
-)
-def test_pfl_muldiv_full(pfl_in, value, expected_mul, expected_div, operation):
-    """Test if portfolio lines can be multiplied and divided and give correct result.
-    Includes partly overlapping indices."""
-    expected = expected_mul if operation == "*" else expected_div
-
-    if isinstance(expected, type) and issubclass(expected, Exception):
-        with pytest.raises(expected):
-            _ = (pfl_in * value) if operation == "*" else (pfl_in / value)
-        return
-
-    result = (pfl_in * value) if operation == "*" else (pfl_in / value)
-    if isinstance(expected, pd.Series):
-        testing.assert_series_equal(result, expected, check_names=False)
+    # Test correct case.
+    result = calc()
+    if isinstance(result, pd.DataFrame):
+        testing.assert_frame_equal(result, tc.expected)
+    elif isinstance(result, pd.Series):
+        testing.assert_series_equal(result, tc.expected)
     else:
-        assert result == expected
+        assert result == tc.expected

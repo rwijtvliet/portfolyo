@@ -10,7 +10,7 @@ from ..tools import unit  # noqa # ensure we use current ureg
 
 def w_offtake(
     i: pd.DatetimeIndex,
-    avg: float = 100,
+    avg: float = 100.0,
     year_amp: float = 0.20,
     week_amp: float = 0.10,
     day_amp: float = 0.30,
@@ -23,7 +23,7 @@ def w_offtake(
     ----------
     i : pd.DatetimeIndex
         Timestamps for which to create offtake.
-    avg : float, optional (default: 100)
+    avg : float, optional (default: 100.0)
         Average offtake in MW.
     year_amp : float, optional (default: 0.2)
         Yearly amplitude as fraction of average. If positive: winter offtake > summer offtake.
@@ -63,7 +63,7 @@ def w_offtake(
 
 def p_marketprices(
     i: pd.DatetimeIndex,
-    avg: float = 100,
+    avg: float = 100.0,
     year_amp: float = 0.30,
     week_amp: float = 0.05,
     peak_amp: float = 0.30,
@@ -75,7 +75,7 @@ def p_marketprices(
     ----------
     i : pd.DatetimeIndex
         Timestamps for which to create prices.
-    avg : float, optional (default: 100)
+    avg : float, optional (default: 100.0)
         Average price in Eur/MWh.
     year_amp : float, optional (default: 0.3)
         Yearly amplitude as fraction of average. If positive: winter prices > summer prices.
@@ -106,7 +106,7 @@ def p_marketprices(
         if i.freq == "15T":  # repeat every value 4 times
             b = np.array([[bb, bb, bb, bb] for bb in b]).flatten()
         b = b[: len(i)]  # slice in case i is very short
-        pa = np.convolve(-1 + 2 * i.map(is_peak_hour), b / sum(b), mode="same")
+        pa = np.convolve(-1 + 2 * is_peak_hour(i), b / sum(b), mode="same")
     else:
         pa = np.zeros(len(i))
     # Values
@@ -121,7 +121,7 @@ def wp_sourced(
     w_offtake: pd.Series,
     freq: str = "MS",
     w_avg: float = 0.6,
-    p_avg: float = 100,
+    p_avg: float = 100.0,
     rand_amp: float = 0.2,
     has_unit: bool = True,
 ) -> Tuple[pd.Series]:
@@ -135,7 +135,7 @@ def wp_sourced(
         Frequency within which sourcing volume and price are uniform.
     w_avg : float, optional (default: 0.6)
         Average sourced fraction.
-    p_avg : float, optional (default: 100)
+    p_avg : float, optional (default: 100.0)
         Average hedge price in Eur/MWh.
     rand_amp : float, optional (default: 0.2)
         Random amplitude, both of sourced fraction (absolute) and of price (as fraction).

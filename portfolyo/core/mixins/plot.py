@@ -4,17 +4,18 @@ Module with mixins, to add 'plot-functionality' to PfLine and PfState classes.
 
 from __future__ import annotations
 
-from ...visualize import visualize as vis
-from ... import tools
+from typing import TYPE_CHECKING, Dict
 
-from typing import Dict, TYPE_CHECKING
-import numpy as np
 import matplotlib
+import numpy as np
 from matplotlib import pyplot as plt
 
+from ... import tools
+from ... import visualize as vis
+
 if TYPE_CHECKING:  # needed to avoid circular imports
-    from ..pfstate import PfState
     from ..pfline import PfLine
+    from ..pfstate import PfState
 
 
 DEFAULTHOW = {"r": "bar", "q": "bar", "p": "hline", "w": "area", "f": "area"}
@@ -63,9 +64,9 @@ class PfLinePlot:
             Labels are added to each datapoint in the specified format. ('' to add no labels)
         Any additional kwargs are passed to the pd.Series.plot function.
         """
-        if col not in self.available:
+        if col not in self.kind.available:
             raise ValueError(
-                f"For this PfLine, parameter ``col`` must be one of {', '.join(self.available)}; got {col}."
+                f"For this PfLine, parameter ``col`` must be one of {', '.join(self.kind.available)}; got {col}."
             )
         vis.plot_timeseries(ax, getattr(self, col), how, labelfmt, **kwargs)
 
@@ -90,12 +91,12 @@ class PfLinePlot:
         # If columns are specified, plot these. Else: take defaults, based on what's available
         if cols is None:
             cols = ""
-            if "q" in self.available:
+            if "q" in self.kind.available:
                 cols += "q" if is_category else "w"
-            if "p" in self.available:
+            if "p" in self.kind.available:
                 cols += "p"
         else:
-            cols = [col for col in cols if col in self.available]
+            cols = [col for col in cols if col in self.kind.available]
             if not cols:
                 raise ValueError("No columns to plot.")
 

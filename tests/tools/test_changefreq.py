@@ -203,6 +203,7 @@ def test_upsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: str)
     testing.assert_index_equal(result, expected)
 
 
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize("seriesordf", ["s", "s_unit", "df", "df_unit"])
 @pytest.mark.parametrize("complexity", ["ones", "allnumbers"])
@@ -237,6 +238,7 @@ def test_downsample_summable(
     do_test("sum", seriesordf, s, s_expected, freq_shrt, freq_long)
 
 
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize("seriesordf", ["s", "s_unit", "df", "df_unit"])
 @pytest.mark.parametrize("complexity", ["ones", "allnumbers"])

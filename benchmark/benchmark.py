@@ -17,7 +17,7 @@ import portfolyo as pf
 LENGTHS = [100, 1000, 10_000, 100_000, 300_000]
 RUNS = [10, 10, 10, 3, 1]
 
-SHEET_NAME = "refactored"
+SHEET_NAME = "new_major_version"
 
 
 def total_size(o, handlers={}, verbose=False):
@@ -69,19 +69,17 @@ def benchmark_pfline(df):
         for cols in ["q", "p", "qr", "wp"]:
             print(f"{le=} {cols=}")
             data = pd.DataFrame({c: np.linspace(1, 1000, le) for c in cols}, i)
-            df.loc[le, ("single", "creation", cols)] = timeit(
-                lambda: pf.PfLine(data), ru
-            )
+            df.loc[le, ("flat", "creation", cols)] = timeit(lambda: pf.PfLine(data), ru)
             pfl = pf.PfLine(data)
-            df.loc[le, ("single", "to_str", cols)] = timeit(lambda: str(pfl), ru)
-            df.loc[le, ("single", "pfl+const", cols)] = timeit(lambda: pfl + 2, ru)
+            df.loc[le, ("flat", "to_str", cols)] = timeit(lambda: str(pfl), ru)
+            df.loc[le, ("flat", "pfl+const", cols)] = timeit(lambda: pfl + 2, ru)
             other = pf.PfLine(data + 1)
-            df.loc[le, ("single", "pfl+pfl", cols)] = timeit(lambda: pfl + other, ru)
-            df.loc[le, ("single", "pfl*const", cols)] = timeit(lambda: pfl * 2, ru)
-            if pfl.kind is pf.Kind.VOLUME_ONLY or pfl.kind is pf.Kind.ALL:
-                df.loc[le, ("single", "access_q", cols)] = timeit(lambda: pfl.q, ru)
-                df.loc[le, ("single", "access_w", cols)] = timeit(lambda: pfl.w, ru)
-            df.loc[le, ("single", "memory_use", cols)] = total_size(pfl)
+            df.loc[le, ("flat", "pfl+pfl", cols)] = timeit(lambda: pfl + other, ru)
+            df.loc[le, ("flat", "pfl*const", cols)] = timeit(lambda: pfl * 2, ru)
+            if pfl.kind is pf.Kind.VOLUME or pfl.kind is pf.Kind.COMPLETE:
+                df.loc[le, ("flat", "access_q", cols)] = timeit(lambda: pfl.q, ru)
+                df.loc[le, ("flat", "access_w", cols)] = timeit(lambda: pfl.w, ru)
+            df.loc[le, ("flat", "memory_use", cols)] = total_size(pfl)
             twochildren = [
                 pf.PfLine(pd.DataFrame({c: np.linspace(1, 1000, le) for c in cols}, i)),
                 pf.PfLine(pd.DataFrame({c: np.linspace(2, 2000, le) for c in cols}, i)),
@@ -92,7 +90,7 @@ def benchmark_pfline(df):
             )
             pfl = pf.PfLine(children)
             df.loc[le, ("multi10", "to_str", cols)] = timeit(lambda: str(pfl), ru)
-            if pfl.kind is pf.Kind.VOLUME_ONLY or pfl.kind is pf.Kind.ALL:
+            if pfl.kind is pf.Kind.VOLUME or pfl.kind is pf.Kind.COMPLETE:
                 df.loc[le, ("multi10", "access_q", cols)] = timeit(lambda: pfl.q, ru)
                 df.loc[le, ("multi10", "access_w", cols)] = timeit(lambda: pfl.w, ru)
             df.loc[le, ("multi10", "memory_use", cols)] = total_size(pfl)

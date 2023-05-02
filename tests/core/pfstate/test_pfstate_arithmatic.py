@@ -5,16 +5,8 @@ import pandas as pd
 import pytest
 
 import portfolyo as pf
-from portfolyo import (
-    Q_,
-    Kind,
-    MultiPfLine,
-    PfLine,
-    PfState,  # noqa
-    SinglePfLine,
-    dev,
-    testing,
-)
+from portfolyo import PfState  # noqa
+from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine, dev, testing
 
 
 def id_fn(data: Any):
@@ -27,9 +19,9 @@ def id_fn(data: Any):
         return f"Series (idx: {''.join(str(i) for i in data.index)})"
     elif isinstance(data, pd.DataFrame):
         return f"Df (columns: {''.join(str(c) for c in data.columns)})"
-    elif isinstance(data, SinglePfLine):
+    elif isinstance(data, FlatPfLine):
         return f"Singlepfline_{data.kind}"
-    elif isinstance(data, MultiPfLine):
+    elif isinstance(data, NestedPfLine):
         return f"Multipfline_{data.kind}"
     elif isinstance(data, str):
         return data
@@ -131,9 +123,9 @@ div_pfs1_pfs2 = pd.DataFrame(
 )
 div_pfs2_pfs1 = pd.DataFrame(
     {
-        ("offtake", "volume"): [3, 4],
+        ("offtake", "volume"): [3.0, 4],
         ("sourced", "volume"): [12 / 5, 5 / 4],
-        ("sourced", "price"): [1, 2],
+        ("sourced", "price"): [1.0, 2],
         ("unsourced", "volume"): [np.nan, 15],
         ("unsourced", "price"): [400 / 150, 0.5],
         ("pnl_cost", "price"): [1.6, 62.5 / 60],
@@ -195,10 +187,10 @@ def test_pfs_negation():
         (pfs1, "*", 2, mul_pfs1_2),
         (pfs1, "/", 2, div_pfs1_2),
         # Constant with unit.
-        (pfs1, "+", Q_(4, "MWh"), Exception),
-        (pfs1, "-", Q_(4, "MWh"), Exception),
-        (pfs1, "*", Q_(4, "MWh"), Exception),
-        (pfs1, "/", Q_(4, "MWh"), Exception),
+        (pfs1, "+", Q_(4.0, "MWh"), Exception),
+        (pfs1, "-", Q_(4.0, "MWh"), Exception),
+        (pfs1, "*", Q_(4.0, "MWh"), Exception),
+        (pfs1, "/", Q_(4.0, "MWh"), Exception),
         # Series without unit.
         (pfs1, "+", dataset1["nodim"], Exception),
         (pfs1, "-", dataset1["nodim"], Exception),
@@ -224,7 +216,7 @@ def test_pfs_negation():
         (pfs1, "+", pfs3, Exception),
         (pfs1, "-", pfs3, Exception),
         (pfs1, "*", pfs3, Exception),
-        (pfs1, "/", pfs3, emptydivision),
+        (pfs1, "/", pfs3, ValueError),
         # Other PfState with incorrect frequency.
         (pfs1, "+", pfs4, Exception),
         (pfs1, "-", pfs4, Exception),

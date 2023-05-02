@@ -49,7 +49,7 @@ def indices(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:
     if len(distinct_sod) != 1:
         raise ValueError(f"Indices must have equal start-of-day; got {distinct_sod}.")
 
-    # Calculation is cumbersome: pandas DatetimeIndex.intersection not working correctly on timezone-aware indices.
+    # Calculation is cumbersome: pandas DatetimeIndex.intersection not working correctly on timezone-aware indices (#46702)
     values = set(idxs[0])
     for i in idxs[1:]:
         values = values.intersection(set(i))

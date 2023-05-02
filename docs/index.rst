@@ -11,9 +11,13 @@ Portfolyo
    :target: https://pypi.org/project/portfolyo
    :alt: Pypi
 
-.. image:: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci.yaml/badge.svg
-   :target: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci.yaml
-   :alt: Github - CI
+.. image:: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci-on-pullreq.yaml/badge.svg
+   :target: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci-on-pullreq.yaml
+   :alt: Github - CI (on pullrequest)
+
+.. image:: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci-on-push.yaml/badge.svg
+   :target: https://github.com/rwijtvliet/portfolyo/actions/workflows/ci-on-push.yaml
+   :alt: Github - CI (on push)
 
 .. image:: https://github.com/rwijtvliet/portfolyo/actions/workflows/pre-commit.yaml/badge.svg
    :target: https://github.com/rwijtvliet/portfolyo/actions/workflows/pre-commit.yaml
@@ -52,10 +56,9 @@ NB: this package is under active development and the API will change without pri
 Contents
 --------
 
-.. toctree::
-   :maxdepth: 1
+..    :maxdepth: 1
 
-   ./index
+..    ./index
 
 .. toctree::
    :maxdepth: 2

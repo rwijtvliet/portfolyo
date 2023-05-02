@@ -62,6 +62,7 @@ def get_df_fromexcel(aggfreq, tzt_in: TzType, tzt_out: TzType) -> pd.DataFrame:
     )
 
 
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("seriesordf", ["series", "df"])
 @pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
 @pytest.mark.parametrize(
@@ -82,6 +83,7 @@ def test_forceaware_fromexcel(aggfreq, tzt_in, tzt_out, seriesordf):
     do_test_conversion(aggfreq, tzt_in, tzt_out, seriesordf, conversion_fn)
 
 
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("seriesordf", ["series", "df"])
 @pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
 @pytest.mark.parametrize(
@@ -101,6 +103,7 @@ def test_forceagnostic_fromexcel(aggfreq, tzt_in, tzt_out, seriesordf):
     do_test_conversion(aggfreq, tzt_in, tzt_out, seriesordf, conversion_fn)
 
 
+@pytest.mark.only_on_pr
 @pytest.mark.parametrize("seriesordf", ["series", "df"])
 @pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
 @pytest.mark.parametrize(
