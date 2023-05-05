@@ -132,7 +132,8 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     @property
     def unsourced(self) -> PfLine:
-        return -(self.offtake.volume + self.sourced.volume) | self.unsourcedprice
+        volume = -(self.offtake.flatten().volume + self.sourced.flatten().volume)
+        return volume | self.unsourcedprice
 
     @property
     def netposition(self) -> PfLine:
@@ -144,7 +145,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     @property
     def sourcedfraction(self) -> pd.Series:
-        return self.sourced.volume / -self.offtake.volume
+        return self.sourced.flatten().volume / -self.offtake.flatten().volume
 
     @property
     def unsourcedfraction(self) -> pd.Series:
@@ -259,12 +260,14 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         """
         tosource = self.hedge_of_unsourced(how, freq, po)
         return self.__class__(
-            self._offtakevolume, self._unsourcedprice, self.sourced + tosource
+            self._offtakevolume, self._unsourcedprice, self.sourced.flatten() + tosource
         )
 
     def mtm_of_sourced(self) -> PfLine:
         """Mark-to-Market value of sourced volume."""
-        return self.sourced.volume * (self.unsourcedprice - self.sourced.price)
+        flatsourced = self.sourced.flatten()
+        specific_mtm = self.unsourcedprice.flatten() - flatsourced.price
+        return flatsourced.volume | specific_mtm
 
     # Dunder methods.
 
