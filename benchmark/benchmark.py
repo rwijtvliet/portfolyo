@@ -69,11 +69,13 @@ def benchmark_pfline(df):
         for cols in ["q", "p", "qr", "wp"]:
             print(f"{le=} {cols=}")
             data = pd.DataFrame({c: np.linspace(1, 1000, le) for c in cols}, i)
-            df.loc[le, ("flat", "creation", cols)] = timeit(lambda: pf.PfLine(data), ru)
-            pfl = pf.PfLine(data)
+            df.loc[le, ("flat", "creation", cols)] = timeit(
+                lambda: pf.create_pfline(data), ru
+            )
+            pfl = pf.create_pfline(data)
             df.loc[le, ("flat", "to_str", cols)] = timeit(lambda: str(pfl), ru)
             df.loc[le, ("flat", "pfl+const", cols)] = timeit(lambda: pfl + 2, ru)
-            other = pf.PfLine(data + 1)
+            other = pf.create_pfline(data + 1)
             df.loc[le, ("flat", "pfl+pfl", cols)] = timeit(lambda: pfl + other, ru)
             df.loc[le, ("flat", "pfl*const", cols)] = timeit(lambda: pfl * 2, ru)
             if pfl.kind is pf.Kind.VOLUME or pfl.kind is pf.Kind.COMPLETE:
@@ -81,14 +83,18 @@ def benchmark_pfline(df):
                 df.loc[le, ("flat", "access_w", cols)] = timeit(lambda: pfl.w, ru)
             df.loc[le, ("flat", "memory_use", cols)] = total_size(pfl)
             twochildren = [
-                pf.PfLine(pd.DataFrame({c: np.linspace(1, 1000, le) for c in cols}, i)),
-                pf.PfLine(pd.DataFrame({c: np.linspace(2, 2000, le) for c in cols}, i)),
+                pf.create_pfline(
+                    pd.DataFrame({c: np.linspace(1, 1000, le) for c in cols}, i)
+                ),
+                pf.create_pfline(
+                    pd.DataFrame({c: np.linspace(2, 2000, le) for c in cols}, i)
+                ),
             ]
             children = {f"child{c}": twochildren[c % 2] for c in range(10)}
             df.loc[le, ("multi10", "creation", cols)] = timeit(
-                lambda: pf.PfLine(children), ru
+                lambda: pf.create_pfline(children), ru
             )
-            pfl = pf.PfLine(children)
+            pfl = pf.create_pfline(children)
             df.loc[le, ("multi10", "to_str", cols)] = timeit(lambda: str(pfl), ru)
             if pfl.kind is pf.Kind.VOLUME or pfl.kind is pf.Kind.COMPLETE:
                 df.loc[le, ("multi10", "access_q", cols)] = timeit(lambda: pfl.q, ru)
@@ -101,9 +107,9 @@ def benchmark_pfstate(df):
         print(f"{le=}")
         i = pd.date_range("2020", periods=le, freq="15T")
         w_offtake = pf.dev.w_offtake(i)
-        offtake = pf.PfLine(w_offtake)
-        unsourced = pf.PfLine(pf.dev.p_marketprices(i))
-        sourced = pf.PfLine(pf.dev.wp_sourced(w_offtake))
+        offtake = pf.create_pfline(w_offtake)
+        unsourced = pf.create_pfline(pf.dev.p_marketprices(i))
+        sourced = pf.create_pfline(pf.dev.wp_sourced(w_offtake))
 
         df.loc[le, ("pfstate", "creation", "nosourced")] = timeit(
             lambda: pf.PfState(offtake, unsourced), ru

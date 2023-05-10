@@ -138,8 +138,8 @@ def _nestedtree(
 def _flatdatablock(pfl: PfLine, cols: Iterable[str], num_of_ts: int) -> Iterable[str]:
     """The timestamps and data to be shown in a block, next to the tree."""
     # Obtain dataframe with index = timestamp as string and columns = one or more of 'qwpr'.
-    df = pfl.df(cols, flatten=True)
-    # . reduce number of timestamps to increase speed of conversion to strings.
+    df = pfl.df[list(cols)]
+    # . (roughly) reduce number of timestamps to increase speed of conversion to strings.
     if len(df.index) > num_of_ts * 2:
         df = pd.concat([df.iloc[:num_of_ts, :], df.iloc[-num_of_ts:, :]], axis=0)
     # . turn values into strings.
@@ -194,7 +194,7 @@ def pfs_as_string(pfs: PfState, num_of_ts: int, color: bool) -> str:
     lines.extend(_index_info(pfs.index))
     spaces = " " * (MAX_DEPTH + 5)
     lines.extend([spaces + txtline for txtline in _dataheader("wqpr")])
-    lines.extend(_nestedtree("offtake", pfs.offtakevolume, "wqpr", num_of_ts))
+    lines.extend(_nestedtree("offtake", pfs.offtakevolume, "wq", num_of_ts))
     lines.extend(_nestedtree("pnl_cost", pfs.pnl_cost, "wqpr", num_of_ts))
     txt = "\n".join(lines)
     return txt if color else _remove_color(txt)

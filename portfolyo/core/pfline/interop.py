@@ -10,10 +10,10 @@ import numpy as np
 import pandas as pd
 
 from ... import testing, tools
-from . import base, flat
+from . import classes, create
 
 if TYPE_CHECKING:  # needed to avoid circular imports
-    from .flat import FlatPfLine
+    from .classes import FlatPfLine
 
 _ATTRIBUTES = ("w", "q", "p", "r", "nodim", "agn")
 
@@ -406,12 +406,12 @@ def pfline_or_nodimseries(
     """Turn ``data`` into PfLine if dimension-aware. If not, turn into Series."""
 
     # Already a PfLine.
-    if isinstance(data, base.PfLine):
+    if isinstance(data, classes.PfLine):
         return data
 
     # Can be turned into a PfLine.
     try:
-        return base.PfLine(data)
+        return create.create_pfline(data)
     except ValueError:
         pass
 
@@ -434,7 +434,7 @@ def pfline_or_nodimseries(
 
     elif inop.nodim is None:
         # Only dimension-aware data was supplied; must be able to turn into PfLine.
-        return flat.FlatPfLine(inop)
+        return create.create_flatpfline(inop)
 
     elif inop.p is inop.q is inop.w is inop.r is None:
         # Only dimensionless data was supplied; is Series of factors.

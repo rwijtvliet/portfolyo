@@ -30,14 +30,15 @@ def up_or_down(
 
     Returns
     -------
-    1 (-1, 0) if source frequency must be upsampled (downsampled, no change) to obtain
-        target frequency.
+    * 1 if source frequency must be upsampled to obtain (i.e, is longer than) target frequency.
+    * 0 if source frequency is same as target frequency.
+    * -1 if source frequency must be downsampled to obtain (i.e, is shorter than) target frequency.
 
     Notes
     -----
     Arbitrarily using a time point as anchor to calculate the length of the time period
     from. May have influence on the ratio (duration of a month, quarter, year etc are
-    influenced by this), but, for most common frequencies, not on which is larger.
+    influenced by this), but, for most common frequencies, not on which is longer.
 
     Examples
     --------
@@ -62,6 +63,40 @@ def up_or_down(
         # If they are the same, try with another timestamp.
         return up_or_down(freq_source, freq_target, backup_common_ts)
     return 0  # only if both give the same answer.
+
+
+def longer_or_shorter(freq: str, freq_ref: str, common_ts: pd.Timedelta = None) -> int:
+    """
+    Compare frequency with reference frequency to see if it is longer or shorter.
+
+    Parameters
+    ----------
+    freq, freq_ref : frequencies to compare.
+    common_ts : timestamp, optional
+        Timestamp to use as anchor from which to compare the two.
+
+    Returns
+    -------
+    * 1 if frequency ``freq`` is longer than the reference frequency ``freq_ref``.
+    * 0 if frequencies are the same.
+    * -1 if frequency ``freq`` is shorter than the reference frequency ``freq_ref``.
+
+    Notes
+    -----
+    Arbitrarily using a time point as anchor to calculate the length of the time period
+    from. May have influence on the ratio (duration of a month, quarter, year etc are
+    influenced by this), but, for most common frequencies, not on which is longer.
+
+    Examples
+    --------
+    >>> freq.longer_or_shorter('D', 'MS')
+    -1
+    >>> freq.longer_or_shorter('MS', 'D')
+    1
+    >>> freq.longer_or_shorter('MS', 'MS')
+    0
+    """
+    return up_or_down(freq, freq_ref, common_ts)
 
 
 def _longestshortest(shortest: bool, *freqs: str):

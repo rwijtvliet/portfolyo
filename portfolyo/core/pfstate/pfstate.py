@@ -5,19 +5,21 @@ certain moment in time (e.g., at the current moment, without any historic data).
 
 from __future__ import annotations
 
+import dataclasses
 import warnings
-from typing import Iterable, Optional, Union
+from typing import Iterable, Optional
 
 import pandas as pd
 
 from ... import tools
-from ..mixins import OtherOutput, PfStatePlot, PfStateText
+from ..mixins import ExcelClipboardOutput, PfStatePlot, PfStateText
 from ..ndframelike import NDFrameLike
-from ..pfline import NestedPfLine, PfLine
-from .pfstate_helper import make_pflines
+from ..pfline import PfLine, create_flatpfline, create_nestedpfline
+from . import pfstate_helper
 
 
-class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
+@dataclasses.dataclass(frozen=True, repr=False)
+class PfState(NDFrameLike, PfStateText, PfStatePlot, ExcelClipboardOutput):
     """Class to hold timeseries information of an energy portfolio, at a specific moment.
 
     Parameters
@@ -61,6 +63,10 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         and unsourced positions.
     """
 
+    offtakevolume: PfLine
+    unsourcedprice: PfLine
+    sourced: Optional[PfLine] = None
+
     @classmethod
     def from_series(
         cls,
@@ -92,46 +98,30 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         -------
         PfState
         """
+        offtakevolume = create_flatpfline({"q": qo, "w": wo})
+        unsourcedprice = create_flatpfline({"p": pu})
         if not (ws is qs is rs is ps is None):
-            sourced = PfLine({"w": ws, "q": qs, "r": rs, "p": ps})
+            sourced = create_flatpfline({"w": ws, "q": qs, "r": rs, "p": ps})
         else:
             sourced = None
-        return cls(PfLine({"q": qo, "w": wo}), PfLine({"p": pu}), sourced)
+        return cls(offtakevolume, unsourcedprice, sourced)
 
-    def __init__(
-        self,
-        offtakevolume: Union[PfLine, pd.Series],
-        unsourcedprice: Union[PfLine, pd.Series],
-        sourced: Optional[PfLine] = None,
-    ):
-        # The only internal data of this class is stored as PfLines.
-        self._offtakevolume, self._unsourcedprice, self._sourced = make_pflines(
-            offtakevolume, unsourcedprice, sourced
+    def __post_init__(self):
+        offtakevolume, unsourcedprice, sourced = pfstate_helper.make_pflines(
+            self.offtakevolume, self.unsourcedprice, self.sourced
         )
+        object.__setattr__(self, "offtakevolume", offtakevolume)
+        object.__setattr__(self, "unsourcedprice", unsourcedprice)
+        object.__setattr__(self, "sourced", sourced)
 
     @property
     def index(self) -> pd.DatetimeIndex:  # from ABC
-        return self._offtakevolume.index
-
-    @property
-    def offtakevolume(self) -> PfLine:
-        return self._offtakevolume
-
-    @property
-    def unsourcedprice(self) -> PfLine:
-        return self._unsourcedprice
-
-    @property
-    def sourced(self) -> PfLine:
-        if self._sourced is None:
-            return PfLine(pd.DataFrame({"q": 0, "r": 0}, self.index))
-        else:
-            return self._sourced
+        return self.offtakevolume.index
 
     @property
     def offtake(self) -> PfLine:
         # Future development: return not volume-only but price-and-volume. (by including offtake prices)
-        return self._offtakevolume
+        return self.offtakevolume
 
     @property
     def unsourced(self) -> PfLine:
@@ -143,7 +133,9 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
 
     @property
     def pnl_cost(self):
-        return NestedPfLine({"sourced": self.sourced, "unsourced": self.unsourced})
+        return create_nestedpfline(
+            {"sourced": self.sourced, "unsourced": self.unsourced}
+        )
 
     @property
     def sourcedfraction(self) -> pd.Series:
@@ -153,10 +145,9 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
     def unsourcedfraction(self) -> pd.Series:
         return 1 - self.sourcedfraction
 
-    def df(
+    def dataframe(
         self,
         cols: Iterable[str] = None,
-        flatten: bool = False,
         *args,
         has_units: bool = True,
         **kwargs,
@@ -167,10 +158,6 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         ----------
         cols : str, optional (default: all that are available)
             The columns (w, q, p, r) to include in the dataframe.
-        flatten : bool, optional (default: True)
-            - If True, include only aggregated timeseries (4 or less; 1 per dimension).
-            - If False, include all children and their (intermediate and final)
-              aggregations.
         has_units : bool, optional (default: True)
             - If True, return dataframe with ``pint`` units. (The unit can be extracted
               as a column level with ``.pint.dequantify()``).
@@ -180,11 +167,10 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         -------
         pd.DataFrame
         """
-
         dfs = []
         for part in ("offtakevolume", "pnl_cost", "sourced", "unsourced"):
-            fl = True if part == "pnl_cost" else flatten  # always flatten pnl_cost
-            dfin = self[part].df(cols, fl, has_units=has_units)
+            childlevels = 0 if part == "pnl_cost" else -1  # always flatten pnl_cost
+            dfin = self[part].dataframe(cols, childlevels, has_units=has_units)
             dfs.append(tools.frame.add_header(dfin, part))
         return tools.frame.concat(dfs, axis=1)
 
@@ -195,17 +181,17 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
             "This operation changes the unsourced volume. This causes inaccuracies in its price"
             " if the portfolio state has a frequency that is longer than the spot market."
         )
-        return PfState(offtakevolume, self.unsourcedprice, self._sourced)
+        return PfState(offtakevolume, self.unsourcedprice, self.sourced)
 
     def set_unsourcedprice(self, unsourcedprice: PfLine) -> PfState:
-        return PfState(self.offtake.volume, unsourcedprice, self._sourced)
+        return PfState(self.offtake.volume, unsourcedprice, self.sourced)
 
     def set_sourced(self, sourced: PfLine) -> PfState:
         warnings.warn(
             "This operation changes the unsourced volume. This causes inaccuracies in its price"
             " if the portfolio state has a frequency that is longer than the spot market."
         )
-        return PfState(self._offtakevolume, self._unsourcedprice, sourced)
+        return PfState(self.offtakevolume, self.unsourcedprice, sourced)
 
     def add_sourced(self, add_sourced: PfLine) -> PfState:
         return self.set_sourced(self.sourced + add_sourced)  # warns
@@ -262,7 +248,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, OtherOutput):
         """
         tosource = self.hedge_of_unsourced(how, freq, po)
         return self.__class__(
-            self._offtakevolume, self._unsourcedprice, self.sourced + tosource
+            self.offtakevolume, self.unsourcedprice, self.sourced + tosource
         )
 
     def mtm_of_sourced(self) -> PfLine:

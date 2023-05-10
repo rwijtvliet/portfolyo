@@ -5,7 +5,15 @@ import pandas as pd
 import pytest
 
 import portfolyo as pf
-from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine, dev, testing  # noqa
+from portfolyo import (
+    FlatPfLine,
+    Kind,
+    NestedPfLine,
+    create_flatpfline,
+    create_pfline,
+    dev,
+    testing,
+)
 
 _seed = 3  # any fixed seed
 
@@ -49,10 +57,10 @@ ref_series = {
     "nodim": pd.Series([2, -1.5, 10], i1),
 }
 ref_flatset = {
-    Kind.VOLUME: PfLine({"q": ref_series["q"]}),
-    Kind.PRICE: PfLine({"p": ref_series["p"]}),
-    Kind.REVENUE: PfLine({"r": ref_series["r"]}),
-    Kind.COMPLETE: PfLine({"q": ref_series["q"], "p": ref_series["p"]}),
+    Kind.VOLUME: create_flatpfline({"q": ref_series["q"]}),
+    Kind.PRICE: create_flatpfline({"p": ref_series["p"]}),
+    Kind.REVENUE: create_flatpfline({"r": ref_series["r"]}),
+    Kind.COMPLETE: create_flatpfline({"q": ref_series["q"], "p": ref_series["p"]}),
     "nodim": ref_series["nodim"],
 }
 series1 = {
@@ -62,10 +70,10 @@ series1 = {
     "nodim": pd.Series([1.0, -10, 2], i1),
 }
 flatset1 = {
-    Kind.VOLUME: PfLine({"q": series1["q"]}),
-    Kind.PRICE: PfLine({"p": series1["p"]}),
-    Kind.REVENUE: PfLine({"r": series1["r"]}),
-    Kind.COMPLETE: PfLine({"q": series1["q"], "p": series1["p"]}),
+    Kind.VOLUME: create_flatpfline({"q": series1["q"]}),
+    Kind.PRICE: create_flatpfline({"p": series1["p"]}),
+    Kind.REVENUE: create_flatpfline({"r": series1["r"]}),
+    Kind.COMPLETE: create_flatpfline({"q": series1["q"], "p": series1["p"]}),
     "nodim": series1["nodim"],
 }
 
@@ -79,10 +87,10 @@ series2 = {
     "nodim": pd.Series([1.0, -2.0, 4], i2),
 }
 flatset2 = {
-    Kind.VOLUME: PfLine({"q": series2["q"]}),
-    Kind.PRICE: PfLine({"p": series2["p"]}),
-    Kind.REVENUE: PfLine({"r": series2["r"]}),
-    Kind.COMPLETE: PfLine({"q": series2["q"], "r": series2["r"]}),
+    Kind.VOLUME: create_flatpfline({"q": series2["q"]}),
+    Kind.PRICE: create_flatpfline({"p": series2["p"]}),
+    Kind.REVENUE: create_flatpfline({"r": series2["r"]}),
+    Kind.COMPLETE: create_flatpfline({"q": series2["q"], "r": series2["r"]}),
     "nodim": series2["nodim"],
 }
 i12 = pd.date_range("2020-02", freq="MS", periods=2, tz="Europe/Berlin")
@@ -124,12 +132,12 @@ def additiontestcases():
         pfl = ref_flatset[kind]
         # . ref + 1
         series = {c: ref_series[c] + series1[c] for c in kind.summable}
-        yield Case(pfl, "+", flatset1[kind], PfLine(series))
+        yield Case(pfl, "+", flatset1[kind], create_pfline(series))
         # . ref + 2
         series = {
             c: ref_series[c].loc[i12] + series2[c].loc[i12] for c in kind.summable
         }
-        yield Case(pfl, "+", flatset2[kind], PfLine(series))
+        yield Case(pfl, "+", flatset2[kind], create_pfline(series))
     yield Case(ref_flatset[Kind.VOLUME], "+", flatset3[Kind.VOLUME], Exception)
     yield Case(ref_flatset[Kind.VOLUME], "+", flatset4[Kind.VOLUME], Exception)
     yield Case(ref_flatset[Kind.VOLUME], "+", flatset5[Kind.VOLUME], Exception)
@@ -141,12 +149,12 @@ def subtractiontestcases():
         pfl = ref_flatset[kind]
         # . ref - 1
         series = {c: ref_series[c] - series1[c] for c in kind.summable}
-        yield Case(pfl, "-", flatset1[kind], PfLine(series))
+        yield Case(pfl, "-", flatset1[kind], create_pfline(series))
         # . ref - 2
         series = {
             c: ref_series[c].loc[i12] - series2[c].loc[i12] for c in kind.summable
         }
-        yield Case(pfl, "-", flatset2[kind], PfLine(series))
+        yield Case(pfl, "-", flatset2[kind], create_pfline(series))
     yield Case(ref_flatset[Kind.VOLUME], "-", flatset3[Kind.VOLUME], Exception)
     yield Case(ref_flatset[Kind.VOLUME], "-", flatset4[Kind.VOLUME], Exception)
     yield Case(ref_flatset[Kind.VOLUME], "-", flatset5[Kind.VOLUME], Exception)
@@ -159,12 +167,12 @@ def multiplicationtestcases():
         pfl = ref_flatset[kind]
         # . ref * 1
         series = {c: ref_series[c] * series1["nodim"] for c in kind.summable}
-        yield Case(pfl, "*", flatset1["nodim"], PfLine(series))
+        yield Case(pfl, "*", flatset1["nodim"], create_pfline(series))
         # . ref * 2
         series = {
             c: ref_series[c].loc[i12] * series2["nodim"].loc[i12] for c in kind.summable
         }
-        yield Case(pfl, "*", flatset2["nodim"], PfLine(series))
+        yield Case(pfl, "*", flatset2["nodim"], create_pfline(series))
     yield Case(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.VOLUME], Exception)
     yield Case(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.REVENUE], Exception)
     yield Case(ref_flatset[Kind.VOLUME], "*", flatset3["nodim"], Exception)
@@ -173,7 +181,9 @@ def multiplicationtestcases():
     yield Case(ref_flatset[Kind.VOLUME], "*", flatset6["nodim"], Exception)
     # volume * price
     series = {"r": ref_series["q"] * series1["p"]}
-    yield Case(ref_flatset[Kind.VOLUME], "*", flatset1[Kind.PRICE], PfLine(series))
+    yield Case(
+        ref_flatset[Kind.VOLUME], "*", flatset1[Kind.PRICE], create_pfline(series)
+    )
 
 
 def divisiontestcases():
@@ -182,12 +192,12 @@ def divisiontestcases():
         pfl = ref_flatset[kind]
         # . ref / 1
         series = {c: ref_series[c] / series1["nodim"] for c in kind.summable}
-        yield Case(pfl, "/", flatset1["nodim"], PfLine(series))
+        yield Case(pfl, "/", flatset1["nodim"], create_pfline(series))
         # . ref / 2
         series = {
             c: ref_series[c].loc[i12] / series2["nodim"].loc[i12] for c in kind.summable
         }
-        yield Case(pfl, "/", flatset2["nodim"], PfLine(series))
+        yield Case(pfl, "/", flatset2["nodim"], create_pfline(series))
     yield Case(ref_flatset[Kind.VOLUME], "/", flatset3["nodim"], Exception)
     yield Case(ref_flatset[Kind.VOLUME], "/", flatset4["nodim"], Exception)
     yield Case(ref_flatset[Kind.VOLUME], "/", flatset5["nodim"], Exception)
@@ -210,9 +220,9 @@ def divisiontestcases():
     # revenue / something
     pfl = ref_flatset[Kind.REVENUE]
     series = {"q": ref_series["r"] / series1["p"]}
-    yield Case(pfl, "/", flatset1[Kind.PRICE], PfLine(series))
+    yield Case(pfl, "/", flatset1[Kind.PRICE], create_pfline(series))
     series = {"p": ref_series["r"] / series1["q"]}
-    yield Case(pfl, "/", flatset1[Kind.VOLUME], PfLine(series))
+    yield Case(pfl, "/", flatset1[Kind.VOLUME], create_pfline(series))
 
 
 def uniontestcases():
@@ -228,10 +238,10 @@ def uniontestcases():
 
             # . ref | 1
             series = {c: ref_series[c], c_other: series1[c_other]}
-            yield Case(pfl, "|", flatset1[kind_other], PfLine(series))
+            yield Case(pfl, "|", flatset1[kind_other], create_pfline(series))
             # . ref | 2
             series = {c: ref_series[c].loc[i12], c_other: series2[c_other].loc[i12]}
-            yield Case(pfl, "|", flatset2[kind_other], PfLine(series))
+            yield Case(pfl, "|", flatset2[kind_other], create_pfline(series))
     yield Case(ref_flatset[Kind.VOLUME], "|", flatset1[Kind.VOLUME], Exception)
     yield Case(ref_flatset[Kind.VOLUME], "|", flatset1[Kind.COMPLETE], Exception)
     yield Case(ref_flatset[Kind.VOLUME], "|", flatset3[Kind.PRICE], Exception)

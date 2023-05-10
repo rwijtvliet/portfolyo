@@ -2,17 +2,25 @@
 
 from __future__ import annotations
 
-from typing import Any, Dict, Mapping, Tuple
 from collections import defaultdict
+from typing import Any, Dict, Mapping, Tuple
+
 import pandas as pd
 
 from ... import tools
-from .base import Kind, PfLine
+from . import classes, create
+from .enums import Kind
 
 
-def make_mapping(data: Any) -> Mapping[Any, Any]:
+def children_and_kind(data: Any) -> Tuple[Dict[str, classes.PfLine], Kind]:
+    mapping = _mapping(data)
+    children = _children(mapping)
+    kind = _kind(children)
+    return children, kind
+
+
+def _mapping(data: Any) -> Mapping[Any, Any]:
     """From data, create a mapping."""
-    # Shortcut if PfLine is passed.
 
     if isinstance(data, Mapping):
         return data
@@ -25,20 +33,34 @@ def make_mapping(data: Any) -> Mapping[Any, Any]:
         return children
 
     raise TypeError(
-        f"Parameter ``data`` must be dict (or other Mapping) or pandas.DataFrame; got {type(data)}."
+        f"Parameter ``data`` must be dict (or other Mapping) or pandas.DataFrame; got {type(data).__name__}."
     )
 
 
-def children_and_kind(children: Dict[str, PfLine]) -> Tuple[Dict[str, PfLine], Kind]:
-    """Check number, kind, and indices of children; return corrected children and kind."""
-    # Number of children.
+def _children(mapping: Mapping) -> Dict[str, classes.PfLine]:
+    """From mapping, create dictionary of PfLines."""
+
+    # Create dictionary of PfLines.
+    children = {name: create.create_pfline(child) for name, child in mapping.items()}
+
+    # Assert valid keys.
+    for name in children:
+        if not isinstance(name, str):
+            raise TypeError(f"Name must be string; got {name} ({type(name)}).")
+
+    # Assert number of children.
     if len(children) == 0:
         raise ValueError("Must provide at least 1 child.")
+
     # Keep only overlapping part of indices.
     idx = tools.intersect.indices(*[child.index for child in children.values()])
     if len(idx) == 0:
         raise ValueError("PfLine indices have no overlap.")
-    children = {name: child.loc[idx] for name, child in children.items()}
+    return {name: child.loc[idx] for name, child in children.items()}
+
+
+def _kind(children: Dict[str, classes.PfLine]) -> Kind:
+    """Kind of data, based on children."""
 
     # Kind of children.
     kindset = set([child.kind for child in children.values()])
@@ -51,13 +73,4 @@ def children_and_kind(children: Dict[str, PfLine]) -> Tuple[Dict[str, PfLine], K
         raise ValueError(f"All children must be of the same kind; found {kinds3}.")
     kind = next(iter(kindset))
 
-    return children, kind
-
-
-def dataframe(children: Dict[str, PfLine], kind: Kind) -> pd.DataFrame:
-    """Create dataframe with aggregated values."""
-    # All children have same kind, so same columns. Also, same indices, so same index.
-    df = sum(child._df for child in children.values())
-    if kind is Kind.COMPLETE:
-        df["p"] = df["r"] / df["q"]
-    return df
+    return kind

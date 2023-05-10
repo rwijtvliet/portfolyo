@@ -1,3 +1,2 @@
-from .base import Kind, PfLine
-from .flat import FlatPfLine
-from .nested import NestedPfLine
+from .classes import FlatPfLine, Kind, NestedPfLine, PfLine, Structure
+from .create import create_flatpfline, create_nestedpfline, create_pfline

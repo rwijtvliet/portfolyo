@@ -4,8 +4,10 @@
 import warnings
 from typing import Any, Iterable
 
+import pandas as pd
+
 from ... import tools
-from ..pfline import FlatPfLine, Kind, NestedPfLine, PfLine  # noqa
+from ..pfline import Kind, PfLine, create_flatpfline, create_pfline
 
 
 def make_pflines(
@@ -20,7 +22,7 @@ def make_pflines(
 
     # Get everything as PfLine.
     # . Offtake volume.
-    offtakevolume = PfLine(offtakevolume)  # force to be PfLine.
+    offtakevolume = create_pfline(offtakevolume)  # force to be PfLine.
     if offtakevolume.kind is Kind.PRICE:
         raise ValueError("Parameter ``offtakevolume`` does not contain volume.")
     elif offtakevolume.kind is Kind.COMPLETE:
@@ -29,7 +31,7 @@ def make_pflines(
         )
         offtakevolume = offtakevolume.volume
     # . Unsourced prices.
-    unsourcedprice = PfLine(unsourcedprice)  # force to be PfLine.
+    unsourcedprice = create_pfline(unsourcedprice)  # force to be PfLine.
     if unsourcedprice.kind is Kind.VOLUME:
         raise ValueError("Parameter ``unsourcedprice`` does not contain prices.")
     elif unsourcedprice.kind is Kind.COMPLETE:
@@ -39,7 +41,7 @@ def make_pflines(
         unsourcedprice = unsourcedprice.price
     # . Sourced volume and prices.
     if sourced is not None:
-        sourced = PfLine(sourced)
+        sourced = create_pfline(sourced)
         if sourced.kind is not Kind.COMPLETE:
             raise ValueError("Parameter ``sourced`` does not contain price and volume.")
 
@@ -64,5 +66,7 @@ def make_pflines(
                 "Parameter ``sourced``: does not cover entire delivery period of ``offtakevolume``."
             )
         sourced = sourced.loc[idx]
+    else:  # sourced is None
+        sourced = create_flatpfline(pd.DataFrame({"q": 0, "r": 0}, idx))
 
     return offtakevolume, unsourcedprice, sourced

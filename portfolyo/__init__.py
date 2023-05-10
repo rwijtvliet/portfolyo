@@ -5,7 +5,16 @@ from . import _version, dev, tools
 from .core import extendpandas  # extend functionalty of pandas
 from .core import suppresswarnings
 from .core.mixins.plot import plot_pfstates
-from .core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine
+from .core.pfline import (
+    FlatPfLine,
+    Kind,
+    NestedPfLine,
+    PfLine,
+    Structure,
+    create_flatpfline,
+    create_nestedpfline,
+    create_pfline,
+)
 from .core.pfstate import PfState
 from .prices.hedge import hedge
 from .prices.utils import is_peak_hour

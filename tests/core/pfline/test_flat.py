@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from portfolyo import FREQUENCIES, FlatPfLine, Kind, NestedPfLine, dev, testing  # noqa
+from portfolyo import Kind, create_flatpfline, dev, testing
 
 # @dataclass
 # class InteropTestObject:
@@ -45,7 +45,7 @@ def test_flatpfline_access(columns):
     """Test if core data can be accessed by item and attribute."""
 
     df = dev.get_dataframe(columns=columns)
-    result = FlatPfLine(df)
+    result = create_flatpfline(df)
 
     testing.assert_index_equal(result.index, df.index)
     # testing.assert_index_equal(result["index"], df.index)# access by item is deprecated
@@ -55,13 +55,12 @@ def test_flatpfline_access(columns):
             expected = df[col]
             testing.assert_series_equal(getattr(result, col), expected)
             # testing.assert_series_equal(result[col], expected) # access by item is deprecated
-            testing.assert_series_equal(getattr(result.df(col), col), expected)
-            testing.assert_series_equal(result.df(col)[col], expected)
+            testing.assert_series_equal(result.df[col], expected)
         elif col not in result.kind.available:
             assert getattr(result, col).isna().all()
             # assert result[col].isna().all() # access by item is deprecated
-            assert getattr(result.df(col), col).isna().all()
-            assert result.df(col)[col].all()
+            assert result.df[col].isna().all()
+            assert result.df[col].all()
 
 
 idx = [
@@ -77,11 +76,11 @@ rr = [p * q for p, q in zip(pp, qq)]
 @pytest.mark.parametrize(
     "pfls",
     [
-        (FlatPfLine({"w": w}) for w in ww),
-        (FlatPfLine({"q": q}) for q in qq),
-        (FlatPfLine({"p": p}) for p in pp),
-        (FlatPfLine({"p": p, "w": w}) for w, p in zip(ww, pp)),
-        (FlatPfLine({"w": w, "r": r}) for w, r in zip(ww, rr)),
+        (create_flatpfline({"w": w}) for w in ww),
+        (create_flatpfline({"q": q}) for q in qq),
+        (create_flatpfline({"p": p}) for p in pp),
+        (create_flatpfline({"p": p, "w": w}) for w, p in zip(ww, pp)),
+        (create_flatpfline({"w": w, "r": r}) for w, r in zip(ww, rr)),
     ],
 )
 def test_flatpfline_asfreqcorrect1(pfls):
@@ -109,7 +108,7 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
 
     i = pd.date_range(start, end, freq=freq, tz=tz)
     df = dev.get_dataframe(i, columns)
-    pfl1 = FlatPfLine(df)
+    pfl1 = create_flatpfline(df)
     pfl2 = pfl1.asfreq(newfreq)
 
     # Compare the dataframes, only keep time intervals that are in both objects.
@@ -119,7 +118,7 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
         cols = ["q"]
         if pfl1.kind is Kind.COMPLETE:
             cols.append("r")
-        df1, df2 = pfl1.df()[cols], pfl2.df()[cols]
+        df1, df2 = pfl1.df[cols], pfl2.df[cols]
 
     mask1 = (df1.index >= df2.index[0]) & (df1.index.right <= df2.index.right[-1])
     mask2 = (df2.index >= df1.index[0]) & (df2.index.right <= df1.index.right[-1])

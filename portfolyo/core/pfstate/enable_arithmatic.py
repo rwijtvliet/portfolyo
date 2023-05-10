@@ -7,11 +7,10 @@ from typing import TYPE_CHECKING, Union
 import pandas as pd
 
 from ... import tools
-from .. import pfline
+from ..pfline import PfLine, create_flatpfline
 from . import pfstate
 
 if TYPE_CHECKING:  # needed to avoid circular imports
-    from ..pfline import PfLine
     from ..pfstate import PfState
 
 
@@ -23,7 +22,7 @@ def _prep_data(value, refindex: pd.DatetimeIndex) -> Union[pd.Series, PfLine, Pf
         return value
 
     # Already a PfLine.
-    if isinstance(value, pfline.PfLine):
+    if isinstance(value, PfLine):
         return value
 
     # Series.
@@ -39,7 +38,7 @@ def _prep_data(value, refindex: pd.DatetimeIndex) -> Union[pd.Series, PfLine, Pf
         if name not in ["p", "q", "w"]:
             return value  # has know unit, but none from which PfLine can be made
 
-        return pfline.FlatPfLine({name: value})
+        return create_flatpfline({name: value})
 
     # Just a single value.
     if isinstance(value, int) or isinstance(value, float):
@@ -63,7 +62,9 @@ def _add_pfstates(pfs1: pfstate.PfState, pfs2: pfstate.PfState) -> pfstate.PfSta
     # . Therefore, use weighted average.
     values = pd.DataFrame({"s": pfs1.unsourcedprice.p, "o": pfs2.unsourcedprice.p})
     weights = pd.DataFrame({"s": pfs1.unsourced.q, "o": pfs2.unsourced.q})
-    unsourcedprice = pfline.PfLine({"p": tools.wavg.dataframe(values, weights, axis=1)})
+    unsourcedprice = create_flatpfline(
+        {"p": tools.wavg.dataframe(values, weights, axis=1)}
+    )
 
     return pfstate.PfState(offtakevolume, unsourcedprice, sourced)
 
@@ -106,7 +107,6 @@ def _assert_index_compatibility(o1, o2):
 
 
 class PfStateArithmatic:
-
     METHODS = ["neg", "add", "radd", "sub", "rsub", "mul", "rmul", "truediv"]
 
     def __neg__(self: PfState):
@@ -135,7 +135,6 @@ class PfStateArithmatic:
         return other + -self  # defer to mul and neg
 
     def __mul__(self: PfState, other):
-
         other = _prep_data(other, self.index)  # other is now PfState, PfLine, or Series
         _assert_index_compatibility(self, other)
 

@@ -5,7 +5,7 @@ from typing import Dict, Iterable
 import pandas as pd
 import pytest
 
-from portfolyo import FlatPfLine, Kind, NestedPfLine, PfLine, dev, testing  # noqa
+from portfolyo import NestedPfLine, PfLine, create_flatpfline, testing
 
 tz = "Europe/Berlin"
 
@@ -18,24 +18,30 @@ ref_series = {
 }
 ref_children = {
     "vol": {
-        "childA": FlatPfLine({"w": ref_series["A"]}),
-        "childB": FlatPfLine({"w": ref_series["B"]}),
-        "childC": FlatPfLine({"w": ref_series["C"]}),
+        "childA": create_flatpfline({"w": ref_series["A"]}),
+        "childB": create_flatpfline({"w": ref_series["B"]}),
+        "childC": create_flatpfline({"w": ref_series["C"]}),
     },
     "pri": {
-        "childA": FlatPfLine({"p": ref_series["A"] * 100}),
-        "childB": FlatPfLine({"p": ref_series["B"] * 100}),
-        "childC": FlatPfLine({"p": ref_series["C"] * 100}),
+        "childA": create_flatpfline({"p": ref_series["A"] * 100}),
+        "childB": create_flatpfline({"p": ref_series["B"] * 100}),
+        "childC": create_flatpfline({"p": ref_series["C"] * 100}),
     },
     "rev": {
-        "childA": FlatPfLine({"r": ref_series["A"] * 1000}),
-        "childB": FlatPfLine({"r": ref_series["B"] * 1000}),
-        "childC": FlatPfLine({"r": ref_series["C"] * 1000}),
+        "childA": create_flatpfline({"r": ref_series["A"] * 1000}),
+        "childB": create_flatpfline({"r": ref_series["B"] * 1000}),
+        "childC": create_flatpfline({"r": ref_series["C"] * 1000}),
     },
     "all": {
-        "childA": FlatPfLine({"w": ref_series["A"], "r": ref_series["A"] * 1000}),
-        "childB": FlatPfLine({"w": ref_series["B"], "r": ref_series["B"] * 1000}),
-        "childC": FlatPfLine({"w": ref_series["C"], "r": ref_series["C"] * 1000}),
+        "childA": create_flatpfline(
+            {"w": ref_series["A"], "r": ref_series["A"] * 1000}
+        ),
+        "childB": create_flatpfline(
+            {"w": ref_series["B"], "r": ref_series["B"] * 1000}
+        ),
+        "childC": create_flatpfline(
+            {"w": ref_series["C"], "r": ref_series["C"] * 1000}
+        ),
     },
 }
 ref_pfl = {kind: NestedPfLine(ref_children[kind]) for kind in ref_children}
@@ -44,10 +50,10 @@ ref_pfl = {kind: NestedPfLine(ref_children[kind]) for kind in ref_children}
 i2 = pd.date_range("2020-02", freq="MS", periods=3, tz=tz)
 series2 = {"D": pd.Series([8.0, 7, 6], i2)}
 children2 = {
-    "vol": {"childD": FlatPfLine({"w": series2["D"]})},
-    "pri": {"childD": FlatPfLine({"p": series2["D"] * 100})},
-    "rev": {"childD": FlatPfLine({"r": series2["D"] * 1000})},
-    "all": {"childD": FlatPfLine({"w": series2["D"], "r": series2["D"] * 1000})},
+    "vol": {"childD": create_flatpfline({"w": series2["D"]})},
+    "pri": {"childD": create_flatpfline({"p": series2["D"] * 100})},
+    "rev": {"childD": create_flatpfline({"r": series2["D"] * 1000})},
+    "all": {"childD": create_flatpfline({"w": series2["D"], "r": series2["D"] * 1000})},
 }
 i12 = pd.date_range("2020-02", freq="MS", periods=2, tz=tz)
 children12 = {kind: {**ref_children[kind], **children2[kind]} for kind in ref_children}
@@ -61,35 +67,38 @@ pfl12 = {kind: NestedPfLine(children12_trimmed[kind]) for kind in children12_tri
 i3 = pd.date_range("2022", freq="MS", periods=3, tz=tz)
 series3 = {"D": pd.Series([8.0, 7, 6], i3)}
 children3 = {
-    "vol": {"childD": FlatPfLine({"w": series3["D"]})},
-    "pri": {"childD": FlatPfLine({"p": series3["D"] * 100})},
-    "rev": {"childD": FlatPfLine({"r": series3["D"] * 1000})},
-    "all": {"childD": FlatPfLine({"w": series3["D"], "r": series3["D"] * 1000})},
+    "vol": {"childD": create_flatpfline({"w": series3["D"]})},
+    "pri": {"childD": create_flatpfline({"p": series3["D"] * 100})},
+    "rev": {"childD": create_flatpfline({"r": series3["D"] * 1000})},
+    "all": {"childD": create_flatpfline({"w": series3["D"], "r": series3["D"] * 1000})},
 }
 
 # Child with other frequency.
 i4 = pd.date_range("2020", freq="D", periods=3, tz=tz)
 series4 = {"D": pd.Series([8.0, 7, 6], i4)}
 children4 = {
-    "vol": {"childD": FlatPfLine({"w": series4["D"]})},
-    "pri": {"childD": FlatPfLine({"p": series4["D"] * 100})},
-    "rev": {"childD": FlatPfLine({"r": series4["D"] * 1000})},
-    "all": {"childD": FlatPfLine({"w": series4["D"], "r": series4["D"] * 1000})},
+    "vol": {"childD": create_flatpfline({"w": series4["D"]})},
+    "pri": {"childD": create_flatpfline({"p": series4["D"] * 100})},
+    "rev": {"childD": create_flatpfline({"r": series4["D"] * 1000})},
+    "all": {"childD": create_flatpfline({"w": series4["D"], "r": series4["D"] * 1000})},
 }
 
 # Child with other timezone.
 i5 = pd.date_range("2020", freq="MS", periods=3, tz=None)
 series5 = {"D": pd.Series([8.0, 7, 6], i5)}
 children5 = {
-    "vol": {"childD": FlatPfLine({"w": series5["D"]})},
-    "pri": {"childD": FlatPfLine({"p": series5["D"] * 100})},
-    "rev": {"childD": FlatPfLine({"r": series5["D"] * 1000})},
-    "all": {"childD": FlatPfLine({"w": series5["D"], "r": series5["D"] * 1000})},
+    "vol": {"childD": create_flatpfline({"w": series5["D"]})},
+    "pri": {"childD": create_flatpfline({"p": series5["D"] * 100})},
+    "rev": {"childD": create_flatpfline({"r": series5["D"] * 1000})},
+    "all": {"childD": create_flatpfline({"w": series5["D"], "r": series5["D"] * 1000})},
 }
 
 
 def do_test_setchild(
-    pfl: PfLine, to_add: Dict[str, PfLine], expected: PfLine, how: str
+    pfl: PfLine,
+    to_add: Dict[str, PfLine],
+    expected: PfLine,
+    how: str,
 ):
     """Helper; test if setting child results in correct result."""
 
@@ -111,7 +120,7 @@ def do_test_setchild(
     result = pfl
 
     assert result == expected
-    testing.assert_frame_equal(result._df, expected._df)
+    testing.assert_frame_equal(result.df, expected.df)
 
 
 def do_test_dropchild(pfl: PfLine, to_drop: Iterable[str], expected: PfLine, how: str):
@@ -134,7 +143,7 @@ def do_test_dropchild(pfl: PfLine, to_drop: Iterable[str], expected: PfLine, how
     result = pfl
 
     assert result == expected
-    testing.assert_frame_equal(result._df, expected._df)
+    testing.assert_frame_equal(result.df, expected.df)
 
 
 @pytest.mark.parametrize(
@@ -207,7 +216,10 @@ def test_setchild_overlap(
 @pytest.mark.parametrize("how", ["inplace", "newobj"])
 @pytest.mark.parametrize("addorreplace", ["add", "replace"])
 def test_setchild_error_kind(
-    children: Dict[str, PfLine], to_add: Dict[str, PfLine], how: str, addorreplace: str
+    children: Dict[str, PfLine],
+    to_add: Dict[str, PfLine],
+    how: str,
+    addorreplace: str,
 ):
     """Test if child with incorrect kind cannot be added/overwritten to a pfline."""
     if addorreplace == "add":
