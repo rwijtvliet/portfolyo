@@ -16,7 +16,7 @@ if TYPE_CHECKING:  # needed to avoid circular imports
 STRICT = False  # TODO: make setting
 
 
-class Checks:
+class Prep:
     def assert_objects_indexcompatibility(fn):
         """Indices must have same frequency and same start-of-day; if not, raise Error."""
 
@@ -100,9 +100,10 @@ class Checks:
         return wrapper
 
     def standardize_other(fn):
+        """Turn other into None, PfLine or dimensionless Series."""
+
         def wrapper(pfl: PfLine, other: Any):
             other = interop.pfline_or_nodimseries(other, pfl.index, "nodim")
-            # other is now None, a PfLine, or dimless Series.
             return fn(pfl, other)
 
         return wrapper
@@ -133,72 +134,74 @@ class Checks:
 
 
 class PfLineArithmatic:
-    __neg__ = lambda self: self * -1  # defer to __mul__ # noqa
+    def __neg__(self: PfLine) -> PfLine:
+        return self * -1  # defer to __mul__
 
-    @Checks.standardize_other  # other converted to None, a PfLine, or dimless Series
-    @Checks.returnself_if_otherNone  # other is now a PfLine or dimless Series
-    @Checks.raiseerror_if_otherdimlessseries  # other is now a PfLine...
-    @Checks.assert_objects_indexcompatibility  # ...with a compatible index
+    @Prep.standardize_other  # other converted to None, a PfLine, or dimless Series
+    @Prep.returnself_if_otherNone  # other is now a PfLine or dimless Series
+    @Prep.raiseerror_if_otherdimlessseries  # other is now a PfLine...
+    @Prep.assert_objects_indexcompatibility  # ...with a compatible index
     def __add__(self: PfLine, other: Any) -> PfLine:
         return Add.two_pflines(self, other)
 
-    __radd__ = lambda self, other: self + other  # defer to __add__ # noqa
+    def __radd__(self: PfLine, other: Any) -> PfLine:
+        return self + other  # defer to __add__
 
-    @Checks.standardize_other  # other converted to None, a PfLine, or dimless Series
-    @Checks.returnself_if_otherNone  # other is now a PfLine or dimless Series
-    @Checks.raiseerror_if_otherdimlessseries  # other is now a PfLine...
-    @Checks.assert_objects_indexcompatibility  # ...with a compatible index
+    @Prep.returnself_if_otherNone  # catch pfline - None
     def __sub__(self: PfLine, other: Any) -> PfLine:
-        return Add.two_pflines(self, -other)
+        return self + -other  # defer to __add__ and __neg__
 
-    __rsub__ = lambda self, other: -self + other  # defer to __add__ and __neg__ # noqa
+    def __rsub__(self: PfLine, other: Any) -> PfLine:
+        return -self + other  # defer to __add__ and __neg__
 
-    @Checks.standardize_other  # other converted to None, a PfLine, or dimless Series
-    @Checks.raiseerror_if_otherNone  # other is now a PfLine or dimless Series...
-    @Checks.assert_objects_indexcompatibility  # ... with a compatible index
+    @Prep.standardize_other  # other converted to None, a PfLine, or dimless Series
+    @Prep.raiseerror_if_otherNone  # other is now a PfLine or dimless Series...
+    @Prep.assert_objects_indexcompatibility  # ... with a compatible index
     def __mul__(self: PfLine, other: Any) -> PfLine:
         if isinstance(other, pd.Series):
             return Multiply.pfline_and_series(self, other)
         else:
             return Multiply.two_pflines(self, other)
 
-    __rmul__ = lambda self, other: self * other  # defer to __mul__ # noqa
+    def __rmul__(self: PfLine, other: Any) -> PfLine:
+        return self * other  # defer to __mul__
 
-    @Checks.standardize_other  # other converted to None, a PfLine, or dimless Series
-    @Checks.raiseerror_if_otherNone  # other is now a PfLine or dimless Series...
-    @Checks.assert_objects_indexcompatibility  # ... with a compatible index
+    @Prep.standardize_other  # other converted to None, a PfLine, or dimless Series
+    @Prep.raiseerror_if_otherNone  # other is now a PfLine or dimless Series...
+    @Prep.assert_objects_indexcompatibility  # ... with a compatible index
     def __truediv__(self: PfLine, other: Any) -> Union[PfLine, pd.Series]:
         if isinstance(other, pd.Series):
-            return Multiply.pfline_and_series(self, 1 / other)  # defer to __mul__
+            return Multiply.pfline_and_series(self, 1 / other)
         else:
             return Divide.two_pflines(self, other)
 
-    @Checks.standardize_other  # other converted to None, a PfLine, or dimless Series
-    @Checks.raiseerror_if_otherNone  # other is now a PfLine or dimless Series
-    @Checks.raiseerror_if_otherdimlessseries  # other is now a PfLine...
-    @Checks.assert_objects_indexcompatibility  # ... with a compatible index
+    @Prep.standardize_other  # other converted to None, a PfLine, or dimless Series
+    @Prep.raiseerror_if_otherNone  # other is now a PfLine or dimless Series
+    @Prep.raiseerror_if_otherdimlessseries  # other is now a PfLine...
+    @Prep.assert_objects_indexcompatibility  # ... with a compatible index
     def __rtruediv__(self: PfLine, other: Any) -> Union[PfLine, pd.Series]:
         return Divide.two_pflines(other, self)  # NB order!
 
-    @Checks.standardize_other  # other converted to None, a PfLine, or dimless Series
-    @Checks.returnself_if_otherNone  # other is now a PfLine or dimless Series
-    @Checks.raiseerror_if_otherdimlessseries  # other is now a PfLine...
-    @Checks.assert_objects_indexcompatibility  # ... with a compatible index
+    @Prep.standardize_other  # other converted to None, a PfLine, or dimless Series
+    @Prep.returnself_if_otherNone  # other is now a PfLine or dimless Series
+    @Prep.raiseerror_if_otherdimlessseries  # other is now a PfLine...
+    @Prep.assert_objects_indexcompatibility  # ... with a compatible index
     def __or__(self: PfLine, other: Any) -> PfLine:
         return Unite.two_pflines(self, other)
 
-    __ror__ = lambda self, other: self | other  # defer to __or__ # noqa
+    def __ror__(self: PfLine, other: Any) -> PfLine:
+        return self | other  # defer to __or__
 
 
 class Add:
-    @Checks.ensure_pflines_samestructure  # pfl1 and pfl2 are now both flat or both nested
+    @Prep.ensure_pflines_samestructure  # pfl1 and pfl2 are now both flat or both nested
     def two_pflines(pfl1: PfLine, pfl2: PfLine) -> PfLine:
         if isinstance(pfl1, classes.FlatPfLine):
             return Add.two_flatpflines(pfl1, pfl2)
         else:
             return Add.two_nestedpflines(pfl1, pfl2)
 
-    @Checks.assert_pflines_samekind  # pfl1 and pfl2 now have same kind
+    @Prep.assert_pflines_samekind  # pfl1 and pfl2 now have same kind
     def two_flatpflines(pfl1: FlatPfLine, pfl2: FlatPfLine) -> FlatPfLine:
         newdf = sum(tools.intersect.frames(pfl1.df, pfl2.df))  # keep common rows
         if pfl1.kind is Kind.COMPLETE:
@@ -212,7 +215,7 @@ class Add:
         #     newdf["p"] = tools.wavg.dataframe(values, weights, axis=1)
         return pfl1.__class__(newdf)
 
-    @Checks.assert_pflines_samekind  # pfl1 and pfl2 now have same kind
+    @Prep.assert_pflines_samekind  # pfl1 and pfl2 now have same kind
     def two_nestedpflines(pfl1: NestedPfLine, pfl2: NestedPfLine) -> NestedPfLine:
         newchildren = {}  # collect children and add those with same name
         for name in set([*pfl1, *pfl2]):
@@ -226,7 +229,7 @@ class Add:
 
 
 class Multiply:
-    @Checks.ensure_pflines_flat  # pfl1 and pfl2 are now both flat
+    @Prep.ensure_pflines_flat  # pfl1 and pfl2 are now both flat
     def two_pflines(pfl1: PfLine, pfl2: PfLine) -> PfLine:
         return Multiply.two_flatpflines(pfl1, pfl2)
 
@@ -261,7 +264,7 @@ class Multiply:
 
 
 class Divide:
-    @Checks.ensure_pflines_flat  # pfl1 and pfl2 are now both flat
+    @Prep.ensure_pflines_flat  # pfl1 and pfl2 are now both flat
     def two_pflines(pfl1: PfLine, pfl2: PfLine) -> Union[pd.Series, PfLine]:
         return Divide.two_flatpflines(pfl1, pfl2)
 
@@ -304,11 +307,11 @@ class Divide:
 
 
 class Unite:
-    @Checks.ensure_pflines_flat  # pfl1 and pfl2 are now both flat
+    @Prep.ensure_pflines_flat  # pfl1 and pfl2 are now both flat
     def two_pflines(pfl1: PfLine, pfl2: PfLine) -> PfLine:
         return Unite.two_flatpflines(pfl1, pfl2)
 
-    @Checks.assert_pflines_distinctkind  # pfl1 and pfl2 are now of distinct kind
+    @Prep.assert_pflines_distinctkind  # pfl1 and pfl2 are now of distinct kind
     def two_flatpflines(pfl1: FlatPfLine, pfl2: FlatPfLine) -> FlatPfLine:
         if Kind.COMPLETE in {pfl1.kind, pfl2.kind}:
             raise NotImplementedError(

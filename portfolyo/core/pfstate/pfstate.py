@@ -16,10 +16,13 @@ from ..mixins import ExcelClipboardOutput, PfStatePlot, PfStateText
 from ..ndframelike import NDFrameLike
 from ..pfline import PfLine, create_flatpfline, create_nestedpfline
 from . import pfstate_helper
+from .arithmatic import PfStateArithmatic
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
-class PfState(NDFrameLike, PfStateText, PfStatePlot, ExcelClipboardOutput):
+class PfState(
+    NDFrameLike, PfStateText, PfStatePlot, ExcelClipboardOutput, PfStateArithmatic
+):
     """Class to hold timeseries information of an energy portfolio, at a specific moment.
 
     Parameters
@@ -287,8 +290,3 @@ class _LocIndexer:
         unsourcedprice = self.pfs.unsourcedprice.loc[arg]
         sourced = self.pfs.sourced.loc[arg]
         return PfState(offtakevolume, unsourcedprice, sourced)
-
-
-from . import enable_arithmatic  # noqa
-
-enable_arithmatic.apply()
