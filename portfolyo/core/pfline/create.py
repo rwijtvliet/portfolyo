@@ -76,8 +76,5 @@ def create_nestedpfline(data: Any) -> NestedPfLine:
 
     # Data must be processed to see, which descendent class we need to return.
     children, kind = nested_helper.children_and_kind(data)
-    if cls := classes.constructor(Structure.NESTED, kind):
-        return cls(children)
-    raise ValueError(
-        f"Did not find a nested portfolio line class for the kind of the data ({kind})."
-    )
+    constructor = classes.constructor(Structure.NESTED, kind)
+    return constructor(children)

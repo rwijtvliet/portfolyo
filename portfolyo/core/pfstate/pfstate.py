@@ -178,7 +178,7 @@ class PfState(NDFrameLike, PfStateText, PfStatePlot, ExcelClipboardOutput):
 
     def set_offtakevolume(self, offtakevolume: PfLine) -> PfState:
         warnings.warn(
-            "This operation changes the unsourced volume. This causes inaccuracies in its price"
+            "This operation changes the unsourced volume. This causes inaccuracies in its price,"
             " if the portfolio state has a frequency that is longer than the spot market."
         )
         return PfState(offtakevolume, self.unsourcedprice, self.sourced)

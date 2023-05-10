@@ -338,6 +338,7 @@ class FlatVolumePfLine(FlatPfLine, VolumePfLine, PfLine):
 class NestedVolumePfLine(NestedPfLine, VolumePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are volume-pflines.
     children: Dict[str, VolumePfLine]
+    df: pd.DataFrame = dataclasses.field(init=False)
 
     def __post_init__(self):
         df = sum(child.df for child in self.children.values())
@@ -371,6 +372,7 @@ class FlatPricePfLine(FlatPfLine, PricePfLine, PfLine):
 class NestedPricePfLine(NestedPfLine, PricePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are price-pflines.
     children: Dict[str, PricePfLine]
+    df: pd.DataFrame = dataclasses.field(init=False)
 
     def __post_init__(self):
         df = sum(child.df for child in self.children.values())
@@ -407,6 +409,7 @@ class FlatRevenuePfLine(FlatPfLine, RevenuePfLine, PfLine):
 class NestedRevenuePfLine(NestedPfLine, RevenuePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are revenue-pflines.
     children: Dict[str, RevenuePfLine]
+    df: pd.DataFrame = dataclasses.field(init=False)
 
     def __post_init__(self):
         df = sum(child.df for child in self.children.values())
@@ -459,6 +462,7 @@ class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
 class NestedCompletePfLine(NestedPfLine, CompletePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are complete-pflines.
     children: Dict[str, CompletePfLine]
+    df: pd.DataFrame = dataclasses.field(init=False)
 
     def __post_init__(self):
         df = sum(child.df[["w", "q", "r"]] for child in self.children.values())

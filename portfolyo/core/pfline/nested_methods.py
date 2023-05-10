@@ -32,40 +32,40 @@ def set_child(self: NestedPfLine, name: str, child: Union[PfLine, Any]) -> Neste
 
 def drop_child(self: NestedPfLine, name: str) -> NestedPfLine:
     """Drop child; returns new pfline instance without changing current instance."""
-    if name not in self._children:
+    if name not in self.children:
         raise KeyError(f"Portfolio line does not have child with name '{name}'.")
-    if len(self._children) == 1:
+    if len(self.children) == 1:
         raise RuntimeError("Cannot remove the last child of a portfolio line.")
     newchildren = {n: child for n, child in self.items() if n != name}
     return self.__class__(newchildren)
 
 
 def __getitem__(self: NestedPfLine, name: str):
-    if name not in self._children:
+    if name not in self.children:
         raise KeyError(
             f"Portfolio line does not have child with name '{name}'."
-            f" Names of available children: {', '.join(self._children.keys())}."
+            f" Names of available children: {', '.join(self.children.keys())}."
         )
-    return self._children[name]
+    return self.children[name]
 
 
 def items(self: NestedPfLine):
     """Iterate over children in (name, child)-tuples."""
-    return self._children.items()
+    return self.children.items()
 
 
 def __iter__(self: NestedPfLine):
-    return iter(self._children.keys())
+    return iter(self.children.keys())
 
 
 def __len__(self: NestedPfLine):
-    return len(self._children)
+    return len(self.children)
 
 
 def __getattr__(self: NestedPfLine, name):  # allow access to children by attribute
-    if name not in self._children:
+    if name not in self.children:
         raise AttributeError(f"No such attribute '{name}'.")
-    return self._children[name]
+    return self.children[name]
 
 
 def map_to_year(self: NestedPfLine, year: int, holiday_country: str) -> NestedPfLine:
@@ -77,13 +77,13 @@ def map_to_year(self: NestedPfLine, year: int, holiday_country: str) -> NestedPf
 
 def __bool__(self: NestedPfLine) -> bool:
     # True if a) has children of which b) any are true
-    return any(self._children.keys())
+    return any(self.children.keys())
 
 
 def __eq__(self: NestedPfLine, other: Any) -> bool:
     if not isinstance(other, self.__class__):
         return False
-    return self._children == other._children
+    return self.children == other.children
 
 
 @property
