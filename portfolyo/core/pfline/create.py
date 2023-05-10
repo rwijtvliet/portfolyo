@@ -64,7 +64,18 @@ def create_flatpfline(data: Any) -> FlatPfLine:
 
 
 def create_nestedpfline(data: Any) -> NestedPfLine:
-    """Create a NestedPfLine instance from the provided data, if possible."""
+    """Create a NestedPfLine instance from the provided data, if possible.
+
+    Parameters
+    ----------
+    data: Any
+        Generally: mapping, between strings (as keys) and portfolio lines, or objects
+        that can be converted into portfolio lines (as values).
+
+    Returns
+    -------
+    NestedPfLine
+    """
     if isinstance(data, classes.NestedPfLine):
         # Data already correct instance. Quick-return.
         return data

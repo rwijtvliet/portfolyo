@@ -9,7 +9,14 @@ import numpy as np
 import pandas as pd
 
 from .. import tools
-from ..core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine
+from ..core.pfline import (
+    FlatPfLine,
+    Kind,
+    NestedPfLine,
+    PfLine,
+    create_flatpfline,
+    create_nestedpfline,
+)
 from ..core.pfstate import PfState
 from . import mockup
 
@@ -140,7 +147,7 @@ def get_flatpfline(
         Kind.REVENUE: "r",
         Kind.COMPLETE: "qr",
     }[kind]
-    return FlatPfLine(get_dataframe(i, columns, _seed=_seed))
+    return create_flatpfline(get_dataframe(i, columns, _seed=_seed))
 
 
 def get_nestedpfline(
@@ -149,7 +156,7 @@ def get_nestedpfline(
     """Get nested portfolio line. With 2 (flat) children of the same ``kind``."""
     if i is None:
         i = get_index(_seed=_seed)
-    return NestedPfLine(
+    return create_nestedpfline(
         {
             "A": get_flatpfline(i, kind, _seed=_seed),
             "B": get_flatpfline(i, kind, _seed=_seed),
@@ -184,7 +191,7 @@ def get_randompfline(
         children[name] = get_randompfline(
             i, kind, max_nlevels - 1, prefix=f"{prefix}{c}.", _seed=_seed
         )
-    return NestedPfLine(children)
+    return create_nestedpfline(children)
 
 
 # Portfolio state.

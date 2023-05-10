@@ -5,7 +5,7 @@ from typing import Dict, Iterable
 import pandas as pd
 import pytest
 
-from portfolyo import NestedPfLine, PfLine, create_flatpfline, testing
+from portfolyo import PfLine, create_flatpfline, create_nestedpfline, testing
 
 tz = "Europe/Berlin"
 
@@ -44,7 +44,7 @@ ref_children = {
         ),
     },
 }
-ref_pfl = {kind: NestedPfLine(ref_children[kind]) for kind in ref_children}
+ref_pfl = {kind: create_nestedpfline(ref_children[kind]) for kind in ref_children}
 
 # Children with partial overlap.
 i2 = pd.date_range("2020-02", freq="MS", periods=3, tz=tz)
@@ -61,7 +61,9 @@ children12_trimmed = {
     kind: {n: c.loc[i12] for n, c in {**ref_children[kind], **children2[kind]}.items()}
     for kind in ref_children
 }
-pfl12 = {kind: NestedPfLine(children12_trimmed[kind]) for kind in children12_trimmed}
+pfl12 = {
+    kind: create_nestedpfline(children12_trimmed[kind]) for kind in children12_trimmed
+}
 
 # Child with no overlap.
 i3 = pd.date_range("2022", freq="MS", periods=3, tz=tz)
@@ -165,7 +167,7 @@ def test_setchild(children: dict, how: str, addorreplace: str, expected: PfLine)
         startchildren = dict(rest)
     else:
         startchildren = {**children, name: rest[0][1]}  # Start with repeated child.
-    pfl = NestedPfLine(startchildren)
+    pfl = create_nestedpfline(startchildren)
 
     if how == "inplace":
         expected = Exception
@@ -197,7 +199,7 @@ def test_setchild_overlap(
     else:
         to_be_overwritten = {n: c for n, c in zip(to_add.keys(), children.values())}
         startchildren = {**children, **to_be_overwritten}
-    pfl = NestedPfLine(startchildren)
+    pfl = create_nestedpfline(startchildren)
 
     if how == "inplace":
         expected = Exception
@@ -227,7 +229,7 @@ def test_setchild_error_kind(
     else:
         to_be_overwritten = {n: c for n, c in zip(to_add.keys(), children.values())}
         startchildren = {**children, **to_be_overwritten}
-    pfl = NestedPfLine(startchildren)
+    pfl = create_nestedpfline(startchildren)
 
     do_test_setchild(pfl, to_add, Exception, how)
 
@@ -264,7 +266,7 @@ def test_setchild_error(
     else:
         to_be_overwritten = {n: c for n, c in zip(to_add.keys(), children.values())}
         startchildren = {**children, **to_be_overwritten}
-    pfl = NestedPfLine(startchildren)
+    pfl = create_nestedpfline(startchildren)
 
     do_test_setchild(pfl, to_add, Exception, how)
 
@@ -282,8 +284,8 @@ def test_setchild_error(
 def test_dropchild(children: Dict[str, PfLine], how: str):
     """Test if child can be deleted from a pfline."""
     *rest, (name, child) = children.items()
-    pfl = NestedPfLine(children)
-    expected = NestedPfLine(dict(rest))
+    pfl = create_nestedpfline(children)
+    expected = create_nestedpfline(dict(rest))
 
     if how == "inplace":
         expected = Exception
@@ -294,9 +296,9 @@ def test_dropchild(children: Dict[str, PfLine], how: str):
 @pytest.mark.parametrize(
     "pfl,to_drop",
     [
-        (NestedPfLine(ref_children["vol"]), "NonexistentChild"),
-        (NestedPfLine({"childA": ref_children["vol"]}), "childA"),
-        (NestedPfLine(ref_children["vol"]).flatten(), "NonexistentChild"),
+        (create_nestedpfline(ref_children["vol"]), "NonexistentChild"),
+        (create_nestedpfline({"childA": ref_children["vol"]}), "childA"),
+        (create_nestedpfline(ref_children["vol"]).flatten(), "NonexistentChild"),
     ],
 )
 @pytest.mark.parametrize("how", ["inplace", "newobj"])
