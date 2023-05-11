@@ -7,11 +7,11 @@ import colorama
 import pandas as pd
 
 from ... import tools
-from .. import line
+from .. import pfline
 
 if TYPE_CHECKING:
-    from ..line import PfLine
-    from ..state import PfState
+    from ..pfline import PfLine
+    from ..pfstate import PfState
 
 COLORS = ["WHITE", "YELLOW", "CYAN", "GREEN", "RED", "BLUE", "MAGENTA", "BLACK"]
 TREECOLORS = [colorama.Style.BRIGHT + getattr(colorama.Fore, f) for f in COLORS]
@@ -56,10 +56,10 @@ def _df_with_strindex(df: pd.DataFrame, num_of_ts: int):
 
 def _what(pfl: PfLine) -> str:
     return {
-        line.Kind.VOLUME: "volume",
-        line.Kind.PRICE: "price",
-        line.Kind.REVENUE: "revenue",
-        line.Kind.COMPLETE: "complete",
+        pfline.Kind.VOLUME: "volume",
+        pfline.Kind.PRICE: "price",
+        pfline.Kind.REVENUE: "revenue",
+        pfline.Kind.COMPLETE: "complete",
     }[pfl.kind]
 
 
@@ -119,7 +119,7 @@ def _nestedtree(
 ) -> Iterable[str]:
     """Treeview of the portfolio line."""
     out = []
-    tree = _treedict(depth, is_last, isinstance(pfl, line.NestedPfLine))
+    tree = _treedict(depth, is_last, isinstance(pfl, pfline.NestedPfLine))
     # Name.
     out.append(tree["00"] + tree["01"] + name)
     # Top-level body block.
@@ -158,7 +158,7 @@ def _childrenlines(
 ) -> Iterable[str]:
     """Treeview of only the children."""
     out = []
-    if isinstance(pfl, line.FlatPfLine):
+    if isinstance(pfl, pfline.FlatPfLine):
         return out
     for c, (name, child) in enumerate(pfl.items()):
         is_last, is_only = (c == len(pfl) - 1), (len(pfl) == 1)
@@ -174,7 +174,7 @@ def _childrenlines(
 def pfl_as_string(pfl: PfLine, flatten: bool, num_of_ts: int, color: bool) -> str:
     lines = [f"PfLine object with {_what(pfl)} information."]
     lines.extend(_index_info(pfl.index))
-    if isinstance(pfl, line.NestedPfLine):
+    if isinstance(pfl, pfline.NestedPfLine):
         lines.extend(_children_info(pfl))
     cols = pfl.kind.available
     if flatten:

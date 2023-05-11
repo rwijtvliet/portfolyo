@@ -62,7 +62,7 @@ def __len__(self: NestedPfLine):
     return len(self.children)
 
 
-def __getattr__(self: NestedPfLine, name):  # allow access to children by attribute
+def __getattr__(self: NestedPfLine, name: str):  # allow access to children by attribute
     if name not in self.children:
         raise AttributeError(f"No such attribute '{name}'.")
     return self.children[name]

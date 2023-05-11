@@ -3,7 +3,7 @@ import pandas as pd
 import pytest
 
 from portfolyo import PfState, dev, flatpfline, testing  # noqa
-from portfolyo.core.state.pfstate_helper import make_pflines
+from portfolyo.core.pfstate.pfstate_helper import make_pflines
 
 # Assert correct working of _make_pflines
 # . check unsourced and offtake are specified.

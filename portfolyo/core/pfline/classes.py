@@ -10,7 +10,7 @@ import pandas as pd
 from ... import tools
 from ..mixins import ExcelClipboardOutput, PfLinePlot, PfLineText
 from ..ndframelike import NDFrameLike
-from . import dataframeexport, decorators, flat_methods, nested_methods, prices
+from . import create, dataframeexport, decorators, flat_methods, nested_methods, prices
 from .arithmatic import PfLineArithmatic
 from .enums import Kind, Structure
 
@@ -34,15 +34,20 @@ def constructor(structure: Structure, kind: Kind) -> type:
 # PfLine(data)), the code actually creates, initialises, and returns one of its
 # subclasses. Normally, this would causes python to finally call the subclass' __init__
 # method once more, using the original data as input, undoing the previous
-# initialisation. To prevent this, use decorate the subclass __init__ method.
-# def dont_initialize_twice(__init__):
-#     def wrapped(self, *args, **kwargs):
-#         if hasattr(self, "_initialized"):
-#             return
-#         __init__(self, *args, **kwargs)
-#         self._initialized = True
+# initialisation. To prevent this, use decorate the subclass with this decorator.
+def dont_init_twice(Class):
+    """Decorator for PfLine descendents, to allow PfLine to return a child instance."""
+    original_init = Class.__init__
+    Class._initialized = False
 
-#     return wrapped
+    def wrapped_init(self, *args, **kwargs):
+        if not self._initialized:
+            object.__setattr__(self, "_initialized", True)
+            original_init(self, *args, **kwargs)
+
+    Class.__init__ = wrapped_init
+
+    return Class
 
 
 def series_property_raising_typeerror(what: str) -> Callable[[PfLine], pd.Series]:
@@ -61,18 +66,17 @@ class PfLine(
     a combination of all.
     """
 
-    def __new__(cls, *args, **kwargs):
-        if cls is PfLine:
-            raise TypeError(
-                "Creating a new PfLine instance this way has been deprecated."
-                " Use the `create_pfline` function instead.",
-            )
-        return super().__new__(cls)
+    def __new__(cls, data=None, *args, **kwargs):
+        if cls is not PfLine:
+            # User actually called one of its descendents. Just move along
+            return super().__new__(cls)
+
+        # User did indeed call PfLine and data must be processed by a descendent's __init__
+        return create.pfline(data)
 
     def __post_init__(self):
-        assert set(self.df.columns) == set(
-            self.kind.available
-        ), f"(Expected columns {self.kind.available}, received {self.df.columns}."
+        err = f"Expected columns {self.kind.available}, received {self.df.columns}."
+        assert set(self.df.columns) == set(self.kind.available), err
 
     @property
     def index(self) -> pd.DatetimeIndex:
@@ -268,13 +272,13 @@ class FlatPfLine(PfLine):
 
     structure = Structure.FLAT
 
-    def __new__(cls, *args, **kwargs):
-        if cls is FlatPfLine:
-            raise TypeError(
-                "Creating a new FlatPfLine instance this way has been deprecated."
-                " Use the `create_flatpfline` function instead.",
-            )
-        return super().__new__(cls)
+    def __new__(cls, data=None, *args, **kwargs):
+        if cls is not FlatPfLine:
+            # User actually called one of its descendents. Just move along
+            return super().__new__(cls)
+
+        # User did indeed call PfLine and data must be processed by a descendent's __init__
+        return create.flatpfline(data)
 
     dataframe = dataframeexport.Flat.dataframe
     flatten = flat_methods.flatten
@@ -288,13 +292,13 @@ class FlatPfLine(PfLine):
 class NestedPfLine(PfLine):
     structure = Structure.NESTED
 
-    def __new__(cls, *args, **kwargs):
-        if cls is NestedPfLine:
-            raise TypeError(
-                "Creating a new NestedPfLine instance this way has been deprecated."
-                " Use the `create_nestedpfline` function instead.",
-            )
-        return super().__new__(cls)
+    def __new__(cls, data=None, *args, **kwargs):
+        if cls is not NestedPfLine:
+            # User actually called one of its descendents. Just move along
+            return super().__new__(cls)
+
+        # User did indeed call PfLine and data must be processed by a descendent's __init__
+        return create.pfline(data)
 
     dataframe = dataframeexport.Nested.dataframe
     flatten = nested_methods.flatten
@@ -313,6 +317,7 @@ class NestedPfLine(PfLine):
     __eq__ = nested_methods.__eq__
 
 
+@dont_init_twice
 @dataclasses.dataclass(frozen=True, repr=False)
 class FlatVolumePfLine(FlatPfLine, VolumePfLine, PfLine):
     # Class is only called internally, so expect df to be in correct format. Here: with columns 'w', 'q'.
@@ -334,6 +339,7 @@ class FlatVolumePfLine(FlatPfLine, VolumePfLine, PfLine):
         return not np.allclose(self.df["w"].pint.magnitude, 0.0)
 
 
+@dont_init_twice
 @dataclasses.dataclass(frozen=True, repr=False)
 class NestedVolumePfLine(NestedPfLine, VolumePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are volume-pflines.
@@ -349,6 +355,7 @@ class NestedVolumePfLine(NestedPfLine, VolumePfLine, PfLine):
         return NestedVolumePfLine(newchildren)
 
 
+@dont_init_twice
 @dataclasses.dataclass(frozen=True, repr=False)
 class FlatPricePfLine(FlatPfLine, PricePfLine, PfLine):
     # Class is only called internally, so expect df to be in correct format. Here: with column 'p'.
@@ -368,6 +375,7 @@ class FlatPricePfLine(FlatPfLine, PricePfLine, PfLine):
         return not np.allclose(self.df["p"].pint.magnitude, 0.0)
 
 
+@dont_init_twice
 @dataclasses.dataclass(frozen=True, repr=False)
 class NestedPricePfLine(NestedPfLine, PricePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are price-pflines.
@@ -383,6 +391,7 @@ class NestedPricePfLine(NestedPfLine, PricePfLine, PfLine):
         return NestedPricePfLine(newchildren)
 
 
+@dont_init_twice
 @dataclasses.dataclass(frozen=True, repr=False)
 class FlatRevenuePfLine(FlatPfLine, RevenuePfLine, PfLine):
     # Class is only called internally, so expect df to be in correct format. Here: with column 'r'.
@@ -405,6 +414,7 @@ class FlatRevenuePfLine(FlatPfLine, RevenuePfLine, PfLine):
         return not np.allclose(self.df["r"].pint.magnitude, 0.0)
 
 
+@dont_init_twice
 @dataclasses.dataclass(frozen=True, repr=False)
 class NestedRevenuePfLine(NestedPfLine, RevenuePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are revenue-pflines.
@@ -420,6 +430,7 @@ class NestedRevenuePfLine(NestedPfLine, RevenuePfLine, PfLine):
         return NestedRevenuePfLine(newchildren)
 
 
+@dont_init_twice
 @dataclasses.dataclass(frozen=True, repr=False)
 class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
     # Class is only called internally, so expect df to be in correct format. Here: with columns 'w', 'q', 'p', 'r'.
@@ -458,6 +469,7 @@ class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
         )
 
 
+@dont_init_twice
 @dataclasses.dataclass(frozen=True, repr=False)
 class NestedCompletePfLine(NestedPfLine, CompletePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are complete-pflines.

@@ -12,7 +12,7 @@ from typing import Iterable, Optional
 import pandas as pd
 
 from ... import tools
-from ..line import PfLine, create
+from ..pfline import PfLine, create
 from ..mixins import ExcelClipboardOutput, PfStatePlot, PfStateText
 from ..ndframelike import NDFrameLike
 from . import pfstate_helper

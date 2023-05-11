@@ -74,7 +74,7 @@ def get_testcase_A(
         if not has_unit:
             df = Exception
     elif inputtype is InputTypeA.SINGLEPFLINE:
-        data_in = pf.flatpfline(df)
+        data_in = pf.FlatPfLine(df)
     elif inputtype is InputTypeA.MULTIPFLINE:
         if columns in ["w", "q", "p", "qr", "wr"]:
             df1 = 0.4 * df
@@ -83,7 +83,7 @@ def get_testcase_A(
             othercol = columns.replace("p", "")
             df1 = df.mul({"p": 1, othercol: 0.4})
             df2 = df.mul({"p": 1, othercol: 0.6})
-        data_in = pf.nestedpfline({"a": pf.flatpfline(df1), "b": pf.flatpfline(df2)})
+        data_in = pf.NestedPfLine({"a": pf.FlatPfLine(df1), "b": pf.FlatPfLine(df2)})
     else:
         raise ValueError("unknown inputtype")
 

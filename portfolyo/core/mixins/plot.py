@@ -14,8 +14,8 @@ from ... import tools
 from ... import visualize as vis
 
 if TYPE_CHECKING:  # needed to avoid circular imports
-    from ..line import PfLine
-    from ..state import PfState
+    from ..pfline import PfLine
+    from ..pfstate import PfState
 
 
 DEFAULTHOW = {"r": "bar", "q": "bar", "p": "hline", "w": "area", "f": "area"}

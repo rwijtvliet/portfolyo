@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from portfolyo import dev, testing, tools
-from portfolyo.core.line import flat_helper
+from portfolyo.core.pfline import flat_helper
 
 
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])

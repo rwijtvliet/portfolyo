@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 
 from .. import tools
-from ..core.line import FlatPfLine, Kind, NestedPfLine, PfLine, create
-from ..core.state import PfState
+from ..core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine, create
+from ..core.pfstate import PfState
 from . import mockup
 
 OK_COL_COMBOS = ["w", "q", "p", "pr", "qr", "qp", "wp", "wr"]

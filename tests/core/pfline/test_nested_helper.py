@@ -7,7 +7,7 @@ import pytest
 
 from portfolyo import Kind, dev, testing, tools
 
-from portfolyo.core.line import nested_helper
+from portfolyo.core.pfline import nested_helper
 
 
 @pytest.mark.parametrize("freq", ["MS", "D"])

@@ -7,7 +7,7 @@ from typing import Any, Iterable
 import pandas as pd
 
 from ... import tools
-from ..line import Kind, PfLine, create
+from ..pfline import Kind, PfLine, create
 
 
 def make_pflines(

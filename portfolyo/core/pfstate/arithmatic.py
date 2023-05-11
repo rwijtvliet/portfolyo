@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Union
 import pandas as pd
 
 from ... import tools
-from ..line import PfLine, create_flatpfline
+from ..pfline import PfLine, create
 from . import pfstate
 
 if TYPE_CHECKING:  # needed to avoid circular imports
@@ -68,7 +68,7 @@ class Prep:
             if name not in ["p", "q", "w"]:
                 return value  # has know unit, but none from which PfLine can be made
 
-            return create_flatpfline({name: value})
+            return create.flatpfline({name: value})
 
         # Just a single value.
         if isinstance(value, int) or isinstance(value, float):
@@ -165,7 +165,7 @@ class Add:
         # . Therefore, use weighted average.
         values = pd.DataFrame({"s": pfs1.unsourcedprice.p, "o": pfs2.unsourcedprice.p})
         weights = pd.DataFrame({"s": pfs1.unsourced.q, "o": pfs2.unsourced.q})
-        unsourcedprice = create_flatpfline(
+        unsourcedprice = create.flatpfline(
             {"p": tools.wavg.dataframe(values, weights, axis=1)}
         )
 
