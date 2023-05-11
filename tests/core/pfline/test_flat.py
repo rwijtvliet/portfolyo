@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from portfolyo import Kind, dev, flatpfline, testing
+from portfolyo import Kind, dev, FlatPfLine, testing
 
 # @dataclass
 # class InteropTestObject:
@@ -41,11 +41,11 @@ from portfolyo import Kind, dev, flatpfline, testing
 
 
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
-def test_flatpfline_access(columns):
+def test_FlatPfLine_access(columns):
     """Test if core data can be accessed by item and attribute."""
 
     df = dev.get_dataframe(columns=columns)
-    result = flatpfline(df)
+    result = FlatPfLine(df)
 
     testing.assert_index_equal(result.index, df.index)
     # testing.assert_index_equal(result["index"], df.index)# access by item is deprecated
@@ -76,14 +76,14 @@ rr = [p * q for p, q in zip(pp, qq)]
 @pytest.mark.parametrize(
     "pfls",
     [
-        (flatpfline({"w": w}) for w in ww),
-        (flatpfline({"q": q}) for q in qq),
-        (flatpfline({"p": p}) for p in pp),
-        (flatpfline({"p": p, "w": w}) for w, p in zip(ww, pp)),
-        (flatpfline({"w": w, "r": r}) for w, r in zip(ww, rr)),
+        (FlatPfLine({"w": w}) for w in ww),
+        (FlatPfLine({"q": q}) for q in qq),
+        (FlatPfLine({"p": p}) for p in pp),
+        (FlatPfLine({"p": p, "w": w}) for w, p in zip(ww, pp)),
+        (FlatPfLine({"w": w, "r": r}) for w, r in zip(ww, rr)),
     ],
 )
-def test_flatpfline_asfreqcorrect1(pfls):
+def test_FlatPfLine_asfreqcorrect1(pfls):
     """Test if changing frequency is done correctly (when it's possible), for uniform pflines."""
     for pfl_in in pfls:
         for expected_out in pfls:
@@ -97,7 +97,7 @@ def test_flatpfline_asfreqcorrect1(pfls):
 @pytest.mark.parametrize("freq", ["H", "D", "MS", "QS", "AS"])
 @pytest.mark.parametrize("newfreq", ["H", "D", "MS", "QS", "AS"])
 @pytest.mark.parametrize("columns", ["pr", "qr", "pq", "wp", "wr"])
-def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
+def test_FlatPfLine_asfreqcorrect2(freq, newfreq, columns, tz):
     """Test if changing frequency is done correctly (when it's possible)."""
 
     # Includes at 2 full years
@@ -108,7 +108,7 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
 
     i = pd.date_range(start, end, freq=freq, tz=tz)
     df = dev.get_dataframe(i, columns)
-    pfl1 = flatpfline(df)
+    pfl1 = FlatPfLine(df)
     pfl2 = pfl1.asfreq(newfreq)
 
     # Compare the dataframes, only keep time intervals that are in both objects.
@@ -133,22 +133,22 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
 @pytest.mark.parametrize("freq", ["15T", "H", "D"])
 @pytest.mark.parametrize("newfreq", ["MS", "QS", "AS"])
 @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
-def test_flatpfline_asfreqimpossible(freq, newfreq, kind):
+def test_FlatPfLine_asfreqimpossible(freq, newfreq, kind):
     """Test if changing frequency raises error if it's impossible."""
 
     periods = {"H": 200, "15T": 2000, "D": 20}[freq]
     i = pd.date_range("2020-04-06", freq=freq, periods=periods, tz="Europe/Berlin")
-    pfl = dev.get_flatpfline(i, kind)
+    pfl = dev.get_FlatPfLine(i, kind)
     with pytest.raises(ValueError):
         _ = pfl.asfreq(newfreq)
 
 
 @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE, Kind.REVENUE])
 @pytest.mark.parametrize("col", ["w", "q", "p", "r"])
-def test_flatpfline_setseries(kind, col):
+def test_FlatPfLine_setseries(kind, col):
     """Test if series can be set on existing pfline."""
 
-    pfl_in = dev.get_flatpfline(kind=kind)
+    pfl_in = dev.get_FlatPfLine(kind=kind)
     s = dev.get_series(pfl_in.index, col)
 
     if kind is Kind.COMPLETE:  # Expecting error
