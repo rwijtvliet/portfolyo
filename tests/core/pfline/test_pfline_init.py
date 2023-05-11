@@ -9,15 +9,7 @@ import pandas as pd
 import pytest
 
 import portfolyo as pf
-from portfolyo import (
-    FlatPfLine,
-    Kind,
-    NestedPfLine,
-    PfLine,
-    create_flatpfline,
-    create_nestedpfline,
-    dev,
-)
+from portfolyo import FlatPfLine, Kind, NestedPfLine, PfLine, dev
 
 
 @dataclass
@@ -82,7 +74,7 @@ def get_testcase_A(
         if not has_unit:
             df = Exception
     elif inputtype is InputTypeA.SINGLEPFLINE:
-        data_in = create_flatpfline(df)
+        data_in = pf.flatpfline(df)
     elif inputtype is InputTypeA.MULTIPFLINE:
         if columns in ["w", "q", "p", "qr", "wr"]:
             df1 = 0.4 * df
@@ -91,9 +83,7 @@ def get_testcase_A(
             othercol = columns.replace("p", "")
             df1 = df.mul({"p": 1, othercol: 0.4})
             df2 = df.mul({"p": 1, othercol: 0.6})
-        data_in = create_nestedpfline(
-            {"a": create_flatpfline(df1), "b": create_flatpfline(df2)}
-        )
+        data_in = pf.nestedpfline({"a": pf.flatpfline(df1), "b": pf.flatpfline(df2)})
     else:
         raise ValueError("unknown inputtype")
 

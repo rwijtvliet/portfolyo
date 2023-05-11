@@ -11,8 +11,8 @@ from portfolyo import (
     Kind,
     NestedPfLine,
     PfState,
-    create_flatpfline,
     dev,
+    flatpfline,
     testing,
 )
 
@@ -47,12 +47,12 @@ tz = "Europe/Berlin"
 # Set 1.
 i1 = pd.date_range("2020", freq="MS", periods=3, tz=tz)
 dataset1 = {
-    "offtake": create_flatpfline({"w": pd.Series([-3.5, -5, -5], i1)}),
-    "unsourcedprice": create_flatpfline({"p": pd.Series([300.0, 150, 100], i1)}),
-    "sourced": create_flatpfline(
+    "offtake": flatpfline({"w": pd.Series([-3.5, -5, -5], i1)}),
+    "unsourcedprice": flatpfline({"p": pd.Series([300.0, 150, 100], i1)}),
+    "sourced": flatpfline(
         {"w": pd.Series([3.0, 5, 4], i1), "p": pd.Series([200.0, 100, 50], i1)}
     ),
-    "unsourced": create_flatpfline(
+    "unsourced": flatpfline(
         {"w": pd.Series([0.5, 0, 1], i1), "p": pd.Series([300.0, 150, 100], i1)}
     ),
     "nodim": pd.Series([2, -1.5, 10], i1),
@@ -62,12 +62,12 @@ pfs1 = PfState(dataset1["offtake"], dataset1["unsourcedprice"], dataset1["source
 # Set 2. Partial overlap with set 1.
 i2 = pd.date_range("2020-02", freq="MS", periods=3, tz=tz)
 dataset2 = {
-    "offtake": create_flatpfline({"w": pd.Series([-15.0, -20, -4], i2)}),
-    "unsourcedprice": create_flatpfline({"p": pd.Series([400.0, 50, 50], i2)}),
-    "sourced": create_flatpfline(
+    "offtake": flatpfline({"w": pd.Series([-15.0, -20, -4], i2)}),
+    "unsourcedprice": flatpfline({"p": pd.Series([400.0, 50, 50], i2)}),
+    "sourced": flatpfline(
         {"w": pd.Series([12.0, 5, 4], i2), "p": pd.Series([100.0, 100, 50], i2)}
     ),
-    "unsourced": create_flatpfline(
+    "unsourced": flatpfline(
         {"w": pd.Series([3.0, 15, 0], i2), "p": pd.Series([400.0, 50, 50], i2)}
     ),
     "nodim": pd.Series([2, -1.5, 10], i2),
@@ -113,11 +113,9 @@ neg_pfs1 = PfState(
 )
 i12 = pd.date_range("2020-02", freq="MS", periods=2, tz=tz)
 add_pfs1_pfs2 = PfState(
-    create_flatpfline({"w": pd.Series([-20.0, -25], i12)}),
-    create_flatpfline({"p": pd.Series([400, 53.125], i12)}),
-    create_flatpfline(
-        {"w": pd.Series([17.0, 9], i12), "p": pd.Series([100, 700 / 9], i12)}
-    ),
+    flatpfline({"w": pd.Series([-20.0, -25], i12)}),
+    flatpfline({"p": pd.Series([400, 53.125], i12)}),
+    flatpfline({"w": pd.Series([17.0, 9], i12), "p": pd.Series([100, 700 / 9], i12)}),
 )
 div_pfs1_pfs2 = pd.DataFrame(
     {

@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from pint import DimensionalityError, UndefinedUnitError
 
-from portfolyo.core.pfline import interop as io
+from portfolyo.core.line import interop as io
 from portfolyo.tools.unit import Q_
 
 idx1 = pd.date_range("2020", freq="MS", periods=12)

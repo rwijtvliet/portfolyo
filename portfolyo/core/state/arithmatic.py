@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Union
 import pandas as pd
 
 from ... import tools
-from ..pfline import PfLine, create_flatpfline
+from ..line import PfLine, create_flatpfline
 from . import pfstate
 
 if TYPE_CHECKING:  # needed to avoid circular imports

@@ -7,18 +7,8 @@ import pandas as pd
 import pytest
 
 import portfolyo as pf
-from portfolyo import create_pfline  # noqa
 from portfolyo import dev  # noqa
-from portfolyo import (
-    Q_,
-    FlatPfLine,
-    Kind,
-    NestedPfLine,
-    PfLine,
-    create_flatpfline,
-    create_nestedpfline,
-    testing,
-)
+from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine, testing
 
 # TODO: various timezones
 
@@ -228,7 +218,7 @@ class Testvalues:
         return [
             Testvalue(kind, "flat", pfl1),
             Testvalue(
-                kind, "nested", create_nestedpfline({"childA": pfl1, "childB": pfl2})
+                kind, "nested", pf.nestedpfline({"childA": pfl1, "childB": pfl2})
             ),
             Testvalue(kind, "nested", {"childC": pfl1, "childD": pfl2}),
         ]
@@ -386,10 +376,10 @@ series0 = {
     "r": pd.Series([0.0, 0, 0], i),
 }
 pflset0 = {
-    Kind.VOLUME: create_flatpfline({"w": series0["w"]}),
-    Kind.PRICE: create_flatpfline({"p": series0["p"]}),
-    Kind.REVENUE: create_flatpfline({"p": series0["r"]}),
-    Kind.COMPLETE: create_flatpfline({"w": series0["w"], "p": series0["p"]}),
+    Kind.VOLUME: pf.flatpfline({"w": series0["w"]}),
+    Kind.PRICE: pf.flatpfline({"p": series0["p"]}),
+    Kind.REVENUE: pf.flatpfline({"p": series0["r"]}),
+    Kind.COMPLETE: pf.flatpfline({"w": series0["w"], "p": series0["p"]}),
 }
 series_ref = {
     "w": pd.Series([3.0, 5, -4], i),
@@ -397,65 +387,63 @@ series_ref = {
     "r": pd.Series([446400.0, 348000, -148600], i),
 }
 pflset_ref = {
-    Kind.VOLUME: create_flatpfline({"w": series_ref["w"]}),
-    Kind.PRICE: create_flatpfline({"p": series_ref["p"]}),
-    Kind.REVENUE: create_flatpfline({"r": series_ref["r"]}),
-    Kind.COMPLETE: create_flatpfline({"w": series_ref["w"], "p": series_ref["p"]}),
+    Kind.VOLUME: pf.flatpfline({"w": series_ref["w"]}),
+    Kind.PRICE: pf.flatpfline({"p": series_ref["p"]}),
+    Kind.REVENUE: pf.flatpfline({"r": series_ref["r"]}),
+    Kind.COMPLETE: pf.flatpfline({"w": series_ref["w"], "p": series_ref["p"]}),
 }
 series_mul2 = {
     **{key: series * 2 for key, series in series_ref.items()},
     "nodim": pd.Series([2, 2, 2], i),
 }
 pflset_mul2 = {
-    Kind.VOLUME: create_flatpfline({"w": series_mul2["w"]}),
-    Kind.PRICE: create_flatpfline({"p": series_mul2["p"]}),
-    Kind.REVENUE: create_flatpfline({"r": series_mul2["r"]}),
-    Kind.COMPLETE: create_flatpfline({"w": series_mul2["w"], "p": series_mul2["p"]}),
+    Kind.VOLUME: pf.flatpfline({"w": series_mul2["w"]}),
+    Kind.PRICE: pf.flatpfline({"p": series_mul2["p"]}),
+    Kind.REVENUE: pf.flatpfline({"r": series_mul2["r"]}),
+    Kind.COMPLETE: pf.flatpfline({"w": series_mul2["w"], "p": series_mul2["p"]}),
 }
 series_div2 = {
     **{key: series * 0.5 for key, series in series_ref.items()},
     "nodim": pd.Series([0.5, 0.5, 0.5], i),
 }
 pflset_div2 = {
-    Kind.VOLUME: create_flatpfline({"w": series_div2["w"]}),
-    Kind.PRICE: create_flatpfline({"p": series_div2["p"]}),
-    Kind.REVENUE: create_flatpfline({"r": series_div2["r"]}),
-    Kind.COMPLETE: create_flatpfline({"w": series_div2["w"], "p": series_div2["p"]}),
+    Kind.VOLUME: pf.flatpfline({"w": series_div2["w"]}),
+    Kind.PRICE: pf.flatpfline({"p": series_div2["p"]}),
+    Kind.REVENUE: pf.flatpfline({"r": series_div2["r"]}),
+    Kind.COMPLETE: pf.flatpfline({"w": series_div2["w"], "p": series_div2["p"]}),
 }
 series_plus2 = {key: series + 2 for key, series in series_ref.items()}
 pflset_plus2 = {
-    Kind.VOLUME: create_flatpfline({"w": series_plus2["w"]}),
-    Kind.PRICE: create_flatpfline({"p": series_plus2["p"]}),
-    Kind.REVENUE: create_flatpfline({"p": series_plus2["r"]}),
-    Kind.COMPLETE: create_flatpfline({"w": series_plus2["w"], "p": series_plus2["p"]}),
+    Kind.VOLUME: pf.flatpfline({"w": series_plus2["w"]}),
+    Kind.PRICE: pf.flatpfline({"p": series_plus2["p"]}),
+    Kind.REVENUE: pf.flatpfline({"p": series_plus2["r"]}),
+    Kind.COMPLETE: pf.flatpfline({"w": series_plus2["w"], "p": series_plus2["p"]}),
 }
 series_minus2 = {key: series - 2 for key, series in series_ref.items()}
 pflset_minus2 = {
-    Kind.VOLUME: create_flatpfline({"w": series_minus2["w"]}),
-    Kind.PRICE: create_flatpfline({"p": series_minus2["p"]}),
-    Kind.REVENUE: create_flatpfline({"p": series_minus2["r"]}),
-    Kind.COMPLETE: create_flatpfline(
-        {"w": series_minus2["w"], "p": series_minus2["p"]}
-    ),
+    Kind.VOLUME: pf.flatpfline({"w": series_minus2["w"]}),
+    Kind.PRICE: pf.flatpfline({"p": series_minus2["p"]}),
+    Kind.REVENUE: pf.flatpfline({"p": series_minus2["r"]}),
+    Kind.COMPLETE: pf.flatpfline({"w": series_minus2["w"], "p": series_minus2["p"]}),
 }
 values_0 = {
     Kind2.VOLUME: [
         Q_(0.0, "MW"),
         Q_(0.0, "GW"),
         pd.Series(0.0, i, dtype="pint[GW]"),
-        create_flatpfline({"w": pd.Series(0.0, i)}),
+        pf.flatpfline({"w": pd.Series(0.0, i)}),
     ],
     Kind2.PRICE: [
         Q_(0.0, "Eur/MWh"),
         Q_(0.0, "ctEur/kWh"),
         pd.Series(0.0, i, dtype="pint[ctEur/kWh]"),
-        create_flatpfline({"p": pd.Series(0.0, i)}),
+        pf.flatpfline({"p": pd.Series(0.0, i)}),
     ],
     Kind2.REVENUE: [
         Q_(0.0, "Eur"),
         Q_(0.0, "kEur"),
         pd.Series(0.0, i, dtype="pint[kEur]"),
-        create_flatpfline({"r": pd.Series(0.0, i)}),
+        pf.flatpfline({"r": pd.Series(0.0, i)}),
     ],
     Kind2.NODIM: [0, 0.0, pd.Series(0.0, i)],
 }
@@ -464,19 +452,19 @@ values_2 = {
         Q_(2.0, "MW"),
         Q_(0.002, "GW"),
         pd.Series(0.002, i, dtype="pint[GW]"),
-        create_flatpfline({"w": pd.Series(2, i)}),
+        pf.flatpfline({"w": pd.Series(2, i)}),
     ],
     Kind2.PRICE: [
         Q_(2.0, "Eur/MWh"),
         Q_(0.2, "ctEur/kWh"),
         pd.Series(0.2, i, dtype="pint[ctEur/kWh]"),
-        create_flatpfline({"p": pd.Series(2, i)}),
+        pf.flatpfline({"p": pd.Series(2, i)}),
     ],
     Kind2.REVENUE: [
         Q_(2.0, "Eur"),
         Q_(0.002, "kEur"),
         pd.Series(0.005, i, dtype="pint[kEur]"),
-        create_flatpfline({"r": pd.Series(2, i)}),
+        pf.flatpfline({"r": pd.Series(2, i)}),
     ],
     Kind2.NODIM: [2, pd.Series(2, i)],
 }
@@ -488,39 +476,39 @@ series2 = {
     "nodim": pd.Series([2, -1.5, 10], i),
 }
 pflset2 = {
-    Kind.VOLUME: create_flatpfline({"w": series2["w"]}),
-    Kind.PRICE: create_flatpfline({"p": series2["p"]}),
-    Kind.COMPLETE: create_flatpfline({"w": series2["w"], "p": series2["p"]}),
+    Kind.VOLUME: pf.flatpfline({"w": series2["w"]}),
+    Kind.PRICE: pf.flatpfline({"p": series2["p"]}),
+    Kind.COMPLETE: pf.flatpfline({"w": series2["w"], "p": series2["p"]}),
 }
-neg_volume_pfl1 = create_flatpfline({"w": -series_ref["w"]})
-neg_price_pfl1 = create_flatpfline({"p": -series_ref["p"]})
-neg_all_pfl1 = create_flatpfline({"w": -series_ref["w"], "r": -series_ref["r"]})
+neg_volume_pfl1 = pf.flatpfline({"w": -series_ref["w"]})
+neg_price_pfl1 = pf.flatpfline({"p": -series_ref["p"]})
+neg_all_pfl1 = pf.flatpfline({"w": -series_ref["w"], "r": -series_ref["r"]})
 add_volume_series = {"w": series_ref["w"] + series2["w"]}
-add_volume_pfl = create_flatpfline({"w": add_volume_series["w"]})
+add_volume_pfl = pf.flatpfline({"w": add_volume_series["w"]})
 sub_volume_series = {"w": series_ref["w"] - series2["w"]}
-sub_volume_pfl = create_flatpfline({"w": sub_volume_series["w"]})
+sub_volume_pfl = pf.flatpfline({"w": sub_volume_series["w"]})
 add_price_series = {"p": series_ref["p"] + series2["p"]}
-add_price_pfl = create_flatpfline({"p": add_price_series["p"]})
+add_price_pfl = pf.flatpfline({"p": add_price_series["p"]})
 sub_price_series = {"p": series_ref["p"] - series2["p"]}
-sub_price_pfl = create_flatpfline({"p": sub_price_series["p"]})
+sub_price_pfl = pf.flatpfline({"p": sub_price_series["p"]})
 add_all_series = {
     "w": series_ref["w"] + series2["w"],
     "r": series_ref["r"] + series2["r"],
 }
-add_all_pfl = create_flatpfline({"w": add_all_series["w"], "r": add_all_series["r"]})
+add_all_pfl = pf.flatpfline({"w": add_all_series["w"], "r": add_all_series["r"]})
 sub_all_series = {
     "w": series_ref["w"] - series2["w"],
     "r": series_ref["r"] - series2["r"],
 }
-sub_all_pfl = create_flatpfline({"w": sub_all_series["w"], "r": sub_all_series["r"]})
-mul_volume1_price2 = create_flatpfline({"w": series_ref["w"], "p": series2["p"]})
-mul_volume2_price1 = create_flatpfline({"w": series2["w"], "p": series_ref["p"]})
+sub_all_pfl = pf.flatpfline({"w": sub_all_series["w"], "r": sub_all_series["r"]})
+mul_volume1_price2 = pf.flatpfline({"w": series_ref["w"], "p": series2["p"]})
+mul_volume2_price1 = pf.flatpfline({"w": series2["w"], "p": series_ref["p"]})
 div_volume1_volume2 = (series_ref["w"] / series2["w"]).astype("pint[dimensionless]")
 div_price1_price2 = (series_ref["p"] / series2["p"]).astype("pint[dimensionless]")
-mul_all1_dimless2 = create_flatpfline(
+mul_all1_dimless2 = pf.flatpfline(
     {"w": series_ref["w"] * series2["nodim"], "p": series_ref["p"]}
 )
-div_all1_dimless2 = create_flatpfline(
+div_all1_dimless2 = pf.flatpfline(
     {"w": series_ref["w"] / series2["nodim"], "p": series_ref["p"]}
 )
 
@@ -646,34 +634,34 @@ Testcase(pflset_ref[Kind.VOLUME], 0, pflset_ref[Kind.VOLUME])
         (
             pflset_ref[Kind.VOLUME],
             Q_(12.0, "MW"),
-            create_flatpfline({"w": pd.Series([15.0, 17, 8], i)}),
-            create_flatpfline({"w": pd.Series([-9.0, -7, -16], i)}),
+            pf.flatpfline({"w": pd.Series([15.0, 17, 8], i)}),
+            pf.flatpfline({"w": pd.Series([-9.0, -7, -16], i)}),
         ),
         (
             pflset_ref[Kind.VOLUME],
             {"w": Q_(12.0, "MW")},
-            create_flatpfline({"w": pd.Series([15.0, 17, 8], i)}),
-            create_flatpfline({"w": pd.Series([-9.0, -7, -16], i)}),
+            pf.flatpfline({"w": pd.Series([15.0, 17, 8], i)}),
+            pf.flatpfline({"w": pd.Series([-9.0, -7, -16], i)}),
         ),
         (
             pflset_ref[Kind.VOLUME],
             {"w": 12.0},
-            create_flatpfline({"w": pd.Series([15.0, 17, 8], i)}),
-            create_flatpfline({"w": pd.Series([-9.0, -7, -16], i)}),
+            pf.flatpfline({"w": pd.Series([15.0, 17, 8], i)}),
+            pf.flatpfline({"w": pd.Series([-9.0, -7, -16], i)}),
         ),
         # . Operand 2 = constant in different unit
         (
             pflset_ref[Kind.VOLUME],
             Q_(0.012, "GW"),
-            create_flatpfline({"w": pd.Series([15.0, 17, 8], i)}),
-            create_flatpfline({"w": pd.Series([-9.0, -7, -16], i)}),
+            pf.flatpfline({"w": pd.Series([15.0, 17, 8], i)}),
+            pf.flatpfline({"w": pd.Series([-9.0, -7, -16], i)}),
         ),
         # . Operand 2 = constant in different dimension.
         (
             pflset_ref[Kind.VOLUME],
             Q_(12.0, "MWh"),
-            create_flatpfline({"q": pd.Series([2244.0, 3492, -2960], i)}),
-            create_flatpfline({"q": pd.Series([2220.0, 3468, -2984], i)}),
+            pf.flatpfline({"q": pd.Series([2244.0, 3492, -2960], i)}),
+            pf.flatpfline({"q": pd.Series([2220.0, 3468, -2984], i)}),
         ),
         # . Operand 2 = series without unit.
         (pflset_ref[Kind.VOLUME], series2["w"], ValueError, ValueError),
@@ -722,22 +710,22 @@ Testcase(pflset_ref[Kind.VOLUME], 0, pflset_ref[Kind.VOLUME])
         (
             pflset_ref[Kind.PRICE],
             12.0,
-            create_flatpfline({"p": pd.Series([212.0, 112, 62], i)}),
-            create_flatpfline({"p": pd.Series([188.0, 88, 38], i)}),
+            pf.flatpfline({"p": pd.Series([212.0, 112, 62], i)}),
+            pf.flatpfline({"p": pd.Series([188.0, 88, 38], i)}),
         ),
         # . Operand 2 = constant with default unit.
         (
             pflset_ref[Kind.PRICE],
             Q_(12.0, "Eur/MWh"),
-            create_flatpfline({"p": pd.Series([212.0, 112, 62], i)}),
-            create_flatpfline({"p": pd.Series([188.0, 88, 38], i)}),
+            pf.flatpfline({"p": pd.Series([212.0, 112, 62], i)}),
+            pf.flatpfline({"p": pd.Series([188.0, 88, 38], i)}),
         ),
         # . Operand 2 = constant with non-default unit.
         (
             pflset_ref[Kind.PRICE],
             Q_(1.2, "ct/kWh"),
-            create_flatpfline({"p": pd.Series([212.0, 112, 62], i)}),
-            create_flatpfline({"p": pd.Series([188.0, 88, 38], i)}),
+            pf.flatpfline({"p": pd.Series([212.0, 112, 62], i)}),
+            pf.flatpfline({"p": pd.Series([188.0, 88, 38], i)}),
         ),
         # . Operand 2 = other pfline.
         (pflset_ref[Kind.PRICE], pflset2[Kind.PRICE], add_price_pfl, sub_price_pfl),
@@ -805,75 +793,75 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset_ref[Kind.VOLUME],
             4.0,
-            create_flatpfline({"w": series_ref["w"] * 4}),
-            create_flatpfline({"w": series_ref["w"] / 4}),
+            pf.flatpfline({"w": series_ref["w"] * 4}),
+            pf.flatpfline({"w": series_ref["w"] / 4}),
         ),
         (
             pflset_ref[Kind.VOLUME],
             {"agn": 4.0},
-            create_flatpfline({"w": series_ref["w"] * 4}),
-            create_flatpfline({"w": series_ref["w"] / 4}),
+            pf.flatpfline({"w": series_ref["w"] * 4}),
+            pf.flatpfline({"w": series_ref["w"] / 4}),
         ),
         # . Explicitly dimensionless constant.
         (
             pflset_ref[Kind.VOLUME],
             Q_(4.0, ""),
-            create_flatpfline({"w": series_ref["w"] * 4}),
-            create_flatpfline({"w": series_ref["w"] / 4}),
+            pf.flatpfline({"w": series_ref["w"] * 4}),
+            pf.flatpfline({"w": series_ref["w"] / 4}),
         ),
         (
             pflset_ref[Kind.VOLUME],
             {"nodim": Q_(4.0, "")},
-            create_flatpfline({"w": series_ref["w"] * 4}),
-            create_flatpfline({"w": series_ref["w"] / 4}),
+            pf.flatpfline({"w": series_ref["w"] * 4}),
+            pf.flatpfline({"w": series_ref["w"] / 4}),
         ),
         (
             pflset_ref[Kind.VOLUME],
             {"nodim": 4.0},
-            create_flatpfline({"w": series_ref["w"] * 4}),
-            create_flatpfline({"w": series_ref["w"] / 4}),
+            pf.flatpfline({"w": series_ref["w"] * 4}),
+            pf.flatpfline({"w": series_ref["w"] / 4}),
         ),
         # . Fixed price constant.
         (
             pflset_ref[Kind.VOLUME],
             Q_(4.0, "Eur/MWh"),
-            create_flatpfline({"w": series_ref["w"], "p": 4}),
+            pf.flatpfline({"w": series_ref["w"], "p": 4}),
             Exception,
         ),
         (
             pflset_ref[Kind.VOLUME],
             {"p": Q_(4.0, "Eur/MWh")},
-            create_flatpfline({"w": series_ref["w"], "p": 4}),
+            pf.flatpfline({"w": series_ref["w"], "p": 4}),
             Exception,
         ),
         (
             pflset_ref[Kind.VOLUME],
             {"p": Q_(0.4, "ctEur/kWh")},
-            create_flatpfline({"w": series_ref["w"], "p": 4}),
+            pf.flatpfline({"w": series_ref["w"], "p": 4}),
             Exception,
         ),
         (
             pflset_ref[Kind.VOLUME],
             {"p": 4.0},
-            create_flatpfline({"w": series_ref["w"], "p": 4}),
+            pf.flatpfline({"w": series_ref["w"], "p": 4}),
             Exception,
         ),
         (
             pflset_ref[Kind.VOLUME],
             pd.Series([Q_(4.0, "Eur/MWh")], ["p"]),
-            create_flatpfline({"w": series_ref["w"], "p": 4}),
+            pf.flatpfline({"w": series_ref["w"], "p": 4}),
             Exception,
         ),
         (
             pflset_ref[Kind.VOLUME],
             pd.Series([4.0], ["p"]),
-            create_flatpfline({"w": series_ref["w"], "p": 4}),
+            pf.flatpfline({"w": series_ref["w"], "p": 4}),
             Exception,
         ),
         (
             pflset_ref[Kind.VOLUME],
             pd.Series([4.0], ["p"]).astype("pint[Eur/MWh]"),
-            create_flatpfline({"w": series_ref["w"], "p": 4}),
+            pf.flatpfline({"w": series_ref["w"], "p": 4}),
             Exception,
         ),
         # . Fixed volume constant.
@@ -922,14 +910,14 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset_ref[Kind.VOLUME],
             series2["w"],  # has no unit
-            create_flatpfline({"w": series_ref["w"] * series2["w"]}),
-            create_flatpfline({"w": series_ref["w"] / series2["w"]}),
+            pf.flatpfline({"w": series_ref["w"] * series2["w"]}),
+            pf.flatpfline({"w": series_ref["w"] / series2["w"]}),
         ),
         (
             pflset_ref[Kind.VOLUME],
             series2["w"].astype("pint[dimensionless]"),  # dimensionless
-            create_flatpfline({"w": series_ref["w"] * series2["w"]}),
-            create_flatpfline({"w": series_ref["w"] / series2["w"]}),
+            pf.flatpfline({"w": series_ref["w"] * series2["w"]}),
+            pf.flatpfline({"w": series_ref["w"] / series2["w"]}),
         ),
         # . Price series, dataframe, or PfLine
         (
@@ -1023,15 +1011,15 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset_ref[Kind.PRICE],
             4,
-            create_flatpfline({"p": series_ref["p"] * 4}),
-            create_flatpfline({"p": series_ref["p"] / 4}),
+            pf.flatpfline({"p": series_ref["p"] * 4}),
+            pf.flatpfline({"p": series_ref["p"] / 4}),
         ),
         # . Explicitly dimensionless constant.
         (
             pflset_ref[Kind.PRICE],
             Q_(4.0, ""),
-            create_flatpfline({"p": series_ref["p"] * 4}),
-            create_flatpfline({"p": series_ref["p"] / 4}),
+            pf.flatpfline({"p": series_ref["p"] * 4}),
+            pf.flatpfline({"p": series_ref["p"] / 4}),
         ),
         # . Fixed price constant.
         (
@@ -1050,25 +1038,25 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset_ref[Kind.PRICE],
             Q_(4.0, "MWh"),
-            create_flatpfline({"p": series_ref["p"], "q": 4}),
+            pf.flatpfline({"p": series_ref["p"], "q": 4}),
             Exception,
         ),
         (
             pflset_ref[Kind.PRICE],
             Q_(4.0, "MW"),
-            create_flatpfline({"p": series_ref["p"], "w": 4}),
+            pf.flatpfline({"p": series_ref["p"], "w": 4}),
             Exception,
         ),
         (
             pflset_ref[Kind.PRICE],
             Q_(4.0, "GW"),
-            create_flatpfline({"p": series_ref["p"], "w": 4000}),
+            pf.flatpfline({"p": series_ref["p"], "w": 4000}),
             Exception,
         ),
         (
             pflset_ref[Kind.PRICE],
             pd.Series([4], ["w"]).astype("pint[GW]"),
-            create_flatpfline({"p": series_ref["p"], "w": 4000}),
+            pf.flatpfline({"p": series_ref["p"], "w": 4000}),
             Exception,
         ),
         # . Incorrect constant.
@@ -1077,14 +1065,14 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset_ref[Kind.PRICE],
             series2["w"],  # has no unit
-            create_flatpfline({"p": series_ref["p"] * series2["w"]}),
-            create_flatpfline({"p": series_ref["p"] / series2["w"]}),
+            pf.flatpfline({"p": series_ref["p"] * series2["w"]}),
+            pf.flatpfline({"p": series_ref["p"] / series2["w"]}),
         ),
         (
             pflset_ref[Kind.PRICE],
             series2["w"].astype("pint[dimensionless]"),  # dimensionless
-            create_flatpfline({"p": series_ref["p"] * series2["w"]}),
-            create_flatpfline({"p": series_ref["p"] / series2["w"]}),
+            pf.flatpfline({"p": series_ref["p"] * series2["w"]}),
+            pf.flatpfline({"p": series_ref["p"] / series2["w"]}),
         ),
         # . Price series, dataframe, or PfLine
         (
@@ -1180,27 +1168,27 @@ def test_pfl_addsub_full(pfl_in, value, expected_add, expected_sub, operation):
         (
             pflset_ref[Kind.COMPLETE],
             6,
-            create_flatpfline({"w": series_ref["w"] * 6, "p": series_ref["p"]}),
-            create_flatpfline({"w": series_ref["w"] / 6, "p": series_ref["p"]}),
+            pf.flatpfline({"w": series_ref["w"] * 6, "p": series_ref["p"]}),
+            pf.flatpfline({"w": series_ref["w"] / 6, "p": series_ref["p"]}),
         ),
         # . Explicitly dimensionless constant.
         (
             pflset_ref[Kind.COMPLETE],
             Q_(6.0, ""),
-            create_flatpfline({"w": series_ref["w"] * 6, "p": series_ref["p"]}),
-            create_flatpfline({"w": series_ref["w"] / 6, "p": series_ref["p"]}),
+            pf.flatpfline({"w": series_ref["w"] * 6, "p": series_ref["p"]}),
+            pf.flatpfline({"w": series_ref["w"] / 6, "p": series_ref["p"]}),
         ),
         (
             pflset_ref[Kind.COMPLETE],
             {"nodim": 6},
-            create_flatpfline({"w": series_ref["w"] * 6, "p": series_ref["p"]}),
-            create_flatpfline({"w": series_ref["w"] / 6, "p": series_ref["p"]}),
+            pf.flatpfline({"w": series_ref["w"] * 6, "p": series_ref["p"]}),
+            pf.flatpfline({"w": series_ref["w"] / 6, "p": series_ref["p"]}),
         ),
         (
             pflset_ref[Kind.COMPLETE],
             pd.Series([6], ["nodim"]),
-            create_flatpfline({"w": series_ref["w"] * 6, "p": series_ref["p"]}),
-            create_flatpfline({"w": series_ref["w"] / 6, "p": series_ref["p"]}),
+            pf.flatpfline({"w": series_ref["w"] * 6, "p": series_ref["p"]}),
+            pf.flatpfline({"w": series_ref["w"] / 6, "p": series_ref["p"]}),
         ),
         # . Incorrect constant.
         (pflset_ref[Kind.COMPLETE], {"r": 4.0}, Exception, Exception),

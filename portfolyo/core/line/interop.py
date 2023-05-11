@@ -411,7 +411,7 @@ def pfline_or_nodimseries(
 
     # Can be turned into a PfLine.
     try:
-        return create.create_pfline(data)
+        return create.pfline(data)
     except ValueError:
         pass
 
@@ -434,7 +434,7 @@ def pfline_or_nodimseries(
 
     elif inop.nodim is None:
         # Only dimension-aware data was supplied; must be able to turn into PfLine.
-        return create.create_flatpfline(inop)
+        return create.flatpfline(inop)
 
     elif inop.p is inop.q is inop.w is inop.r is None:
         # Only dimensionless data was supplied; is Series of factors.

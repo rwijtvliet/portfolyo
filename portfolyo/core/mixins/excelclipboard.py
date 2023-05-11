@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING, Union
 import pandas as pd
 
 if TYPE_CHECKING:  # needed to avoid circular imports
-    from ..pfline import PfLine
-    from ..pfstate import PfState
+    from ..line import PfLine
+    from ..state import PfState
 
 
 def prepare_df(pfl_or_pfs: Union[PfLine, PfState]) -> pd.DataFrame:

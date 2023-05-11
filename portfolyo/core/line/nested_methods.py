@@ -17,7 +17,7 @@ def flatten(self: NestedPfLine) -> FlatPfLine:
 def set_child(self: NestedPfLine, name: str, child: Union[PfLine, Any]) -> NestedPfLine:
     """Set/add/update child; returns new pfline instance without changing current instance."""
     try:
-        child = create.create_pfline(child)
+        child = create.pfline(child)
     except (ValueError, TypeError) as e:
         raise ValueError(
             f"Parameter ``child`` cannot be turned into a PfLine; got {child}."

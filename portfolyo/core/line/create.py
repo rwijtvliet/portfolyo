@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from .classes import FlatPfLine, NestedPfLine, PfLine
 
 
-def create_pfline(data: Any) -> PfLine:
+def pfline(data: Any) -> PfLine:
     """Create a PfLine instance from the provided data, if possible."""
     if isinstance(data, classes.PfLine):
         # Data already correct instance. Quick-return.
@@ -17,7 +17,7 @@ def create_pfline(data: Any) -> PfLine:
 
     # Data must be processed to see, which descendent class we need to return.
     errors = {}
-    for name, fn in {"flat": create_flatpfline, "nested": create_nestedpfline}.items():
+    for name, fn in {"flat": flatpfline, "nested": nestedpfline}.items():
         # Try passing data to other creation functions.
         try:
             return fn(data)
@@ -26,11 +26,11 @@ def create_pfline(data: Any) -> PfLine:
             pass
     errormsg = "\n".join(f"- {name}: {e.args[0]}" for name, e in errors.items())
     raise ValueError(
-        f"Cannot create flat or nested PfLine, with the following reasons:\n{errormsg}"
+        f"Cannot create flat or nested PfLine from the provided data, with the following reasons:\n{errormsg}"
     )
 
 
-def create_flatpfline(data: Any) -> FlatPfLine:
+def flatpfline(data: Any) -> FlatPfLine:
     """Create a FlatPfLine instance from the provided data, if possible.
 
     Parameters
@@ -56,14 +56,11 @@ def create_flatpfline(data: Any) -> FlatPfLine:
 
     # Data must be processed to see, which descendent class we need to return.
     df, kind = flat_helper.dataframe_and_kind(data)
-    if cls := classes.constructor(Structure.FLAT, kind):
-        return cls(df)
-    raise ValueError(
-        f"Did not find a flat portfolio line class for the kind of the data ({kind})."
-    )
+    constructor = classes.constructor(Structure.FLAT, kind)
+    return constructor(df)
 
 
-def create_nestedpfline(data: Any) -> NestedPfLine:
+def nestedpfline(data: Any) -> NestedPfLine:
     """Create a NestedPfLine instance from the provided data, if possible.
 
     Parameters

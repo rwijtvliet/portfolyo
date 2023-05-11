@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from portfolyo import Kind, create_flatpfline, dev, testing
+from portfolyo import Kind, dev, flatpfline, testing
 
 # @dataclass
 # class InteropTestObject:
@@ -45,7 +45,7 @@ def test_flatpfline_access(columns):
     """Test if core data can be accessed by item and attribute."""
 
     df = dev.get_dataframe(columns=columns)
-    result = create_flatpfline(df)
+    result = flatpfline(df)
 
     testing.assert_index_equal(result.index, df.index)
     # testing.assert_index_equal(result["index"], df.index)# access by item is deprecated
@@ -76,11 +76,11 @@ rr = [p * q for p, q in zip(pp, qq)]
 @pytest.mark.parametrize(
     "pfls",
     [
-        (create_flatpfline({"w": w}) for w in ww),
-        (create_flatpfline({"q": q}) for q in qq),
-        (create_flatpfline({"p": p}) for p in pp),
-        (create_flatpfline({"p": p, "w": w}) for w, p in zip(ww, pp)),
-        (create_flatpfline({"w": w, "r": r}) for w, r in zip(ww, rr)),
+        (flatpfline({"w": w}) for w in ww),
+        (flatpfline({"q": q}) for q in qq),
+        (flatpfline({"p": p}) for p in pp),
+        (flatpfline({"p": p, "w": w}) for w, p in zip(ww, pp)),
+        (flatpfline({"w": w, "r": r}) for w, r in zip(ww, rr)),
     ],
 )
 def test_flatpfline_asfreqcorrect1(pfls):
@@ -108,7 +108,7 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
 
     i = pd.date_range(start, end, freq=freq, tz=tz)
     df = dev.get_dataframe(i, columns)
-    pfl1 = create_flatpfline(df)
+    pfl1 = flatpfline(df)
     pfl2 = pfl1.asfreq(newfreq)
 
     # Compare the dataframes, only keep time intervals that are in both objects.

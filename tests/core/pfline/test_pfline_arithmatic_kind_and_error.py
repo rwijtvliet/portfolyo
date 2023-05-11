@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import portfolyo as pf
-from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine, create_nestedpfline
+from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine
 
 # TODO: various timezones
 
@@ -217,9 +217,7 @@ class Values:  # Testvalues
         pfl1, pfl2 = (pf.dev.get_flatpfline(i, k, _seed=s) for s in (2, 3))
         return [
             Value(kind, "flat", pfl1),
-            Value(
-                kind, "nested", create_nestedpfline({"childA": pfl1, "childB": pfl2})
-            ),
+            Value(kind, "nested", pf.nestedpfline({"childA": pfl1, "childB": pfl2})),
             Value(kind, "nested", {"childC": pfl1, "childD": pfl2}),
         ]
 

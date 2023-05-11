@@ -41,7 +41,7 @@ def _children(mapping: Mapping) -> Dict[str, classes.PfLine]:
     """From mapping, create dictionary of PfLines."""
 
     # Create dictionary of PfLines.
-    children = {name: create.create_pfline(child) for name, child in mapping.items()}
+    children = {name: create.pfline(child) for name, child in mapping.items()}
 
     # Assert valid keys.
     for name in children:

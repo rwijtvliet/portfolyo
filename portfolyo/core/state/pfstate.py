@@ -12,9 +12,9 @@ from typing import Iterable, Optional
 import pandas as pd
 
 from ... import tools
+from ..line import PfLine, create
 from ..mixins import ExcelClipboardOutput, PfStatePlot, PfStateText
 from ..ndframelike import NDFrameLike
-from ..pfline import PfLine, create_flatpfline, create_nestedpfline
 from . import pfstate_helper
 from .arithmatic import PfStateArithmatic
 
@@ -101,10 +101,10 @@ class PfState(
         -------
         PfState
         """
-        offtakevolume = create_flatpfline({"q": qo, "w": wo})
-        unsourcedprice = create_flatpfline({"p": pu})
+        offtakevolume = create.flatpfline({"q": qo, "w": wo})
+        unsourcedprice = create.flatpfline({"p": pu})
         if not (ws is qs is rs is ps is None):
-            sourced = create_flatpfline({"w": ws, "q": qs, "r": rs, "p": ps})
+            sourced = create.flatpfline({"w": ws, "q": qs, "r": rs, "p": ps})
         else:
             sourced = None
         return cls(offtakevolume, unsourcedprice, sourced)
@@ -136,7 +136,7 @@ class PfState(
 
     @property
     def pnl_cost(self):
-        return create_nestedpfline(
+        return create.nestedpfline(
             {"sourced": self.sourced, "unsourced": self.unsourced}
         )
 
