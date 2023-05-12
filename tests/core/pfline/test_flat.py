@@ -54,7 +54,7 @@ from portfolyo import FlatPfLine, Kind, PfLine, dev, testing, tools
     ],
 )
 @pytest.mark.parametrize("constructor", [FlatPfLine, PfLine])
-def test_FlatPfLine_access(columns: str, available: str, constructor: type):
+def test_flatpfline_access(columns: str, available: str, constructor: type):
     """Test if core data can be accessed by item and attribute."""
 
     df_in = dev.get_dataframe(columns=columns)
@@ -90,7 +90,7 @@ for freq in ["MS", "D", "15T"]:
 @pytest.mark.parametrize("freq_in", ["MS", "D", "15T"])
 @pytest.mark.parametrize("freq_out", ["MS", "D", "15T"])
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pw", "wr"])
-def test_FlatPfLine_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
+def test_flatpfline_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
     """Test if changing frequency is done correctly (when it's possible), for uniform pflines."""
     pfl_in = FlatPfLine({col: series[freq_in][col] for col in columns})
     expected_out = FlatPfLine({col: series[freq_out][col] for col in columns})
@@ -104,7 +104,7 @@ def test_FlatPfLine_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
 @pytest.mark.parametrize("freq", ["H", "D", "MS", "QS", "AS"])
 @pytest.mark.parametrize("newfreq", ["H", "D", "MS", "QS", "AS"])
 @pytest.mark.parametrize("columns", ["pr", "qr", "pq", "wp", "wr"])
-def test_FlatPfLine_asfreqcorrect2(freq, newfreq, columns, tz):
+def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
     """Test if changing frequency is done correctly (when it's possible)."""
 
     # Includes at 2 full years
@@ -140,7 +140,7 @@ def test_FlatPfLine_asfreqcorrect2(freq, newfreq, columns, tz):
 @pytest.mark.parametrize("freq", ["15T", "H", "D"])
 @pytest.mark.parametrize("newfreq", ["MS", "QS", "AS"])
 @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
-def test_FlatPfLine_asfreqimpossible(freq, newfreq, kind):
+def test_flatpfline_asfreqimpossible(freq, newfreq, kind):
     """Test if changing frequency raises error if it's impossible."""
 
     periods = {"H": 200, "15T": 2000, "D": 20}[freq]
@@ -152,7 +152,7 @@ def test_FlatPfLine_asfreqimpossible(freq, newfreq, kind):
 
 # @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE, Kind.REVENUE])
 # @pytest.mark.parametrize("col", ["w", "q", "p", "r"])
-# def test_FlatPfLine_setseries(kind, col):
+# def test_flatpfline_setseries(kind, col):
 #     """Test if series can be set on existing pfline."""
 #     pfl_in = dev.get_flatpfline(kind=kind)
 #

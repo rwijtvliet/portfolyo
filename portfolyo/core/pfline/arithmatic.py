@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Union
 import pandas as pd
 
 from ... import testing, tools
-from . import classes, interop
+from . import classes, interop, create
 from .enums import Kind, Structure
 
 if TYPE_CHECKING:  # needed to avoid circular imports
@@ -293,19 +293,17 @@ class Divide:
         # Unequal kind.
 
         if (pfl1.kind, pfl2.kind) == (Kind.REVENUE, Kind.PRICE):
-            series = pfl1.r, pfl2.p
-            col, constructor = "q", classes.constructor(Structure.FLAT, Kind.VOLUME)
+            r, p = tools.intersect.frames(pfl1.r, pfl2.p)
+            data = {"q": r / p}
         elif (pfl1.kind, pfl2.kind) == (Kind.REVENUE, Kind.VOLUME):
-            series = pfl1.r, pfl2.q
-            col, constructor = "p", classes.constructor(Structure.FLAT, Kind.PRICE)
+            r, q = tools.intersect.frames(pfl1.r, pfl2.q)
+            data = {"p": r / q}
         else:
             raise NotImplementedError(
                 "To divide PfLines of unequal kind, the numerator must have revenues,"
                 " and denominator must have volumes or prices."
             )
-        series = tools.intersect.frames(*series)
-        df = pd.DataFrame({col: (series[0] / series[1]).pint.to_base_units()})
-        return constructor(df)
+        return create.flatpfline(data)
 
 
 class Unite:
@@ -322,13 +320,5 @@ class Unite:
             )
 
         # Collect the complete dataframe.
-        newdf = pd.concat(tools.intersect.frames(pfl1.df, pfl2.df), axis=1)
-        if "r" not in newdf:
-            newdf["r"] = (newdf["q"] * newdf["p"]).pint.to_base_units()
-        elif "p" not in newdf:
-            newdf["p"] = (newdf["r"] / newdf["q"]).pint.to_base_units()
-        elif "q" not in newdf:
-            newdf["q"] = (newdf["r"] / newdf["p"]).pint.to_base_units()
-            newdf["w"] = newdf["q"] / tools.duration.index(newdf.index)
-        constructor = classes.constructor(Structure.FLAT, Kind.COMPLETE)
-        return constructor(newdf)
+        data = pd.concat(tools.intersect.frames(pfl1.df, pfl2.df), axis=1)
+        return create.flatpfline(data)

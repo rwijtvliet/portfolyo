@@ -325,6 +325,10 @@ class FlatVolumePfLine(FlatPfLine, VolumePfLine, PfLine):
 
     def asfreq(self, freq: str = "MS") -> FlatVolumePfLine:
         newdf = tools.changefreq.summable(self.df[["q"]], freq)
+        if not len(newdf):
+            raise ValueError(
+                f"There are no full periods available when changing to the frequency {freq}."
+            )
         newdf["w"] = newdf["q"] / tools.duration.index(newdf.index)  # TODO: check unit
         return FlatVolumePfLine(newdf)
 
@@ -363,6 +367,10 @@ class FlatPricePfLine(FlatPfLine, PricePfLine, PfLine):
 
     def asfreq(self, freq: str = "MS") -> FlatPricePfLine:
         newdf = tools.changefreq.averagable(self.df[["p"]], freq)
+        if not len(newdf):
+            raise ValueError(
+                f"There are no full periods available when changing to the frequency {freq}."
+            )
         return FlatPricePfLine(newdf)
 
     @decorators.map_to_year_warning
@@ -399,6 +407,10 @@ class FlatRevenuePfLine(FlatPfLine, RevenuePfLine, PfLine):
 
     def asfreq(self, freq: str = "MS") -> FlatRevenuePfLine:
         newdf = tools.changefreq.summable(self.df[["r"]], freq)
+        if not len(newdf):
+            raise ValueError(
+                f"There are no full periods available when changing to the frequency {freq}."
+            )
         return FlatRevenuePfLine(newdf)
 
     @decorators.map_to_year_warning
@@ -450,6 +462,10 @@ class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
 
     def asfreq(self, freq: str = "MS") -> FlatCompletePfLine:
         newdf = tools.changefreq.summable(self.df[["q", "r"]], freq)
+        if not len(newdf):
+            raise ValueError(
+                f"There are no full periods available when changing to the frequency {freq}."
+            )
         newdf["w"] = newdf["q"] / tools.duration.index(newdf.index)
         newdf["p"] = newdf["r"] / newdf["q"]
         return FlatCompletePfLine(newdf)
