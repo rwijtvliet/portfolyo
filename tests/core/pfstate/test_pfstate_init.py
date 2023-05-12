@@ -22,7 +22,7 @@ s_difffreq = dev.get_series(i_difffreq, "")
 
 
 @pytest.mark.parametrize(
-    ("o", "u", "s", "o_exp", "u_exp", "s_exp"),
+    ("o,u,s,o_exp,u_exp,s_exp"),
     [
         (  # Full package.
             FlatPfLine({"w": s_ref}),
@@ -86,7 +86,7 @@ s_difffreq = dev.get_series(i_difffreq, "")
             None,
             FlatPfLine({"w": s_ref}),
             FlatPfLine({"p": s_ref * 10}),
-            None,
+            FlatPfLine({"w": s_ref * 0, "r": s_ref * 0}),
         ),
         (  # Unequal periods; result is trimmed.
             FlatPfLine({"w": s_ref}),
@@ -126,7 +126,7 @@ s_difffreq = dev.get_series(i_difffreq, "")
             None,
             FlatPfLine({"w": s_ref}),
             FlatPfLine({"p": s_more * 10}).loc[i_ref],
-            None,
+            FlatPfLine({"w": s_ref * 0, "r": s_ref * 0}),
         ),
         (  # Not passing PfLines; error (intersection)
             {"w": s_more},

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Union
 import pandas as pd
 
 from ... import testing, tools
-from . import classes, interop, create
+from . import classes, create, interop
 from .enums import Kind, Structure
 
 if TYPE_CHECKING:  # needed to avoid circular imports
@@ -204,16 +204,16 @@ class Add:
 
     @Prep.assert_pflines_samekind  # pfl1 and pfl2 now have same kind
     def two_flatpflines(pfl1: FlatPfLine, pfl2: FlatPfLine) -> FlatPfLine:
-        newdf = sum(tools.intersect.frames(pfl1.df, pfl2.df))  # keep common rows
-        if pfl1.kind is Kind.COMPLETE:
-            newdf["p"] = newdf["r"] / newdf["q"]
-        # newdfs = tools.intersect.frames(pfl1.df, pfl2.df)  # keep only common rows
-        # newdf = sum(newdfs)
+        # newdf = sum(tools.intersect.frames(pfl1.df, pfl2.df))  # keep common rows
         # if pfl1.kind is Kind.COMPLETE:
-        #     # Calculate price from wavg instead of r/q, to handle edge case p1==p2, q==0.
-        #     values = pd.DataFrame({"1": newdfs[0].p, "2": newdfs[1].p})
-        #     weights = pd.DataFrame({"1": newdfs[0].q, "2": newdfs[1].q})
-        #     newdf["p"] = tools.wavg.dataframe(values, weights, axis=1)
+        #     newdf["p"] = newdf["r"] / newdf["q"]
+        newdfs = tools.intersect.frames(pfl1.df, pfl2.df)  # keep only common rows
+        newdf = sum(newdfs)
+        if pfl1.kind is Kind.COMPLETE:
+            # Calculate price from wavg instead of r/q, to handle edge case p1==p2, q==0.
+            values = pd.DataFrame({"1": newdfs[0].p, "2": newdfs[1].p})
+            weights = pd.DataFrame({"1": newdfs[0].q, "2": newdfs[1].q})
+            newdf["p"] = tools.wavg.dataframe(values, weights, axis=1)
         return pfl1.__class__(newdf)
 
     @Prep.assert_pflines_samekind  # pfl1 and pfl2 now have same kind
