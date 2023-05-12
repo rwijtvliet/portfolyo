@@ -1,12 +1,9 @@
 from typing import Any, Mapping
 
 import pandas as pd
-
 import pytest
 
-
 from portfolyo import Kind, dev, testing, tools
-
 from portfolyo.core.pfline import nested_helper
 
 
@@ -41,7 +38,6 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
     result_children, result_kind = nested_helper.children_and_kind(children)
 
     assert result_children == children
-
     assert result_kind is kind1
 
 
@@ -59,24 +55,19 @@ def test_verifydict_frequencyconsistency(freq1, freq2):
     }
 
     i1 = pd.date_range(**kwargs, freq=freq1)
-
     i2 = pd.date_range(**kwargs, freq=freq2)
-
     spfl1 = dev.get_flatpfline(i1, "all")
-
     spfl2 = dev.get_flatpfline(i2, "all")
 
     children = {"PartA": spfl1, "PartB": spfl2}
 
     if freq1 != freq2:
         # Expect error.
-
         with pytest.raises(ValueError):
             _ = nested_helper.children_and_kind(children)
         return
     else:
         # Expect no error.
-
         _ = nested_helper.children_and_kind(children)
 
 
@@ -85,7 +76,6 @@ def test_verifydict_frequencyconsistency(freq1, freq2):
 @pytest.mark.parametrize("overlap", [True, False])
 def test_verifydict_unequaltimeperiods(freq, overlap):
     """Test if only intersection is kept for overlapping pflines, and error is raised
-
     for non-overlapping pflines."""
 
     i1 = pd.date_range(
@@ -97,57 +87,39 @@ def test_verifydict_unequaltimeperiods(freq, overlap):
     )
 
     start = "2020-03-01" if overlap else "2020-07-01"
-
     i2 = pd.date_range(
         start=start, end="2020-09-01", freq=freq, inclusive="left", tz="Europe/Berlin"
     )
 
     spfl1 = dev.get_flatpfline(i1, Kind.COMPLETE)
-
     spfl2 = dev.get_flatpfline(i2, Kind.COMPLETE)
-
     children = {"PartA": spfl1, "PartB": spfl2}
-
     intersection = tools.intersect.indices(spfl1.index, spfl2.index)
 
     if not overlap:
         # raise error (two portfoliolines do not have anything in common.)
-
         with pytest.raises(ValueError):
             _ = nested_helper.children_and_kind(children)
         return
 
     result_children, result_kind = nested_helper.children_and_kind(children)
-
     assert result_kind is Kind.COMPLETE
-
     for name, child in result_children.items():
         testing.assert_series_equal(child.q, children[name].loc[intersection].q)
-
         testing.assert_series_equal(child.r, children[name].loc[intersection].r)
-
         testing.assert_index_equal(child.index, intersection)
-
         assert child.kind is Kind.COMPLETE
 
 
 input_simple = {"a": 2, "b": 34, "c": -1234.3}
-
 input_complicated = {"a": 2, "b": None, "c": "bla", None: [1, 32, -4.5, "x"], 5: "test"}
 
-
 i = [1, 4, -5, 60]
-
 vals1, vals2, vals3 = [12, 34, 45, 78], [-12, 23.2, 18, "test"], [None, 5, -3, 44]
-
 s1, s2, s3 = pd.Series(vals1, i), pd.Series(vals2, i), pd.Series(vals3, i)
-
 input_df_1simple = pd.DataFrame({"a": s1, "b": s2})
-
 input_df_2simple = pd.DataFrame({("a", "a1"): s1, ("a", "a2"): s2, ("b", "b1"): s3})
-
 input_df_2complicated = pd.DataFrame({(22, "a1"): s1, (22, 5): s2, ("b", "b1"): s3})
-
 input_df_3 = pd.concat(
     [input_df_2simple, input_df_2complicated], axis=1, keys=["AA", "CC"]
 )
