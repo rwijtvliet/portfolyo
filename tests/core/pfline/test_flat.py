@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from portfolyo import Kind, dev, FlatPfLine, testing, PfLine, tools
+from portfolyo import FlatPfLine, Kind, PfLine, dev, testing, tools
 
 # @dataclass
 # class InteropTestObject:
@@ -57,19 +57,19 @@ from portfolyo import Kind, dev, FlatPfLine, testing, PfLine, tools
 def test_FlatPfLine_access(columns: str, available: str, constructor: type):
     """Test if core data can be accessed by item and attribute."""
 
-    df = dev.get_dataframe(columns=columns)
-    result = constructor(df)
+    df_in = dev.get_dataframe(columns=columns)
+    result = constructor(df_in)
 
-    testing.assert_index_equal(result.index, df.index)
-    # testing.assert_index_equal(result["index"], df.index)# access by item is deprecated
+    testing.assert_index_equal(result.index, df_in.index)
+    # testing.assert_index_equal(result["index"], df_in.index)# access by item is deprecated
 
     for col in list("wqpr"):
-        if col in available:
-            expected = df[col]
+        if col in available and col in df_in:
+            expected = df_in[col]
             testing.assert_series_equal(getattr(result, col), expected)
             # testing.assert_series_equal(result[col], expected) # access by item is deprecated
             testing.assert_series_equal(result.df[col], expected)
-        else:
+        elif col not in available:
             with pytest.raises(Exception):
                 _ = getattr(result, col)
             with pytest.raises(KeyError):

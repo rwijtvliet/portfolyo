@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Any, Union
 
 if TYPE_CHECKING:
     from .classes import NestedPfLine, FlatPfLine, PfLine
 
+from ... import tools, testing
 from . import classes, create
 from .enums import Structure
 
@@ -26,7 +28,24 @@ def set_child(self: NestedPfLine, name: str, child: Union[PfLine, Any]) -> Neste
         raise ValueError(
             f"Incompatible kinds; the portfolio line has {self.kind} but the child has {child.kind}."
         )
+    try:
+        testing.assert_indices_compatible(self.index, child.index)
+    except AssertionError as e:
+        raise ValueError(
+            "Index of new child is not compatible with the existing data."
+        ) from e
+    idx = tools.intersect.indices(self.index, child.index)
+    if len(idx) == 0:
+        raise ValueError(
+            "Delivery period of the new child does not have any overlap with the existing data."
+        )
+    if len(idx) < len(self.index):
+        warnings.warn(
+            "Delivery period of the new child covers only part of the delivery period"
+            " of the existing children. Only the common time period is kept."
+        )
     newchildren = {**self, name: child}
+    newchildren = {name: child.loc[idx] for name, child in newchildren.items()}
     return self.__class__(newchildren)
 
 

@@ -294,17 +294,18 @@ class Divide:
 
         if (pfl1.kind, pfl2.kind) == (Kind.REVENUE, Kind.PRICE):
             series = pfl1.r, pfl2.p
-            constructor = classes.constructor(Structure.FLAT, Kind.VOLUME)
+            col, constructor = "q", classes.constructor(Structure.FLAT, Kind.VOLUME)
         elif (pfl1.kind, pfl2.kind) == (Kind.REVENUE, Kind.VOLUME):
             series = pfl1.r, pfl2.q
-            constructor = classes.constructor(Structure.FLAT, Kind.PRICE)
+            col, constructor = "p", classes.constructor(Structure.FLAT, Kind.PRICE)
         else:
             raise NotImplementedError(
                 "To divide PfLines of unequal kind, the numerator must have revenues,"
                 " and denominator must have volumes or prices."
             )
         series = tools.intersect.frames(*series)
-        return constructor((series[0] / series[1]).pint.to_base_units())
+        df = pd.DataFrame({col: (series[0] / series[1]).pint.to_base_units()})
+        return constructor(df)
 
 
 class Unite:
