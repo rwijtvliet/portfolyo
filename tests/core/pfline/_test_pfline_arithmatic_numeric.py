@@ -33,7 +33,7 @@ def id_fn(data: Any):
         return data.__name__
     elif isinstance(data, Kind):
         return str(data)
-    elif isinstance(data, Testcase):
+    elif isinstance(data, Case):
         return f"pfl:{id_fn(data.pfl)}..val:{id_fn(data.value)}..expct:{data.expected_result}"
     elif isinstance(data, str):
         return data
@@ -87,14 +87,14 @@ class Testvalue:
 
 
 @dataclass
-class Testcase:
+class Case:
     pfl: PfLine
     value: Any
     expected_result: ER
 
 
 @dataclass(frozen=True, eq=True)
-class TestcaseConfig:
+class CaseConfig:
     pfl_kind: Kind
     pfl_nestedness: str  # 'flat' or 'nested'
     value_kind: Kind2
@@ -228,11 +228,11 @@ tz = "Europe/Berlin"
 i = pd.date_range("2020", periods=20, freq="MS", tz=tz)  # reference
 
 
-class Testcases:
+class Cases:
     _testvalues = Testvalues(i)
     _testpfls = Testpfls(i)
     _complete_outcomedict = {
-        TestcaseConfig(pfl_kind, pfl_nestedness, val_kind, val_nestedness): ER.ERROR
+        CaseConfig(pfl_kind, pfl_nestedness, val_kind, val_nestedness): ER.ERROR
         for pfl_kind in Kind
         for pfl_nestedness in ["flat", "nested"]
         for val_kind in Kind2
@@ -242,13 +242,13 @@ class Testcases:
     @classmethod
     def get_pfls(
         cls, pfl_kind: Kind = None, pfl_nestedness: str = None
-    ) -> Iterable[Testcase]:
+    ) -> Iterable[Case]:
         return cls._testpfls.fetch(pfl_kind, pfl_nestedness)
 
     @classmethod
     def all_from_nonerror(
-        cls, non_error_outcomedict: Dict[TestcaseConfig, ER]
-    ) -> Iterable[Testcase]:
+        cls, non_error_outcomedict: Dict[CaseConfig, ER]
+    ) -> Iterable[Case]:
         outcomedict = {**cls._complete_outcomedict, **non_error_outcomedict}
         return [
             testcase
@@ -257,9 +257,9 @@ class Testcases:
         ]
 
     @classmethod
-    def from_config(cls, config: TestcaseConfig, er: ER) -> Iterable[Testcase]:
+    def from_config(cls, config: CaseConfig, er: ER) -> Iterable[Case]:
         return [
-            Testcase(tp.pfl, tv.value, er)
+            Case(tp.pfl, tv.value, er)
             for tp in cls._testpfls.fetch(config.pfl_kind, config.pfl_nestedness)
             for tv in cls._testvalues.fetch(config.value_kind, config.value_nestedness)
         ]
@@ -268,39 +268,39 @@ class Testcases:
 @pytest.mark.parametrize("operation", ["union", "runion"])
 @pytest.mark.parametrize(
     "testcase",
-    Testcases.all_from_nonerror(
+    Cases.all_from_nonerror(
         {
             # Operand 1 = volume pfline.
             # . Operand 2 = None.
-            TestcaseConfig(Kind.VOLUME, "flat", Kind2.NONE, "flat"): ER.VOLUME,
-            TestcaseConfig(Kind.VOLUME, "nested", Kind2.NONE, "flat"): ER.VOLUME,
+            CaseConfig(Kind.VOLUME, "flat", Kind2.NONE, "flat"): ER.VOLUME,
+            CaseConfig(Kind.VOLUME, "nested", Kind2.NONE, "flat"): ER.VOLUME,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            TestcaseConfig(Kind.VOLUME, "flat", Kind2.PRICE, "flat"): ER.COMPLETE,
-            TestcaseConfig(Kind.VOLUME, "flat", Kind2.REVENUE, "flat"): ER.COMPLETE,
+            CaseConfig(Kind.VOLUME, "flat", Kind2.PRICE, "flat"): ER.COMPLETE,
+            CaseConfig(Kind.VOLUME, "flat", Kind2.REVENUE, "flat"): ER.COMPLETE,
             # . Operand 2 = complete.
             # Operand 1 = price pfline.
             # . Operand 2 = None.
-            TestcaseConfig(Kind.PRICE, "flat", Kind2.NONE, "flat"): ER.PRICE,
-            TestcaseConfig(Kind.PRICE, "nested", Kind2.NONE, "flat"): ER.PRICE,
+            CaseConfig(Kind.PRICE, "flat", Kind2.NONE, "flat"): ER.PRICE,
+            CaseConfig(Kind.PRICE, "nested", Kind2.NONE, "flat"): ER.PRICE,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            TestcaseConfig(Kind.PRICE, "flat", Kind2.VOLUME, "flat"): ER.COMPLETE,
-            TestcaseConfig(Kind.PRICE, "flat", Kind2.REVENUE, "flat"): ER.COMPLETE,
+            CaseConfig(Kind.PRICE, "flat", Kind2.VOLUME, "flat"): ER.COMPLETE,
+            CaseConfig(Kind.PRICE, "flat", Kind2.REVENUE, "flat"): ER.COMPLETE,
             # . Operand 2 = complete.
             # Operand 1 = revenue pfline.
             # . Operand 2 = None.
-            TestcaseConfig(Kind.REVENUE, "flat", Kind2.NONE, "flat"): ER.REVENUE,
-            TestcaseConfig(Kind.REVENUE, "nested", Kind2.NONE, "flat"): ER.REVENUE,
+            CaseConfig(Kind.REVENUE, "flat", Kind2.NONE, "flat"): ER.REVENUE,
+            CaseConfig(Kind.REVENUE, "nested", Kind2.NONE, "flat"): ER.REVENUE,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            TestcaseConfig(Kind.REVENUE, "flat", Kind2.VOLUME, "flat"): ER.COMPLETE,
-            TestcaseConfig(Kind.REVENUE, "flat", Kind2.PRICE, "flat"): ER.COMPLETE,
+            CaseConfig(Kind.REVENUE, "flat", Kind2.VOLUME, "flat"): ER.COMPLETE,
+            CaseConfig(Kind.REVENUE, "flat", Kind2.PRICE, "flat"): ER.COMPLETE,
             # . Operand 2 = complete.
             # Operand 1 = complete pfline.
             # . Operand 2 = None.
-            TestcaseConfig(Kind.COMPLETE, "flat", Kind2.NONE, "flat"): ER.COMPLETE,
-            TestcaseConfig(Kind.COMPLETE, "nested", Kind2.NONE, "flat"): ER.COMPLETE,
+            CaseConfig(Kind.COMPLETE, "flat", Kind2.NONE, "flat"): ER.COMPLETE,
+            CaseConfig(Kind.COMPLETE, "nested", Kind2.NONE, "flat"): ER.COMPLETE,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
             # . Operand 2 = complete.
@@ -308,12 +308,12 @@ class Testcases:
     ),
     ids=id_fn,
 )
-def test_pfl_arithmatic_kind_unionrunion(testcase: Testcase, operation: str):
+def test_pfl_arithmatic_kind_unionrunion(testcase: Case, operation: str):
     """Test if arithmatic expectedly raises Error or returns expected type/kind."""
     do_kind_test(testcase, operation)
 
 
-def do_kind_test(testcase: Testcase, operation: str):
+def do_kind_test(testcase: Case, operation: str):
     pfl = testcase.pfl
     value = testcase.value
     expected = testcase.expected_result
@@ -527,7 +527,7 @@ def test_pfl_neg(pfl_in, expected):
     assert result == expected
 
 
-class Testcases:
+class Cases:
     def multiple(
         pfls: Iterable[PfLine],
         operations: Iterable[str],
@@ -541,7 +541,7 @@ class Testcases:
         if not isinstance(values, List):
             values = [values]
         return [
-            Testcase(pfl, operation, value, expected_result)
+            Case(pfl, operation, value, expected_result)
             for value in values
             for pfl in pfls
             for operation in operations
@@ -550,50 +550,46 @@ class Testcases:
 
 # Operand 1 = volume pfline.
 # . No operand 2.
-Testcase(pflset_ref[Kind.VOLUME], "neg", None, neg_volume_pfl1)
+Case(pflset_ref[Kind.VOLUME], "neg", None, neg_volume_pfl1)
 # . Operand 2 = None.
-Testcase(pflset_ref[Kind.VOLUME], "add", None, pflset_ref[Kind.VOLUME])
-Testcase(pflset_ref[Kind.VOLUME], "radd", None, pflset_ref[Kind.VOLUME])
-Testcase(pflset_ref[Kind.VOLUME], "sub", None, pflset_ref[Kind.VOLUME])
-Testcase(pflset_ref[Kind.VOLUME], "rsub", None, ER.ERROR)  # !
-Testcase(pflset_ref[Kind.VOLUME], "mul", None, ER.ERROR)
-Testcase(pflset_ref[Kind.VOLUME], "rmul", None, ER.ERROR)
-Testcase(pflset_ref[Kind.VOLUME], "div", None, ER.ERROR)
-Testcase(pflset_ref[Kind.VOLUME], "rdiv", None, ER.ERROR)
-Testcase(pflset_ref[Kind.VOLUME], "union", None, pflset_ref[Kind.VOLUME])
-Testcase(pflset_ref[Kind.VOLUME], "runion", None, pflset_ref[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "add", None, pflset_ref[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "radd", None, pflset_ref[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "sub", None, pflset_ref[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "rsub", None, ER.ERROR)  # !
+Case(pflset_ref[Kind.VOLUME], "mul", None, ER.ERROR)
+Case(pflset_ref[Kind.VOLUME], "rmul", None, ER.ERROR)
+Case(pflset_ref[Kind.VOLUME], "div", None, ER.ERROR)
+Case(pflset_ref[Kind.VOLUME], "rdiv", None, ER.ERROR)
+Case(pflset_ref[Kind.VOLUME], "union", None, pflset_ref[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "runion", None, pflset_ref[Kind.VOLUME])
 # . Operand 2 = dimensionless.
-Testcases.multiple(
+Cases.multiple(
     pflset_ref[Kind.VOLUME], ["add", "radd", "sub", "rsub"], [0, 0.0, 1, 2], ER.ERROR
 )
-Testcases.multiple(
-    pflset_ref[Kind.VOLUME], ["mul" "rmul"], [0, 0.0], pflset0[Kind.VOLUME]
-)
-Testcases.multiple(pflset_ref[Kind.VOLUME], ["mul" "rmul"], 1, pflset_ref[Kind.VOLUME])
-Testcases.multiple(
+Cases.multiple(pflset_ref[Kind.VOLUME], ["mul" "rmul"], [0, 0.0], pflset0[Kind.VOLUME])
+Cases.multiple(pflset_ref[Kind.VOLUME], ["mul" "rmul"], 1, pflset_ref[Kind.VOLUME])
+Cases.multiple(
     pflset_ref[Kind.VOLUME], ["mul" "rmul"], values_2[Kind2.NODIM], pflset2[Kind.VOLUME]
 )
-Testcases.multiple(pflset_ref[Kind.VOLUME], "div", [0, 0.0], ER.ERROR)
-Testcase(pflset_ref[Kind.VOLUME], "div", 1, pflset_ref[Kind.VOLUME])
-Testcase(pflset_ref[Kind.VOLUME], "div", 2, pflset_div2[Kind.VOLUME])
-Testcases.multiple(pflset_ref[Kind.VOLUME], "rdiv", [0, 0.0, 1, 2], ER.ERROR)
-Testcases.multiple(
-    pflset_ref[Kind.VOLUME], ["union", "runion"], [0, 0.0, 1, 2], ER.ERROR
-)
+Cases.multiple(pflset_ref[Kind.VOLUME], "div", [0, 0.0], ER.ERROR)
+Case(pflset_ref[Kind.VOLUME], "div", 1, pflset_ref[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "div", 2, pflset_div2[Kind.VOLUME])
+Cases.multiple(pflset_ref[Kind.VOLUME], "rdiv", [0, 0.0, 1, 2], ER.ERROR)
+Cases.multiple(pflset_ref[Kind.VOLUME], ["union", "runion"], [0, 0.0, 1, 2], ER.ERROR)
 # . Operand 2 = volume, price, or revenue.
-Testcases.multiple(
+Cases.multiple(
     pflset_ref[Kind.VOLUME],
     ["add", "radd"],
     [Q_(30.0, "MW"), Q_(0.03, "GW")],
     pflset_plus2[Kind.VOLUME],
 )
-Testcases.multiple(
+Cases.multiple(
     pflset_ref[Kind.VOLUME],
     "sub",
     [Q_(30.0, "MW"), Q_(0.03, "GW")],
     pflset_minus2[Kind.VOLUME],
 )
-Testcases.multiple(
+Cases.multiple(
     pflset_ref[Kind.VOLUME],
     ["mul", "rmul", "div", "rdiv", "union", "runion"],
     Q_(30.0, "MW"),
@@ -601,24 +597,18 @@ Testcases.multiple(
 )
 
 
-Testcase(
-    pflset_ref[Kind.VOLUME], "add", pflset_ref[Kind.VOLUME], pflset_ref[Kind.VOLUME]
-)
-Testcase(
-    pflset_ref[Kind.VOLUME], "radd", pflset_ref[Kind.VOLUME], pflset_ref[Kind.VOLUME]
-)
-Testcase(
-    pflset_ref[Kind.VOLUME], "sub", pflset_ref[Kind.VOLUME], pflset_ref[Kind.VOLUME]
-)
-Testcase(pflset_ref[Kind.VOLUME], "rsub", pflset_ref[Kind.VOLUME], neg_volume_pfl1)
-Testcase(pflset_ref[Kind.VOLUME], "mul", pflset_ref[Kind.VOLUME], pflset0[Kind.VOLUME])
-Testcase(pflset_ref[Kind.VOLUME], "rmul", pflset_ref[Kind.VOLUME], pflset0[Kind.VOLUME])
-Testcase(pflset_ref[Kind.VOLUME], "div", pflset_ref[Kind.VOLUME], ER.ERROR)
-Testcase(pflset_ref[Kind.VOLUME], "rdiv", pflset_ref[Kind.VOLUME], ER.ERROR)
-Testcase(pflset_ref[Kind.VOLUME], "union", pflset_ref[Kind.VOLUME], ER.ERROR)
-Testcase(pflset_ref[Kind.VOLUME], "runion", pflset_ref[Kind.VOLUME], ER.ERROR)
+Case(pflset_ref[Kind.VOLUME], "add", pflset_ref[Kind.VOLUME], pflset_ref[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "radd", pflset_ref[Kind.VOLUME], pflset_ref[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "sub", pflset_ref[Kind.VOLUME], pflset_ref[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "rsub", pflset_ref[Kind.VOLUME], neg_volume_pfl1)
+Case(pflset_ref[Kind.VOLUME], "mul", pflset_ref[Kind.VOLUME], pflset0[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "rmul", pflset_ref[Kind.VOLUME], pflset0[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], "div", pflset_ref[Kind.VOLUME], ER.ERROR)
+Case(pflset_ref[Kind.VOLUME], "rdiv", pflset_ref[Kind.VOLUME], ER.ERROR)
+Case(pflset_ref[Kind.VOLUME], "union", pflset_ref[Kind.VOLUME], ER.ERROR)
+Case(pflset_ref[Kind.VOLUME], "runion", pflset_ref[Kind.VOLUME], ER.ERROR)
 # . Operand 2 = complete.
-Testcase(pflset_ref[Kind.VOLUME], 0, pflset_ref[Kind.VOLUME])
+Case(pflset_ref[Kind.VOLUME], 0, pflset_ref[Kind.VOLUME])
 
 
 @pytest.mark.parametrize("operation", ["+", "-"])

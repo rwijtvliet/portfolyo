@@ -15,7 +15,7 @@ def test_makedataframe_freqtz(freq, tz):
     i = dev.get_index(freq, tz)
     q = dev.get_series(i, "q")
     w = q / q.index.duration
-    result1 = flat_helper.dataframe({"q": q})
+    result1 = flat_helper._dataframe({"q": q})
 
     expected = pd.DataFrame({"q": q, "w": w})
     expected.index.freq = freq
@@ -57,7 +57,7 @@ TESTCASES_INPUTTYPES = [  # data,expected
 @pytest.mark.parametrize("data,expected", TESTCASES_INPUTTYPES)
 def test_makedataframe_inputtypes(data: Any, expected: pd.DataFrame):
     """Test if dataframe can be created from various input types."""
-    result = flat_helper.dataframe(data)
+    result = flat_helper._dataframe(data)
     testing.assert_frame_equal(result, expected)
 
 
@@ -94,16 +94,16 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
     if columns in ["wq", "wqp", "wqr", "wpr", "qpr", "wqpr"]:  # error cases
         with pytest.raises(ValueError):
             if inputtype == "dict":
-                _ = flat_helper.dataframe(dic)
+                _ = flat_helper._dataframe(dic)
             else:
-                _ = flat_helper.dataframe(df)
+                _ = flat_helper._dataframe(df)
         return
 
     # Actual result.
     if inputtype == "dict":
-        result = flat_helper.dataframe(dic)
+        result = flat_helper._dataframe(dic)
     else:
-        result = flat_helper.dataframe(df)
+        result = flat_helper._dataframe(df)
 
     # Expected result and testing.
     df = df.rename_axis("ts_left")
@@ -170,7 +170,7 @@ def test_makedataframe_unequalfrequencies(freq1, freq2, columns):
 
     dic = {columns[0]: s1, columns[1]: s2}
     with pytest.raises(ValueError):
-        _ = flat_helper.dataframe(dic)
+        _ = flat_helper._dataframe(dic)
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
@@ -186,7 +186,7 @@ def test_makedataframe_unequalstartofday(freq: str, tz: str):
 
     # raise ValueError("The two timeseries have distinct start-of-days.")
     with pytest.raises(ValueError):
-        _ = flat_helper.dataframe({"q": s1, "r": s2})
+        _ = flat_helper._dataframe({"q": s1, "r": s2})
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
@@ -209,10 +209,10 @@ def test_makedataframe_unequaltimeperiods(freq: str, overlap: bool, tz: str):
     if not overlap:
         # raise ValueError("The two timeseries do not have anything in common.")
         with pytest.raises(ValueError):
-            result = flat_helper.dataframe({"q": s1, "r": s2})
+            result = flat_helper._dataframe({"q": s1, "r": s2})
         return
 
-    result = flat_helper.dataframe({"q": s1, "r": s2})
+    result = flat_helper._dataframe({"q": s1, "r": s2})
     testing.assert_index_equal(result.index, intersection)
     testing.assert_series_equal(result.q, s1.loc[intersection])
     testing.assert_series_equal(result.r, s2.loc[intersection])

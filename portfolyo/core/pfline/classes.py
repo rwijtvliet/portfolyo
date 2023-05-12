@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import dataclasses
-from typing import Any, Callable, Dict, Iterable, Union  # noqa
+from typing import Any, Callable, Dict, Iterable, Mapping, Union  # noqa
 
 import numpy as np
 import pandas as pd
@@ -289,7 +289,7 @@ class FlatPfLine(PfLine):
     __eq__ = flat_methods.__eq__
 
 
-class NestedPfLine(PfLine):
+class NestedPfLine(PfLine, Mapping):
     structure = Structure.NESTED
 
     def __new__(cls, data=None, *args, **kwargs):
@@ -318,7 +318,7 @@ class NestedPfLine(PfLine):
 
 
 @dont_init_twice
-@dataclasses.dataclass(frozen=True, repr=False)
+@dataclasses.dataclass(frozen=True, repr=False, eq=False)
 class FlatVolumePfLine(FlatPfLine, VolumePfLine, PfLine):
     # Class is only called internally, so expect df to be in correct format. Here: with columns 'w', 'q'.
     df: pd.DataFrame
@@ -340,7 +340,7 @@ class FlatVolumePfLine(FlatPfLine, VolumePfLine, PfLine):
 
 
 @dont_init_twice
-@dataclasses.dataclass(frozen=True, repr=False)
+@dataclasses.dataclass(frozen=True, repr=False, eq=False)
 class NestedVolumePfLine(NestedPfLine, VolumePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are volume-pflines.
     children: Dict[str, VolumePfLine]
@@ -356,7 +356,7 @@ class NestedVolumePfLine(NestedPfLine, VolumePfLine, PfLine):
 
 
 @dont_init_twice
-@dataclasses.dataclass(frozen=True, repr=False)
+@dataclasses.dataclass(frozen=True, repr=False, eq=False)
 class FlatPricePfLine(FlatPfLine, PricePfLine, PfLine):
     # Class is only called internally, so expect df to be in correct format. Here: with column 'p'.
     df: pd.DataFrame
@@ -376,7 +376,7 @@ class FlatPricePfLine(FlatPfLine, PricePfLine, PfLine):
 
 
 @dont_init_twice
-@dataclasses.dataclass(frozen=True, repr=False)
+@dataclasses.dataclass(frozen=True, repr=False, eq=False)
 class NestedPricePfLine(NestedPfLine, PricePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are price-pflines.
     children: Dict[str, PricePfLine]
@@ -392,7 +392,7 @@ class NestedPricePfLine(NestedPfLine, PricePfLine, PfLine):
 
 
 @dont_init_twice
-@dataclasses.dataclass(frozen=True, repr=False)
+@dataclasses.dataclass(frozen=True, repr=False, eq=False)
 class FlatRevenuePfLine(FlatPfLine, RevenuePfLine, PfLine):
     # Class is only called internally, so expect df to be in correct format. Here: with column 'r'.
     df: pd.DataFrame
@@ -415,7 +415,7 @@ class FlatRevenuePfLine(FlatPfLine, RevenuePfLine, PfLine):
 
 
 @dont_init_twice
-@dataclasses.dataclass(frozen=True, repr=False)
+@dataclasses.dataclass(frozen=True, repr=False, eq=False)
 class NestedRevenuePfLine(NestedPfLine, RevenuePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are revenue-pflines.
     children: Dict[str, RevenuePfLine]
@@ -431,7 +431,7 @@ class NestedRevenuePfLine(NestedPfLine, RevenuePfLine, PfLine):
 
 
 @dont_init_twice
-@dataclasses.dataclass(frozen=True, repr=False)
+@dataclasses.dataclass(frozen=True, repr=False, eq=False)
 class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
     # Class is only called internally, so expect df to be in correct format. Here: with columns 'w', 'q', 'p', 'r'.
     df: pd.DataFrame
@@ -470,7 +470,7 @@ class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
 
 
 @dont_init_twice
-@dataclasses.dataclass(frozen=True, repr=False)
+@dataclasses.dataclass(frozen=True, repr=False, eq=False)
 class NestedCompletePfLine(NestedPfLine, CompletePfLine, PfLine):
     # Class is only called internally, so expect children to be in correct format. Here: all are complete-pflines.
     children: Dict[str, CompletePfLine]

@@ -12,6 +12,12 @@ from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine
 
 # TODO: various timezones
 
+# TODO: use/change STRICT setting
+
+from portfolyo.core.pfline import arithmatic
+
+arithmatic.STRICT = True
+
 
 def id_fn(data: Any):
     """Readable id of test case"""

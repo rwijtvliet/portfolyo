@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from portfolyo import Kind, dev, FlatPfLine, testing
+from portfolyo import Kind, dev, FlatPfLine, testing, PfLine, tools
 
 # @dataclass
 # class InteropTestObject:
@@ -41,11 +41,12 @@ from portfolyo import Kind, dev, FlatPfLine, testing
 
 
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
-def test_FlatPfLine_access(columns):
+@pytest.mark.parametrize("constructor", [FlatPfLine, PfLine])
+def test_FlatPfLine_access(columns: str, constructor: type):
     """Test if core data can be accessed by item and attribute."""
 
     df = dev.get_dataframe(columns=columns)
-    result = FlatPfLine(df)
+    result = constructor(df)
 
     testing.assert_index_equal(result.index, df.index)
     # testing.assert_index_equal(result["index"], df.index)# access by item is deprecated
@@ -56,39 +57,33 @@ def test_FlatPfLine_access(columns):
             testing.assert_series_equal(getattr(result, col), expected)
             # testing.assert_series_equal(result[col], expected) # access by item is deprecated
             testing.assert_series_equal(result.df[col], expected)
-        elif col not in result.kind.available:
-            assert getattr(result, col).isna().all()
-            # assert result[col].isna().all() # access by item is deprecated
-            assert result.df[col].isna().all()
-            assert result.df[col].all()
+        else:
+            with pytest.raises(Exception):
+                _ = getattr(result, col)
+            with pytest.raises(KeyError):
+                _ = result.df[col]
 
 
-idx = [
-    pd.date_range("2020", "2020-04", freq=freq, inclusive="left", tz="Europe/Berlin")
-    for freq in ["MS", "D", "15T"]
-]
-pp = [pd.Series(50, i) for i in idx]
-ww = [pd.Series(20, i) for i in idx]
-qq = [w * w.index.duration.pint.m for w in ww]
-rr = [p * q for p, q in zip(pp, qq)]
+series = {}
+for freq in ["MS", "D", "15T"]:
+    idx = pd.date_range(
+        "2020", "2020-04", freq=freq, inclusive="left", tz="Europe/Berlin"
+    )
+    p = pd.Series(50, idx)
+    w = pd.Series(20, idx)
+    q = w * tools.duration.index(w.index).pint.m
+    series[freq] = {"i": idx, "w": w, "q": q, "p": p, "r": q * p}
 
 
-@pytest.mark.parametrize(
-    "pfls",
-    [
-        (FlatPfLine({"w": w}) for w in ww),
-        (FlatPfLine({"q": q}) for q in qq),
-        (FlatPfLine({"p": p}) for p in pp),
-        (FlatPfLine({"p": p, "w": w}) for w, p in zip(ww, pp)),
-        (FlatPfLine({"w": w, "r": r}) for w, r in zip(ww, rr)),
-    ],
-)
-def test_FlatPfLine_asfreqcorrect1(pfls):
+@pytest.mark.parametrize("freq_in", ["MS", "D", "15T"])
+@pytest.mark.parametrize("freq_out", ["MS", "D", "15T"])
+@pytest.mark.parametrize("columns", ["w", "q", "p", "pw", "wr"])
+def test_FlatPfLine_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
     """Test if changing frequency is done correctly (when it's possible), for uniform pflines."""
-    for pfl_in in pfls:
-        for expected_out in pfls:
-            pfl_out = pfl_in.asfreq(expected_out.index.freq)
-            assert pfl_out == expected_out
+    pfl_in = FlatPfLine({col: series[freq_in][col] for col in columns})
+    expected_out = FlatPfLine({col: series[freq_out][col] for col in columns})
+    pfl_out = pfl_in.asfreq(freq_out)
+    assert pfl_out == expected_out
 
 
 # . check correct working of attributes .asfreq().
@@ -138,7 +133,7 @@ def test_FlatPfLine_asfreqimpossible(freq, newfreq, kind):
 
     periods = {"H": 200, "15T": 2000, "D": 20}[freq]
     i = pd.date_range("2020-04-06", freq=freq, periods=periods, tz="Europe/Berlin")
-    pfl = dev.get_FlatPfLine(i, kind)
+    pfl = dev.get_flatpfline(i, kind)
     with pytest.raises(ValueError):
         _ = pfl.asfreq(newfreq)
 
@@ -147,8 +142,8 @@ def test_FlatPfLine_asfreqimpossible(freq, newfreq, kind):
 @pytest.mark.parametrize("col", ["w", "q", "p", "r"])
 def test_FlatPfLine_setseries(kind, col):
     """Test if series can be set on existing pfline."""
+    pfl_in = dev.get_flatpfline(kind=kind)
 
-    pfl_in = dev.get_FlatPfLine(kind=kind)
     s = dev.get_series(pfl_in.index, col)
 
     if kind is Kind.COMPLETE:  # Expecting error
