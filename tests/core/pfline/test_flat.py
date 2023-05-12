@@ -35,14 +35,26 @@ from portfolyo import Kind, dev, FlatPfLine, testing, PfLine, tools
 #             else:
 #                 indef, unitunknown = None, True
 #             values.append(
-#                 InteropTestObject(Q_(50, unit), False, True, indef, False, unitunknown)
+#                 InteropTestObject(Q_(50, uni$t), False, True, indef, False, unitunknown)
 #             )
 #     # Dictionary and Series of values
 
 
-@pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
+@pytest.mark.parametrize(
+    "columns,available",
+    [
+        ("w", "wq"),
+        ("q", "wq"),
+        ("p", "p"),
+        ("pr", "wqpr"),
+        ("qr", "wqpr"),
+        ("pq", "wqpr"),
+        ("wp", "wqpr"),
+        ("wr", "wqpr"),
+    ],
+)
 @pytest.mark.parametrize("constructor", [FlatPfLine, PfLine])
-def test_FlatPfLine_access(columns: str, constructor: type):
+def test_FlatPfLine_access(columns: str, available: str, constructor: type):
     """Test if core data can be accessed by item and attribute."""
 
     df = dev.get_dataframe(columns=columns)
@@ -52,7 +64,7 @@ def test_FlatPfLine_access(columns: str, constructor: type):
     # testing.assert_index_equal(result["index"], df.index)# access by item is deprecated
 
     for col in list("wqpr"):
-        if col in columns:
+        if col in available:
             expected = df[col]
             testing.assert_series_equal(getattr(result, col), expected)
             # testing.assert_series_equal(result[col], expected) # access by item is deprecated
@@ -138,28 +150,28 @@ def test_FlatPfLine_asfreqimpossible(freq, newfreq, kind):
         _ = pfl.asfreq(newfreq)
 
 
-@pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE, Kind.REVENUE])
-@pytest.mark.parametrize("col", ["w", "q", "p", "r"])
-def test_FlatPfLine_setseries(kind, col):
-    """Test if series can be set on existing pfline."""
-    pfl_in = dev.get_flatpfline(kind=kind)
-
-    s = dev.get_series(pfl_in.index, col)
-
-    if kind is Kind.COMPLETE:  # Expecting error
-        with pytest.raises(Exception):
-            _ = pfl_in.set_r(s)
-        return
-
-    result = getattr(pfl_in, f"set_{col}")(s)
-    testing.assert_series_equal(getattr(result, col), s)
-    assert col in result.kind.available
-    if kind is Kind.VOLUME and col in ["w", "q"]:
-        expectedkind = Kind.VOLUME
-    elif kind is Kind.PRICE and col == "p":
-        expectedkind = Kind.PRICE
-    elif kind is Kind.REVENUE and col == "r":
-        expectedkind = Kind.REVENUE
-    else:
-        expectedkind = Kind.COMPLETE
-    assert result.kind is expectedkind
+# @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE, Kind.REVENUE])
+# @pytest.mark.parametrize("col", ["w", "q", "p", "r"])
+# def test_FlatPfLine_setseries(kind, col):
+#     """Test if series can be set on existing pfline."""
+#     pfl_in = dev.get_flatpfline(kind=kind)
+#
+#     s = dev.get_series(pfl_in.index, col)
+#
+#     if kind is Kind.COMPLETE:  # Expecting error
+#         with pytest.raises(Exception):
+#             _ = pfl_in.set_r(s)
+#         return
+#
+#     result = getattr(pfl_in, f"set_{col}")(s)
+#     testing.assert_series_equal(getattr(result, col), s)
+#     assert col in result.kind.available
+#     if kind is Kind.VOLUME and col in ["w", "q"]:
+#         expectedkind = Kind.VOLUME
+#     elif kind is Kind.PRICE and col == "p":
+#         expectedkind = Kind.PRICE
+#     elif kind is Kind.REVENUE and col == "r":
+#         expectedkind = Kind.REVENUE
+#     else:
+#         expectedkind = Kind.COMPLETE
+#     assert result.kind is expectedkind

@@ -77,7 +77,7 @@ class Flat:
         df = pd.DataFrame({"w": wout, "p": pout})
         df["q"] = df["w"] * tools.duration.index(df.index)
         df["r"] = df["p"] * df["q"]
-        constructor = classes.constructor(structure=Structure.FLAT, kind=Kind.COMPLETE)
+        constructor = classes.constructor(Structure.FLAT, Kind.COMPLETE)
         return constructor(df)
         # TODO: move to tools or elsewhere, and reference from there.
 

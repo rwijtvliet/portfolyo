@@ -10,7 +10,7 @@ from .enums import Structure
 
 
 def flatten(self: NestedPfLine) -> FlatPfLine:
-    constructor = classes.constructor(structure=Structure.FLAT, kind=self.kind)
+    constructor = classes.constructor(Structure.FLAT, self.kind)
     return constructor(self.df)  # use flattened toplevel dataframe for initialisation
 
 

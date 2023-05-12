@@ -147,6 +147,7 @@ class PfLineArithmatic:
     def __radd__(self: PfLine, other: Any) -> PfLine:
         return self + other  # defer to __add__
 
+    @Prep.standardize_other  # other converted to None, a PfLine, or dimless Series
     @Prep.returnself_if_otherNone  # catch pfline - None
     def __sub__(self: PfLine, other: Any) -> PfLine:
         return self + -other  # defer to __add__ and __neg__
@@ -242,8 +243,8 @@ class Multiply:
         q, p = (pfl2.q, pfl1.p) if pfl1.kind is Kind.PRICE else (pfl1.q, pfl2.p)
         q, p = tools.intersect.frames(q, p)
         r = (q * p).pint.to_base_units()
-        constructor = classes.constructor(structure=Structure.FLAT, kind=Kind.REVENUE)
-        return constructor(r)
+        constructor = classes.constructor(Structure.FLAT, Kind.REVENUE)
+        return constructor(pd.DataFrame({"r": r}))
 
     def pfline_and_series(pfl: PfLine, s: pd.Series) -> PfLine:
         if isinstance(pfl, classes.FlatPfLine):
@@ -293,10 +294,10 @@ class Divide:
 
         if (pfl1.kind, pfl2.kind) == (Kind.REVENUE, Kind.PRICE):
             series = pfl1.r, pfl2.p
-            constructor = classes.constructor(kind=Kind.VOLUME)
-        elif (pfl1.kind, pfl2.kind) is (Kind.REVENUE, Kind.VOLUME):
+            constructor = classes.constructor(Structure.FLAT, Kind.VOLUME)
+        elif (pfl1.kind, pfl2.kind) == (Kind.REVENUE, Kind.VOLUME):
             series = pfl1.r, pfl2.q
-            constructor = classes.constructor(kind=Kind.PRICE)
+            constructor = classes.constructor(Structure.FLAT, Kind.PRICE)
         else:
             raise NotImplementedError(
                 "To divide PfLines of unequal kind, the numerator must have revenues,"
@@ -328,5 +329,5 @@ class Unite:
         elif "q" not in newdf:
             newdf["q"] = (newdf["r"] / newdf["p"]).pint.to_base_units()
             newdf["w"] = newdf["q"] / tools.duration.index(newdf.index)
-        constructor = classes.constructor(structure=Structure.FLAT, kind=Kind.COMPLETE)
+        constructor = classes.constructor(Structure.FLAT, Kind.COMPLETE)
         return constructor(newdf)

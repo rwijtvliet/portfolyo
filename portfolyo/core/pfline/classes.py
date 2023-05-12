@@ -451,7 +451,7 @@ class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
     def asfreq(self, freq: str = "MS") -> FlatCompletePfLine:
         newdf = tools.changefreq.summable(self.df[["q", "r"]], freq)
         newdf["w"] = newdf["q"] / tools.duration.index(newdf.index)
-        newdf["p"] = newdf["r"] / newdf["p"]
+        newdf["p"] = newdf["r"] / newdf["q"]
         return FlatCompletePfLine(newdf)
 
     @decorators.map_to_year_warning

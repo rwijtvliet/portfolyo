@@ -9,12 +9,12 @@ import pytest
 
 import portfolyo as pf
 from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine
+from portfolyo.core.pfline import arithmatic
 
 # TODO: various timezones
 
 # TODO: use/change STRICT setting
 
-from portfolyo.core.pfline import arithmatic
 
 arithmatic.STRICT = True
 
@@ -81,7 +81,7 @@ class ER(Enum):  # Expected result
 @dataclass
 class Pfl:  # Testpfl
     kind: Kind
-    nestedness: str  # 'flat' or 'nested'
+    nestedness: str  # 'flat' or 'nested'  #TODO: change to use Structure instead
     pfl: PfLine
 
 
