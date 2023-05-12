@@ -6,7 +6,7 @@ from typing import Any, Iterable
 
 import pandas as pd
 
-from ... import tools
+from ... import testing, tools
 from ..pfline import Kind, PfLine, create
 
 
@@ -20,53 +20,61 @@ def make_pflines(
     if offtakevolume is None or unsourcedprice is None:
         raise ValueError("Must specify offtake volume and unsourced prices.")
 
-    # Get everything as PfLine.
-    # . Offtake volume.
+    # Offtake volume.
+    offtakevolume = prepare_offtakevolume(offtakevolume)
+    idx = offtakevolume.index
+
+    # Unsourced prices.
+    unsourcedprice = prepare_unsourcedprice(unsourcedprice, idx)
+
+    # Sourced volume/prices.
+    sourced = prepare_sourced(sourced, idx)
+
+    return offtakevolume, unsourcedprice, sourced
+
+
+def prepare_offtakevolume(offtakevolume: Any) -> PfLine:
     offtakevolume = create.pfline(offtakevolume)  # force to be PfLine.
-    if offtakevolume.kind is Kind.PRICE:
+    if "q" not in offtakevolume.kind.available:
         raise ValueError("Parameter ``offtakevolume`` does not contain volume.")
     elif offtakevolume.kind is Kind.COMPLETE:
         warnings.warn(
             "Parameter ``offtakevolume``: also contains price infomation; this is discarded."
         )
         offtakevolume = offtakevolume.volume
-    # . Unsourced prices.
+    return offtakevolume
+
+
+def prepare_unsourcedprice(unsourcedprice: Any, ref_idx: pd.DatetimeIndex) -> PfLine:
     unsourcedprice = create.pfline(unsourcedprice)  # force to be PfLine.
-    if unsourcedprice.kind is Kind.VOLUME:
+    if "p" not in unsourcedprice.kind.available:
         raise ValueError("Parameter ``unsourcedprice`` does not contain prices.")
     elif unsourcedprice.kind is Kind.COMPLETE:
         warnings.warn(
             "Parameter ``unsourcedprice``: also contains volume infomation; this is discarded."
         )
         unsourcedprice = unsourcedprice.price
-    # . Sourced volume and prices.
-    if sourced is not None:
-        sourced = create.pfline(sourced)
-        if sourced.kind is not Kind.COMPLETE:
-            raise ValueError("Parameter ``sourced`` does not contain price and volume.")
-
-    # Check/fix indices.
-    # . Frequencies.
-    freqs = [
-        o.index.freq for o in (offtakevolume, unsourcedprice, sourced) if o is not None
-    ]
-    if len(set(freqs)) != 1:
-        raise ValueError("PfLines have unequal frequency; resample first.")
-    # . Keep only overlapping part of indices.
-    idx = offtakevolume.index
-    if len(tools.intersect.indices(idx, unsourcedprice.index)) < len(idx):
+    testing.assert_indices_compatible(ref_idx, unsourcedprice.index)
+    if len(tools.intersect.indices(ref_idx, unsourcedprice.index)) < len(ref_idx):
         raise ValueError(
-            "Parameter ``unsourcedprice``: does not cover entire delivery period of ``offtakevolume``."
+            "Parameter ``unsourcedprice`` does not cover entire delivery period of"
+            " ``offtakevolume``."
         )
-    unsourcedprice = unsourcedprice.loc[idx]
-    if sourced is not None:
-        # Workaround for error in pandas intersection (#46702):
-        if len(tools.intersect.indices(idx, sourced.index)) < len(idx):
-            raise ValueError(
-                "Parameter ``sourced``: does not cover entire delivery period of ``offtakevolume``."
-            )
-        sourced = sourced.loc[idx]
-    else:  # sourced is None
-        sourced = create.flatpfline(pd.DataFrame({"q": 0, "r": 0}, idx))
+    return unsourcedprice.loc[ref_idx]
 
-    return offtakevolume, unsourcedprice, sourced
+
+def prepare_sourced(sourced: Any, ref_idx: pd.DatetimeIndex) -> PfLine:
+    if sourced is None:
+        return create.flatpfline(pd.DataFrame({"q": 0, "r": 0}, ref_idx))
+
+    sourced = create.pfline(sourced)
+    if sourced.kind is not Kind.COMPLETE:
+        raise ValueError("Parameter ``sourced`` does not contain price and volume.")
+    testing.assert_indices_compatible(ref_idx, sourced.index)
+    # Workaround for error in pandas intersection (#46702):
+    if len(tools.intersect.indices(ref_idx, sourced.index)) < len(ref_idx):
+        raise ValueError(
+            "Parameter ``sourced``: does not cover entire delivery period of"
+            " ``offtakevolume``."
+        )
+    return sourced.loc[ref_idx]
