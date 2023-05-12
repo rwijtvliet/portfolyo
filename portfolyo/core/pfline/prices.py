@@ -30,9 +30,10 @@ class Flat:
         # Get values.
         dfs = []
         for col in ("w", "p"):
-            vals = convert.tseries2bpoframe(self.df[col], freq)
-            vals.columns = pd.MultiIndex.from_product([vals.columns, [col]])
-            dfs.append(vals)
+            if col in self.kind.available:
+                vals = convert.tseries2bpoframe(self.df[col], freq)
+                vals.columns = pd.MultiIndex.from_product([vals.columns, [col]])
+                dfs.append(vals)
         df = pd.concat(dfs, axis=1)
 
         # Add duration.
