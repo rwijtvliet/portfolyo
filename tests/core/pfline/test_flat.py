@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from portfolyo import FlatPfLine, Kind, PfLine, dev, testing, tools
+from portfolyo import Kind, PfLine, create, dev, testing, tools
 
 # @dataclass
 # class InteropTestObject:
@@ -53,7 +53,7 @@ from portfolyo import FlatPfLine, Kind, PfLine, dev, testing, tools
         ("wr", "wqpr"),
     ],
 )
-@pytest.mark.parametrize("constructor", [FlatPfLine, PfLine])
+@pytest.mark.parametrize("constructor", [create.flatpfline, PfLine])
 def test_flatpfline_access(columns: str, available: str, constructor: type):
     """Test if core data can be accessed by item and attribute."""
 
@@ -92,8 +92,8 @@ for freq in ["MS", "D", "15T"]:
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pw", "wr"])
 def test_flatpfline_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
     """Test if changing frequency is done correctly (when it's possible), for uniform pflines."""
-    pfl_in = FlatPfLine({col: series[freq_in][col] for col in columns})
-    expected_out = FlatPfLine({col: series[freq_out][col] for col in columns})
+    pfl_in = create.flatpfline({col: series[freq_in][col] for col in columns})
+    expected_out = create.flatpfline({col: series[freq_out][col] for col in columns})
     pfl_out = pfl_in.asfreq(freq_out)
     assert pfl_out == expected_out
 
@@ -115,7 +115,7 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
 
     i = pd.date_range(start, end, freq=freq, tz=tz)
     df = dev.get_dataframe(i, columns)
-    pfl1 = FlatPfLine(df)
+    pfl1 = create.flatpfline(df)
     pfl2 = pfl1.asfreq(newfreq)
 
     # Compare the dataframes, only keep time intervals that are in both objects.

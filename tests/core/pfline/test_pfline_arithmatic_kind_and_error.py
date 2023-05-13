@@ -8,8 +8,8 @@ import pandas as pd
 import pytest
 
 import portfolyo as pf
-from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine
-from portfolyo.core.pfline import arithmatic
+from portfolyo import Q_, Kind, PfLine
+from portfolyo.core.pfline import arithmatic, classes, create
 
 # TODO: various timezones
 
@@ -29,9 +29,9 @@ def id_fn(data: Any):
         return f"Series(idx:{''.join(str(i) for i in data.index)})"
     elif isinstance(data, pd.DataFrame):
         return f"Df(columns:{''.join(str(c) for c in data.columns)})"
-    elif isinstance(data, FlatPfLine):
+    elif isinstance(data, classes.FlatPfLine):
         return f"Flatpfline({data.kind})"
-    elif isinstance(data, NestedPfLine):
+    elif isinstance(data, classes.NestedPfLine):
         return f"Nestedpfline({data.kind})"
     elif isinstance(data, pf.Q_):
         return f"Q({data.units})"
@@ -223,7 +223,9 @@ class Values:  # Testvalues
         pfl1, pfl2 = (pf.dev.get_flatpfline(i, k, _seed=s) for s in (2, 3))
         return [
             Value(kind, "flat", pfl1),
-            Value(kind, "nested", pf.NestedPfLine({"childA": pfl1, "childB": pfl2})),
+            Value(
+                kind, "nested", create.nestedpfline({"childA": pfl1, "childB": pfl2})
+            ),
             Value(kind, "nested", {"childC": pfl1, "childD": pfl2}),
         ]
 

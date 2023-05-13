@@ -5,7 +5,8 @@ import pandas as pd
 import pytest
 
 import portfolyo as pf
-from portfolyo import FlatPfLine, Kind, NestedPfLine, dev, testing
+from portfolyo import Kind, create, dev, testing
+from portfolyo.core.pfline import classes
 
 _seed = 3  # any fixed seed
 
@@ -23,9 +24,9 @@ def id_fn(data: Any):
         return f"Series (idx: {''.join(str(i) for i in data.index)})"
     elif isinstance(data, pd.DataFrame):
         return f"Df (columns: {''.join(str(c) for c in data.columns)})"
-    elif isinstance(data, FlatPfLine):
+    elif isinstance(data, classes.FlatPfLine):
         return f"Singlepfline_{data.kind}"
-    elif isinstance(data, NestedPfLine):
+    elif isinstance(data, classes.NestedPfLine):
         return f"Multipfline_{data.kind}"
     elif isinstance(data, str):
         return data
@@ -49,10 +50,10 @@ ref_series = {
     "nodim": pd.Series([2, -1.5, 10], i1),
 }
 ref_flatset = {
-    Kind.VOLUME: pf.FlatPfLine({"q": ref_series["q"]}),
-    Kind.PRICE: pf.FlatPfLine({"p": ref_series["p"]}),
-    Kind.REVENUE: pf.FlatPfLine({"r": ref_series["r"]}),
-    Kind.COMPLETE: pf.FlatPfLine({"q": ref_series["q"], "p": ref_series["p"]}),
+    Kind.VOLUME: create.flatpfline({"q": ref_series["q"]}),
+    Kind.PRICE: create.flatpfline({"p": ref_series["p"]}),
+    Kind.REVENUE: create.flatpfline({"r": ref_series["r"]}),
+    Kind.COMPLETE: create.flatpfline({"q": ref_series["q"], "p": ref_series["p"]}),
     "nodim": ref_series["nodim"],
 }
 series1 = {
@@ -62,10 +63,10 @@ series1 = {
     "nodim": pd.Series([1.0, -10, 2], i1),
 }
 flatset1 = {
-    Kind.VOLUME: pf.FlatPfLine({"q": series1["q"]}),
-    Kind.PRICE: pf.FlatPfLine({"p": series1["p"]}),
-    Kind.REVENUE: pf.FlatPfLine({"r": series1["r"]}),
-    Kind.COMPLETE: pf.FlatPfLine({"q": series1["q"], "p": series1["p"]}),
+    Kind.VOLUME: create.flatpfline({"q": series1["q"]}),
+    Kind.PRICE: create.flatpfline({"p": series1["p"]}),
+    Kind.REVENUE: create.flatpfline({"r": series1["r"]}),
+    Kind.COMPLETE: create.flatpfline({"q": series1["q"], "p": series1["p"]}),
     "nodim": series1["nodim"],
 }
 
@@ -79,10 +80,10 @@ series2 = {
     "nodim": pd.Series([1.0, -2.0, 4], i2),
 }
 flatset2 = {
-    Kind.VOLUME: pf.FlatPfLine({"q": series2["q"]}),
-    Kind.PRICE: pf.FlatPfLine({"p": series2["p"]}),
-    Kind.REVENUE: pf.FlatPfLine({"r": series2["r"]}),
-    Kind.COMPLETE: pf.FlatPfLine({"q": series2["q"], "r": series2["r"]}),
+    Kind.VOLUME: create.flatpfline({"q": series2["q"]}),
+    Kind.PRICE: create.flatpfline({"p": series2["p"]}),
+    Kind.REVENUE: create.flatpfline({"r": series2["r"]}),
+    Kind.COMPLETE: create.flatpfline({"q": series2["q"], "r": series2["r"]}),
     "nodim": series2["nodim"],
 }
 i12 = pd.date_range("2020-02", freq="MS", periods=2, tz="Europe/Berlin")

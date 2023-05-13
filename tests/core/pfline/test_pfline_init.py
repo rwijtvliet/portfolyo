@@ -3,13 +3,14 @@
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Iterable
+from typing import Any, Callable, Iterable, Union
 
 import pandas as pd
 import pytest
 
 import portfolyo as pf
-from portfolyo import FlatPfLine, Kind, NestedPfLine, PfLine, dev
+from portfolyo import Kind, PfLine, create, dev
+from portfolyo.core.pfline import classes
 
 
 @dataclass
@@ -19,34 +20,34 @@ class InitTestcase:
     expected_kind: Kind
 
 
-def _returntype(self, testtype):
-    if testtype is FlatPfLine:
-        return FlatPfLine if self.value[1] else Exception
-    elif testtype is NestedPfLine:
-        return NestedPfLine if self.value[2] else Exception
-    elif self is InputTypeA.SINGLEPFLINE:
-        return FlatPfLine
-    elif self is InputTypeA.MULTIPFLINE:
-        return NestedPfLine
+def _returntype(self, constructor):
+    if constructor is create.flatpfline:
+        return classes.FlatPfLine if self.value[1] else Exception
+    elif constructor is classes.nestedPfLine:
+        return classes.NestedPfLine if self.value[2] else Exception
+    elif self is InputTypeA.FLATPFLINE:
+        return classes.FlatPfLine
+    elif self is InputTypeA.NESTEDPFLINE:
+        return classes.NestedPfLine
     else:
-        return FlatPfLine if self.value[1] else NestedPfLine
+        return classes.FlatPfLine if self.value[1] else classes.NestedPfLine
 
 
 class InputTypeA(Enum):
     # for functions that take `columns` as a parameter.
-    FLATDF = ("flatdf", True, False)  # name, can-be-turned-into-single, can-...-multi
+    FLATDF = ("flatdf", True, False)  # name, can-be-turned-into-flat, can-...-nested
     FLATDICT = ("flatdict", True, False)
     FLATSERIES = ("flatseries", True, False)
-    SINGLEPFLINE = ("flatpfline", True, False)
-    MULTIPFLINE = ("nestedpfline", True, True)
+    FLATPFLINE = ("flatpfline", True, False)
+    NESTEDPFLINE = ("nestedpfline", True, True)
 
     returntype = _returntype
 
 
 class InputTypeB(Enum):
     # for functions that take `kind` as a parameter.
-    PFDICTSINGLE = ("pfdictsingle", False, True)
-    PFDICTMULTI = ("pfdictmulti", False, True)
+    PFDICTFLAT = ("pfdictflat", False, True)
+    PFDICTNESTED = ("pfdictnested", False, True)
     PFDICTMIX = ("pfdictmix", False, True)
     DICTINITIABLE_NOUNIT = ("object dict", False, True)
     DICTINITIABLE_UNIT = ("object-with-unit dict", False, True)
@@ -73,9 +74,9 @@ def get_testcase_A(
             data_in = data_in[0]  # ... or as single series
         if not has_unit:
             df = Exception
-    elif inputtype is InputTypeA.SINGLEPFLINE:
-        data_in = pf.FlatPfLine(df)
-    elif inputtype is InputTypeA.MULTIPFLINE:
+    elif inputtype is InputTypeA.FLATPFLINE:
+        data_in = create.flatpfline(df)
+    elif inputtype is InputTypeA.NESTEDPFLINE:
         if columns in ["w", "q", "p", "qr", "wr"]:
             df1 = 0.4 * df
             df2 = 0.6 * df
@@ -83,7 +84,9 @@ def get_testcase_A(
             othercol = columns.replace("p", "")
             df1 = df.mul({"p": 1, othercol: 0.4})
             df2 = df.mul({"p": 1, othercol: 0.6})
-        data_in = pf.NestedPfLine({"a": pf.FlatPfLine(df1), "b": pf.FlatPfLine(df2)})
+        data_in = create.nestedpfline(
+            {"a": create.flatpfline(df1), "b": create.flatpfline(df2)}
+        )
     else:
         raise ValueError("unknown inputtype")
 
@@ -104,12 +107,12 @@ def get_testcase_B(
     """Create test case that uses ``kind`` as parameter."""
 
     # Data.
-    if inputtype is InputTypeB.PFDICTSINGLE:
+    if inputtype is InputTypeB.PFDICTFLAT:
         data_in = {
             "child1": dev.get_flatpfline(i, kind),
             "child2": dev.get_flatpfline(i, kind),
         }
-    elif inputtype is InputTypeB.PFDICTMULTI:
+    elif inputtype is InputTypeB.PFDICTNESTED:
         data_in = {
             "child1": dev.get_nestedpfline(i, kind),
             "child2": dev.get_nestedpfline(i, kind),
@@ -169,35 +172,37 @@ def anyerror(*args):
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
 @pytest.mark.parametrize("inputtype", InputTypeA)
 @pytest.mark.parametrize("has_unit", [True, False])
-@pytest.mark.parametrize("testtype", [PfLine, FlatPfLine, NestedPfLine])
+@pytest.mark.parametrize(
+    "constructor", [PfLine, create.flatpfline, create.nestedpfline]
+)
 def test_init_A(
     freq: str,
     tz: str,
     columns: Iterable[str],
     inputtype: InputTypeA,
     has_unit: bool,
-    testtype: type,
+    constructor: Union[Callable, type],
 ):
     """Test if pfline can be initialized correctly from a flat testcase."""
 
     i = dev.get_index(freq, tz)
     itc = get_testcase_A(i, columns, inputtype, has_unit)
 
-    expected_type = inputtype.returntype(testtype)
+    expected_type = inputtype.returntype(constructor)
     if expected_error := anyerror(expected_type, itc.expected_df):
         with pytest.raises(expected_error):
-            _ = testtype(itc.data_in)
+            _ = constructor(itc.data_in)
         return
 
-    result = testtype(itc.data_in)
-    result_df = result.df[columns]
+    result = constructor(itc.data_in)
+    result_df = result.dataframe(columns, childlevels=0)  # subset, for comparison
 
-    assert type(result) is expected_type
-    if type(itc.data_in) is type(testtype):
+    assert isinstance(result, expected_type)
+    if type(itc.data_in) is type(constructor):
         assert result is itc.data_in  # assert no copy but reference.
     pf.testing.assert_frame_equal(result_df, itc.expected_df.rename_axis("ts_left"))
     assert result.kind is itc.expected_kind
-    if expected_type is NestedPfLine:
+    if expected_type is classes.NestedPfLine:
         assert len(result)
 
 
@@ -206,25 +211,27 @@ def test_init_A(
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("kind", Kind)
 @pytest.mark.parametrize("inputtype", InputTypeB)
-@pytest.mark.parametrize("testtype", [PfLine, FlatPfLine, NestedPfLine])
+@pytest.mark.parametrize(
+    "constructor", [PfLine, create.flatpfline, create.nestedpfline]
+)
 def test_init_B(
     freq: str,
     tz: str,
     kind: Kind,
     inputtype: InputTypeB,
-    testtype: type,
+    constructor: type,
 ):
     """Test if pfline can be initialized correctly from a more complex testcase."""
     i = dev.get_index(freq, tz)
     itc = get_testcase_B(i, kind, inputtype)
-    expected_type = inputtype.returntype(testtype)
+    expected_type = inputtype.returntype(constructor)
 
     if expected_error := anyerror(expected_type):
         with pytest.raises(expected_error):
-            _ = testtype(itc.data_in)
+            _ = constructor(itc.data_in)
         return
 
-    result = testtype(itc.data_in)
+    result = constructor(itc.data_in)
 
-    assert type(result) is expected_type
+    assert isinstance(result, expected_type)
     assert result.kind is itc.expected_kind

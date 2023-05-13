@@ -54,13 +54,16 @@ def prepare_unsourcedprice(unsourcedprice: Any, ref_idx: pd.DatetimeIndex) -> Pf
             "Parameter ``unsourcedprice``: also contains volume infomation; this is discarded."
         )
         unsourcedprice = unsourcedprice.price
-    testing.assert_indices_compatible(ref_idx, unsourcedprice.index)
+    try:
+        testing.assert_indices_compatible(ref_idx, unsourcedprice.index)
+    except AssertionError as e:
+        raise ValueError from e
     if len(tools.intersect.indices(ref_idx, unsourcedprice.index)) < len(ref_idx):
         raise ValueError(
             "Parameter ``unsourcedprice`` does not cover entire delivery period of"
             " ``offtakevolume``."
         )
-    return unsourcedprice.loc[ref_idx]
+    return unsourcedprice.loc
 
 
 def prepare_sourced(sourced: Any, ref_idx: pd.DatetimeIndex) -> PfLine:
@@ -70,7 +73,10 @@ def prepare_sourced(sourced: Any, ref_idx: pd.DatetimeIndex) -> PfLine:
     sourced = create.pfline(sourced)
     if sourced.kind is not Kind.COMPLETE:
         raise ValueError("Parameter ``sourced`` does not contain price and volume.")
-    testing.assert_indices_compatible(ref_idx, sourced.index)
+    try:
+        testing.assert_indices_compatible(ref_idx, sourced.index)
+    except AssertionError as e:
+        raise ValueError from e
     # Workaround for error in pandas intersection (#46702):
     if len(tools.intersect.indices(ref_idx, sourced.index)) < len(ref_idx):
         raise ValueError(

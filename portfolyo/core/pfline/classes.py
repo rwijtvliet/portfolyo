@@ -272,14 +272,6 @@ class FlatPfLine(PfLine):
 
     structure = Structure.FLAT
 
-    def __new__(cls, data=None, *args, **kwargs):
-        if cls is not FlatPfLine:
-            # User actually called one of its descendents. Just move along
-            return super().__new__(cls)
-
-        # User did indeed call PfLine and data must be processed by a descendent's __init__
-        return create.flatpfline(data)
-
     dataframe = dataframeexport.Flat.dataframe
     flatten = flat_methods.flatten
     po = prices.Flat.po
@@ -291,14 +283,6 @@ class FlatPfLine(PfLine):
 
 class NestedPfLine(PfLine, Mapping):
     structure = Structure.NESTED
-
-    def __new__(cls, data=None, *args, **kwargs):
-        if cls is not NestedPfLine:
-            # User actually called one of its descendents. Just move along
-            return super().__new__(cls)
-
-        # User did indeed call PfLine and data must be processed by a descendent's __init__
-        return create.pfline(data)
 
     dataframe = dataframeexport.Nested.dataframe
     flatten = nested_methods.flatten

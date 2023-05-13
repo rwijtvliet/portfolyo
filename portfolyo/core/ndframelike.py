@@ -44,7 +44,7 @@ class NDFrameLike(abc.ABC):
 
     @abc.abstractmethod
     def dataframe(
-        self, cols: Iterable[str] = None, *args, has_units: bool = True
+        self, cols: Iterable[str] = None, has_units: bool = True, *args, **kwargs
     ) -> pd.DataFrame:
         """DataFrame for portfolio line in default units.
 
