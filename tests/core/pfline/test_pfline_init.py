@@ -23,7 +23,7 @@ class InitTestcase:
 def _returntype(self, constructor):
     if constructor is create.flatpfline:
         return classes.FlatPfLine if self.value[1] else Exception
-    elif constructor is classes.nestedPfLine:
+    elif constructor is create.nestedpfline:
         return classes.NestedPfLine if self.value[2] else Exception
     elif self is InputTypeA.FLATPFLINE:
         return classes.FlatPfLine

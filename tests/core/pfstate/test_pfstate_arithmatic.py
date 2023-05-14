@@ -1,38 +1,10 @@
-from typing import Any, Dict
-
 import numpy as np
 import pandas as pd
 import pytest
 
-import portfolyo as pf
-from portfolyo import Q_, Kind, PfState, dev, testing
-from portfolyo.core.pfline import create, classes
-
-
-def id_fn(data: Any):
-    """Readable id of test case"""
-    if isinstance(data, Dict):
-        return str({key: id_fn(val) for key, val in data.items()})
-    elif isinstance(data, pd.Series):
-        if isinstance(data.index, pd.DatetimeIndex):
-            return f"Timeseries (dtype: {data.dtype})"
-        return f"Series (idx: {''.join(str(i) for i in data.index)})"
-    elif isinstance(data, pd.DataFrame):
-        return f"Df (columns: {''.join(str(c) for c in data.columns)})"
-    elif isinstance(data, classes.FlatPfLine):
-        return f"Singlepfline_{data.kind}"
-    elif isinstance(data, classes.NestedPfLine):
-        return f"Multipfline_{data.kind}"
-    elif isinstance(data, str):
-        return data
-    elif isinstance(data, pf.Q_):
-        return f"Quantity ({data.units})"
-    elif isinstance(data, type):
-        return data.__name__
-    elif isinstance(data, Kind):
-        return str(data)
-    return type(data).__name__
-
+from portfolyo import Q_, PfState, dev, testing
+from portfolyo.core.pfline import create
+from ...idfunction import id_fn
 
 tz = "Europe/Berlin"
 

@@ -47,6 +47,8 @@ def _children(mapping: Mapping) -> Dict[str, classes.PfLine]:
     for name in children:
         if not isinstance(name, str):
             raise TypeError(f"Name must be string; got {name} ({type(name)}).")
+        elif name in ["w", "q", "p", "r"]:
+            raise ValueError("Name cannot be one of 'w', 'q', 'p', 'r'.")
 
     # Assert number of children.
     if len(children) == 0:

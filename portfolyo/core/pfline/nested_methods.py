@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Union
 if TYPE_CHECKING:
     from .classes import NestedPfLine, FlatPfLine, PfLine
 
-from ... import tools, testing
+from ... import testing, tools
 from . import classes, create
 from .enums import Structure
 
@@ -18,6 +18,8 @@ def flatten(self: NestedPfLine) -> FlatPfLine:
 
 def set_child(self: NestedPfLine, name: str, child: Union[PfLine, Any]) -> NestedPfLine:
     """Set/add/update child; returns new pfline instance without changing current instance."""
+    if name in ["w", "q", "p", "r"]:
+        raise ValueError("Name cannot be one of 'w', 'q', 'p', 'r'.")
     try:
         child = create.pfline(child)
     except (ValueError, TypeError) as e:

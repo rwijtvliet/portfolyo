@@ -56,8 +56,8 @@ def test_verifydict_frequencyconsistency(freq1, freq2):
 
     i1 = pd.date_range(**kwargs, freq=freq1)
     i2 = pd.date_range(**kwargs, freq=freq2)
-    spfl1 = dev.get_flatpfline(i1, "all")
-    spfl2 = dev.get_flatpfline(i2, "all")
+    spfl1 = dev.get_flatpfline(i1, Kind.COMPLETE)
+    spfl2 = dev.get_flatpfline(i2, Kind.COMPLETE)
 
     children = {"PartA": spfl1, "PartB": spfl2}
 
