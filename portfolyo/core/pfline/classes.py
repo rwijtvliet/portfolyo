@@ -10,7 +10,15 @@ import pandas as pd
 from ... import tools
 from ..mixins import ExcelClipboardOutput, PfLinePlot, PfLineText
 from ..ndframelike import NDFrameLike
-from . import create, dataframeexport, decorators, flat_methods, nested_methods, prices, children
+from . import (
+    create,
+    dataframeexport,
+    decorators,
+    flat_methods,
+    nested_methods,
+    prices,
+    children,
+)
 from .arithmatic import PfLineArithmatic
 from .enums import Kind, Structure
 
