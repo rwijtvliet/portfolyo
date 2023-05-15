@@ -6,11 +6,11 @@ from typing import Any, Dict, Iterable
 
 import pandas as pd
 import pytest
+from utils import id_fn  # relative to /tests
 
 import portfolyo as pf
 from portfolyo import Q_, PfLine
-from portfolyo.core.pfline import arithmatic, create, Structure, Kind
-from ...idfunction import id_fn
+from portfolyo.core.pfline import Kind, Structure, arithmatic, create
 
 # TODO: various timezones
 
@@ -235,9 +235,9 @@ class Cases:  # Testcases
 
     @classmethod
     def from_config(cls, config: CaseConfig, er: ER) -> Iterable[Case]:
-        for tp in cls._testpfls.fetch(config.pfl_kind, config.pfl_structure):
+        for pfl in cls._testpfls.fetch(config.pfl_kind, config.pfl_structure):
             for tv in cls._testvalues.fetch(config.value_kind, config.value_structure):
-                yield Case(tp.pfl, tv.value, er)
+                yield Case(pfl, tv.value, er)
 
 
 @pytest.mark.parametrize("operation", ["add", "radd", "sub", "rsub"])

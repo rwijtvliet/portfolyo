@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 from pint import DimensionalityError, UndefinedUnitError
-from ...idfunction import id_fn
+from utils import id_fn  # relative to /tests
+
 from portfolyo.core.pfline import interop as io
 from portfolyo.tools.unit import Q_
 

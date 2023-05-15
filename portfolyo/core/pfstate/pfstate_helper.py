@@ -63,7 +63,7 @@ def prepare_unsourcedprice(unsourcedprice: Any, ref_idx: pd.DatetimeIndex) -> Pf
             "Parameter ``unsourcedprice`` does not cover entire delivery period of"
             " ``offtakevolume``."
         )
-    return unsourcedprice.loc
+    return unsourcedprice.loc[ref_idx]
 
 
 def prepare_sourced(sourced: Any, ref_idx: pd.DatetimeIndex) -> PfLine:

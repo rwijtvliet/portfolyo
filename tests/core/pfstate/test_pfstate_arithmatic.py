@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 import pytest
+from utils import id_fn  # noqa
 
 from portfolyo import Q_, PfState, dev, testing
 from portfolyo.core.pfline import create
-from ...idfunction import id_fn
 
 tz = "Europe/Berlin"
 

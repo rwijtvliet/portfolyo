@@ -1,16 +1,15 @@
 from dataclasses import dataclass
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import pytest
+from utils import id_fn  # relative to /tests
 
 import portfolyo as pf
 from portfolyo import Kind, create, dev, testing
 
-from ...idfunction import id_fn
-
 _seed = 3  # any fixed seed
-
 
 # TODO: nestedPfLine, quantity, float, 0, negation
 
@@ -84,7 +83,7 @@ values_2 = {
     Kind.PRICE: [
         pf.Q_(2.0, "Eur/MWh"),
         pf.Q_(0.2, "ctEur/kWh"),
-        pd.Series(2.0, i_ref, dtype="pint[Eur/kWh]"),
+        pd.Series(2.0, i_ref, dtype="pint[Eur/MWh]"),
         create.flatpfline({"p": series_2}),
     ],
     Kind.REVENUE: [
@@ -110,7 +109,7 @@ flatset_ref_plus_2 = {
     Kind.PRICE: create.flatpfline({"p": series_ref_plus_2["p"]}),
     Kind.REVENUE: create.flatpfline({"r": series_ref_plus_2["r"]}),
     Kind.COMPLETE: create.flatpfline(
-        {"q": series_ref_plus_2["q"], "p": series_ref_plus_2["p"]}
+        {"q": series_ref_plus_2["q"], "r": series_ref_plus_2["r"]}
     ),
     "nodim": series_ref_plus_2["nodim"],
 }
@@ -125,7 +124,7 @@ flatset_ref_minus_2 = {
     Kind.PRICE: create.flatpfline({"p": series_ref_minus_2["p"]}),
     Kind.REVENUE: create.flatpfline({"r": series_ref_minus_2["r"]}),
     Kind.COMPLETE: create.flatpfline(
-        {"q": series_ref_minus_2["q"], "p": series_ref_minus_2["p"]}
+        {"q": series_ref_minus_2["q"], "r": series_ref_minus_2["r"]}
     ),
     "nodim": series_ref_minus_2["nodim"],
 }
@@ -143,6 +142,9 @@ flatset_ref_times_2 = {
         {"q": series_ref_times_2["q"], "p": series_ref["p"]}
     ),
     "nodim": series_ref_times_2["nodim"],
+}
+flatset_ref_dividedby_0 = {
+    Kind.VOLUME: create.flatpfline({"q": pd.Series([-np.inf, np.inf, -np.inf], i_ref)})
 }
 series_ref_dividedby_2 = {
     "q": pd.Series([-1.75, 2.5, -2.5], i_ref),
@@ -365,8 +367,7 @@ def divisiontestcases():
         c = kind.summable[0]  # only one element
         pfl = flatset_ref[kind]
         # . ref / 2
-        for val in flatset_ref_dividedby_2[kind]:
-            yield Case(pfl, "/", val, dimlessseries(series_2["nodim"]))
+        yield Case(pfl, "/", flatset_ref_dividedby_2[kind], dimlessseries(series_2))
         # . ref / a
         series = dimlessseries(series_ref[c] / series_a[c])
         yield Case(pfl, "/", flatset_a[kind], series)
@@ -387,7 +388,9 @@ def divisiontestcases():
     # kind / incompatible value
     yield Case(flatset_ref[Kind.VOLUME], "/", flatset_a[Kind.PRICE], Exception)
     for val in values_0["nodim"]:
-        yield Case(flatset_ref[Kind.VOLUME], "/", val, Exception)
+        yield Case(
+            flatset_ref[Kind.VOLUME], "/", val, flatset_ref_dividedby_0[kind.VOLUME]
+        )
 
 
 def uniontestcases():
