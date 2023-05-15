@@ -10,7 +10,7 @@ import pandas as pd
 from ... import tools
 from ..mixins import ExcelClipboardOutput, PfLinePlot, PfLineText
 from ..ndframelike import NDFrameLike
-from . import create, dataframeexport, decorators, flat_methods, nested_methods, prices
+from . import create, dataframeexport, decorators, flat_methods, nested_methods, prices, children
 from .arithmatic import PfLineArithmatic
 from .enums import Kind, Structure
 
@@ -276,27 +276,23 @@ class FlatPfLine(PfLine):
     flatten = flat_methods.flatten
     po = prices.Flat.po
     hedge_with = prices.Flat.hedge_with
+    # map_to_year => on child classes
+    map_to_year = flat_methods.map_to_year
     loc = flat_methods.loc
     __getitem__ = flat_methods.__getitem__
+    # __bool__ => on child classes
     __eq__ = flat_methods.__eq__
 
 
-class NestedPfLine(PfLine, Mapping):
+class NestedPfLine(PfLine, children.ChildFunctionality):
     structure = Structure.NESTED
 
     dataframe = dataframeexport.Nested.dataframe
     flatten = nested_methods.flatten
     po = prices.Nested.po
     hedge_with = prices.Nested.hedge_with
-    set_child = nested_methods.set_child
-    drop_child = nested_methods.drop_child
     map_to_year = nested_methods.map_to_year
     loc = nested_methods.loc
-    items = nested_methods.items
-    __getitem__ = nested_methods.__getitem__
-    __iter__ = nested_methods.__iter__
-    __len__ = nested_methods.__len__
-    __getattr__ = nested_methods.__getattr__
     __bool__ = nested_methods.__bool__
     __eq__ = nested_methods.__eq__
 
