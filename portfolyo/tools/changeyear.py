@@ -183,7 +183,6 @@ def _map_index_to_index_daily(
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
 ) -> pd.Series:
-
     # Split into months.
     idx_source_by_m = {m: s.index for m, s in pd.Series(0, idx_source).resample("MS")}
     idx_target_by_m = {m: s.index for m, s in pd.Series(0, idx_target).resample("MS")}
@@ -211,7 +210,6 @@ def _map_index_to_index_daily(
 def _map_index_to_index_daily_samemonth(
     idx_source: pd.DatetimeIndex, idx_target: pd.DatetimeIndex, holiday_country: str
 ) -> pd.Series:
-
     months = set([*[ts.month for ts in idx_source], *[ts.month for ts in idx_target]])
     if len(months) > 1:
         raise ValueError(

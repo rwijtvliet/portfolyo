@@ -75,14 +75,20 @@ def series(
     if not isinstance(weights, pd.Series):
         weights = pd.Series(weights, s.index)
 
+    # Special case: if total weight is 0, but all original values are identical, return this value.
+    if np.isclose(weights.sum(), 0) and s.nunique() == 1:
+        return s.iloc[0]
+
+    # Prep: if a weight is 0, corresponding value is irrelevant. Even if it is NaN.
+    drop = weights == 0  # Replace with np.isclose? Must work with float and pint
+    if drop.any() and not drop.all():
+        keep = weights[~drop].index
+        s = s.loc[keep]
+        weights = weights.loc[keep]
     # Get multiplication factors as floats.
     factors = (weights / weights.sum()).astype(float)
     # Calculate the average.
     result = s.mul(factors).sum(skipna=False)  # float or quantity
-
-    # Special case: if total weight is 0, but all original values are identical, return this value.
-    if np.isclose(weights.sum(), 0) and s.nunique() == 1:
-        return s.iloc[0]
 
     return result
 

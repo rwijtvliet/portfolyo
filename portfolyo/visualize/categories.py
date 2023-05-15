@@ -94,7 +94,8 @@ def create_categories(s: pd.Series) -> Iterable[Category]:
 
 def priolist(n):
     """Create list with n priority numbers, which indicate how important a given element
-    is on a categorical scale. The higher the number, the more easily it can be dropped."""
+    is on a categorical scale. The higher the number, the more easily it can be dropped.
+    """
     prio = 0
     prios = [prio]
     while len(prios) < n:

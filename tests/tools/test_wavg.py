@@ -72,6 +72,31 @@ def test_wavg_valuesasseries_na(weightsas: str, with_units: str):
 
 @pytest.mark.parametrize("weightsas", ["list", "series"])
 @pytest.mark.parametrize("with_units", ["units", "nounits"])
+def test_wavg_0weight_navalues(weightsas: str, with_units: str):
+    """Test if weighted average of a series is correctly calculated, when some weights
+    are 0 but they have na-values."""
+    # Starting values.
+    values = pd.Series([100.0, 200, np.nan, -150])
+    weights = [10.0, 0, 0, 0]
+    if weightsas == "list":
+        expected = 100.0
+    elif weightsas == "series":
+        weights = pd.Series(weights, index=[3, 2, 1, 0])  # align by index
+        expected = -150.0
+    # Add units.
+    if with_units == "units":
+        values = values.astype("pint[Eur/MWh]")
+        expected = pf.Q_(expected, "Eur/MWh")
+        if weightsas == "series":
+            weights = weights.astype("pint[MWh]")
+        else:
+            weights = [pf.Q_(w, "MWh") for w in weights]
+    # Test.
+    assert np.isclose(tools.wavg.series(values, weights), expected)
+
+
+@pytest.mark.parametrize("weightsas", ["list", "series"])
+@pytest.mark.parametrize("with_units", ["units", "nounits"])
 def test_wavg_valuesasseries_0weights(weightsas: str, with_units: str):
     """Test if weighted average of a series is correctly calculated,
     when all weights are 0 and all values are equal."""

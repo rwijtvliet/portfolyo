@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from .. import tools
-from ..core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine
+from ..core.pfline import FlatPfLine, Kind, Structure, NestedPfLine, PfLine, create
 from ..core.pfstate import PfState
 from . import mockup
 
@@ -128,19 +128,31 @@ def get_dataframe(
 # Portfolio line.
 
 
+def get_pfline(
+    i: pd.DatetimeIndex = None,
+    kind: Kind = Kind.COMPLETE,
+    structure: Structure = Structure.FLAT,
+    *,
+    _seed: int = None,
+) -> FlatPfLine:
+    """Get a portfolio line."""
+    if structure is Structure.FLAT:
+        return get_flatpfline(i, kind, _seed=_seed)
+    else:
+        return get_nestedpfline(i, kind, _seed=_seed)
+
+
 def get_flatpfline(
     i: pd.DatetimeIndex = None, kind: Kind = Kind.COMPLETE, *, _seed: int = None
 ) -> FlatPfLine:
     """Get flat portfolio line, i.e. without children."""
-    if not isinstance(kind, Kind):
-        kind = Kind(kind)
     columns = {
         Kind.VOLUME: "q",
         Kind.PRICE: "p",
         Kind.REVENUE: "r",
         Kind.COMPLETE: "qr",
     }[kind]
-    return FlatPfLine(get_dataframe(i, columns, _seed=_seed))
+    return create.flatpfline(get_dataframe(i, columns, _seed=_seed))
 
 
 def get_nestedpfline(
@@ -149,7 +161,7 @@ def get_nestedpfline(
     """Get nested portfolio line. With 2 (flat) children of the same ``kind``."""
     if i is None:
         i = get_index(_seed=_seed)
-    return NestedPfLine(
+    return create.nestedpfline(
         {
             "A": get_flatpfline(i, kind, _seed=_seed),
             "B": get_flatpfline(i, kind, _seed=_seed),
@@ -184,7 +196,7 @@ def get_randompfline(
         children[name] = get_randompfline(
             i, kind, max_nlevels - 1, prefix=f"{prefix}{c}.", _seed=_seed
         )
-    return NestedPfLine(children)
+    return create.nestedpfline(children)
 
 
 # Portfolio state.

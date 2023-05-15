@@ -258,7 +258,6 @@ def plot_pfstates(dic: Dict[str, PfState], freq: str = "MS") -> plt.Figure:
     # TODO: resample all to have same index (frequency and length).
 
     for i, ((pfname, pfs), axes) in enumerate(zip(dic.items(), axesgroups)):
-
         # If freq is MS or longer: use categorical axes. Plot volumes in MWh.
         # If freq is D or shorter: use time axes. Plot volumes in MW.
         is_category = tools.freq.shortest(pfs.index.freq, "MS") == "MS"

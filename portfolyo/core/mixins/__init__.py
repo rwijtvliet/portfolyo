@@ -1,3 +1,4 @@
-from .text import PfLineText, PfStateText
+from . import text
+from .excelclipboard import ExcelClipboardOutput
 from .plot import PfLinePlot, PfStatePlot
-from .other import OtherOutput
+from .text import PfLineText, PfStateText

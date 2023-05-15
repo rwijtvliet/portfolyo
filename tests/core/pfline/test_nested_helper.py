@@ -17,9 +17,11 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
     i = dev.get_index(freq, "Europe/Berlin")
 
     kinds, children = [], {}
+
     for k, kind in enumerate([kind1, kind2, kind3]):
         if kind is not None:
             kinds.append(kind)
+
             children[f"part_{k}"] = dev.get_flatpfline(i, kind)
 
     if len(children) == 1:
@@ -28,11 +30,13 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
     elif len(children) > 1:
         if len(set(kinds)) != 1:
             # Can only combine 2 pflines if they have the same kind.
+
             with pytest.raises(ValueError):
                 _ = nested_helper.children_and_kind(children)
             return
 
     result_children, result_kind = nested_helper.children_and_kind(children)
+
     assert result_children == children
     assert result_kind is kind1
 
@@ -49,11 +53,11 @@ def test_verifydict_frequencyconsistency(freq1, freq2):
         "inclusive": "left",
         "tz": "Europe/Berlin",
     }
+
     i1 = pd.date_range(**kwargs, freq=freq1)
     i2 = pd.date_range(**kwargs, freq=freq2)
-
-    spfl1 = dev.get_flatpfline(i1, "all")
-    spfl2 = dev.get_flatpfline(i2, "all")
+    spfl1 = dev.get_flatpfline(i1, Kind.COMPLETE)
+    spfl2 = dev.get_flatpfline(i2, Kind.COMPLETE)
 
     children = {"PartA": spfl1, "PartB": spfl2}
 
@@ -81,6 +85,7 @@ def test_verifydict_unequaltimeperiods(freq, overlap):
         inclusive="left",
         tz="Europe/Berlin",
     )
+
     start = "2020-03-01" if overlap else "2020-07-01"
     i2 = pd.date_range(
         start=start, end="2020-09-01", freq=freq, inclusive="left", tz="Europe/Berlin"
@@ -89,7 +94,6 @@ def test_verifydict_unequaltimeperiods(freq, overlap):
     spfl1 = dev.get_flatpfline(i1, Kind.COMPLETE)
     spfl2 = dev.get_flatpfline(i2, Kind.COMPLETE)
     children = {"PartA": spfl1, "PartB": spfl2}
-
     intersection = tools.intersect.indices(spfl1.index, spfl2.index)
 
     if not overlap:
@@ -143,11 +147,12 @@ input_df_3 = pd.concat(
     ],
 )
 def test_makemapping(input: Any, expected: Mapping):
-    result = nested_helper.make_mapping(input)
+    result = nested_helper._mapping(input)
     assert isinstance(result, Mapping)
     assert set(key for key in result) == set(key for key in expected)
     for key, result_val in result.items():
         expected_val = expected[key]
+
         if isinstance(result_val, pd.Series) or isinstance(result_val, pd.DataFrame):
             assert all(result_val == expected_val)
         else:

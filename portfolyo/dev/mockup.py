@@ -164,9 +164,11 @@ def wp_sourced(
         return pd.DataFrame({"p": pval, "w": wval}, sub_s.index)
 
     if sin.index.freq in ["15T", "H"]:
-        df = sin.groupby(is_peak_hour).apply(lambda s: s.resample(freq).apply(fn))
+        df = sin.groupby(is_peak_hour).apply(
+            lambda s: s.resample(freq).apply(fn)
+        )  # TODO: use group_keys
     else:
-        df = sin.resample(freq).apply(fn)
+        df = sin.resample(freq).apply(fn)  # TODO: use group_keys
     w, p = df.w, df.p
 
     # Add unit if wanted.
