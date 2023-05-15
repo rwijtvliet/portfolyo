@@ -285,7 +285,6 @@ class FlatPfLine(PfLine):
     po = prices.Flat.po
     hedge_with = prices.Flat.hedge_with
     # map_to_year => on child classes
-    map_to_year = flat_methods.map_to_year
     loc = flat_methods.loc
     __getitem__ = flat_methods.__getitem__
     # __bool__ => on child classes
