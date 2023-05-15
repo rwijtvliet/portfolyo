@@ -135,13 +135,13 @@ Flat or Nested
 
 As seen in the final initialisation example, we can create *nested* portfolio lines, where a portfolio line contains one or more named children (which are also portfolio lines). This in contrast to the *'flat'* portfolio lines we created in the first initialisation example. 
 
-.. note:: When checking the types, you will see that these are actually different classes. The flat portfolio line is an instance of the ``FlatPfLine`` class, whereas the portfolio line which has nesting is an instance of the ``NestedPfLine`` class. Both are descendents of the ``PfLine`` base class. When initialising a ``PfLine``, the correct type will be returned based on the input data. 
+.. note:: When checking the types, you will see that these are actually different classes - in the examples above ``FlatVolumePfLine``, ``FlatPricePfLine``, and ``NestedVolumePfLine``. All are descendents of the ``PfLine`` base class. When initialising a ``PfLine``, the correct type will be returned based on the input data. 
 
-For nested portfolio lines, we are always looking at and working with the the top level, i.e., the sum/aggregate - unless explicitly stated otherwise by the user.
+For nested portfolio lines, we are always looking at and working with the the top level, i.e., the sum/aggregate - unless explicitly requested otherwise by the user.
 
-An example of where a nested portfolio line makes sense, is to combine procurement on the forward market and spot trade into a "sourced" portfolio line. We can then easily work with the aggregate values, but the values of the individual markets are also still available.
+An example of where a nested portfolio line makes sense, is to combine procurement on the forward market and spot trade into a single "sourced" portfolio line. We can then easily work with the aggregate values, but the values of the individual markets are also still available.
 
-It is important to note that both types of portfolio line contain the exact same methods and properties that are described in the rest of this document. The nested portfolio lines have a few additional methods which are described now.
+It is important to note that both types of portfolio line contain the exact same methods and properties that are described in the rest of this document. Nested portfolio lines do have a few additional methods which are described now.
 
 Working with children
 =====================
@@ -261,7 +261,7 @@ From ``pandas`` we know the ``.loc[]`` property which allows us to select a slic
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
    # continuation of previous code example
-   pfl.loc['2024':'2025']
+   pfl.loc['2024':'2025']  # includes 2025
    # --- hide: start ---
    print(pfl.loc['2024':'2025'])
    # --- hide: stop ---
@@ -270,7 +270,7 @@ From ``pandas`` we know the ``.loc[]`` property which allows us to select a slic
 Volume-only, price-only or revenue-only
 =======================================
 
-With the ``.volume``, ``.price`` and ``.revenue`` properties, we are able to extract the specified data from a complete portfolio line. The returned ``PfLine`` is flat, as keeping the children would lead to incorrect values in some situations (in case we want to get the price part of a complete portfolio line - in that case, the aggregate price is the average of the children's prices, *weighted with their volumes* - which we lose if we keep only the prices).
+With the ``.volume``, ``.price`` and ``.revenue`` properties, we are able to extract the specified data from a complete portfolio line. For nested portfolios lines, the returned ``PfLine`` may still be flat; this is the case if keeping the children would lead to incorrect values. (E.g., getting the price part of a nested complete portfolio line: the aggregate price is the average of the children's prices, *weighted with their volumes*. The individual prices cannot simply be added up.)
 
 Further below, in the section on arithmatic_, we see the reverse operation: combining two portfolio lines into a complete one.
 
@@ -355,7 +355,7 @@ General remarks:
      import portfolyo as pf, pandas as pd
      index = pd.date_range('2024', freq='AS', periods=3)
      pfl = pf.PfLine(pd.Series([2, 2.2, 3], index, dtype='pint[MW]')) 
-     pfl_1 = pfl + {'q': 50.0}
+     pfl_1 = pfl + {'q': 50.0}  # standard unit (here: MWh) is assumed
      pfl_2 = pfl + pf.Q_(50000.0, 'kWh')
      pfl_3 = pfl + {'q': pd.Series([50, 50, 50.0], index)}
      pfl_4 = pfl + pf.PfLine({'q': pd.Series([50, 50, 50.0], index)})
@@ -369,20 +369,18 @@ General remarks:
 
 * When doing arithmatic with a nested portfolio line, the children are also present in the result. 
 
-* Arithmatic does not do silent conversions, and raises an ``Exception`` in case of ambiguity. E.g.:
-  
-  - When adding a ``float`` value to a ``PRICE`` portfolio line. Instead, use the value to create a ``pint.Quantity`` using ``pf.Q_()``. 
+* Arithmatic does silent flattening if necessary. E.g., if an operation is only possible if one or both of the operands is flat, this will be done automatically. (A nested portfolio line can also be flattened manually with the ``.flatten()`` method.)
 
-  - Some operations are only possible if one or both of the operands is flat. A nested portfolio line can be flattened with the ``.flatten()`` method. 
+* However, an ``Exception`` is raised in case of ambiguity concerning the unit. E.g., when adding a ``float`` value to a ``PRICE`` portfolio line. Solution: explicitly convert into a ``pint.Quantity`` using ``pf.Q_()``. 
 
 * The usual relationship between addition and multiplication holds. E.g., for a given portfolio line ``pfl``, the following two calculations have the same return value: ``pfl + pfl`` and ``2 * pfl``.
 
 Addition and subtraction
 ========================
 
-* Addition and subtraction are only possible between operands of similar dimenions. E.g., to a price-only portfolio line, a price can be added, but not e.g. a volume. 
+* Addition and subtraction are only possible between operands of the same kind. E.g., to a price-only portfolio line, a price can be added, but not e.g. a volume. 
 
-* Even if the both operands have the same dimension, they must both be nested or both be flat. E.g., a flat price can be added to a flat price-only portfolio line, but not to a nested price-only portfolio line. Two nested price-only portfolio lines can be added.   
+* Even if the both operands have the same kind, they must both be nested or both be flat. E.g., a flat price can be added to a flat price-only portfolio line, but not to a nested price-only portfolio line. Two nested price-only portfolio lines can be added.
 
 ================================================= =============== ============== ================ =================
 \                                                 Kind of portfolio line
@@ -442,7 +440,9 @@ Here are several examples.
      print('')
      print(repr(diff['B']))
   
-* We cannot add a flat and a nested portfolio line... 
+* A flat and a nested portfolio line cannot be added...
+
+  ...and if we try, the nested one is flattened (and the result is also a flat portfolio line):
 
   .. exec_code::
        
@@ -456,29 +456,11 @@ Here are several examples.
      })      
      # --- hide: stop ---
      # continuation of previous code example
-     # vol + vol_2  # raises Error
+     vol + vol_2 
      # --- hide: start ---
      # print(repr(vol + vol_2))
 
-  but must either flatten the nested one (and the result is a flat portfolio line)...
-
-  .. exec_code::
-       
-     # --- hide: start ---
-     import portfolyo as pf, pandas as pd
-     index = pd.date_range('2024', freq='AS', periods=3)
-     vol = pf.PfLine(pd.Series([4, 4.6, 3], index, dtype='pint[MW]'))
-     vol_2 = pf.PfLine({
-         'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
-         'B': pd.Series([1, -1.8, 1.9], index, dtype='pint[MW]')
-     })      
-     # --- hide: stop ---
-     # continuation of previous code example
-     vol + vol_2.flatten()
-     # --- hide: start ---
-     print(repr(vol + vol_2.flatten()))
-
-  or we must give the flat one a name (and the result is a nested portfolio line)...
+  If we want, we can keep the children. In that case, we must give the flat one a name as well (and the result is a nested portfolio line):
 
   .. exec_code::
        
