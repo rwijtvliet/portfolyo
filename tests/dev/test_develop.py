@@ -3,8 +3,8 @@
 import pandas as pd
 import pytest
 
-import portfolyo as pf
 from portfolyo import Kind, dev
+from portfolyo.core.pfline import classes
 
 
 @pytest.mark.parametrize("as_str", [True, False])
@@ -126,4 +126,4 @@ def test_pfline(freq, tz, start, kind, max_nlevels):
     i = None if freq is None else dev.get_index(freq, tz, start)
     pfl = dev.get_randompfline(i, kind, max_nlevels)
     if max_nlevels == 1:
-        assert isinstance(pfl, pf.FlatPfLine)
+        assert isinstance(pfl, classes.FlatPfLine)

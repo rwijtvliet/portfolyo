@@ -88,7 +88,6 @@ class TCase:  # testcase
 
 def create_testcase_factory():
     def add_testcase(tc: dict, several_years: bool):
-
         # Testcase with daily frequency.
         year_s_start, year_t_start = tc["source_year"], tc["target_year"]
         year_s_end, year_t_end = year_s_start + 1, year_t_start + 1

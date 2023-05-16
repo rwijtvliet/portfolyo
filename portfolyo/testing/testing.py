@@ -10,7 +10,7 @@ from ..tools.unit import Q_
 
 
 @functools.wraps(pd.testing.assert_frame_equal)
-def assert_frame_equal(left, right, *args, **kwargs):
+def assert_frame_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwargs):
     # Dataframes equal even if *order* of columns is not the same.
     left = tools.unit.drop_units(left).sort_index(axis=1)
     right = tools.unit.drop_units(right).sort_index(axis=1)
@@ -20,8 +20,7 @@ def assert_frame_equal(left, right, *args, **kwargs):
 
 
 @functools.wraps(pd.testing.assert_series_equal)
-def assert_series_equal(left, right, *args, **kwargs):
-
+def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
     if hasattr(left, "pint") and hasattr(right, "pint"):  # pint-series
         left, right = left.pint.to_base_units(), right.pint.to_base_units()
         assert left.pint.u == right.pint.u
@@ -46,6 +45,13 @@ def assert_series_equal(left, right, *args, **kwargs):
 
 
 assert_index_equal = pd.testing.assert_index_equal
+
+
+def assert_indices_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
+    if (lf := left.freq) != (r := right.freq):
+        raise AssertionError(f"Indices have unequal frequency: {lf} and {r}.")
+    if (lf := left[0].time()) != (r := right[0].time()):
+        raise AssertionError(f"Indices that have unequal start-of-day; {lf} and {r}.")
 
 
 def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):

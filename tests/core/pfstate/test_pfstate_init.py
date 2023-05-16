@@ -2,7 +2,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from portfolyo import PfLine, PfState, dev, testing  # noqa
+from portfolyo import PfState, dev, testing  # noqa
+from portfolyo.core.pfline import create
 from portfolyo.core.pfstate.pfstate_helper import make_pflines
 
 # Assert correct working of _make_pflines
@@ -22,92 +23,92 @@ s_difffreq = dev.get_series(i_difffreq, "")
 
 
 @pytest.mark.parametrize(
-    ("o", "u", "s", "o_exp", "u_exp", "s_exp"),
+    ("o,u,s,o_exp,u_exp,s_exp"),
     [
         (  # Full package.
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_ref + 20, "p": s_ref * 20}),
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref + 20, "p": s_ref * 20}),
         ),
         (  # Too much information at offtake.
-            PfLine({"w": s_ref, "p": s_ref + 1}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_ref + 20, "p": s_ref * 20}),
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"w": s_ref, "p": s_ref + 1}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref + 20, "p": s_ref * 20}),
         ),
         (  # Too much information at unsourcedprice.
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10, "w": s_ref + 10}),
-            PfLine({"w": s_ref + 20, "p": s_ref * 20}),
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10, "w": s_ref + 10}),
+            create.flatpfline({"w": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref + 20, "p": s_ref * 20}),
         ),
         (  # Incorrect kind at offtake.
-            PfLine({"p": s_ref + 1}),
-            PfLine({"p": s_ref * 10, "w": s_ref + 10}),
-            PfLine({"w": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"p": s_ref + 1}),
+            create.flatpfline({"p": s_ref * 10, "w": s_ref + 10}),
+            create.flatpfline({"w": s_ref + 20, "p": s_ref * 20}),
             ValueError,
             None,
             None,
         ),
         (  # Incorrect kind at unsourcedprice.
-            PfLine({"w": s_ref}),
-            PfLine({"w": s_ref + 10}),
-            PfLine({"w": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"w": s_ref + 10}),
+            create.flatpfline({"w": s_ref + 20, "p": s_ref * 20}),
             ValueError,
             None,
             None,
         ),
         (  # Incorrect kind at sourced.
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_ref + 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref + 20}),
             ValueError,
             None,
             None,
         ),
         (  # Incorrect kind at sourced.
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"p": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"p": s_ref * 20}),
             ValueError,
             None,
             None,
         ),
         (  # No sourcing yet.
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
             None,
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            None,
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref * 0, "r": s_ref * 0}),
         ),
         (  # Unequal periods; result is trimmed.
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_more * 10}),
-            PfLine({"w": s_more + 20, "p": s_more * 20}),
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_more * 10}).loc[i_ref],
-            PfLine({"w": s_more + 20, "p": s_more * 20}).loc[i_ref],
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_more * 10}),
+            create.flatpfline({"w": s_more + 20, "p": s_more * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_more * 10}).loc[i_ref],
+            create.flatpfline({"w": s_more + 20, "p": s_more * 20}).loc[i_ref],
         ),
         (  # Unequal periods; error (intersection; not enough sourced volume).
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_more * 10}),
-            PfLine({"w": s_less + 20, "p": s_less * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_more * 10}),
+            create.flatpfline({"w": s_less + 20, "p": s_less * 20}),
             ValueError,
             None,
             None,
         ),
         (  # Unequal periods; error (intersection; not enough unsourced prices).
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_less * 10}),
-            PfLine({"w": s_more + 20, "p": s_more * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_less * 10}),
+            create.flatpfline({"w": s_more + 20, "p": s_more * 20}),
             ValueError,
             None,
             None,
@@ -116,17 +117,17 @@ s_difffreq = dev.get_series(i_difffreq, "")
             {"w": s_ref},
             {"p": s_ref * 10},
             {"w": s_ref + 20, "p": s_ref * 20},
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref + 20, "p": s_ref * 20}),
         ),
         (  # Not passing PfLines.
             {"w": s_ref},
             {"p": s_more * 10},
             None,
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_more * 10}).loc[i_ref],
-            None,
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_more * 10}).loc[i_ref],
+            create.flatpfline({"w": s_ref * 0, "r": s_ref * 0}),
         ),
         (  # Not passing PfLines; error (intersection)
             {"w": s_more},
@@ -137,16 +138,16 @@ s_difffreq = dev.get_series(i_difffreq, "")
             None,
         ),
         (  # Unequal frequencies.
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_difffreq * 10}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_difffreq * 10}),
             None,
             ValueError,
             None,
             None,
         ),
         (  # Unequal frequencies.
-            PfLine({"w": s_difffreq}),
-            PfLine({"p": s_ref * 10}),
+            create.flatpfline({"w": s_difffreq}),
+            create.flatpfline({"p": s_ref * 10}),
             None,
             ValueError,
             None,
@@ -175,7 +176,7 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
     assert result.offtakevolume == o_exp
     assert result.unsourcedprice == u_exp
     if s_exp is None:
-        sourced_exp = PfLine(pd.DataFrame({"q": 0, "r": 0}, o_exp.index))
+        sourced_exp = create.flatpfline(pd.DataFrame({"q": 0, "r": 0}, o_exp.index))
     else:
         sourced_exp = s_exp
     assert result.sourced == sourced_exp
@@ -192,9 +193,9 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
             s_ref * 20,
             None,
             s_ref * 10,
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref + 20, "p": s_ref * 20}),
         ),
         (  # Full package with energy and price.
             None,
@@ -204,9 +205,9 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
             s_ref * 20,
             None,
             s_ref * 10,
-            PfLine({"q": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"q": s_ref + 20, "p": s_ref * 20}),
+            create.flatpfline({"q": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"q": s_ref + 20, "p": s_ref * 20}),
         ),
         (  # Full package with power and revenue.
             s_ref,
@@ -216,9 +217,9 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
             None,
             s_ref * 20,
             s_ref * 10,
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"w": s_ref + 20, "r": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"w": s_ref + 20, "r": s_ref * 20}),
         ),
         (  # Full package with price and revenue.
             s_ref,
@@ -228,9 +229,9 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
             s_ref + 20,
             s_ref * 20,
             s_ref * 10,
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"p": s_ref + 20, "r": s_ref * 20}),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"p": s_ref + 20, "r": s_ref * 20}),
         ),
         (  # Full package with energy and revenue.
             None,
@@ -240,9 +241,9 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
             None,
             s_ref * 20,
             s_ref * 10,
-            PfLine({"q": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine({"q": s_ref + 20, "r": s_ref * 20}),
+            create.flatpfline({"q": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline({"q": s_ref + 20, "r": s_ref * 20}),
         ),
         (  # Too little information at offtake.
             None,
@@ -300,9 +301,9 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
             None,
             None,
             s_ref * 10,
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_ref * 10}),
-            PfLine(pd.DataFrame({"q": 0.0, "r": 0.0}, i_ref)),
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_ref * 10}),
+            create.flatpfline(pd.DataFrame({"q": 0.0, "r": 0.0}, i_ref)),
         ),
         (  # Unequal periods, no problem.
             s_ref,
@@ -312,9 +313,9 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
             s_more * 20,
             None,
             s_more * 10,
-            PfLine({"w": s_ref}),
-            PfLine({"p": s_more * 10}).loc[i_ref],
-            PfLine({"w": s_more + 20, "p": s_more * 20}).loc[i_ref],
+            create.flatpfline({"w": s_ref}),
+            create.flatpfline({"p": s_more * 10}).loc[i_ref],
+            create.flatpfline({"w": s_more + 20, "p": s_more * 20}).loc[i_ref],
         ),
         (  # Unequal periods, error (not enough sourced).
             s_ref,
@@ -390,9 +391,9 @@ def test_pfstate_consistency_uniformfreq():
     # Create PfState.
     result = PfState.from_series(qo=-qo, qs=qs, rs=rs, pu=pu)
     # Expected.
-    o_exp = PfLine({"q": -qo})
-    s_exp = PfLine({"q": qs, "r": rs})
-    u_exp = PfLine({"p": pu})
+    o_exp = create.flatpfline({"q": -qo})
+    s_exp = create.flatpfline({"q": qs, "r": rs})
+    u_exp = create.flatpfline({"p": pu})
     # Test.
     assert result.offtakevolume == o_exp
     assert result.unsourcedprice == u_exp
@@ -431,9 +432,9 @@ def test_pfstate_consistency_unequalfreq():
     result = PfState.from_series(qo=-qo, qs=qs, rs=rs, pu=pu)
     # Expected.
     qo, qs, rs, pu = qo.loc[i_less], qs.loc[i_less], rs.loc[i_less], pu.loc[i_less]
-    o_exp = PfLine({"q": -qo})
-    s_exp = PfLine({"q": qs, "r": rs})
-    u_exp = PfLine({"p": pu})
+    o_exp = create.flatpfline({"q": -qo})
+    s_exp = create.flatpfline({"q": qs, "r": rs})
+    u_exp = create.flatpfline({"p": pu})
     # Test.
     assert result.offtakevolume == o_exp
     assert result.unsourcedprice == u_exp
@@ -474,9 +475,9 @@ def test_pfstate_consistency_nosourcing():
     result = PfState.from_series(qo=-qo, pu=pu)
     # Expected.
     qo, qs, rs, pu = qo, pd.Series(0.0, i_ref), pd.Series(0.0, i_ref), pu.loc[i_ref]
-    o_exp = PfLine({"q": -qo})
-    s_exp = PfLine({"q": qs, "r": rs})
-    u_exp = PfLine({"p": pu})
+    o_exp = create.flatpfline({"q": -qo})
+    s_exp = create.flatpfline({"q": qs, "r": rs})
+    u_exp = create.flatpfline({"p": pu})
     # Test.
     assert result.offtakevolume == o_exp
     assert result.unsourcedprice == u_exp

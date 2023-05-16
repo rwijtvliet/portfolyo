@@ -2,29 +2,27 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Tuple
 
 import pandas as pd
 
-# from . import flat, nested  #<-- moved to end of file
-from . import flat, interop, nested
-from .base import Kind
+from . import interop
+from .enums import Kind
 
 
-def dataframe(data: Any, __internal: bool = False) -> pd.DataFrame:
+def dataframe_and_kind(data: Any) -> Tuple[pd.DataFrame, Kind]:
+    """From data, create a DataFrame with columns `w` and `q`, or column `p`, or column
+    `r`, or all (`w`, `q`, `p`, `r`); with relevant units set to them. Also, do some data
+    verification, and find the kind of the data from the columns in the dataframe."""
+    df = _dataframe(data)
+    kind = _kind(df)
+    return df, kind
+
+
+def _dataframe(data: Any) -> pd.DataFrame:
     """From data, create a DataFrame with columns `w` and `q`, or column `p`, or column
     `r`, or all (`w`, `q`, `p`, `r`); with relevant units set to them. Also, do some data
     verification."""
-    # Shortcut if PfLine is passed.
-    if isinstance(data, flat.FlatPfLine):
-        return data._df
-    if isinstance(data, nested.NestedPfLine):
-        # return data.flatten()._df  <-- don't use, causes infinite recursion due to __init__ calls.
-        return pd.DataFrame({col: getattr(data, col) for col in data.kind.available})
-    # Shortcut if called internally.
-    if __internal and isinstance(data, pd.DataFrame):
-        return data
-
     # Turn into interoperability object.
     if isinstance(data, interop.InOp):
         inop = data
@@ -47,15 +45,11 @@ def dataframe(data: Any, __internal: bool = False) -> pd.DataFrame:
     return inop.to_timeseries().make_consistent().to_df()
 
 
-def kind(df: pd.DataFrame) -> Kind:
-    """Kind of data, based on columns in (consistent) dataframe."""
-    has_w, has_q, has_p, has_r = (col in df for col in "wqpr")
-    if has_w and has_q and not has_p and not has_r:
-        return Kind.VOLUME
-    if not has_w and not has_q and has_p and not has_r:
-        return Kind.PRICE
-    if not has_w and not has_q and not has_p and has_r:
-        return Kind.REVENUE
-    if has_w and has_q and has_p and has_r:
-        return Kind.COMPLETE
+def _kind(df: pd.DataFrame) -> Kind:
+    """Kind of data, based on columns in dataframe."""
+    found = set(df.columns)
+    for kind in Kind:
+        if set(kind.available) == found:
+            return kind
+
     raise ValueError(f"Unexpected columns for ``df``: {df.columns}.")
