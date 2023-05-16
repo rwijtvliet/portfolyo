@@ -80,14 +80,14 @@ def _upsample_avgable(s: pd.Series, freq: str) -> pd.Series:
 
     # Several isuses with pandas resampling:
 
-    # 1. When upsampling from to yearly to monthly values with `.resample()`, the
+    # HACK: (1): When upsampling from to yearly to monthly values with `.resample()`, the
     # start-of-day is lost. We need to do it in two steps; first upsampling to days and
     # then downsampling to months.
 
     if source_vs_daily > 0 and target_vs_daily > 0:
         return _downsample_avgable(_upsample_avgable(s, "D"), freq)
 
-    # 2. We cannot simply `.resample()`, because in that case the final value is not
+    # HACK: (2): We cannot simply `.resample()`, because in that case the final value is not
     # duplicated. Solution: add a dummy value, which we eventually remove again.
 
     # So, first, add additional row...
