@@ -175,11 +175,7 @@ def test_makepflines_initpfstate(o, u, s, o_exp, u_exp, s_exp):
     result = PfState(o, u, s)
     assert result.offtakevolume == o_exp
     assert result.unsourcedprice == u_exp
-    if s_exp is None:
-        sourced_exp = create.flatpfline(pd.DataFrame({"q": 0, "r": 0}, o_exp.index))
-    else:
-        sourced_exp = s_exp
-    assert result.sourced == sourced_exp
+    assert result.sourced == s_exp
 
 
 @pytest.mark.parametrize(
