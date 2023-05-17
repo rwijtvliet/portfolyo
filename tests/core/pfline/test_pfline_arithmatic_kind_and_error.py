@@ -140,10 +140,9 @@ class Values:  # Testvalues
         quantity = pf.dev.get_value(name, True, _seed=2)
         altunit = Values.UNIT_ALT[name]
         quseries = pf.dev.get_series(i, name, _seed=2)
-        return [
+        values = [
             # . Single value.
             Value(kind, Structure.FLAT, quantity),
-            Value(kind, Structure.FLAT, quantity * 0),
             Value(kind, Structure.FLAT, quantity.to(altunit)),
             Value(kind, Structure.FLAT, {name: quantity.m}),
             Value(kind, Structure.FLAT, {name: quantity}),
@@ -157,6 +156,9 @@ class Values:  # Testvalues
             Value(kind, Structure.FLAT, pd.DataFrame({name: quseries.pint.m})),
             Value(kind, Structure.FLAT, pd.DataFrame({name: quseries})),
         ]
+        if name != "nodim":  # single 0.0-float not a problem when adding or subtracting
+            values.append(Value(kind, Structure.FLAT, quantity * 0))
+        return values
 
     @staticmethod
     def from_2names(
