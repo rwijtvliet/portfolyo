@@ -80,7 +80,7 @@ def duration_peak(
         if freq in ["15T", "H"]:
             return tools.duration.index(ts_left, freq) * is_peak_hour(ts_left)
         elif freq == "D":
-            hours = ts_left.map(lambda ts: ts.isoweekday() < 6) * 12  # no unit
+            hours = ts_left.map(lambda ts: ts.isoweekday() < 6) * 12.0  # no unit
             return pd.Series(hours, ts_left, dtype="pint[h]")  # works even during dst
         else:
             # dur = ts_left.map(duration_peak)  # crashes due to behaviour of .map method
@@ -91,11 +91,11 @@ def duration_peak(
     if freq in ["15T", "H"]:
         return tools.duration.stamp(ts_left, freq) * is_peak_hour(ts_left)
     elif freq == "D":
-        return Q_(0 if ts_left.isoweekday() >= 6 else 12, "h")
+        return Q_(0.0 if ts_left.isoweekday() >= 6 else 12.0, "h")
     else:
         ts_right = tools.right.stamp(ts_left, freq)
         days = pd.date_range(ts_left, ts_right, freq="D", inclusive="left")
-        return Q_(sum(days.map(lambda day: day.isoweekday() < 6) * 12), "h")
+        return Q_(sum(days.map(lambda day: day.isoweekday() < 6) * 12.0), "h")
 
 
 def duration_offpeak(
