@@ -77,7 +77,7 @@ def prepare_sourced(sourced: Any, ref_idx: pd.DatetimeIndex) -> PfLine:
         testing.assert_indices_compatible(ref_idx, sourced.index)
     except AssertionError as e:
         raise ValueError from e
-    # Workaround for error in pandas intersection (#46702):
+    # HACK: Workaround for error in pandas intersection (#46702):
     if len(tools.intersect.indices(ref_idx, sourced.index)) < len(ref_idx):
         raise ValueError(
             "Parameter ``sourced``: does not cover entire delivery period of"
