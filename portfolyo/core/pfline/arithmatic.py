@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Union
 
+import numpy as np
 import pandas as pd
 
 from ... import testing, tools
@@ -116,6 +117,18 @@ class Prep:
 
         return wrapper
 
+    def returnself_if_otherzerofloatseries(fn):
+        def wrapper(pfl: PfLine, other: Any):
+            if isinstance(other, pd.Series):
+                if other.dtype == "pint[dimensionless]":
+                    other = other.pint.m
+                if other.dtype in [int, float] and np.allclose(other.values, 0.0):
+                    return pfl
+
+            return fn(pfl, other)
+
+        return wrapper
+
     def raiseerror_if_otherNone(fn):
         def wrapper(pfl: PfLine, other: Any):
             if other is None:
@@ -139,6 +152,7 @@ class PfLineArithmatic:
 
     @Prep.standardize_other  # other converted to None, a PfLine, or dimless Series
     @Prep.returnself_if_otherNone  # other is now a PfLine or dimless Series
+    @Prep.returnself_if_otherzerofloatseries  # catch pfline + 0
     @Prep.raiseerror_if_otherdimlessseries  # other is now a PfLine...
     @Prep.assert_objects_indexcompatibility  # ...with a compatible index
     def __add__(self: PfLine, other: Any) -> PfLine:
@@ -149,6 +163,7 @@ class PfLineArithmatic:
 
     @Prep.standardize_other  # other converted to None, a PfLine, or dimless Series
     @Prep.returnself_if_otherNone  # catch pfline - None
+    @Prep.returnself_if_otherzerofloatseries  # cach pfline - 0
     def __sub__(self: PfLine, other: Any) -> PfLine:
         return self + -other  # defer to __add__ and __neg__
 

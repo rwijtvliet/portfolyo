@@ -5,8 +5,7 @@ from typing import Tuple
 import pandas as pd
 
 from .. import tools
-from . import convert
-from .utils import is_peak_hour
+from . import convert, utils
 
 
 def _hedge(df: pd.DataFrame, how: str, po: bool) -> pd.Series:
@@ -41,8 +40,9 @@ def _hedge(df: pd.DataFrame, how: str, po: bool) -> pd.Series:
 
     if po:
         apply_f = lambda df: _hedge(df, how, po=False)  # noqa
-        # s = df.groupby(is_peak_hour).apply(apply_f) # calls group_f on EACH ts
-        s = df.groupby(is_peak_hour(df.index)).apply(apply_f)  # calls group_f on index
+        # s = df.groupby(utils.is_peak_hour).apply(apply_f) # calls group_f on EACH ts
+        is_peak_hour = utils.is_peak_hour(df.index)
+        s = df.groupby(is_peak_hour).apply(apply_f)  # calls group_f on index
         return s.rename(index={True: "peak", False: "offpeak"}).stack()
 
     # Don't split into peak and offpeak.
