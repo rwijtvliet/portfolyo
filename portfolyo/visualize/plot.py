@@ -94,7 +94,8 @@ def plot_timeseries_as_jagged(
     ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
 ) -> None:
     """Plot timeseries ``s`` to axis ``ax``, as jagged line and/or as markers. Use kwargs
-    ``linestyle`` and ``marker`` to specify line style and/or marker style. (Default: line only)."""
+    ``linestyle`` and ``marker`` to specify line style and/or marker style. (Default: line only).
+    """
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     if use_categories(ax, s, cat):

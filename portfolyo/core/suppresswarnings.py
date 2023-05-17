@@ -15,4 +15,3 @@ def apply():
     # warnings.filterwarnings(
     #     "ignore", r".*Timestamp.freq is deprecated and will be removed.*", FutureWarning
     # )
-    pass

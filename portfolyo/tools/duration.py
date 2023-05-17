@@ -34,7 +34,7 @@ def stamp(ts: pd.Timestamp, freq: str) -> tools_unit.Q_:
     23.0 h
     """
     if freq in ["15T", "H"]:
-        h = 1 if freq == "H" else 0.25
+        h = 1.0 if freq == "H" else 0.25
     else:
         h = (tools_right.stamp(ts, freq) - ts).total_seconds() / 3600
     return tools_unit.Q_(h, "h")

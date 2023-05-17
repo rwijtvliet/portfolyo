@@ -1,50 +1,22 @@
-from typing import Any, Dict
-
 import numpy as np
 import pandas as pd
 import pytest
+from utils import id_fn  # noqa
 
-import portfolyo as pf
-from portfolyo import PfState  # noqa
-from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine, dev, testing
-
-
-def id_fn(data: Any):
-    """Readable id of test case"""
-    if isinstance(data, Dict):
-        return str({key: id_fn(val) for key, val in data.items()})
-    elif isinstance(data, pd.Series):
-        if isinstance(data.index, pd.DatetimeIndex):
-            return f"Timeseries (dtype: {data.dtype})"
-        return f"Series (idx: {''.join(str(i) for i in data.index)})"
-    elif isinstance(data, pd.DataFrame):
-        return f"Df (columns: {''.join(str(c) for c in data.columns)})"
-    elif isinstance(data, FlatPfLine):
-        return f"Singlepfline_{data.kind}"
-    elif isinstance(data, NestedPfLine):
-        return f"Multipfline_{data.kind}"
-    elif isinstance(data, str):
-        return data
-    elif isinstance(data, pf.Q_):
-        return f"Quantity ({data.units})"
-    elif isinstance(data, type):
-        return data.__name__
-    elif isinstance(data, Kind):
-        return str(data)
-    return type(data).__name__
-
+from portfolyo import Q_, PfState, dev, testing
+from portfolyo.core.pfline import create
 
 tz = "Europe/Berlin"
 
 # Set 1.
 i1 = pd.date_range("2020", freq="MS", periods=3, tz=tz)
 dataset1 = {
-    "offtake": PfLine({"w": pd.Series([-3.5, -5, -5], i1)}),
-    "unsourcedprice": PfLine({"p": pd.Series([300.0, 150, 100], i1)}),
-    "sourced": PfLine(
+    "offtake": create.flatpfline({"w": pd.Series([-3.5, -5, -5], i1)}),
+    "unsourcedprice": create.flatpfline({"p": pd.Series([300.0, 150, 100], i1)}),
+    "sourced": create.flatpfline(
         {"w": pd.Series([3.0, 5, 4], i1), "p": pd.Series([200.0, 100, 50], i1)}
     ),
-    "unsourced": PfLine(
+    "unsourced": create.flatpfline(
         {"w": pd.Series([0.5, 0, 1], i1), "p": pd.Series([300.0, 150, 100], i1)}
     ),
     "nodim": pd.Series([2, -1.5, 10], i1),
@@ -54,12 +26,12 @@ pfs1 = PfState(dataset1["offtake"], dataset1["unsourcedprice"], dataset1["source
 # Set 2. Partial overlap with set 1.
 i2 = pd.date_range("2020-02", freq="MS", periods=3, tz=tz)
 dataset2 = {
-    "offtake": PfLine({"w": pd.Series([-15.0, -20, -4], i2)}),
-    "unsourcedprice": PfLine({"p": pd.Series([400.0, 50, 50], i2)}),
-    "sourced": PfLine(
+    "offtake": create.flatpfline({"w": pd.Series([-15.0, -20, -4], i2)}),
+    "unsourcedprice": create.flatpfline({"p": pd.Series([400.0, 50, 50], i2)}),
+    "sourced": create.flatpfline(
         {"w": pd.Series([12.0, 5, 4], i2), "p": pd.Series([100.0, 100, 50], i2)}
     ),
-    "unsourced": PfLine(
+    "unsourced": create.flatpfline(
         {"w": pd.Series([3.0, 15, 0], i2), "p": pd.Series([400.0, 50, 50], i2)}
     ),
     "nodim": pd.Series([2, -1.5, 10], i2),
@@ -105,9 +77,11 @@ neg_pfs1 = PfState(
 )
 i12 = pd.date_range("2020-02", freq="MS", periods=2, tz=tz)
 add_pfs1_pfs2 = PfState(
-    PfLine({"w": pd.Series([-20.0, -25], i12)}),
-    PfLine({"p": pd.Series([400, 53.125], i12)}),
-    PfLine({"w": pd.Series([17.0, 9], i12), "p": pd.Series([100, 700 / 9], i12)}),
+    create.flatpfline({"w": pd.Series([-20.0, -25], i12)}),
+    create.flatpfline({"p": pd.Series([400, 53.125], i12)}),
+    create.flatpfline(
+        {"w": pd.Series([17.0, 9], i12), "p": pd.Series([100, 700 / 9], i12)}
+    ),
 )
 div_pfs1_pfs2 = pd.DataFrame(
     {

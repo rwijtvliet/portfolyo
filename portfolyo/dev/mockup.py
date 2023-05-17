@@ -158,15 +158,19 @@ def wp_sourced(
         sin = -1 * w_offtake
 
     # Do resampling.
-    def fn(sub_s):
+    def calc_wp(sub_s):
         wval = sub_s.mean() * (w_avg + rand_amp * np.random.uniform(-1, 1))
         pval = p_avg * (1 + rand_amp * np.random.uniform(-1, 1))
         return pd.DataFrame({"p": pval, "w": wval}, sub_s.index)
 
+    def group_and_calc(s):
+        return s.resample(freq, group_keys=False).apply(calc_wp)
+
     if sin.index.freq in ["15T", "H"]:
-        df = sin.groupby(is_peak_hour).apply(lambda s: s.resample(freq).apply(fn))
+        is_peak = is_peak_hour(sin.index)  # avoid running on each ts individually
+        df = sin.groupby(is_peak, group_keys=False).apply(group_and_calc)
     else:
-        df = sin.resample(freq).apply(fn)
+        df = group_and_calc(sin)
     w, p = df.w, df.p
 
     # Add unit if wanted.

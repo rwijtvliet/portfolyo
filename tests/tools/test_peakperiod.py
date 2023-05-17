@@ -166,7 +166,6 @@ def do_test(
     count: int,
     stretch: Iterable[int] = None,
 ):
-
     # Error case.
     if type(count) is type and issubclass(count, Exception):
         with pytest.raises(count):

@@ -1,9 +1,8 @@
-from typing import Dict
-
 import numpy as np
 import pandas as pd
 import pytest
 from pint import DimensionalityError, UndefinedUnitError
+from utils import id_fn  # relative to /tests
 
 from portfolyo.core.pfline import interop as io
 from portfolyo.tools.unit import Q_
@@ -20,21 +19,6 @@ s2_i = s2.loc[idx_i]
 idx_u = idx1.union(idx2).sort_values()
 s1_u = pd.Series((s1.get(i) for i in idx_u), idx_u)
 s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
-
-
-def id_fn(data):
-    if isinstance(data, Dict):
-        return str({key: id_fn(val) for key, val in data.items()})
-    if isinstance(data, pd.Series):
-        if isinstance(data.index, pd.DatetimeIndex):
-            return "ts"
-        else:
-            return f"series (idx: {''.join(str(i) for i in data.index)})"
-    if isinstance(data, pd.DataFrame):
-        return f"df (columns: {''.join(str(c) for c in data.columns)})"
-    if isinstance(data, io.InOp):
-        return ""
-    return str(data)
 
 
 @pytest.mark.parametrize(

@@ -6,40 +6,18 @@ from typing import Any, Dict, Iterable
 
 import pandas as pd
 import pytest
+from utils import id_fn  # relative to /tests
 
 import portfolyo as pf
-from portfolyo import Q_, FlatPfLine, Kind, NestedPfLine, PfLine, dev, testing  # noqa
+from portfolyo import Q_, PfLine
+from portfolyo.core.pfline import Kind, Structure, arithmatic, create
 
 # TODO: various timezones
 
+# TODO: use/change STRICT setting
 
-def id_fn(data: Any):
-    """Readable id of test case"""
-    if isinstance(data, Dict):
-        return str({key: id_fn(val) for key, val in data.items()})
-    elif isinstance(data, pd.Series):
-        if isinstance(data.index, pd.DatetimeIndex):
-            return f"Timeseries({data.dtype})"
-        return f"Series(idx:{''.join(str(i) for i in data.index)})"
-    elif isinstance(data, pd.DataFrame):
-        return f"Df(columns:{''.join(str(c) for c in data.columns)})"
-    elif isinstance(data, FlatPfLine):
-        return f"Flatpfline({data.kind})"
-    elif isinstance(data, NestedPfLine):
-        return f"Nestedpfline({data.kind})"
-    elif isinstance(data, pf.Q_):
-        return f"Q({data.units})"
-    elif isinstance(data, type):
-        return data.__name__
-    elif isinstance(data, Kind):
-        return str(data)
-    elif isinstance(data, Case):
-        return f"pfl:{id_fn(data.pfl)}..val:{id_fn(data.value)}..expct:{data.expected_result}"
-    elif isinstance(data, str):
-        return data
-    elif data is None:
-        return "None"
-    return type(data).__name__
+
+arithmatic.STRICT = True
 
 
 class Kind2(Enum):  # Kind of value for other operand
@@ -73,17 +51,13 @@ class ER(Enum):  # Expected result
 
 
 @dataclass
-class Pfl:  # Testpfl
-    kind: Kind
-    nestedness: str  # 'flat' or 'nested'
-    pfl: PfLine
-
-
-@dataclass
 class Value:  # Testvalue
     kind: Kind2
-    nestedness: str  # 'flat' or 'nested'
+    structure: Structure
     value: Any
+
+    def __repr__(self):
+        return id_fn(self.value)
 
 
 @dataclass
@@ -92,37 +66,40 @@ class Case:  # Testcase
     value: Any
     expected_result: ER
 
+    def __repr__(self):
+        return f"Case(pfl:{id_fn(self.pfl)},val:{id_fn(self.value)},expct:{id_fn(self.expected_result)})"
+
 
 @dataclass(frozen=True, eq=True)
 class CaseConfig:  # TestcaseConfig
     pfl_kind: Kind
-    pfl_nestedness: str  # 'flat' or 'nested'
+    pfl_structure: Structure
     value_kind: Kind2
-    value_nestedness: str  # 'flat' or 'nested'
+    value_structure: Structure
 
 
 class Pfls:  # Testpfls
     def __init__(self, i: pd.DatetimeIndex):
-        flat_fn, nested_fn = pf.dev.get_flatpfline, pf.dev.get_nestedpfline
-        self._testpfls = [
-            *[Pfl(kind, "flat", flat_fn(i, kind, _seed=1)) for kind in Kind],
-            *[Pfl(kind, "nested", nested_fn(i, kind, _seed=1)) for kind in Kind],
+        self._pfls = [
+            pf.dev.get_pfline(i, kind, structure, _seed=1)
+            for kind in Kind
+            for structure in Structure
         ]
 
-    def fetch(self, kind: Kind = None, nestedness: str = None) -> Iterable[Pfl]:
-        testpfls: Iterable[Pfl] = self._testpfls
+    def fetch(self, kind: Kind = None, structure: Structure = None) -> Iterable[PfLine]:
+        pfls = self._pfls
         if kind is not None:
-            testpfls = [tp for tp in testpfls if tp.kind is kind]
-        if nestedness is not None:
-            testpfls = [tp for tp in testpfls if tp.nestedness == nestedness]
-        return testpfls
+            pfls = [pfl for pfl in pfls if pfl.kind is kind]
+        if structure is not None:
+            pfls = [pfl for pfl in pfls if pfl.structure is structure]
+        return pfls
 
 
 class Values:  # Testvalues
     UNIT_ALT = {"w": "GW", "q": "kWh", "p": "ctEur/kWh", "r": "MEur", "nodim": ""}
 
     def __init__(self, i: pd.DatetimeIndex):
-        self._testvalues: Iterable[Value] = [
+        self._values: Iterable[Value] = [
             *self.from_noname(i),
             *self.from_1name(Kind2.NODIM, "nodim", i),
             *self.from_1name(Kind2.VOLUME, "w", i),
@@ -139,22 +116,22 @@ class Values:  # Testvalues
         ]
 
     @lru_cache()
-    def fetch(self, kind: Kind2 = None, nestedness: str = None) -> Iterable[Value]:
-        testvalues: Iterable[Value] = self._testvalues
+    def fetch(self, kind: Kind2 = None, structure: Structure = None) -> Iterable[Value]:
+        testvalues = self._values
         if kind is not None:
             testvalues = [tv for tv in testvalues if tv.kind is kind]
-        if nestedness is not None:
-            testvalues = [tv for tv in testvalues if tv.nestedness == nestedness]
+        if structure is not None:
+            testvalues = [tv for tv in testvalues if tv.structure is structure]
         return testvalues
 
     @staticmethod
     def from_noname(i: pd.DatetimeIndex) -> Iterable[Value]:
-        fl = pf.dev.get_value("nodim", False, _seed=2)
+        flvalue = pf.dev.get_value("nodim", False, _seed=2)
         flseries = pf.dev.get_series(i, "", False, _seed=2)
         return [
-            Value(Kind2.NONE, "flat", None),
-            Value(Kind2.NODIM, "flat", fl),  # Single value.
-            Value(Kind2.NODIM, "flat", flseries),  # Timeseries.
+            Value(Kind2.NONE, Structure.FLAT, None),
+            Value(Kind2.NODIM, Structure.FLAT, flvalue),  # Single value.
+            Value(Kind2.NODIM, Structure.FLAT, flseries),  # Timeseries.
         ]
 
     @staticmethod
@@ -165,20 +142,20 @@ class Values:  # Testvalues
         quseries = pf.dev.get_series(i, name, _seed=2)
         return [
             # . Single value.
-            Value(kind, "flat", quantity),
-            Value(kind, "flat", quantity * 0),
-            Value(kind, "flat", quantity.to(altunit)),
-            Value(kind, "flat", {name: quantity.m}),
-            Value(kind, "flat", {name: quantity}),
-            Value(kind, "flat", {name: quantity.to(altunit)}),
-            Value(kind, "flat", pd.Series({name: quantity.m})),
-            Value(kind, "flat", pd.Series({name: quantity})),
+            Value(kind, Structure.FLAT, quantity),
+            Value(kind, Structure.FLAT, quantity * 0),
+            Value(kind, Structure.FLAT, quantity.to(altunit)),
+            Value(kind, Structure.FLAT, {name: quantity.m}),
+            Value(kind, Structure.FLAT, {name: quantity}),
+            Value(kind, Structure.FLAT, {name: quantity.to(altunit)}),
+            Value(kind, Structure.FLAT, pd.Series({name: quantity.m})),
+            Value(kind, Structure.FLAT, pd.Series({name: quantity})),
             # . Timeseries.
-            Value(kind, "flat", quseries),
-            Value(kind, "flat", {name: quseries.pint.m}),
-            Value(kind, "flat", {name: quseries}),
-            Value(kind, "flat", pd.DataFrame({name: quseries.pint.m})),
-            Value(kind, "flat", pd.DataFrame({name: quseries})),
+            Value(kind, Structure.FLAT, quseries),
+            Value(kind, Structure.FLAT, {name: quseries.pint.m}),
+            Value(kind, Structure.FLAT, {name: quseries}),
+            Value(kind, Structure.FLAT, pd.DataFrame({name: quseries.pint.m})),
+            Value(kind, Structure.FLAT, pd.DataFrame({name: quseries})),
         ]
 
     @staticmethod
@@ -193,22 +170,22 @@ class Values:  # Testvalues
         fls1, fls2 = (quseries.pint.m for quseries in (qus1, qus2))
         return [
             # . Single values.
-            Value(kind, "flat", {n1: qu1, n2: qu2}),
-            Value(kind, "flat", {n1: fl1, n2: fl2}),
-            Value(kind, "flat", {n1: fl1, n2: qu2}),
-            Value(kind, "flat", pd.Series({n1: qu1, n2: qu2})),
-            Value(kind, "flat", pd.Series({n1: fl1, n2: fl2})),
-            Value(kind, "flat", pd.Series({n1: fl1, n2: qu2})),
+            Value(kind, Structure.FLAT, {n1: qu1, n2: qu2}),
+            Value(kind, Structure.FLAT, {n1: fl1, n2: fl2}),
+            Value(kind, Structure.FLAT, {n1: fl1, n2: qu2}),
+            Value(kind, Structure.FLAT, pd.Series({n1: qu1, n2: qu2})),
+            Value(kind, Structure.FLAT, pd.Series({n1: fl1, n2: fl2})),
+            Value(kind, Structure.FLAT, pd.Series({n1: fl1, n2: qu2})),
             # . Single value | timeseries.
-            Value(kind, "flat", {n1: qu1, n2: qus2}),
-            Value(kind, "flat", {n1: fl1, n2: qus2}),
-            Value(kind, "flat", {n1: qu1, n2: fls2}),
-            Value(kind, "flat", {n1: fl1, n2: fls2}),
+            Value(kind, Structure.FLAT, {n1: qu1, n2: qus2}),
+            Value(kind, Structure.FLAT, {n1: fl1, n2: qus2}),
+            Value(kind, Structure.FLAT, {n1: qu1, n2: fls2}),
+            Value(kind, Structure.FLAT, {n1: fl1, n2: fls2}),
             # . Timeseries.
-            Value(kind, "flat", {n1: qus1, n2: qus2}),
-            Value(kind, "flat", {n1: qus1, n2: fls2}),
-            Value(kind, "flat", pd.DataFrame({n1: qus1, n2: qus2})),
-            Value(kind, "flat", pd.DataFrame({n1: qus1, n2: fls2})),
+            Value(kind, Structure.FLAT, {n1: qus1, n2: qus2}),
+            Value(kind, Structure.FLAT, {n1: qus1, n2: fls2}),
+            Value(kind, Structure.FLAT, pd.DataFrame({n1: qus1, n2: qus2})),
+            Value(kind, Structure.FLAT, pd.DataFrame({n1: qus1, n2: fls2})),
         ]
 
     @staticmethod
@@ -216,9 +193,13 @@ class Values:  # Testvalues
         k = kind.value
         pfl1, pfl2 = (pf.dev.get_flatpfline(i, k, _seed=s) for s in (2, 3))
         return [
-            Value(kind, "flat", pfl1),
-            Value(kind, "nested", pf.PfLine({"childA": pfl1, "childB": pfl2})),
-            Value(kind, "nested", {"childC": pfl1, "childD": pfl2}),
+            Value(kind, Structure.FLAT, pfl1),
+            Value(
+                kind,
+                Structure.NESTED,
+                create.nestedpfline({"childA": pfl1, "childB": pfl2}),
+            ),
+            Value(kind, Structure.NESTED, {"childC": pfl1, "childD": pfl2}),
         ]
 
 
@@ -230,18 +211,18 @@ class Cases:  # Testcases
     _testvalues = Values(i)
     _testpfls = Pfls(i)
     _complete_outcomedict = {
-        CaseConfig(pfl_kind, pfl_nestedness, val_kind, val_nestedness): ER.ERROR
+        CaseConfig(pfl_kind, pfl_structure, val_kind, val_structure): ER.ERROR
         for pfl_kind in Kind
-        for pfl_nestedness in ["flat", "nested"]
+        for pfl_structure in Structure
         for val_kind in Kind2
-        for val_nestedness in ["flat", "nested"]
+        for val_structure in Structure
     }
 
     @classmethod
     def get_pfls(
-        cls, pfl_kind: Kind = None, pfl_nestedness: str = None
+        cls, pfl_kind: Kind = None, pfl_structure: Structure = None
     ) -> Iterable[Case]:
-        return cls._testpfls.fetch(pfl_kind, pfl_nestedness)
+        return cls._testpfls.fetch(pfl_kind, pfl_structure)
 
     @classmethod
     def all_from_nonerror(
@@ -254,9 +235,9 @@ class Cases:  # Testcases
 
     @classmethod
     def from_config(cls, config: CaseConfig, er: ER) -> Iterable[Case]:
-        for tp in cls._testpfls.fetch(config.pfl_kind, config.pfl_nestedness):
-            for tv in cls._testvalues.fetch(config.value_kind, config.value_nestedness):
-                yield Case(tp.pfl, tv.value, er)
+        for pfl in cls._testpfls.fetch(config.pfl_kind, config.pfl_structure):
+            for tv in cls._testvalues.fetch(config.value_kind, config.value_structure):
+                yield Case(pfl, tv.value, er)
 
 
 @pytest.mark.parametrize("operation", ["add", "radd", "sub", "rsub"])
@@ -266,40 +247,72 @@ class Cases:  # Testcases
         {
             # Operand 1 = volume pfline.
             # . Operand 2 = None.
-            CaseConfig(Kind.VOLUME, "flat", Kind2.NONE, "flat"): ER.VOLUME,
-            CaseConfig(Kind.VOLUME, "nested", Kind2.NONE, "flat"): ER.VOLUME,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.NONE, Structure.FLAT
+            ): ER.VOLUME,
+            CaseConfig(
+                Kind.VOLUME, Structure.NESTED, Kind2.NONE, Structure.FLAT
+            ): ER.VOLUME,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.VOLUME, "flat", Kind2.VOLUME, "flat"): ER.VOLUME,
-            CaseConfig(Kind.VOLUME, "nested", Kind2.VOLUME, "nested"): ER.VOLUME,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.VOLUME, Structure.FLAT
+            ): ER.VOLUME,
+            CaseConfig(
+                Kind.VOLUME, Structure.NESTED, Kind2.VOLUME, Structure.NESTED
+            ): ER.VOLUME,
             # . Operand 2 = complete.
             # Operand 1 = price pfline.
             # . Operand 2 = None.
-            CaseConfig(Kind.PRICE, "flat", Kind2.NONE, "flat"): ER.PRICE,
-            CaseConfig(Kind.PRICE, "nested", Kind2.NONE, "flat"): ER.PRICE,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.NONE, Structure.FLAT
+            ): ER.PRICE,
+            CaseConfig(
+                Kind.PRICE, Structure.NESTED, Kind2.NONE, Structure.FLAT
+            ): ER.PRICE,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.PRICE, "flat", Kind2.PRICE, "flat"): ER.PRICE,
-            CaseConfig(Kind.PRICE, "nested", Kind2.PRICE, "nested"): ER.PRICE,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.PRICE, Structure.FLAT
+            ): ER.PRICE,
+            CaseConfig(
+                Kind.PRICE, Structure.NESTED, Kind2.PRICE, Structure.NESTED
+            ): ER.PRICE,
             # . Operand 2 = complete.
             # Operand 1 = revenue pfline.
             # . Operand 2 = None.
-            CaseConfig(Kind.REVENUE, "flat", Kind2.NONE, "flat"): ER.REVENUE,
-            CaseConfig(Kind.REVENUE, "nested", Kind2.NONE, "flat"): ER.REVENUE,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.NONE, Structure.FLAT
+            ): ER.REVENUE,
+            CaseConfig(
+                Kind.REVENUE, Structure.NESTED, Kind2.NONE, Structure.FLAT
+            ): ER.REVENUE,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.REVENUE, "flat", Kind2.REVENUE, "flat"): ER.REVENUE,
-            CaseConfig(Kind.REVENUE, "nested", Kind2.REVENUE, "nested"): ER.REVENUE,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.REVENUE, Structure.FLAT
+            ): ER.REVENUE,
+            CaseConfig(
+                Kind.REVENUE, Structure.NESTED, Kind2.REVENUE, Structure.NESTED
+            ): ER.REVENUE,
             # . Operand 2 = complete.
             # Operand 1 = complete pfline.
             # . Operand 2 = None.
-            CaseConfig(Kind.COMPLETE, "flat", Kind2.NONE, "flat"): ER.COMPLETE,
-            CaseConfig(Kind.COMPLETE, "nested", Kind2.NONE, "flat"): ER.COMPLETE,
+            CaseConfig(
+                Kind.COMPLETE, Structure.FLAT, Kind2.NONE, Structure.FLAT
+            ): ER.COMPLETE,
+            CaseConfig(
+                Kind.COMPLETE, Structure.NESTED, Kind2.NONE, Structure.FLAT
+            ): ER.COMPLETE,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
             # . Operand 2 = complete.
-            CaseConfig(Kind.COMPLETE, "flat", Kind2.COMPLETE, "flat"): ER.COMPLETE,
-            CaseConfig(Kind.COMPLETE, "nested", Kind2.COMPLETE, "nested"): ER.COMPLETE,
+            CaseConfig(
+                Kind.COMPLETE, Structure.FLAT, Kind2.COMPLETE, Structure.FLAT
+            ): ER.COMPLETE,
+            CaseConfig(
+                Kind.COMPLETE, Structure.NESTED, Kind2.COMPLETE, Structure.NESTED
+            ): ER.COMPLETE,
         }
     ),
     ids=id_fn,
@@ -317,31 +330,51 @@ def test_pfl_arithmatic_kind_addraddsubrsub(testcase: Case, operation: str):
             # Operand 1 = volume pfline.
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
-            CaseConfig(Kind.VOLUME, "flat", Kind2.NODIM, "flat"): ER.VOLUME,
-            CaseConfig(Kind.VOLUME, "nested", Kind2.NODIM, "flat"): ER.VOLUME,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.NODIM, Structure.FLAT
+            ): ER.VOLUME,
+            CaseConfig(
+                Kind.VOLUME, Structure.NESTED, Kind2.NODIM, Structure.FLAT
+            ): ER.VOLUME,
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.VOLUME, "flat", Kind2.PRICE, "flat"): ER.REVENUE,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.PRICE, Structure.FLAT
+            ): ER.REVENUE,
             # . Operand 2 = complete.
             # Operand 1 = price pfline.
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
-            CaseConfig(Kind.PRICE, "flat", Kind2.NODIM, "flat"): ER.PRICE,
-            CaseConfig(Kind.PRICE, "nested", Kind2.NODIM, "flat"): ER.PRICE,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.NODIM, Structure.FLAT
+            ): ER.PRICE,
+            CaseConfig(
+                Kind.PRICE, Structure.NESTED, Kind2.NODIM, Structure.FLAT
+            ): ER.PRICE,
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.PRICE, "flat", Kind2.VOLUME, "flat"): ER.REVENUE,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.VOLUME, Structure.FLAT
+            ): ER.REVENUE,
             # . Operand 2 = complete.
             # Operand 1 = revenue pfline.
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
-            CaseConfig(Kind.REVENUE, "flat", Kind2.NODIM, "flat"): ER.REVENUE,
-            CaseConfig(Kind.REVENUE, "nested", Kind2.NODIM, "flat"): ER.REVENUE,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.NODIM, Structure.FLAT
+            ): ER.REVENUE,
+            CaseConfig(
+                Kind.REVENUE, Structure.NESTED, Kind2.NODIM, Structure.FLAT
+            ): ER.REVENUE,
             # . Operand 2 = volume, price, or revenue.
             # . Operand 2 = complete.
             # Operand 1 = complete pfline.
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
-            CaseConfig(Kind.COMPLETE, "flat", Kind2.NODIM, "flat"): ER.COMPLETE,
-            CaseConfig(Kind.COMPLETE, "nested", Kind2.NODIM, "flat"): ER.COMPLETE,
+            CaseConfig(
+                Kind.COMPLETE, Structure.FLAT, Kind2.NODIM, Structure.FLAT
+            ): ER.COMPLETE,
+            CaseConfig(
+                Kind.COMPLETE, Structure.NESTED, Kind2.NODIM, Structure.FLAT
+            ): ER.COMPLETE,
             # . Operand 2 = volume, price, or revenue.
             # . Operand 2 = complete.
         }
@@ -361,34 +394,60 @@ def test_pfl_arithmatic_kind_mulrmul(testcase: Case, operation: str):
             # Operand 1 = volume pfline.
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
-            CaseConfig(Kind.VOLUME, "flat", Kind2.NODIM, "flat"): ER.VOLUME,
-            CaseConfig(Kind.VOLUME, "nested", Kind2.NODIM, "flat"): ER.VOLUME,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.NODIM, Structure.FLAT
+            ): ER.VOLUME,
+            CaseConfig(
+                Kind.VOLUME, Structure.NESTED, Kind2.NODIM, Structure.FLAT
+            ): ER.VOLUME,
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.VOLUME, "flat", Kind2.VOLUME, "flat"): ER.SERIES,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.VOLUME, Structure.FLAT
+            ): ER.SERIES,
             # . Operand 2 = complete.
             # Operand 1 = price pfline.
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
-            CaseConfig(Kind.PRICE, "flat", Kind2.NODIM, "flat"): ER.PRICE,
-            CaseConfig(Kind.PRICE, "nested", Kind2.NODIM, "flat"): ER.PRICE,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.NODIM, Structure.FLAT
+            ): ER.PRICE,
+            CaseConfig(
+                Kind.PRICE, Structure.NESTED, Kind2.NODIM, Structure.FLAT
+            ): ER.PRICE,
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.PRICE, "flat", Kind2.PRICE, "flat"): ER.SERIES,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.PRICE, Structure.FLAT
+            ): ER.SERIES,
             # . Operand 2 = complete.
             # Operand 1 = revenue pfline.
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
-            CaseConfig(Kind.REVENUE, "flat", Kind2.NODIM, "flat"): ER.REVENUE,
-            CaseConfig(Kind.REVENUE, "nested", Kind2.NODIM, "flat"): ER.REVENUE,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.NODIM, Structure.FLAT
+            ): ER.REVENUE,
+            CaseConfig(
+                Kind.REVENUE, Structure.NESTED, Kind2.NODIM, Structure.FLAT
+            ): ER.REVENUE,
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.REVENUE, "flat", Kind2.VOLUME, "flat"): ER.PRICE,
-            CaseConfig(Kind.REVENUE, "flat", Kind2.PRICE, "flat"): ER.VOLUME,
-            CaseConfig(Kind.REVENUE, "flat", Kind2.REVENUE, "flat"): ER.SERIES,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.VOLUME, Structure.FLAT
+            ): ER.PRICE,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.PRICE, Structure.FLAT
+            ): ER.VOLUME,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.REVENUE, Structure.FLAT
+            ): ER.SERIES,
             # . Operand 2 = complete.
             # Operand 1 = complete pfline.
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
-            CaseConfig(Kind.COMPLETE, "flat", Kind2.NODIM, "flat"): ER.COMPLETE,
-            CaseConfig(Kind.COMPLETE, "nested", Kind2.NODIM, "flat"): ER.COMPLETE,
+            CaseConfig(
+                Kind.COMPLETE, Structure.FLAT, Kind2.NODIM, Structure.FLAT
+            ): ER.COMPLETE,
+            CaseConfig(
+                Kind.COMPLETE, Structure.NESTED, Kind2.NODIM, Structure.FLAT
+            ): ER.COMPLETE,
             # . Operand 2 = volume, price, or revenue.
             # . Operand 2 = complete.
         }
@@ -409,21 +468,31 @@ def test_pfl_arithmatic_kind_div(testcase: Case, operation: str):
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.VOLUME, "flat", Kind2.VOLUME, "flat"): ER.SERIES,
-            CaseConfig(Kind.VOLUME, "flat", Kind2.REVENUE, "flat"): ER.PRICE,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.VOLUME, Structure.FLAT
+            ): ER.SERIES,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.REVENUE, Structure.FLAT
+            ): ER.PRICE,
             # . Operand 2 = complete.
             # Operand 1 = price pfline.
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.PRICE, "flat", Kind2.PRICE, "flat"): ER.SERIES,
-            CaseConfig(Kind.PRICE, "flat", Kind2.REVENUE, "flat"): ER.VOLUME,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.PRICE, Structure.FLAT
+            ): ER.SERIES,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.REVENUE, Structure.FLAT
+            ): ER.VOLUME,
             # . Operand 2 = complete.
             # Operand 1 = revenue pfline.
             # . Operand 2 = None.
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.REVENUE, "flat", Kind2.REVENUE, "flat"): ER.SERIES,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.REVENUE, Structure.FLAT
+            ): ER.SERIES,
             # . Operand 2 = complete.
             # Operand 1 = complete pfline.
             # . Operand 2 = None.
@@ -446,35 +515,63 @@ def test_pfl_arithmatic_kind_rdiv(testcase: Case, operation: str):
         {
             # Operand 1 = volume pfline.
             # . Operand 2 = None.
-            CaseConfig(Kind.VOLUME, "flat", Kind2.NONE, "flat"): ER.VOLUME,
-            CaseConfig(Kind.VOLUME, "nested", Kind2.NONE, "flat"): ER.VOLUME,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.NONE, Structure.FLAT
+            ): ER.VOLUME,
+            CaseConfig(
+                Kind.VOLUME, Structure.NESTED, Kind2.NONE, Structure.FLAT
+            ): ER.VOLUME,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.VOLUME, "flat", Kind2.PRICE, "flat"): ER.COMPLETE,
-            CaseConfig(Kind.VOLUME, "flat", Kind2.REVENUE, "flat"): ER.COMPLETE,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.PRICE, Structure.FLAT
+            ): ER.COMPLETE,
+            CaseConfig(
+                Kind.VOLUME, Structure.FLAT, Kind2.REVENUE, Structure.FLAT
+            ): ER.COMPLETE,
             # . Operand 2 = complete.
             # Operand 1 = price pfline.
             # . Operand 2 = None.
-            CaseConfig(Kind.PRICE, "flat", Kind2.NONE, "flat"): ER.PRICE,
-            CaseConfig(Kind.PRICE, "nested", Kind2.NONE, "flat"): ER.PRICE,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.NONE, Structure.FLAT
+            ): ER.PRICE,
+            CaseConfig(
+                Kind.PRICE, Structure.NESTED, Kind2.NONE, Structure.FLAT
+            ): ER.PRICE,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.PRICE, "flat", Kind2.VOLUME, "flat"): ER.COMPLETE,
-            CaseConfig(Kind.PRICE, "flat", Kind2.REVENUE, "flat"): ER.COMPLETE,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.VOLUME, Structure.FLAT
+            ): ER.COMPLETE,
+            CaseConfig(
+                Kind.PRICE, Structure.FLAT, Kind2.REVENUE, Structure.FLAT
+            ): ER.COMPLETE,
             # . Operand 2 = complete.
             # Operand 1 = revenue pfline.
             # . Operand 2 = None.
-            CaseConfig(Kind.REVENUE, "flat", Kind2.NONE, "flat"): ER.REVENUE,
-            CaseConfig(Kind.REVENUE, "nested", Kind2.NONE, "flat"): ER.REVENUE,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.NONE, Structure.FLAT
+            ): ER.REVENUE,
+            CaseConfig(
+                Kind.REVENUE, Structure.NESTED, Kind2.NONE, Structure.FLAT
+            ): ER.REVENUE,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
-            CaseConfig(Kind.REVENUE, "flat", Kind2.VOLUME, "flat"): ER.COMPLETE,
-            CaseConfig(Kind.REVENUE, "flat", Kind2.PRICE, "flat"): ER.COMPLETE,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.VOLUME, Structure.FLAT
+            ): ER.COMPLETE,
+            CaseConfig(
+                Kind.REVENUE, Structure.FLAT, Kind2.PRICE, Structure.FLAT
+            ): ER.COMPLETE,
             # . Operand 2 = complete.
             # Operand 1 = complete pfline.
             # . Operand 2 = None.
-            CaseConfig(Kind.COMPLETE, "flat", Kind2.NONE, "flat"): ER.COMPLETE,
-            CaseConfig(Kind.COMPLETE, "nested", Kind2.NONE, "flat"): ER.COMPLETE,
+            CaseConfig(
+                Kind.COMPLETE, Structure.FLAT, Kind2.NONE, Structure.FLAT
+            ): ER.COMPLETE,
+            CaseConfig(
+                Kind.COMPLETE, Structure.NESTED, Kind2.NONE, Structure.FLAT
+            ): ER.COMPLETE,
             # . Operand 2 = dimensionless.
             # . Operand 2 = volume, price, or revenue.
             # . Operand 2 = complete.
