@@ -1,12 +1,22 @@
 """Testing of pandas objects, taking into account they may have units."""
 
 import functools
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
 from .. import tools
 from ..tools.unit import Q_
+
+
+def assert_value_equal(left: Any, right: Any):
+    try:
+        if np.isnan(left) and np.isnan(right):
+            return
+        assert np.isclose(left, right)
+    except Exception as e:
+        raise AssertionError from e
 
 
 @functools.wraps(pd.testing.assert_frame_equal)
