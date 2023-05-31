@@ -180,7 +180,9 @@ def do_test_intersect_index(
     expected_freq: str = None,
 ):
     # Error case.
-    if type(expected_startdate) is type and issubclass(expected_startdate, Exception):
+    if isinstance(expected_startdate, type) and issubclass(
+        expected_startdate, Exception
+    ):
         with pytest.raises(expected_startdate):
             tools.intersect.indices(*idxs)
         return

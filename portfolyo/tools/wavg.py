@@ -372,7 +372,7 @@ def concatseries(series: Iterable[pd.Series], refindex: Iterable = None) -> pd.S
         series = [s.astype(dtype) for s in series]
     result = pd.concat(series)
 
-    if not refindex:
+    if refindex is None:
         return result.sort_index()
     result = result.loc[refindex]
     if isinstance(refindex, pd.DatetimeIndex) and (freq := refindex.freq):
