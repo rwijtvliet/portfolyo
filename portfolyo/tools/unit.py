@@ -3,7 +3,7 @@ Working with pint units.
 """
 
 from pathlib import Path
-from typing import Union
+from typing import Tuple, Union
 
 import pandas as pd
 import pint
@@ -37,22 +37,6 @@ NAMES_AND_UNITS = {
 }
 
 
-def to_compact(value: Union[pint.Quantity, pd.Series, pd.DataFrame]):
-    # TODO: Unused. Remove?
-    """Convert to more compact unit by moving absolute magnitude into readable range."""
-    if isinstance(value, pint.Quantity):
-        return value.to_compact()
-    elif isinstance(value, pd.Series):
-        newunits = value.abs().max().to_compact().units
-        return value.pint.to(newunits)
-    elif isinstance(value, pd.DataFrame):
-        return pd.DataFrame({name: to_compact(s) for name, s in value.items()})
-    else:
-        raise TypeError(
-            "`value` must be a Quantity, or Series or DataFrame of quantities."
-        )
-
-
 def to_name(unit: pint.Unit) -> str:
     """Find the standard column name belonging to unit `unit`. Checks on dimensionality,
     not exact unit."""
@@ -69,15 +53,84 @@ def from_name(name: str) -> pint.Unit:
     raise ValueError(f"No standard unit found for name '{name}'.")
 
 
-def drop_units(fr: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.DataFrame]:
-    """
-    Convert ``fr`` to base units and return only the magnitude.
+def defaultunit(
+    val: Union[int, float, pint.Quantity, pd.Series, pd.DataFrame],
+) -> Union[float, pint.Quantity, pd.Series, pd.DataFrame]:
+    """Convert ``val`` to base units. Also turns dimensionless values into floats.
 
-    If ``fr`` is not unit-aware, return as-is.
+    Parameters
+    ----------
+    val : int, float, pint.Quantity, pd.Series, or pd.DataFrame
+        The value to convert to base units.
+
+    Returns
+    -------
+    float, pint.Quantity, pd.Series, or pd.DataFrame
+        In base units.
     """
-    if isinstance(fr, pd.Series):
-        if hasattr(fr, "pint"):
-            return fr.pint.to_base_units().pint.m
-        return fr
-    else:
-        return pd.DataFrame({col: drop_units(s) for col, s in fr.items()})
+    # Do the conversion.
+    if isinstance(val, int):
+        return float(val)
+    elif isinstance(val, float):
+        return val
+    elif isinstance(val, pint.Quantity):
+        if val.units == ureg.Unit("dimensionless"):
+            return val.magnitude
+        return val.to_base_units()
+    elif isinstance(val, pd.Series):
+        if pd.api.types.is_integer_dtype(val.dtype):
+            return val.astype(float)
+        elif pd.api.types.is_float_dtype(val.dtype):
+            return val
+        elif isinstance(val.dtype, pint_pandas.PintType):
+            if val.pint.units == ureg.Unit("dimensionless"):
+                return val.astype(float)
+            return val.pint.to_base_units()
+        elif pd.api.types.is_object_dtype(val.dtype):  # maybe series of quantities
+            try:
+                magn_unit_tupls = [split_magn_unit(v) for v in val.values]
+                mm, uu = zip(*magn_unit_tupls)
+                if len(set(uu)) == 1:  # if all same unit: return as pint-Series
+                    if u := next(iter(uu)) is not None:
+                        return pd.Series(mm, val.index).astype(f"pint[{u}]")
+                    return pd.Series(mm, val.index)  # floats
+                # otherwise, return again as series of quantities, at least in baseunit
+                qq = [m if u is None else Q_(m, u) for m, u in magn_unit_tupls]
+                return pd.Series(qq, val.index)
+            except TypeError:
+                pass
+        raise TypeError(f"``val`` is a Series with an unallowed dtype: '{val.dtype}'.")
+    elif isinstance(val, pd.DataFrame):
+        return pd.DataFrame({col: defaultunit(s) for col, s in val.items()})
+    raise TypeError("``val`` must be an int, float, Quantity, Series, or DataFrame.")
+
+
+def split_magn_unit(
+    val: Union[int, float, pint.Quantity, pd.Series]
+) -> Union[
+    Tuple[float, None],
+    Tuple[float, pint.Unit],
+    Tuple[pd.Series, None],
+    Tuple[pd.Series, pint.Unit],
+    Tuple[pd.Series, pd.Series],
+]:
+    """Split ``val`` into magnitude and units. If ``val`` is a Series with uniform
+    dimension, the unit is returned as a pint Unit. If not, it is returned as a Series.
+    """
+    val = defaultunit(val)
+    if isinstance(val, float):
+        return val, None
+    elif isinstance(val, pint.Quantity):
+        return val.magnitude, val.units
+    elif isinstance(val, pd.Series):
+        if pd.api.types.is_float_dtype(val.dtype):
+            return val, None
+        elif isinstance(val.dtype, pint_pandas.PintType):
+            return val.pint.magnitude, val.pint.units
+        else:  # must be series of quantities
+            m = [q.magnitude for q in val.values]
+            u = [q.units for q in val.values]
+            return pd.Series(m, val.index), pd.Series(u, val.index)
+    elif isinstance(val, pd.DataFrame):
+        raise TypeError("For dataframes, handle the series seperately.")
+    raise TypeError("``val`` must be an int, float, Quantity, or Series.")
