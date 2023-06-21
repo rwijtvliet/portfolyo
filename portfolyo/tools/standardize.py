@@ -12,12 +12,13 @@ from . import righttoleft as tools_righttoleft
 from . import tzone as tools_tzone
 
 
+# TODO: remove 'Europe/Berlin' as default for ``tz``, use None instead.
 def frame(
     fr: Union[pd.Series, pd.DataFrame],
     force: str = None,
     bound: str = "left",
     *,
-    tz: str = None,
+    tz: str = "Europe/Berlin",
     floating: bool = True,
     index_col: str = None,
     force_freq: str = None,
