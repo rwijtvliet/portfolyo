@@ -260,10 +260,10 @@ def test_wavg_dataframe_surplusvalues(
     if weightsas != "dataframe":
         if axis == 0:
             weights = get_weights([10.0, 10, 10, 20], weightsas, i[:4], "wei" in units)
-            expected = pd.Series({"a": 60.0, "b": -20})
+            expected = pd.Series({"a": 60.0, "b": -20, "c": -19.8})
         else:
             weights = get_weights([10.0, 30], weightsas, ["a", "b"], "wei" in units)
-            expected = pd.Series([100.0, -100, 300, -150], i[:4])
+            expected = pd.Series([100.0, -100, 300, -150, 99], i)
     else:
         weights = get_weights_df(
             {"a": [10.0, 10, 10, 20], "b": [10.0, 10, 30, 0]}, i[:4], "wei" in units

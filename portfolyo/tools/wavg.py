@@ -181,21 +181,25 @@ def dataframe(
     Will raise error if axis == 1 and columns have distinct unit-dimensions.
     """
     # Developer note: it is possible to repeatedly call the `series` function in this
-    # same module, which results in a much shorter function (see dataframe_bak). How-
-    # ever, the speed penalty is enormous, which is why this elaborate function is used.
+    # same module, which results in a much shorter function. However, the speed penalty
+    # is enormous, which is why this elaborate function is used.
+
+    # Unweighted average if no weights are provided.
+    if weights is None:
+        # Fix possible problems, like distinct units of same dimension
+        df = tools_unit.defaultunit(df)
+        return df.apply(np.mean, axis=axis)  # can't do .mean() if pint-series
 
     # Prep: orient so that we can always average over columns.
     if axis == 0:
         df = df.T  # slow, but axis==0 is uncommon
+        # HACK: transposing moves unit to element-level, undo here
 
-    df = tools_unit.defaultunit(df)  # also fixes problems introduced by .T
-
-    # Unweighted average if no weights are provided.
-    if weights is None:
-        return df.apply(np.mean)  # can't do .mean() if pint-series
+    # Fix possible problems, also those introduced by .T
+    df = tools_unit.defaultunit(df)
 
     # Do averaging.
-    elif isinstance(weights, pd.DataFrame):
+    if isinstance(weights, pd.DataFrame):
         if axis == 0:
             weights = weights.T  # slow, but axis==0 is uncommon
             # HACK: transposing moves unit to element-level, undo here

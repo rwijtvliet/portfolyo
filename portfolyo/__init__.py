@@ -13,7 +13,7 @@ from .tools.changeyear import characterize_index, map_frame_to_year
 from .tools.freq import FREQUENCIES
 from .tools.standardize import frame as standardize
 from .tools.tzone import force_agnostic, force_aware
-from .tools.unit import Q_
+from .tools.unit import Q_, ureg, Unit
 from .tools.wavg import general as wavg
 
 extendpandas.apply()

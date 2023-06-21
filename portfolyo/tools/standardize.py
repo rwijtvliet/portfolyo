@@ -17,7 +17,7 @@ def frame(
     force: str = None,
     bound: str = "left",
     *,
-    tz: str = "Europe/Berlin",
+    tz: str = None,
     floating: bool = True,
     index_col: str = None,
     force_freq: str = None,
@@ -32,7 +32,7 @@ def frame(
         as-is.
     bound : {'left', 'right'}, optional (default: 'left')
         If 'left' ('right'), specifies that input timestamps are left-(right-)bound.
-    tz : str, optional (default: "Europe/Berlin")
+    tz : str, optional (default: None)
         The timezone in which to interpret non-localized values. If ``force`` ==
         'aware': also the timezone to localize to. Ignored if ``force`` is None.
     floating : bool, optional (default: True)
@@ -97,12 +97,15 @@ def frame(
     # If the frequency is not found, and it is tz-naive, the index may need to be localized.
 
     if not freq_input and not tz_input and tz:  # left -> tz-aware (try)
+        # fr is tz-agnostic.
         try:
             fr_aware = fr.tz_localize(tz, ambiguous="infer")
         except (AmbiguousTimeError, NonExistentTimeError):
             pass  # fr did not need / cound not be localized. Continue with fr as-is.
         else:
-            return frame(fr_aware, force, "left", **kwargs)
+            # Could be localized. Again remove localization if force == 'agnostic' or None.
+            force_to = force or "agnostic"
+            return frame(fr_aware, force_to, "left", **kwargs)
 
     # All options to infer frequency have been exhausted. One may or may not have been found.
     # Does the user want to force a frequency?

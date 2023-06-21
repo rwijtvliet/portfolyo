@@ -24,7 +24,7 @@ ureg.setup_matplotlib()
 # Set for export.
 PA_ = pint_pandas.PintArray
 Q_ = ureg.Quantity
-
+Unit = ureg.Unit
 
 NAMES_AND_UNITS = {
     "w": ureg.MW,
@@ -91,7 +91,7 @@ def defaultunit(
                 magn_unit_tupls = [split_magn_unit(v) for v in val.values]
                 mm, uu = zip(*magn_unit_tupls)
                 if len(set(uu)) == 1:  # if all same unit: return as pint-Series
-                    if u := next(iter(uu)) is not None:
+                    if (u := next(iter(uu))) is not None:
                         return pd.Series(mm, val.index).astype(f"pint[{u}]")
                     return pd.Series(mm, val.index)  # floats
                 # otherwise, return again as series of quantities, at least in baseunit
