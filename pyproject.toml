@@ -1,0 +1,39 @@
+[tool.poetry]
+name = "portfolyo"
+version = "0.5.4"
+description = "Analyse and manipulate timeseries related to power and gas offtake portfolios"
+authors = [
+    "Ruud Wijtvliet <rwijtvliet@gmail.com>",
+    "Sakshi Singh <sakshisingh1809@gmail.com>",
+]
+license = "BSD-3"
+readme = "README.rst"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+pandas = "^2"
+numpy = "^1.25.2"
+matplotlib = "^3.7.2"
+pint = "^0.22"
+pint-pandas = "^0.4"
+colorama = "^0.4.6"
+holidays = "^0.32"
+
+
+[tool.poetry.group.test.dependencies]
+codecov = "^2.1.13"
+coverage = "^7.3.0"
+pytest = "^7.4.1"
+pytest-cov = "^4.1.0"
+pyyaml = "^6.0.1"
+openpyxl = "^3.1.2"
+
+
+[tool.poetry.group.dev.dependencies]
+flake8 = "^6.1.0"
+black = "^23.7.0"
+pre-commit = "^3.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

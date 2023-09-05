@@ -23,12 +23,13 @@ jobs:
 
       - name: Install
         run: |
-          pip install -e .
-          pip install -r requirements-dev.txt     
-          pip install -r requirements-test.txt     
-
+          pip install poetry
+          poetry install --with dev --with test
+          
       - name: Run tests
-        run: pytest
+        run: |
+          pytest
+          poetry shell
 
       - name: "Upload coverage to Codecov"
         uses: codecov/codecov-action@v1
