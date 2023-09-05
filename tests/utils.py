@@ -1,5 +1,6 @@
 """Create uniform ids for testcases."""
 from typing import Any, Dict
+
 import pandas as pd
 
 import portfolyo as pf

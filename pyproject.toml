@@ -11,7 +11,7 @@ readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = "^3.9"
-pandas = "^2"
+pandas = "~2.0.0"
 numpy = "^1.25.2"
 matplotlib = "^3.7.2"
 pint = "^0.22"
@@ -33,6 +33,7 @@ openpyxl = "^3.1.2"
 flake8 = "^6.1.0"
 black = "^23.7.0"
 pre-commit = "^3.4.0"
+ipykernel = "^6.25.2"
 
 [build-system]
 requires = ["poetry-core"]
