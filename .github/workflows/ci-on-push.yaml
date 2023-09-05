@@ -28,8 +28,7 @@ jobs:
 
       - name: Run tests
         run: |
-          poetry shell
-          python -B -m pytest -m "not only_on_pr"
+          poetry run python -B -m pytest -m "not only_on_pr"
 
 
       - name: Upload coverage to Codecov
