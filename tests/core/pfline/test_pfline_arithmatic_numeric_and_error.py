@@ -144,7 +144,14 @@ flatset_ref_times_2 = {
     "nodim": series_ref_times_2["nodim"],
 }
 flatset_ref_dividedby_0 = {
-    Kind.VOLUME: create.flatpfline({"q": pd.Series([-np.inf, np.inf, -np.inf], i_ref)})
+    Kind.VOLUME: create.flatpfline({"q": pd.Series([-np.inf, np.inf, -np.inf], i_ref)}),
+    Kind.PRICE: create.flatpfline({"p": pd.Series([np.inf, np.inf, np.inf], i_ref)}),
+    Kind.REVENUE: create.flatpfline(
+        {"r": pd.Series([-np.inf, np.inf, -np.inf], i_ref)}
+    ),
+    Kind.COMPLETE: create.flatpfline(
+        {"q": pd.Series([-np.inf, np.inf, -np.inf], i_ref), "p": series_ref["p"]}
+    ),
 }
 series_ref_dividedby_2 = {
     "q": pd.Series([-1.75, 2.5, -2.5], i_ref),
@@ -254,13 +261,18 @@ def negationtestcases():
 
 
 def additiontestcases():
+    # kind + nothing
+    for kind in Kind:
+        pfl = flatset_ref[kind]
+        for val in values_0["nodim"]:  # necessary also for correct sum([PfLines])
+            yield Case(pfl, "+", val, pfl)
+        yield Case(pfl, "+", None, pfl)
     # kind + same kind
     for kind in Kind:
         pfl = flatset_ref[kind]
-        # . ref + nothing
+        # . ref + nothing (correct dimension)
         for val in values_0[kind]:
             yield Case(pfl, "+", val, pfl)
-        yield Case(pfl, "+", None, pfl)
         # . ref + 2
         for val in values_2[kind]:
             yield Case(pfl, "+", val, flatset_ref_plus_2[kind])
@@ -283,13 +295,18 @@ def additiontestcases():
 
 
 def subtractiontestcases():
+    # kind - nothing
+    for kind in Kind:
+        pfl = flatset_ref[kind]
+        for val in values_0["nodim"]:  # necessary also for correct sum([PfLines])
+            yield Case(pfl, "-", val, pfl)
+        yield Case(pfl, "-", None, pfl)
     # kind - same kind
     for kind in Kind:
         pfl = flatset_ref[kind]
-        # . ref - nothing
+        # . ref - nothing (correct dimension)
         for val in values_0[kind]:
             yield Case(pfl, "-", val, pfl)
-        yield Case(pfl, "-", None, pfl)
         # . ref - 2
         for val in values_2[kind]:
             yield Case(pfl, "-", val, flatset_ref_minus_2[kind])
@@ -314,7 +331,7 @@ def multiplicationtestcases():
     # kind * nodim
     for kind in Kind:
         pfl = flatset_ref[kind]
-        # . ref * nothing
+        # . ref * 0
         for val in values_0["nodim"]:
             yield Case(pfl, "*", val, flatset_ref_times_0[kind])
         # . ref * 2
@@ -336,16 +353,24 @@ def multiplicationtestcases():
     # volume * price
     series = {"r": series_ref["q"] * series_a["p"]}
     yield Case(flatset_ref[Kind.VOLUME], "*", flatset_a[Kind.PRICE], pf.PfLine(series))
+    for val in values_0[Kind.PRICE]:
+        yield Case(
+            flatset_ref[Kind.VOLUME], "*", val, flatset_ref_times_0[Kind.REVENUE]
+        )
     # kind * incompatible kind
     yield Case(flatset_ref[Kind.VOLUME], "*", None, Exception)
     yield Case(flatset_ref[Kind.VOLUME], "*", flatset_a[Kind.VOLUME], Exception)
     yield Case(flatset_ref[Kind.VOLUME], "*", flatset_a[Kind.REVENUE], Exception)
+    yield Case(flatset_ref[Kind.VOLUME], "*", flatset_a[Kind.COMPLETE], Exception)
 
 
 def divisiontestcases():
     # kind / nodim
     for kind in Kind:
         pfl = flatset_ref[kind]
+        # . ref / 0
+        for val in values_0["nodim"]:
+            yield Case(pfl, "/", val, flatset_ref_dividedby_0[kind])
         # . ref / 2
         for val in values_2["nodim"]:
             yield Case(pfl, "/", val, flatset_ref_dividedby_2[kind])
@@ -379,18 +404,22 @@ def divisiontestcases():
     yield Case(flatset_ref[Kind.VOLUME], "/", flatset_d[Kind.VOLUME], Exception)
     yield Case(flatset_ref[Kind.VOLUME], "/", flatset_e[Kind.VOLUME], Exception)
     yield Case(flatset_ref[Kind.VOLUME], "/", flatset_f[Kind.VOLUME], Exception)
-    # revenue / something
-    pfl = flatset_ref[Kind.REVENUE]
+    # revenue / volume or price
     series = {"q": series_ref["r"] / series_a["p"]}
-    yield Case(pfl, "/", flatset_a[Kind.PRICE], pf.PfLine(series))
+    yield Case(flatset_ref[Kind.REVENUE], "/", flatset_a[Kind.PRICE], pf.PfLine(series))
     series = {"p": series_ref["r"] / series_a["q"]}
-    yield Case(pfl, "/", flatset_a[Kind.VOLUME], pf.PfLine(series))
-    # kind / incompatible value
-    yield Case(flatset_ref[Kind.VOLUME], "/", flatset_a[Kind.PRICE], Exception)
-    for val in values_0["nodim"]:
+    yield Case(
+        flatset_ref[Kind.REVENUE], "/", flatset_a[Kind.VOLUME], pf.PfLine(series)
+    )
+    for val in values_0[Kind.PRICE]:
         yield Case(
-            flatset_ref[Kind.VOLUME], "/", val, flatset_ref_dividedby_0[kind.VOLUME]
+            flatset_ref[Kind.REVENUE], "/", val, flatset_ref_dividedby_0[Kind.VOLUME]
         )
+    # kind / incompatible value
+    yield Case(flatset_ref[Kind.VOLUME], "/", None, Exception)
+    yield Case(flatset_ref[Kind.VOLUME], "/", flatset_a[Kind.PRICE], Exception)
+    yield Case(flatset_ref[Kind.VOLUME], "/", flatset_a[Kind.REVENUE], Exception)
+    yield Case(flatset_ref[Kind.VOLUME], "/", flatset_a[Kind.COMPLETE], Exception)
 
 
 def uniontestcases():

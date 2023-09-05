@@ -12,9 +12,11 @@ def id_fn(data: Any):
     if isinstance(data, Dict):
         return str({key: id_fn(val) for key, val in data.items()})
     elif isinstance(data, pd.Series):
-        if isinstance(data.index, pd.DatetimeIndex):
-            return f"Timeseries({data.dtype})"
-        return f"Series(idx:{''.join(str(i) for i in data.index)})"
+        typ = "Timeseries" if isinstance(data.index, pd.DatetimeIndex) else "Series"
+        vals = ",".join([f"{v:.2f}" for v in data.values[:2]])  # max 2
+        if len(data.values) > 2:
+            vals += "..."
+        return f"{typ}({vals})"
     elif isinstance(data, pd.DataFrame):
         return f"Df({''.join(str(c) for c in data.columns)})"
     elif isinstance(data, classes.PfLine):
