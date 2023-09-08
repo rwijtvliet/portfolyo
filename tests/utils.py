@@ -21,6 +21,8 @@ def id_fn(data: Any):
         return f"Df({''.join(str(c) for c in data.columns)})"
     elif isinstance(data, classes.PfLine):
         return f"{data.__class__.__name__}"
+    elif isinstance(data, pf.PfState):
+        return f"{data.__class__.__name__}"
     elif isinstance(data, pf.Q_):
         return f"Q({data.units})"
     elif isinstance(data, type):

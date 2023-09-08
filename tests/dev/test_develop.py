@@ -61,8 +61,16 @@ def test_series(freq, tz, start, name, name_has_unit, request_unit):
 
 @pytest.mark.parametrize("request_unit", [True, False])
 @pytest.mark.parametrize(
-    ("cols", "name_has_unit"),
-    [("q", True), ("wq", True), ("rp", True), ("prwq", True), ("qx", False)],
+    ("cols", "first_col_has_unit"),
+    [
+        ("q", True),
+        ("wq", True),
+        ("rp", True),
+        ("prwq", True),
+        ("qx", True),
+        ("xq", False),
+        ("xy", False),
+    ],
 )
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(
@@ -76,15 +84,15 @@ def test_series(freq, tz, start, name, name_has_unit, request_unit):
         ("AS", "2020"),
     ],
 )
-def test_dataframe(freq, tz, start, cols, name_has_unit, request_unit):
+def test_dataframe(freq, tz, start, cols, first_col_has_unit, request_unit):
     """Test dataframe creation."""
     i = None if freq is None else dev.get_index(freq, tz, start)
     df = dev.get_dataframe(i, cols, request_unit)
-    if request_unit and name_has_unit:
-        _ = df.pint.dequantify()
+    unit = df.pint.dequantify().columns.get_level_values("unit")[0]
+    if request_unit and first_col_has_unit:
+        assert unit != "No Unit"
     else:
-        with pytest.raises((ValueError, AttributeError)):
-            _ = df.pint.dequantify()
+        assert unit == "No Unit"
 
 
 @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
