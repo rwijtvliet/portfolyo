@@ -100,7 +100,7 @@ div_pfs2_pfs1 = pd.DataFrame(
         ("offtake", "volume"): [3.0, 4],
         ("sourced", "volume"): [12 / 5, 5 / 4],
         ("sourced", "price"): [1.0, 2],
-        ("unsourced", "volume"): [np.nan, 15],
+        ("unsourced", "volume"): [np.nan, 15.0],
         ("unsourced", "price"): [400 / 150, 0.5],
         ("pnl_cost", "price"): [1.6, 62.5 / 60],
     },

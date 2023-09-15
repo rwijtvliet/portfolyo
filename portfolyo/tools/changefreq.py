@@ -11,6 +11,7 @@ from . import trim as tools_trim
 
 
 def _astype(s: pd.Series, dtype: Any) -> pd.Series:
+    """Convert dtype of series ``s`` to ``dtype``."""
     # HACK: s.astype(float) results in incorrect datatype (see https://github.com/hgrecco/pint-pandas/issues/203).
     # therefore: workaround taking the magnitude if wanted dtype is float (in this case, s.dtype should be 'pint[dimensionless]')
     if dtype == float and s.dtype == "pint[dimensionless]":

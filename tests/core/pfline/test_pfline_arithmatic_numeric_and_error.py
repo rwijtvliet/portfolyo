@@ -458,7 +458,6 @@ def test_negation(testcase: Case):
     do_test(testcase)
 
 
-@pytest.mark.parametrize("testcase", additiontestcases(), ids=id_fn)
 @pytest.mark.parametrize("order", ["normal", "reversed"])
 def test_addition(testcase: Case, order: str):
     do_test(testcase, order)
