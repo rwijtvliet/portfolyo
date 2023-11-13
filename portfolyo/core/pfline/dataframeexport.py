@@ -76,6 +76,6 @@ class Nested:
         # One big dataframe.
         dfs = [flatdf]
         for name, child in self.items():
-            childdf = child.dataframe(cols, has_units, childlevels - 1)
+            childdf = child.dataframe(cols, has_units, childlevels=childlevels - 1)
             dfs.append(tools.frame.add_header(childdf, name))
         return tools.frame.concat(dfs, 1)
