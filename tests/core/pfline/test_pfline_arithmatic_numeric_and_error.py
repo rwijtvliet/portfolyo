@@ -245,7 +245,7 @@ class Case:
     expected: Any
 
     def __repr__(self):
-        return f"Case({id_fn(self.value1)},{self.operation},{id_fn(self.value2)})"
+        return f"Case({id_fn(self.value1)},{self.operation},{id_fn(self.value2)},{id_fn(self.expected)})"
 
 
 def dimlessseries(s: pd.Series) -> pd.Series:

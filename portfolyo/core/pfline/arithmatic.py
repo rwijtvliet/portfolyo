@@ -224,6 +224,8 @@ class Add:
         #     newdf["p"] = newdf["r"] / newdf["q"]
         newdfs = tools.intersect.frames(pfl1.df, pfl2.df)  # keep only common rows
         newdf = sum(newdfs)
+        if len(newdf.index) == 0:
+            raise NotImplementedError("Cannot perform operation on 2 portfolio lines without any overlapping timestamps.")
         if pfl1.kind is Kind.COMPLETE:
             # Calculate price from wavg instead of r/q, to handle edge case p1==p2, q==0.
             values = pd.DataFrame({"1": newdfs[0].p, "2": newdfs[1].p})
