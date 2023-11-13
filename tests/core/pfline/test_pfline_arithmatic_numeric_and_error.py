@@ -318,6 +318,7 @@ def subtractiontestcases():
             c: series_ref[c].loc[i_ab] - series_b[c].loc[i_ab] for c in kind.summable
         }
         yield Case(pfl, "-", flatset_b[kind], pf.PfLine(series))
+    #This one is the issue
     yield Case(flatset_ref[Kind.VOLUME], "-", flatset_c[Kind.VOLUME], Exception)
     yield Case(flatset_ref[Kind.VOLUME], "-", flatset_d[Kind.VOLUME], Exception)
     yield Case(flatset_ref[Kind.VOLUME], "-", flatset_e[Kind.VOLUME], Exception)
@@ -457,13 +458,15 @@ def uniontestcases():
 def test_negation(testcase: Case):
     do_test(testcase)
 
-
+#added function additiontestcases since the test for multiolication also had corresponding function
+#but it didn't help (
+@pytest.mark.parametrize("testcase", additiontestcases(), ids=id_fn)
 @pytest.mark.parametrize("order", ["normal", "reversed"])
 def test_addition(testcase: Case, order: str):
     do_test(testcase, order)
 
 
-@pytest.mark.parametrize("testcase", subtractiontestcases(), ids=id_fn)
+@pytest.mark.parametrize("testcase", list(subtractiontestcases()), ids=id_fn)
 def test_subtraction(testcase: Case):
     do_test(testcase)
 
