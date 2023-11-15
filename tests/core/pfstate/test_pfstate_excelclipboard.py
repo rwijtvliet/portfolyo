@@ -1,7 +1,8 @@
 """Test if portfolio line can be exported."""
 
-
+import pytest
 import portfolyo as pf
+import pandas as pd
 
 
 def test_pfstate_toexcel():
@@ -13,4 +14,7 @@ def test_pfstate_toexcel():
 def test_pfstate_toclipboard():
     """Test if data can be copied to clipboard."""
     pfs = pf.dev.get_pfstate()
-    pfs.to_clipboard()
+    try:
+        pfs.to_clipboard()
+    except pd.errors.PyperclipException:
+        pytest.skip("Clipboard not available on all systems.")
