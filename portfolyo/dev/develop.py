@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from .. import tools
-from ..core.pfline import FlatPfLine, Kind, Structure, NestedPfLine, PfLine, create
+from ..core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine, create
 from ..core.pfstate import PfState
 from . import mockup
 
