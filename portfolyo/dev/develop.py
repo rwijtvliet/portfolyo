@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 from .. import tools
-from ..core.pfline import FlatPfLine, Kind, Structure, NestedPfLine, PfLine, create
+from ..core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine, create
 from ..core.pfstate import PfState
 from . import mockup
 
@@ -131,15 +131,15 @@ def get_dataframe(
 def get_pfline(
     i: pd.DatetimeIndex = None,
     kind: Kind = Kind.COMPLETE,
-    structure: Structure = Structure.FLAT,
+    nlevels: int = 1,
     *,
     _seed: int = None,
 ) -> FlatPfLine:
     """Get a portfolio line."""
-    if structure is Structure.FLAT:
+    if nlevels == 1:
         return get_flatpfline(i, kind, _seed=_seed)
     else:
-        return get_nestedpfline(i, kind, _seed=_seed)
+        return get_nestedpfline(i, kind, nlevels, _seed=_seed)
 
 
 def get_flatpfline(
@@ -156,24 +156,37 @@ def get_flatpfline(
 
 
 def get_nestedpfline(
-    i: pd.DatetimeIndex = None, kind: Kind = Kind.COMPLETE, *, _seed: int = None
+    i: pd.DatetimeIndex = None,
+    kind: Kind = Kind.COMPLETE,
+    nlevels: int = 2,
+    *,
+    _seed: int = None,
 ) -> NestedPfLine:
-    """Get nested portfolio line. With 2 (flat) children of the same ``kind``."""
+    """Get nested portfolio line. With 2 children of the same ``kind``. If ``nlevels``==2, the children are both flat; if not,
+    the portfolio line is multiply nested."""
     if i is None:
         i = get_index(_seed=_seed)
-    return create.nestedpfline(
-        {
-            "A": get_flatpfline(i, kind, _seed=_seed),
-            "B": get_flatpfline(i, kind, _seed=_seed),
-        }
-    )
+    if nlevels == 2:
+        return create.nestedpfline(
+            {
+                "A": get_flatpfline(i, kind, _seed=_seed),
+                "B": get_flatpfline(i, kind, _seed=_seed),
+            }
+        )
+    else:
+        return create.nestedpfline(
+            {
+                "A": get_nestedpfline(i, kind, nlevels - 1, _seed=_seed),
+                "B": get_nestedpfline(i, kind, nlevels - 1, _seed=_seed),
+            }
+        )
 
 
 def get_randompfline(
     i: pd.DatetimeIndex = None,
     kind: Kind = Kind.COMPLETE,
     max_nlevels: int = 3,
-    childcount: int = 2,
+    max_childcount: int = 2,
     prefix: str = "",
     *,
     _seed: int = None,
@@ -185,16 +198,22 @@ def get_randompfline(
         i = get_index(_seed=_seed)
     if _seed:
         np.random.seed(_seed)
-    nlevels = np.random.randint(0, max_nlevels)
+    nlevels = np.random.randint(1, max_nlevels + 1)
     # Create flat PfLine.
-    if nlevels == 0:
+    if nlevels == 1:
         return get_flatpfline(i, kind, _seed=_seed)
     # Create nested PfLine.
     children = {}
+    childcount = np.random.randint(1, max_childcount + 1)
     for c in range(childcount):
         name = f"part {prefix}{c}."
         children[name] = get_randompfline(
-            i, kind, max_nlevels - 1, prefix=f"{prefix}{c}.", _seed=_seed
+            i,
+            kind,
+            max_nlevels - 1,
+            max_childcount,
+            prefix=f"{prefix}{c}.",
+            _seed=_seed,
         )
     return create.nestedpfline(children)
 

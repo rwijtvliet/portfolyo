@@ -1,13 +1,22 @@
 """Functions to change frequency of a pandas dataframe."""
 
 import datetime as dt
-from typing import Union
+from typing import Any, Union
 
 import pandas as pd
 
 from . import freq as tools_freq
 from . import right as tools_right
 from . import trim as tools_trim
+
+
+def _astype(s: pd.Series, dtype: Any) -> pd.Series:
+    """Convert dtype of series ``s`` to ``dtype``."""
+    # HACK: s.astype(float) results in incorrect datatype (see https://github.com/hgrecco/pint-pandas/issues/203).
+    # therefore: workaround taking the magnitude if wanted dtype is float (in this case, s.dtype should be 'pint[dimensionless]')
+    if dtype == float and s.dtype == "pint[dimensionless]":
+        return s.pint.magnitude
+    return s.astype(dtype)
 
 
 def _emptyseries(s_ref: pd.Series, freq) -> pd.Series:
@@ -21,7 +30,8 @@ def _downsample_avgable(s: pd.Series, freq: str) -> pd.Series:
     summable = s.mul(s.index.duration, axis=0)  # now has a pint dtype
     summable2 = _downsample_summable(summable, freq)
     s2 = summable2.div(summable2.index.duration, axis=0)
-    return s2.astype(s.dtype).rename(s.name)
+    s2 = _astype(s2, s.dtype)
+    return s2.rename(s.name)
 
 
 def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
@@ -62,7 +72,8 @@ def _upsample_summable(s: pd.Series, freq: str) -> pd.Series:
     avgable = s.div(s.index.duration, axis=0)  # now has a pint dtype
     avgable2 = _upsample_avgable(avgable, freq)
     s2 = avgable2.mul(avgable2.index.duration, axis=0)
-    return s2.astype(s.dtype).rename(s.name)
+    s2 = _astype(s2, s.dtype)
+    return s2.rename(s.name)
 
 
 def _upsample_avgable(s: pd.Series, freq: str) -> pd.Series:

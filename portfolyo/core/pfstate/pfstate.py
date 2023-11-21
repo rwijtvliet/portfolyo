@@ -173,7 +173,9 @@ class PfState(
         dfs = []
         for part in ("offtakevolume", "pnl_cost", "sourced", "unsourced"):
             childlevels = 0 if part == "pnl_cost" else -1  # always flatten pnl_cost
-            dfin = self[part].dataframe(cols, childlevels, has_units=has_units)
+            dfin = self[part].dataframe(
+                cols, has_units=has_units, childlevels=childlevels
+            )
             dfs.append(tools.frame.add_header(dfin, part))
         return tools.frame.concat(dfs, axis=1)
 

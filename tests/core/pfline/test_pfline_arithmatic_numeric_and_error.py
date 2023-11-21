@@ -245,7 +245,7 @@ class Case:
     expected: Any
 
     def __repr__(self):
-        return f"Case({id_fn(self.value1)},{self.operation},{id_fn(self.value2)})"
+        return f"Case({id_fn(self.value1)},{self.operation},{id_fn(self.value2)},{id_fn(self.expected)})"
 
 
 def dimlessseries(s: pd.Series) -> pd.Series:
@@ -318,6 +318,7 @@ def subtractiontestcases():
             c: series_ref[c].loc[i_ab] - series_b[c].loc[i_ab] for c in kind.summable
         }
         yield Case(pfl, "-", flatset_b[kind], pf.PfLine(series))
+    # This one is the issue
     yield Case(flatset_ref[Kind.VOLUME], "-", flatset_c[Kind.VOLUME], Exception)
     yield Case(flatset_ref[Kind.VOLUME], "-", flatset_d[Kind.VOLUME], Exception)
     yield Case(flatset_ref[Kind.VOLUME], "-", flatset_e[Kind.VOLUME], Exception)
@@ -464,7 +465,7 @@ def test_addition(testcase: Case, order: str):
     do_test(testcase, order)
 
 
-@pytest.mark.parametrize("testcase", subtractiontestcases(), ids=id_fn)
+@pytest.mark.parametrize("testcase", list(subtractiontestcases()), ids=id_fn)
 def test_subtraction(testcase: Case):
     do_test(testcase)
 
