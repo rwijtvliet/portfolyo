@@ -156,3 +156,5 @@ cython_debug/
 # OWN
 
 .issues/
+.DS_Store
+test.xlsx

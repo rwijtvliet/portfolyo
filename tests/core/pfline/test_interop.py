@@ -7,6 +7,8 @@ from utils import id_fn  # relative to /tests
 from portfolyo.core.pfline import interop as io
 from portfolyo.tools.unit import Q_
 
+np.random.seed(3)  # ensure same data all the time
+
 idx1 = pd.date_range("2020", freq="MS", periods=12)
 val1 = 100 + 20 * np.random.random(len(idx1))
 s1 = pd.Series(val1, idx1)

@@ -1,9 +1,3 @@
-
-@defaults
-    system = energysector1
-@end
-
-
 # prefixes
 centi- = 1e-2 = c-
 kilo- = 1e3 = k- = K-

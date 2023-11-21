@@ -7,7 +7,7 @@ import portfolyo as pf
 from portfolyo.core.pfline import Kind, Structure, classes
 
 
-def id_fn(data: Any):
+def id_fn(data: Any) -> str:
     """Readable id of test case"""
     if isinstance(data, Dict):
         return str({key: id_fn(val) for key, val in data.items()})
@@ -21,6 +21,8 @@ def id_fn(data: Any):
         return f"Df({''.join(str(c) for c in data.columns)})"
     elif isinstance(data, classes.PfLine):
         return f"{data.__class__.__name__}"
+    elif isinstance(data, pf.PfState):
+        return f"{data.__class__.__name__}"
     elif isinstance(data, pf.Q_):
         return f"Q({data.units})"
     elif isinstance(data, type):
@@ -31,6 +33,8 @@ def id_fn(data: Any):
         return str(data)
     elif isinstance(data, str):
         return data
+    elif isinstance(data, type) and issubclass(data, Exception):
+        return data.__name__
     elif data is None:
         return "None"
     return str(data)

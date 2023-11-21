@@ -16,6 +16,7 @@ def assert_frame_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwargs)
     right = tools.unit.drop_units(right).sort_index(axis=1)
     left = left.replace([np.inf, -np.inf], np.nan)
     right = right.replace([np.inf, -np.inf], np.nan)
+    # TODO: Test if units are the same
     pd.testing.assert_frame_equal(left, right, *args, **kwargs)
 
 

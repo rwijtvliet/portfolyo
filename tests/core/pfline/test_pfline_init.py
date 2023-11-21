@@ -235,3 +235,15 @@ def test_init_B(
 
     assert isinstance(result, expected_type)
     assert result.kind is itc.expected_kind
+
+
+@pytest.mark.parametrize("col", ["q", "w", "p", "r"])
+def test_init_with_integers(col: str):
+    """Test if a series of integers is correctly converted into floats."""
+    i = pd.date_range("2020", freq="MS", periods=3)
+    magnitude = pd.Series([100, 200, -500], i)
+    unit = pf.tools.unit.NAMES_AND_UNITS[col]
+    s = magnitude.astype(f"pint[{unit}]")
+    pfl = pf.PfLine(s)
+    for dtype in pfl.df.pint.dequantify().dtypes.values:
+        assert not pd.api.types.is_integer_dtype(dtype)
