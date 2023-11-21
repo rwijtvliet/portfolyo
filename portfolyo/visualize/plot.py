@@ -283,7 +283,7 @@ def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
             raise ValueError(
                 f"Cannot plot series with units {s.pint.units} on axes with units {axunit}."
             )
-        return s.astype(axunit)
+        return s.astype(f"pint[{axunit}]")
 
     # Axes does not have unit.
     if unit is not None:

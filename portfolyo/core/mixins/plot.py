@@ -68,9 +68,13 @@ class PfLinePlot:
             raise ValueError(
                 f"For this PfLine, parameter ``col`` must be one of {', '.join(self.kind.available)}; got {col}."
             )
+        # if len(self.items()) == 0:
+        #     print("This PFline doesn't have any children")
+        # for (name, child) in self.items():
+        #     vis.plot_timeseries(ax, getattr(self, name), how, labelfmt, **kwargs)
         vis.plot_timeseries(ax, getattr(self, col), how, labelfmt, **kwargs)
 
-    def plot(self: PfLine, cols: str = None) -> plt.Figure:
+    def plot(self: PfLine, cols: str = None, children: bool = False) -> plt.Figure:
         """Plot one or more timeseries of the PfLine.
 
         Parameters
@@ -79,6 +83,8 @@ class PfLinePlot:
             The columns to plot. Default: plot volume (in [MW] for daily values and
             shorter, [MWh] for monthly values and longer) and price `p` [Eur/MWh]
             (if available).
+        children : bool, optional (default: False)
+            If True, plot also the direct children of the PfLine.
 
         Returns
         -------
@@ -110,6 +116,20 @@ class PfLinePlot:
             kwargs = defaultkwargs(col, is_category)
             s = getattr(self, col)
             vis.plot_timeseries(ax, s, **kwargs)
+            for name, child in self.items():
+                # kwargs = defaultkwargs(col, is_category)
+                s = getattr(child, col)
+                # the first time: set the type of axes to the type of the s series type
+                # the second type: tries to convert the unit that were set to base units
+                # but it fails
+                # setattr(ax, "_unit", None)
+                vis.plot_timeseries(ax, s, **kwargs)
+
+        # for (name, child) in self.items():
+        #     for col, ax in zipped:
+        #         kwargs = defaultkwargs(col, is_category)
+        #         s = getattr(child, col)
+        #         vis.plot_timeseries(ax, s, **kwargs)
 
         return fig
 
