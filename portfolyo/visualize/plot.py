@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 from .. import tools
 from .categories import Categories, Category  # noqa
 
-mpl.style.use("seaborn")
+mpl.style.use("seaborn-v0_8")
 
 # Plotting philosophy for timeseries:
 # Not all plot types (bar, line, step, etc.) are suitable for all quantities.

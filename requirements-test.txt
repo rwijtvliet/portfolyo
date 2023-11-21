@@ -1,6 +1,0 @@
-codecov==2.1.13
-coverage
-pytest-cov
-pytest
-pyyaml
-openpyxl
