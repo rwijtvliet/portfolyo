@@ -116,20 +116,11 @@ class PfLinePlot:
             kwargs = defaultkwargs(col, is_category)
             s = getattr(self, col)
             vis.plot_timeseries(ax, s, **kwargs)
-            for name, child in self.items():
-                # kwargs = defaultkwargs(col, is_category)
-                s = getattr(child, col)
-                # the first time: set the type of axes to the type of the s series type
-                # the second type: tries to convert the unit that were set to base units
-                # but it fails
-                # setattr(ax, "_unit", None)
-                vis.plot_timeseries(ax, s, **kwargs)
-
-        # for (name, child) in self.items():
-        #     for col, ax in zipped:
-        #         kwargs = defaultkwargs(col, is_category)
-        #         s = getattr(child, col)
-        #         vis.plot_timeseries(ax, s, **kwargs)
+            if children:
+                for name, child in self.items():
+                    kwargs["align"] = "edge"  # TODO
+                    kwargs["labelfmt"] = ""
+                    vis.plot_timeseries(ax, getattr(child, col), **kwargs)
 
         return fig
 
