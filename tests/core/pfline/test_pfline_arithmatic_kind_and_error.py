@@ -81,9 +81,9 @@ class CaseConfig:  # TestcaseConfig
 class Pfls:  # Testpfls
     def __init__(self, i: pd.DatetimeIndex):
         self._pfls = [
-            pf.dev.get_pfline(i, kind, structure, _seed=1)
+            pf.dev.get_pfline(i, kind, nlevels, _seed=1)
             for kind in Kind
-            for structure in Structure
+            for nlevels in (1, 2, 3)
         ]
 
     def fetch(self, kind: Kind = None, structure: Structure = None) -> Iterable[PfLine]:
