@@ -172,7 +172,7 @@ class PfStatePlot:
     #             )  # print labels on top of each bar
 
     def plot(self: PfState) -> plt.Figure:
-        """Plot one or more timeseries of the portfolio state.
+        """Plot the portfolio state.
 
         Parameters
         ----------
@@ -188,7 +188,7 @@ class PfStatePlot:
             2, 2, sharex=True, gridspec_kw=gridspec, figsize=(10, 6)
         )
         axes = axes.flatten()
-        axes[0].get_shared_y_axes().join(axes[0], axes[1])
+        axes[0].sharey(axes[1])
 
         # If freq is MS or longer: use categorical axes. Plot volumes in MWh.
         # If freq is D or shorter: use time axes. Plot volumes in MW.

@@ -263,10 +263,16 @@ def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
 
     # Turn into floats-series or pint-series.
 
-    if s.dtype != object and not hasattr(s, "pint"):
-        s = s.astype(float)  # int to float
+    if s.dtype != object:
+        if not hasattr(s, "pint"):
+            s = s.astype(float)  # int to float
+        else:
+            magnitudes = s.pint.magnitude
+            if pd.api.types.is_integer_dtype(magnitudes.dtype):
+                # series of int to series of float
+                s = pd.Series(magnitudes.astype(float), dtype=s.dtype)
 
-    elif s.dtype == object:
+    else:
         # object -> maybe series of Quantitis -> convert to pint-series.
         if not all(isinstance(val, tools.unit.Q_) for val in s.values):
             raise TypeError(f"Timeseries with unexpected data type: {s.dtype}.")
@@ -305,6 +311,7 @@ def _from_data(
         return InOp()
 
     elif isinstance(data, int) or isinstance(data, float):
+        # TODO: if int, change to float?
         return InOp(agn=data)
 
     elif isinstance(data, tools.unit.Q_):
