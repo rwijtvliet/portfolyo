@@ -78,28 +78,24 @@ def defaultunit(
             return val.magnitude
         return val.to_base_units()
     elif isinstance(val, pd.Series):
-        if pd.api.types.is_integer_dtype(val.dtype):
-            return val.astype(float)
-        elif pd.api.types.is_float_dtype(val.dtype):
-            return val
-        elif isinstance(val.dtype, pint_pandas.PintType):
+        if isinstance(val.dtype, pint_pandas.PintType):
             if val.pint.units == ureg.Unit("dimensionless"):
                 return val.astype(float)
             return val.pint.to_base_units()
-        elif pd.api.types.is_object_dtype(val.dtype):  # maybe series of quantities
+        elif pd.api.types.is_object_dtype(val.dtype) and isinstance(val.iloc[0], Q_):
             try:
+                unit = val.iloc[0].to_base_units().units
+                pintseries = val.astype(f"pint[{unit}]")
+                return defaultunit(pintseries)
+            except pint.DimensionalityError:  # not all have same dimension
+                # convert to base units instead.
                 magn_unit_tupls = [split_magn_unit(v) for v in val.values]
-                mm, uu = zip(*magn_unit_tupls)
-                if len(set(uu)) == 1:  # if all same unit: return as pint-Series
-                    if (u := next(iter(uu))) is not None:
-                        return pd.Series(mm, val.index).astype(f"pint[{u}]")
-                    return pd.Series(mm, val.index)  # floats
-                # otherwise, return again as series of quantities, at least in baseunit
                 qq = [m if u is None else Q_(m, u) for m, u in magn_unit_tupls]
                 return pd.Series(qq, val.index)
-            except TypeError:
-                pass
-        raise TypeError(f"``val`` is a Series with an unallowed dtype: '{val.dtype}'.")
+        elif pd.api.types.is_integer_dtype(val.dtype):
+            return val.astype(float)
+        else:  # series of floats, bools, timestamps, ...
+            return val
     elif isinstance(val, pd.DataFrame):
         return pd.DataFrame({col: defaultunit(s) for col, s in val.items()})
     raise TypeError("``val`` must be an int, float, Quantity, Series, or DataFrame.")
@@ -118,19 +114,18 @@ def split_magn_unit(
     dimension, the unit is returned as a pint Unit. If not, it is returned as a Series.
     """
     val = defaultunit(val)
-    if isinstance(val, float):
-        return val, None
-    elif isinstance(val, pint.Quantity):
+    if isinstance(val, pint.Quantity):
         return val.magnitude, val.units
     elif isinstance(val, pd.Series):
-        if pd.api.types.is_float_dtype(val.dtype):
-            return val, None
-        elif isinstance(val.dtype, pint_pandas.PintType):
+        if isinstance(val.dtype, pint_pandas.PintType):
             return val.pint.magnitude, val.pint.units
-        else:  # must be series of quantities
+        elif pd.api.types.is_object_dtype(val.dtype) and isinstance(val.iloc[0], Q_):
+            # series of quantities?
             m = [q.magnitude for q in val.values]
             u = [q.units for q in val.values]
             return pd.Series(m, val.index), pd.Series(u, val.index)
+        return val, None
     elif isinstance(val, pd.DataFrame):
         raise TypeError("For dataframes, handle the series seperately.")
-    raise TypeError("``val`` must be an int, float, Quantity, or Series.")
+    else:  # int, float, bool, timestamp, ...
+        return val, None

@@ -39,7 +39,10 @@ NB: this package is under active development and the API will change without pri
 
 .. code-block:: bash
 
-   pip install portfolyo==x.x.x
+   pip install portfolyo==x.y.z
+
+   # or, in pyproject.toml
+   portfolyo = "x.y.z"
 
 
 Documentation
@@ -66,7 +69,7 @@ the commit hooks.
 
 .. code-block:: bash
 
-   $ pip install -r requirements-dev.txt
+   $ poetry install --with=dev,test
    $ pre-commit install
 
 Feature branches are merged into the `develop` branch. This branch is merged into the `main` branch whenever a new stable release is published.
