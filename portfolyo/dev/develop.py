@@ -129,32 +129,48 @@ def get_dataframe(
 
 
 def _get_namefn(nlevels: int) -> Callable[[int], str]:
-    if nlevels % 4 == 0:
+    """Name function. Turns int into string in various ways."""
+    if nlevels % 5 == 0:
 
         def fn(i: int) -> str:
             return str(i)  # simply the number
 
-    elif nlevels % 4 == 1:
+    elif nlevels % 5 == 1:
 
         def fn(i: int) -> str:
             return chr(i + 65)  # capital letter
 
-    elif nlevels % 4 == 2:
+    elif nlevels % 5 == 2:
 
         def fn(i: int) -> str:
             return chr(i + 65 + 32)  # small letter
 
-    else:
+    elif nlevels % 5 == 3:
+        symbols = [(40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
 
         def fn(i: int) -> str:
             i += 1  # make sure start with 1
-            symbols = [(40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
             roman = ""
             for value, symbol in symbols:
                 while i >= value:
                     roman += symbol
                     i -= value
             return roman  # roman numeral
+
+    else:
+
+        def fn(i: int) -> str:
+            i += 1  # make sure start with 1
+            tens, ones = divmod(i, 10)
+            suffix = "th"
+            if tens != 1:
+                if ones == 1:
+                    suffix = "st"
+                elif ones == 2:
+                    suffix = "nd"
+                elif ones == 3:
+                    suffix = "rd"
+            return f"{i}{suffix}"  # 1st, 2nd, 3rd, 4th, ...
 
     return fn
 
@@ -165,6 +181,7 @@ def get_pfline(
     nlevels: int = 1,
     childcount: int = 2,
     *,
+    positive: bool = False,
     _ancestornames: Tuple[str] = (),
     _seed: int = None,
 ) -> PfLine:
@@ -178,11 +195,13 @@ def get_pfline(
     kind : Kind, optional (default: COMPLETE)
     nlevels : int (default: 1)
         Number of levels. Must be >=1 If 1, return flat portfolio line.
-    childcount : int (default: 2)
+    childcount : int, optional (default: 2)
         Number of children on each level. (Ignored if `nlevels` == 1)
-    _ancestornames : Tuple[str] (default: ())
+    positive : bool, optional (default: False)
+        If True, return only positive values. If False, make 1/3 of pflines negative.
+    _ancestornames : Tuple[str], optional (default: ())
         Text to start the childrens' names with (concatenated with '-')
-    _seed : int
+    _seed : int, optional (default: no seed value)
         Seed value for the randomizer.
 
     Returns
@@ -202,7 +221,10 @@ def get_pfline(
             Kind.REVENUE: "r",
             Kind.COMPLETE: "qr",
         }[kind]
-        return create.flatpfline(get_dataframe(i, columns, _seed=_seed))
+        df = get_dataframe(i, columns, _seed=_seed)
+        if not positive and np.random.rand() < 0.33:
+            df = -1 * df  # HACK: `-df` leads to error in pint. Maybe fixed in future
+        return create.flatpfline(df)
     # Create nested PfLine.
     if childcount < 1:
         raise ValueError("Nested PfLine must have at least 1 child.")
@@ -247,6 +269,7 @@ def get_randompfline(
     max_nlevels: int = 3,
     max_childcount: int = 2,
     *,
+    positive: bool = False,
     _ancestornames: Tuple[str] = (),
     _seed: int = None,
 ) -> PfLine:
@@ -260,7 +283,7 @@ def get_randompfline(
     nlevels = np.random.randint(1, max_nlevels + 1)
     # Create flat PfLine.
     if nlevels == 1:
-        return get_pfline(i, kind, 1, _seed=_seed)
+        return get_pfline(i, kind, 1, positive=positive, _seed=_seed)
     # Create nested PfLine.
     namefn = _get_namefn(nlevels)
     children = {}
@@ -269,7 +292,13 @@ def get_randompfline(
         names = (*_ancestornames, namefn(c))
         name = "-".join(names)
         children[name] = get_randompfline(
-            i, kind, max_nlevels - 1, max_childcount, _ancestornames=names, _seed=_seed
+            i,
+            kind,
+            max_nlevels - 1,
+            max_childcount,
+            positive=positive,
+            _ancestornames=names,
+            _seed=_seed,
         )
     return create.nestedpfline(children)
 
