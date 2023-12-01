@@ -3,7 +3,7 @@ Code to quickly get objects for testing.
 """
 
 import datetime as dt
-from typing import Dict, Union
+from typing import Dict, Union, Callable, Tuple
 
 import numpy as np
 import pandas as pd
@@ -128,58 +128,117 @@ def get_dataframe(
 # Portfolio line.
 
 
+def _get_namefn(nlevels: int) -> Callable[[int], str]:
+    if nlevels % 4 == 0:
+
+        def fn(i: int) -> str:
+            return str(i)  # simply the number
+
+    elif nlevels % 4 == 1:
+
+        def fn(i: int) -> str:
+            return chr(i + 65)  # capital letter
+
+    elif nlevels % 4 == 2:
+
+        def fn(i: int) -> str:
+            return chr(i + 65 + 32)  # small letter
+
+    else:
+
+        def fn(i: int) -> str:
+            i += 1  # make sure start with 1
+            symbols = [(40, "XL"), (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")]
+            roman = ""
+            for value, symbol in symbols:
+                while i >= value:
+                    roman += symbol
+                    i -= value
+            return roman  # roman numeral
+
+    return fn
+
+
 def get_pfline(
     i: pd.DatetimeIndex = None,
     kind: Kind = Kind.COMPLETE,
     nlevels: int = 1,
+    childcount: int = 2,
     *,
+    _ancestornames: Tuple[str] = (),
     _seed: int = None,
-) -> FlatPfLine:
-    """Get a portfolio line."""
+) -> PfLine:
+    """
+    Create a portfolio line.
+
+    Parameters
+    ----------
+    i : pd.DatetimeIndex, optional (default: random)
+        Datetimeindex to use for the portfolio line.
+    kind : Kind, optional (default: COMPLETE)
+    nlevels : int (default: 1)
+        Number of levels. Must be >=1 If 1, return flat portfolio line.
+    childcount : int (default: 2)
+        Number of children on each level. (Ignored if `nlevels` == 1)
+    _ancestornames : Tuple[str] (default: ())
+        Text to start the childrens' names with (concatenated with '-')
+    _seed : int
+        Seed value for the randomizer.
+
+    Returns
+    -------
+    PfLine
+    """
+    # Gather information.
+    if i is None:
+        i = get_index(_seed=_seed)
+    if _seed:
+        np.random.seed(_seed)
+    # Create flat pfline.
     if nlevels == 1:
-        return get_flatpfline(i, kind, _seed=_seed)
-    else:
-        return get_nestedpfline(i, kind, nlevels, _seed=_seed)
+        columns = {
+            Kind.VOLUME: "q",
+            Kind.PRICE: "p",
+            Kind.REVENUE: "r",
+            Kind.COMPLETE: "qr",
+        }[kind]
+        return create.flatpfline(get_dataframe(i, columns, _seed=_seed))
+    # Create nested PfLine.
+    if childcount < 1:
+        raise ValueError("Nested PfLine must have at least 1 child.")
+    namefn = _get_namefn(nlevels)
+    children = {}
+    for c in range(childcount):
+        names = (*_ancestornames, namefn(c))
+        name = "-".join(names)
+        children[name] = get_pfline(
+            i, kind, nlevels - 1, childcount, _ancestornames=names, _seed=_seed
+        )
+    return create.nestedpfline(children)
 
 
 def get_flatpfline(
     i: pd.DatetimeIndex = None, kind: Kind = Kind.COMPLETE, *, _seed: int = None
 ) -> FlatPfLine:
     """Get flat portfolio line, i.e. without children."""
-    columns = {
-        Kind.VOLUME: "q",
-        Kind.PRICE: "p",
-        Kind.REVENUE: "r",
-        Kind.COMPLETE: "qr",
-    }[kind]
-    return create.flatpfline(get_dataframe(i, columns, _seed=_seed))
+    return get_pfline(i, kind, 1, _seed=_seed)
 
 
 def get_nestedpfline(
     i: pd.DatetimeIndex = None,
     kind: Kind = Kind.COMPLETE,
     nlevels: int = 2,
+    childcount: int = 2,
     *,
     _seed: int = None,
 ) -> NestedPfLine:
-    """Get nested portfolio line. With 2 children of the same ``kind``. If ``nlevels``==2, the children are both flat; if not,
+    """Get nested portfolio line with children of the same ``kind``. If ``nlevels``==2, the children are both flat; if not,
     the portfolio line is multiply nested."""
-    if i is None:
-        i = get_index(_seed=_seed)
-    if nlevels == 2:
-        return create.nestedpfline(
-            {
-                "A": get_flatpfline(i, kind, _seed=_seed),
-                "B": get_flatpfline(i, kind, _seed=_seed),
-            }
+    if nlevels <= 1:
+        raise ValueError(
+            "Nested PfLine must have at least 2 levels. Use `get_flatpfline` or the more general `get_pfline` instead."
         )
-    else:
-        return create.nestedpfline(
-            {
-                "A": get_nestedpfline(i, kind, nlevels - 1, _seed=_seed),
-                "B": get_nestedpfline(i, kind, nlevels - 1, _seed=_seed),
-            }
-        )
+    return get_pfline(i, kind, nlevels, childcount, _seed=_seed)
 
 
 def get_randompfline(
@@ -187,8 +246,8 @@ def get_randompfline(
     kind: Kind = Kind.COMPLETE,
     max_nlevels: int = 3,
     max_childcount: int = 2,
-    prefix: str = "",
     *,
+    _ancestornames: Tuple[str] = (),
     _seed: int = None,
 ) -> PfLine:
     """Get portfolio line, without children or with children in random number of levels.
@@ -201,19 +260,16 @@ def get_randompfline(
     nlevels = np.random.randint(1, max_nlevels + 1)
     # Create flat PfLine.
     if nlevels == 1:
-        return get_flatpfline(i, kind, _seed=_seed)
+        return get_pfline(i, kind, 1, _seed=_seed)
     # Create nested PfLine.
+    namefn = _get_namefn(nlevels)
     children = {}
     childcount = np.random.randint(1, max_childcount + 1)
     for c in range(childcount):
-        name = f"part {prefix}{c}."
+        names = (*_ancestornames, namefn(c))
+        name = "-".join(names)
         children[name] = get_randompfline(
-            i,
-            kind,
-            max_nlevels - 1,
-            max_childcount,
-            prefix=f"{prefix}{c}.",
-            _seed=_seed,
+            i, kind, max_nlevels - 1, max_childcount, _ancestornames=names, _seed=_seed
         )
     return create.nestedpfline(children)
 
