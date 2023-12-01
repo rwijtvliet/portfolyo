@@ -117,10 +117,28 @@ class PfLinePlot:
             s = getattr(self, col)
             vis.plot_timeseries(ax, s, **kwargs)
             if children:
+                # TODO: probably we need to check "how" of the parent beforehand also
+                num_children = len(self)
+                total_width = 0.8
+
+                # Calculate the maximum width per child, considering the offset
+                width_w_padding = total_width / num_children
+                padding = width_w_padding * (0.1 if num_children > 1 else 0.5)
+                width_per_child = width_w_padding - padding
+                offset = -(total_width / 2.0)
                 for name, child in self.items():
-                    kwargs["align"] = "edge"  # TODO
+                    kwargs["align"] = "edge"
                     kwargs["labelfmt"] = ""
-                    vis.plot_timeseries(ax, getattr(child, col), **kwargs)
+
+                    # Calculate width and offset dynamically based on the number of children
+                    vis.plot_timeseries(
+                        ax,
+                        getattr(child, col),
+                        width=width_per_child,
+                        offset=offset + padding / 2.0,
+                        **kwargs,
+                    )
+                    offset = offset + width_w_padding if num_children > 1 else 0
 
         return fig
 

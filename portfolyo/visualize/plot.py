@@ -111,7 +111,13 @@ def plot_timeseries_as_jagged(
 
 @append_to_doc(docstringliteral_plotparameters)
 def plot_timeseries_as_bar(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
+    ax: plt.Axes,
+    s: pd.Series,
+    labelfmt: str = "",
+    cat: bool = None,
+    width: float = 0.8,
+    offset: float = 0,
+    **kwargs,
 ) -> None:
     """Plot timeseries ``s`` to axis ``ax``, as bars. Ideally, only used for plots with
     categorical (i.e, non-time) x-axis."""
@@ -119,10 +125,14 @@ def plot_timeseries_as_bar(
 
     if use_categories(ax, s, cat):
         categories = Categories(s)
-        ax.bar(categories.x(), categories.y(), 0.8, **kwargs)
+        ax.bar(
+            [x + offset for x in categories.x()], categories.y(), width=width, **kwargs
+        )
         ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
         set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
 
+        ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
+        set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
     else:
         # Bad combination: bar graph on time-axis. But allow anyway.
 
@@ -224,6 +234,7 @@ def plot_timeseries(
     how: str = "jagged",
     labelfmt: str = None,
     cat: bool = None,
+    width: float = 0.8,
     **kwargs,
 ) -> None:
     """Plot timeseries to given axis.
@@ -244,7 +255,7 @@ def plot_timeseries(
     if how == "jagged":
         plot_timeseries_as_jagged(ax, s, labelfmt, cat, **kwargs)
     elif how == "bar":
-        plot_timeseries_as_bar(ax, s, labelfmt, cat, **kwargs)
+        plot_timeseries_as_bar(ax, s, labelfmt, cat, width=width, **kwargs)
     elif how == "area":
         plot_timeseries_as_area(ax, s, labelfmt, cat, **kwargs)
     elif how == "step":
