@@ -1,10 +1,11 @@
 """Functions to change frequency of a pandas dataframe."""
 
-import datetime as dt
 from typing import Any, Union
 
 import pandas as pd
 
+
+from . import startofday as tools_startofday
 from . import freq as tools_freq
 from . import right as tools_right
 from . import trim as tools_trim
@@ -43,8 +44,7 @@ def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
     if not len(s):  # Empty series.
         return _emptyseries(s, freq)
 
-    start_of_day = s.index[0].time()
-    offset = dt.timedelta(hours=start_of_day.hour, minutes=start_of_day.minute)
+    offset = tools_startofday.get(s.index, "timedelta")
     source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
     target_vs_daily = tools_freq.up_or_down(freq, "D")
 
@@ -83,9 +83,7 @@ def _upsample_avgable(s: pd.Series, freq: str) -> pd.Series:
     if not len(s):  # Empty series.
         return _emptyseries(s, freq)
 
-    start_of_day = s.index[0].time()
-    offset = dt.timedelta(hours=start_of_day.hour, minutes=start_of_day.minute)
-
+    offset = tools_startofday.get(s.index, "timedelta")
     source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
     target_vs_daily = tools_freq.up_or_down(freq, "D")
 
