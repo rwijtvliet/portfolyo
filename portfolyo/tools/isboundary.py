@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from . import freq as tools_freq
+from . import startofday as tools_startofday
 
 
 # Necessary because pd.DatetimeIndex.is_year_start is broken.
@@ -124,8 +125,7 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.Series:
     # we need to check if the stamps are on the first day of X AND if they have the correct time.
     else:
         # . Check time of day.
-        start_of_day = i[0].time()
-        values = i.time == start_of_day
+        values = i.time == tools_startofday.get(i)
         # . Check day of X.
         if tools_freq.up_or_down(freq, "D") > 0:
             values &= is_X_start(i, freq)
