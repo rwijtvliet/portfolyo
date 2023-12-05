@@ -9,6 +9,7 @@ import pandas as pd
 from . import ceil as tools_ceil
 from . import floor as tools_floor
 from . import freq as tools_freq
+from . import startofday as tools_startofday
 from . import right as tools_right
 
 
@@ -38,7 +39,7 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
     if not i.freq:
         raise ValueError("Index ``i`` does not have a frequency.")
     # Use index to find start_of_day.
-    start_of_day = i[0].time()
+    start_of_day = tools_startofday.get(i)
     # Trim on both sides.
     mask_start = i >= tools_ceil.stamp(i[0], freq, 0, start_of_day)
     i_right = tools_right.index(i)
