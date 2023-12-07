@@ -69,7 +69,7 @@ the commit hooks.
    poetry install --with=dev,test
    pre-commit install
 
-Feature branches are merged into the `develop` branch. 
+Feature branches are merged into the ``develop`` branch via pull request.
 
 Publishing
 ----------
@@ -82,4 +82,4 @@ To publish a new release from ``develop``, create a new branch, increment the ve
 
 Then, from the github website, the release can be published by clicking the "tags" button. Be sure to select the correct branch.
 
-When done, merge the release branch into ``develop`` and ``main``, and delete it.
+When done, merge the release branch into ``develop`` and ``main``, also via pull request, and delete it.
