@@ -152,6 +152,8 @@ cython_debug/
 
 .vscode/
 
+# pyenv
+.python-version
 
 # OWN
 
