@@ -16,6 +16,11 @@ from .tools.tzone import force_agnostic, force_aware
 from .tools.unit import Q_, ureg, Unit
 from .tools.wavg import general as wavg
 
+VOLUME = Kind.VOLUME
+PRICE = Kind.PRICE
+REVENUE = Kind.REVENUE
+COMPLETE = Kind.COMPLETE
+
 extendpandas.apply()
 suppresswarnings.apply()
 
