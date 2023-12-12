@@ -114,33 +114,59 @@ class PfLinePlot:
 
         for col, ax in zip(cols, axes.flatten()):
             kwargs = defaultkwargs(col, is_category)
+            if children and kwargs["how"] == "bar":
+                kwargs["how"] = "hline"
             s = getattr(self, col)
             vis.plot_timeseries(ax, s, **kwargs)
             if children:
-                # TODO: probably we need to check "how" of the parent beforehand also
-                num_children = len(self)
-                total_width = 0.8
-
-                # Calculate the maximum width per child, considering the offset
-                width_w_padding = total_width / num_children
-                padding = width_w_padding * (0.1 if num_children > 1 else 0.5)
-                width_per_child = width_w_padding - padding
-                offset = -(total_width / 2.0)
-                for name, child in self.items():
-                    kwargs["align"] = "edge"
-                    kwargs["labelfmt"] = ""
-
-                    # Calculate width and offset dynamically based on the number of children
-                    vis.plot_timeseries(
-                        ax,
-                        getattr(child, col),
-                        width=width_per_child,
-                        offset=offset + padding / 2.0,
-                        **kwargs,
-                    )
-                    offset = offset + width_w_padding if num_children > 1 else 0
+                kwargs_children = defaultkwargs(col, is_category)
+                self.plot_children(col, ax, **kwargs_children)
 
         return fig
+
+    def plot_children(self: PfLine, col: str, ax: plt.Axes, **kwargs):
+        if kwargs["how"] == "bar":
+            bottom_offset = [[0.0, 0.0] for i in range(0, self.index.size)]
+            child_color = getattr(vis.Colors.Wqpr, col, "grey")
+            for name, child in self.items():
+                bar_heights = getattr(child, col)
+                offsets = [0.0 for i in range(0, self.index.size)]
+
+                for i in range(0, len(bar_heights)):
+                    obj = bar_heights[i]
+                    if obj.magnitude > 0:
+                        offsets[i] = bottom_offset[i][0]
+                        bottom_offset[i][0] += obj.magnitude
+                    else:
+                        offsets[i] = bottom_offset[i][1]
+                        bottom_offset[i][1] += obj.magnitude
+
+                kwargs["labelfmt"] = ""
+                kwargs["bottom"] = offsets
+                kwargs["color"] = child_color
+
+                # Calculate width and offset dynamically based on the number of children
+                vis.plot_timeseries(
+                    ax,
+                    bar_heights,
+                    **kwargs,
+                )
+
+                # for i in range(0, len(bar_heights)):
+                #     obj = bar_heights[i]
+                #     bottom_offset[i] += obj.magnitude
+                child_color = child_color.darken(0.3)
+        else:
+            child_color = getattr(vis.Colors.Wqpr, col, "grey")
+            for name, child in self.items():
+                kwargs["labelfmt"] = ""
+                kwargs["color"] = child_color
+                vis.plot_timeseries(
+                    ax,
+                    getattr(child, col),
+                    **kwargs,
+                )
+                child_color = child_color.darken(0.5)
 
 
 class PfStatePlot:

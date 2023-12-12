@@ -103,7 +103,7 @@ def plot_timeseries_as_jagged(
         ax.plot(categories.x(), categories.y(), **kwargs)
         ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
         set_data_labels(ax, categories.x(), categories.y(), labelfmt, False)
-
+        ax.autoscale()
     else:
         ax.plot(s.index, s.values, **kwargs)
         set_data_labels(ax, s.index, s.values, labelfmt, False)
@@ -133,6 +133,7 @@ def plot_timeseries_as_bar(
 
         ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
         set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
+        ax.autoscale()
     else:
         # Bad combination: bar graph on time-axis. But allow anyway.
 
@@ -171,7 +172,7 @@ def plot_timeseries_as_area(
         ax.fill_between(ctgr_extra.x() - 0.5, 0, ctgr_extra.y(), step="post", **kwargs)
         ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
         set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
-
+        ax.autoscale()
     else:
         ax.fill_between(splot.index, 0, splot.values, step="post", **kwargs)
         delta = s.index.right - s.index
@@ -198,7 +199,7 @@ def plot_timeseries_as_step(
         ax.step(ctgr_extra.x() - 0.5, ctgr_extra.y(), where="post", **kwargs)
         ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
         set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
-
+        ax.autoscale()
     else:
         ax.step(splot.index, splot.values, where="post", **kwargs)
         delta = s.index.right - s.index
@@ -221,6 +222,7 @@ def plot_timeseries_as_hline(
         ax.hlines(categories.y(), categories.x() - 0.5, categories.x() + 0.5, **kwargs)
         ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
         set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
+        ax.autoscale()
 
     else:
         delta = s.index.right - s.index

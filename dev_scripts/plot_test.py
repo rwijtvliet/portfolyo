@@ -1,23 +1,20 @@
 """Create several plots to see if plotting still works."""
 
-import pandas as pd
 import matplotlib.pyplot as plt
 import portfolyo as pf
 
 
-def plots(children: int = 1):
-    """Create 16 plots: (w, q, p, r) x (hourly, monthly) x (children, no children)."""
-    index = pd.date_range("2024", freq="AS", periods=3)
-    pfl1 = pf.PfLine(pd.Series([0.2, 0.22, 0.3], index, dtype="pint[GW]"))
-    dict_of_children = {}
-    for i in range(children):
-        key = str(i)
-        dict_of_children[key] = pfl1
-
-    pfl = pf.PfLine(dict_of_children)
-
-    pfl.print()
-    pfl.plot(children=True)
+def plot_bars(children: int = 1):
+    """Create bar chart with 4 subplots: (q) x (daily, monthly) x (children, no children)."""
+    index = pf.dev.get_index(freq="D")
+    pfl1 = pf.dev.get_pfline(index, nlevels=2, childcount=children)
+    pfl2 = pfl1.asfreq("MS")
+    pfl1.print()
+    pfl2.print()
+    # nd = pfl1.index[5]
+    # pfl1 = pfl1.loc[:end]
+    pfl2.plot("q", children=True)
+    # pfl2.plot("p", children=False)
     plt.show()
 
     # pf_nested_pr.print()
@@ -26,4 +23,4 @@ def plots(children: int = 1):
     print("The number of children is:", children)
 
 
-plots(int(input()))
+plot_bars(4)

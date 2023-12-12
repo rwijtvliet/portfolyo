@@ -198,7 +198,7 @@ def get_pfline(
     childcount : int, optional (default: 2)
         Number of children on each level. (Ignored if `nlevels` == 1)
     positive : bool, optional (default: False)
-        If True, return only positive values. If False, make 1/3 of pflines negative.
+        If True, return only positive values. If False, make 1/2 of pflines negative.
     _ancestornames : Tuple[str], optional (default: ())
         Text to start the childrens' names with (concatenated with '-')
     _seed : int, optional (default: no seed value)
@@ -222,7 +222,7 @@ def get_pfline(
             Kind.COMPLETE: "qr",
         }[kind]
         df = get_dataframe(i, columns, _seed=_seed)
-        if not positive and np.random.rand() < 0.33:
+        if not positive and np.random.randint(1, 3) == 1:
             df = -1 * df  # HACK: `-df` leads to error in pint. Maybe fixed in future
         return create.flatpfline(df)
     # Create nested PfLine.

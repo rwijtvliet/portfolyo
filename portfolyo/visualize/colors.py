@@ -18,7 +18,7 @@ class Color(namedtuple("RGB", ["r", "g", "b"])):
 
     def darken(self, value):
         """Darken the color by fraction ``value`` (between 0 and 1)."""
-        return self.lighten(self, -value)
+        return self.lighten(-value)
 
     light = property(lambda self: self.lighten(0.3))
     xlight = property(lambda self: self.lighten(0.6))
