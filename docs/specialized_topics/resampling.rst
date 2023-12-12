@@ -55,7 +55,7 @@ Yearly resolution                 w       q        p        r     t
 2024-01-01 00:00:00+01:00  0.113843  1000.0     30.0  30000.0  7.98
 =========================  ========  ======  =======  =======  ====
 
-If we resample these values to a higher-frequency timeseries (e.g. quarteryearly), then the values of the summable dimensions (``q`` and ``r``) become smaller, as their values need to be "spread" over the resulting rows. If nothing more is known about how the energy is consumed, we assume that the consumption rate is constant throughout the period. This means we have to distribute the values over the new rows, **in proportion to their duration**. (Because the 3rd and 4th quarter have more days than the 1st and 2nd quarter, they get a larger fraction of the original value.)
+If we resample these values to a shorter-frequency timeseries (e.g. quarteryearly), then the values of the summable dimensions (``q`` and ``r``) become smaller, as their values need to be "spread" over the resulting rows. If nothing more is known about how the energy is consumed, we assume that the consumption rate is constant throughout the period. This means we have to distribute the values over the new rows, **in proportion to their duration**. (Because the 3rd and 4th quarter have more days than the 1st and 2nd quarter, they get a larger fraction of the original value.)
 
 The values of the averagable dimensions (``w`` and ``t``) are **unchanged**, i.e., they are simply copies of the original value. Also the value of the derived quantity ``p`` turns out to be unchanged. The resulting values are therefore:
 
@@ -87,7 +87,7 @@ Quarterly resolution              w       q        p        r     t
 2024-10-01 00:00:00+02:00  0.144862   320.0    30.80   9856.0   3.2
 =========================  ========  ======  =======  =======  ====
 
-If we resample to a lower-frequency timeseries (e.g. yearly), we need to **sum** the values of the summable dimensions ``q`` and ``r`` (the duration does not need to be considered). 
+If we resample to a longer-frequency timeseries (e.g. yearly), we need to **sum** the values of the summable dimensions ``q`` and ``r`` (the duration does not need to be considered). 
 
 For the time-averagable dimensions (``w`` and ``t``), the **average** of the individual values must be calculated, **weighted with the duration** of each row. (Alternatively, for the power ``w``: this is always ``q/duration`` and can always be calculated from these values after *they* are downsampled.)
 
@@ -102,7 +102,7 @@ Downsampled to yearly resolution         w       q        p        r     t
 2024-01-01 00:00:00+01:00         0.113843  1000.0     30.0  30000.0  7.98
 ================================  ========  ======  =======  =======  ====
 
-(Note that the 'simple row-average' of the power, temperature, and price give us incorrect values.)
+Note that the 'simple row-average' of the power, temperature, and price would give us incorrect values.
 
 --------------------------------
 Downsampling example, price-only
@@ -131,7 +131,7 @@ Downsampled to yearly resolution            p
 2024-01-01 00:00:00+01:00               28.78
 ====================================  =======
 
-The reason for the higher price in the previous example, is that, there, it is weighted with the *energy* in each period. We had more energy in the expensive quarters, and less in the cheaper ones, which results in a higher price for the entire year.
+The reason for the higher price in the previous example, is that, there, the price is weighted with the *energy* in each period. We had more energy in the expensive quarters, and less in the cheaper ones, which results in a higher price for the entire year.
 
 -----------------------------
 Resampling with ``portfolyo``
