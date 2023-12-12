@@ -6,7 +6,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import pint
-
 from .. import tools
 from ..tools.unit import Q_
 
@@ -25,8 +24,9 @@ def assert_frame_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwargs)
     # Dataframes equal even if *order* of columns is not the same.
     left = left.sort_index(axis=1)
     right = right.sort_index(axis=1)
+    assert set(left.columns) == set(right.columns)
 
-    for (coll, sl), (colr, sr) in zip(left.items(), right.items(), strict=True):
+    for (coll, sl), (colr, sr) in zip(left.items(), right.items()):
         # Names must match.
         assert coll == colr
         # Series must match.
