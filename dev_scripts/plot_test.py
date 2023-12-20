@@ -8,13 +8,16 @@ def plot_bars(children: int = 1):
     """Create bar chart with 4 subplots: (q) x (daily, monthly) x (children, no children)."""
     index = pf.dev.get_index(freq="D")
     pfl1 = pf.dev.get_pfline(index, nlevels=2, childcount=children)
-    pfl2 = pfl1.asfreq("MS")
-    pfl1.print()
-    pfl2.print()
-    # nd = pfl1.index[5]
-    # pfl1 = pfl1.loc[:end]
-    pfl2.plot("q", children=True)
-    # pfl2.plot("p", children=False)
+    # pfl2 = pfl1.asfreq("MS")
+    pfl3 = pf.dev.get_nestedpfline(index, nlevels=2, childcount=children)
+    pfl4 = pfl3.asfreq("MS")
+    # pfl1.print()
+    pfl4.print()
+    end = pfl1.index[5]
+    pfl1 = pfl1.loc[:end]
+
+    pfl1.plot("r", children=True)
+    # pfl2.plot("r", children=False)
     plt.show()
 
     # pf_nested_pr.print()

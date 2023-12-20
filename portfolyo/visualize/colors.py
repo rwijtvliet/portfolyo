@@ -1,6 +1,7 @@
 """Creating colors for use in plotting."""
 
 import colorsys
+from enum import Enum
 from collections import namedtuple
 
 import matplotlib as mpl
@@ -27,7 +28,7 @@ class Color(namedtuple("RGB", ["r", "g", "b"])):
 
 
 class Colors:
-    class General:
+    class General(Enum):
         PURPLE = Color(0.549, 0.110, 0.706)
         GREEN = Color(0.188, 0.463, 0.165)
         BLUE = Color(0.125, 0.247, 0.600)

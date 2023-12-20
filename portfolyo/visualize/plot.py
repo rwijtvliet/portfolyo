@@ -116,7 +116,6 @@ def plot_timeseries_as_bar(
     labelfmt: str = "",
     cat: bool = None,
     width: float = 0.8,
-    offset: float = 0,
     **kwargs,
 ) -> None:
     """Plot timeseries ``s`` to axis ``ax``, as bars. Ideally, only used for plots with
@@ -125,12 +124,7 @@ def plot_timeseries_as_bar(
 
     if use_categories(ax, s, cat):
         categories = Categories(s)
-        ax.bar(
-            [x + offset for x in categories.x()], categories.y(), width=width, **kwargs
-        )
-        ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-        set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
-
+        ax.bar(categories.x(), categories.y(), width=width, **kwargs)
         ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
         set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
         ax.autoscale()
@@ -154,7 +148,11 @@ def plot_timeseries_as_bar(
 
 @append_to_doc(docstringliteral_plotparameters)
 def plot_timeseries_as_area(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
+    ax: plt.Axes,
+    s: pd.Series,
+    labelfmt: str = "",
+    cat: bool = None,
+    **kwargs,
 ) -> None:
     """Plot timeseries ``s`` to axis ``ax``, as stepped area between 0 and value. Ideally,
     only used for plots with time (i.e., non-categorical) axis."""
@@ -168,8 +166,24 @@ def plot_timeseries_as_area(
 
         categories = Categories(s)
         ctgr_extra = Categories(splot)
+        y_value = ctgr_extra.y()
+        height = ctgr_extra.y().quantity.magnitude
+        if "bottom" in kwargs:
+            bottom = kwargs["bottom"]
+            bottom.append(bottom[-1])
+            del kwargs["bottom"]
+        else:
+            bottom = [0.0 for i in range(0, height.size)]
+        # make bottom into pintarray
+        bottom = bottom * y_value.dtype.units
         # Center around x-tick:
-        ax.fill_between(ctgr_extra.x() - 0.5, 0, ctgr_extra.y(), step="post", **kwargs)
+        ax.fill_between(
+            ctgr_extra.x() - 0.5,
+            bottom,
+            [sum(x) for x in zip(bottom, ctgr_extra.y())],
+            step="post",
+            **kwargs,
+        )
         ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
         set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
         ax.autoscale()
