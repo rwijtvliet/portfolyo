@@ -39,7 +39,10 @@ NB: this package is under active development and the API will change without pri
 
 .. code-block:: bash
 
-   pip install portfolyo==x.x.x
+   pip install portfolyo==x.y.z
+
+   # or, in pyproject.toml
+   portfolyo = "x.y.z"
 
 
 Documentation
@@ -66,7 +69,20 @@ the commit hooks.
 
 .. code-block:: bash
 
-   $ pip install -r requirements-dev.txt
-   $ pre-commit install
+   poetry install --with dev,test
+   pre-commit install
 
-Feature branches are merged into the `develop` branch. This branch is merged into the `main` branch whenever a new stable release is published.
+Feature branches are merged into the ``develop`` branch via pull request.
+
+Publishing
+----------
+
+To publish a new release from ``develop``, create a new branch, increment the version number and push to github. For convenience, there is a ``create_release_branch.sh`` script that accomplishes the same, which takes one argument:
+
+.. code-block:: bash
+
+   create_release_branch.sh major # or minor, or patch, or specific version number
+
+Then, from the github website, the release can be published by clicking the "tags" button. Be sure to select the correct branch.
+
+When done, merge the release branch into ``develop`` and ``main``, also via pull request, and delete it.

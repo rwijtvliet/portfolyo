@@ -15,6 +15,8 @@ from . import mockup
 
 OK_COL_COMBOS = ["w", "q", "p", "pr", "qr", "qp", "wp", "wr"]
 
+INDEX_LEN = {"AS": 4, "QS": 5, "MS": 14, "D": 400, "H": 10_000, "15T": 50_000}
+
 
 def get_index(
     freq: str = "D",
@@ -23,16 +25,14 @@ def get_index(
     periods: int = None,
     start_of_day: dt.time = None,
     *,
-    _seed: bool = True,
+    _seed: int = None,
 ) -> pd.DatetimeIndex:
     """Get index."""
     if _seed:
         np.random.seed(_seed)
     if not periods:
-        standard = {"AS": 4, "QS": 5, "MS": 14, "D": 400, "H": 10_000, "15T": 50_000}
-        periods = standard.get(freq, 10)
-        if _seed:
-            periods = np.random.randint(periods // 2, periods * 2)
+        standard_len = INDEX_LEN.get(freq, 10)
+        periods = np.random.randint(standard_len // 2, standard_len * 2)
         if tools.freq.up_or_down(freq, "H") <= 0 and tz is None:
             # Shorten index to not include timestamp that do not exist in Europe/Berlin.
             periods = min(periods, 4000)
