@@ -8,22 +8,25 @@ def plot_bars(children: int = 1):
     """Create bar chart with 4 subplots: (q) x (daily, monthly) x (children, no children)."""
     index = pf.dev.get_index(freq="D")
     pfl1 = pf.dev.get_pfline(index, nlevels=2, childcount=children)
-    # pfl2 = pfl1.asfreq("MS")
-    pfl3 = pf.dev.get_nestedpfline(index, nlevels=2, childcount=children)
-    pfl4 = pfl3.asfreq("MS")
-    # pfl1.print()
-    pfl4.print()
-    end = pfl1.index[5]
-    pfl1 = pfl1.loc[:end]
-
-    pfl1.plot("r", children=True)
-    # pfl2.plot("r", children=False)
+    pfl2 = pfl1.asfreq("MS")
+    pfl2.print()
+    pfl2.plot("p", children=True)
+    # pfl1.plot("p", children=False)
     plt.show()
-
-    # pf_nested_pr.print()
-    # pf_nested_pr.plot(children=True)
-    # plt.show()
     print("The number of children is:", children)
 
 
-plot_bars(4)
+def plot_bars_to_ax():
+    # Create a figure and an array of subplots (2 rows, 2 columns)
+    index = pf.dev.get_index(freq="D")
+    pfl1 = pf.dev.get_flatpfline(index)
+    pfl2 = pfl1.asfreq("MS")
+
+    fig, axs = plt.subplots(1, 2)
+    pfl2.plot_to_ax(axs[0], "q", "bar", "")
+    pfl2.plot_to_ax(axs[1], "p", "hline", "")
+    plt.show()
+
+
+# plot_bars(4)
+plot_bars_to_ax()

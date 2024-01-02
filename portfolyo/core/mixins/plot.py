@@ -4,7 +4,7 @@ Module with mixins, to add 'plot-functionality' to PfLine and PfState classes.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, List, Tuple
 
 import matplotlib
 import numpy as np
@@ -115,56 +115,84 @@ class PfLinePlot:
 
         for col, ax in zip(cols, axes.flatten()):
             kwargs = defaultkwargs(col, is_category)
-            if is_category:
-                if children and kwargs["how"] == "bar":
-                    # kwargs["how"] = "hline"
+
+            if children:
+                # adjust kwargs for parent if plotting children
+                if kwargs["how"] == "bar":
                     kwargs["color"] = "none"
                     kwargs["edgecolor"] = "seagreen"
                     kwargs["linewidth"] = 2
-                if children and kwargs["how"] == "area":
-                    #    continue
+                if kwargs["how"] == "area":
                     kwargs["how"] = "step"
-                if children:
-                    kwargs_children = defaultkwargs(col, is_category)
-                    self.plot_children(col, ax, **kwargs_children)
-                    ax.legend(loc="upper right")
+
+                self.plot_children(col, ax, is_category)
+                ax.legend(loc="upper right")
             kwargs["alpha"] = 0.5
             s = getattr(self, col)
             vis.plot_timeseries(ax, s, **kwargs)
 
         return fig
 
-    def plot_children(self: PfLine, col: str, ax: plt.Axes, **kwargs):
-        if kwargs["how"] == "bar" or kwargs["how"] == "area":
-            bottom_offset = [[0.0, 0.0] for i in range(0, self.index.size)]
-            for (name, child), color_enum in zip(
-                self.items(), itertools.cycle(vis.Colors.General)
-            ):
-                bar_heights = getattr(child, col)
-                offsets = [0.0 for i in range(0, self.index.size)]
-                for i in range(0, len(bar_heights)):
-                    obj = bar_heights[i]
-                    if obj.magnitude > 0:
-                        offsets[i] = bottom_offset[i][0]
-                        bottom_offset[i][0] += obj.magnitude
-                    else:
-                        offsets[i] = bottom_offset[i][1]
-                        bottom_offset[i][1] += obj.magnitude
+    def get_stacked_offsets(self: PfLine, col: str) -> Dict[str, List[List[float]]]:
+        # Calculates offset for each child based on the height of the previous child
+        # It disdinguishes between postive and negative offsets
+        # Saves values of offsets in 2 dimmensional array: for positive and negative offsets
+        return_val = {}
 
-                kwargs["labelfmt"] = ""
-                kwargs["bottom"] = offsets
-                kwargs["color"] = color_enum.value.lighten(0.5)
-                kwargs["label"] = name
-                # Calculate width and offset dynamically based on the number of children
-                vis.plot_timeseries(ax, bar_heights, **kwargs)
-        else:
+        bottom_offset = [[0.0, 0.0] for i in range(0, self.index.size)]
+        for name, child in self.items():
+            bar_heights = getattr(child, col)
+            offsets = [0.0 for i in range(0, self.index.size)]
+            for i in range(0, len(bar_heights)):
+                obj = bar_heights[i]
+                if obj.magnitude > 0:
+                    offsets[i] = bottom_offset[i][0]
+                    bottom_offset[i][0] += obj.magnitude
+                else:
+                    offsets[i] = bottom_offset[i][1]
+                    bottom_offset[i][1] += obj.magnitude
+
+            return_val[name] = offsets
+
+        return return_val
+
+    def get_children_with_colors(self: PfLine) -> List[Tuple(str, PfLine, vis.Color)]:
+        # return a list of child columns with a color for each
+        return [
+            (name, child, color_enum.value.lighten(0.5))
             for (name, child), color_enum in zip(
                 self.items(), itertools.cycle(vis.Colors.General)
-            ):
-                kwargs["labelfmt"] = ""
-                kwargs["color"] = color_enum.value.lighten(0.5)
-                kwargs["label"] = name
-                vis.plot_timeseries(ax, getattr(child, col), **kwargs)
+            )
+        ]
+
+    def plot_children(self: PfLine, col: str, ax: plt.Axes, is_category: bool) -> None:
+        """Plot children of the PfLine to the same ax as parent.
+
+        Parameters
+        ----------
+        cols : str, optional
+            The columns to plot. Default: plot volume (in [MW] for daily values and
+            shorter, [MWh] for monthly values and longer) and price `p` [Eur/MWh]
+            (if available).
+        ax : plt.Axes
+            The axes object to which to plot the timeseries.
+
+        """
+        kwargs = defaultkwargs(col, is_category)
+        kwargs["labelfmt"] = ""
+        is_stacked_type = kwargs["how"] == "bar" or kwargs["how"] == "area"
+
+        if is_stacked_type:
+            offsets = self.get_stacked_offsets(col)
+        colors = []
+        for name, child, color in self.get_children_with_colors():
+            kwargs["color"] = color
+            kwargs["label"] = name
+            colors.append(color)
+            if is_stacked_type:
+                kwargs["bottom"] = offsets[name]
+
+            vis.plot_timeseries(ax, getattr(child, col), **kwargs)
 
 
 class PfStatePlot:
@@ -225,12 +253,15 @@ class PfStatePlot:
         plt.Figure
             The figure object to which the series was plotted.
         """
-        gridspec = {"width_ratios": [1, 1], "height_ratios": [4, 1]}
+        gridspec = {"width_ratios": [1, 1, 1], "height_ratios": [4, 1]}
         fig, axes = plt.subplots(
-            2, 2, sharex=True, gridspec_kw=gridspec, figsize=(10, 6)
+            2, 3, sharex=True, gridspec_kw=gridspec, figsize=(10, 6)
         )
         axes = axes.flatten()
-        axes[0].sharey(axes[1])
+        axes[1].sharey(axes[0])
+        axes[2].sharey(axes[0])
+        axes[4].sharey(axes[3])
+        axes[5].sharey(axes[3])
 
         # If freq is MS or longer: use categorical axes. Plot volumes in MWh.
         # If freq is D or shorter: use time axes. Plot volumes in MW.
@@ -238,20 +269,24 @@ class PfStatePlot:
 
         # Volumes.
         if is_category:
-            so, ss = -1 * self.offtakevolume.q, self.sourced.q
+            so, ss, usv = -1 * self.offtakevolume.q, self.sourced.q, self.unsourced.q
             kwargs = defaultkwargs("q", is_category)
         else:
-            so, ss = -1 * self.offtakevolume.w, self.sourced.w
+            so, ss, usv = -1 * self.offtakevolume.w, self.sourced.w, self.unsourced.w
             kwargs = defaultkwargs("w", is_category)
         vis.plot_timeseries(axes[0], so, **kwargs)
         vis.plot_timeseries(axes[1], ss, **kwargs)
+        # Unsourced volume.
+        vis.plot_timeseries(axes[2], usv, **kwargs)
 
         # Procurement Price.
-        vis.plot_timeseries(axes[2], self.pnl_cost.p, **defaultkwargs("p", is_category))
+        vis.plot_timeseries(axes[3], self.pnl_cost.p, **defaultkwargs("p", is_category))
+        # sourced price
+        vis.plot_timeseries(axes[4], self.sourced.p, **defaultkwargs("p", is_category))
 
-        # Sourced fraction.
+        # unsourced price
         vis.plot_timeseries(
-            axes[3], self.sourcedfraction, **defaultkwargs("f", is_category)
+            axes[5], self.unsourced.p, **defaultkwargs("p", is_category)
         )
 
         # Empty.
@@ -259,8 +294,10 @@ class PfStatePlot:
         # Set titles.
         axes[0].set_title("Offtake volume")
         axes[1].set_title("Sourced volume")
-        axes[2].set_title("Procurement price")
-        axes[3].set_title("Sourced fraction")
+        axes[2].set_title("Unsourced volume")
+        axes[3].set_title("Procurement price")
+        axes[4].set_title("Sourced price")
+        axes[5].set_title("Unsourced price")
 
         # Format tick labels.
         formatter = matplotlib.ticker.FuncFormatter(
@@ -268,7 +305,7 @@ class PfStatePlot:
         )
         axes[0].yaxis.set_major_formatter(formatter)
         axes[1].yaxis.set_major_formatter(formatter)
-        axes[3].yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
+        # axes[3].yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
 
         # Set ticks.
         axes[0].xaxis.set_tick_params(labeltop=False, labelbottom=True)
