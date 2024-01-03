@@ -49,7 +49,13 @@ def defaultkwargs(col: str, is_cat: bool):
 
 class PfLinePlot:
     def plot_to_ax(
-        self: PfLine, ax: plt.Axes, col: str, how: str, labelfmt: str, **kwargs
+        self: PfLine,
+        ax: plt.Axes,
+        col: str,
+        how: str,
+        labelfmt: str = "",
+        children: bool = False,
+        **kwargs,
     ) -> None:
         """Plot a timeseries of the PfLine to a specific axes.
 
@@ -60,19 +66,29 @@ class PfLinePlot:
         col : str
             The column to plot. One of {'w', 'q', 'p', 'r'}.
         how : str
-            How to plot the data. One of {'jagged', 'bar', 'area', 'step', 'hline'}.
+            How to plot the data. One of {'bar', 'area', 'step', 'hline'}.
         labelfmt : str
             Labels are added to each datapoint in the specified format. ('' to add no labels)
         Any additional kwargs are passed to the pd.Series.plot function.
         """
+
         if col not in self.kind.available:
             raise ValueError(
                 f"For this PfLine, parameter ``col`` must be one of {', '.join(self.kind.available)}; got {col}."
             )
-        # if len(self.items()) == 0:
-        #     print("This PFline doesn't have any children")
-        # for (name, child) in self.items():
-        #     vis.plot_timeseries(ax, getattr(self, name), how, labelfmt, **kwargs)
+        if children:
+            # Plot on category axis if freq monthly or longer, else on time axis.
+            is_category = tools.freq.shortest(self.index.freq, "MS") == "MS"
+            # adjust kwargs for parent if plotting children
+            if how == "bar":
+                kwargs["color"] = "none"
+                kwargs["edgecolor"] = "seagreen"
+                kwargs["linewidth"] = 2
+            if how == "area":
+                how = "step"
+
+            self.plot_children(col, ax, is_category)
+            ax.legend()
         vis.plot_timeseries(ax, getattr(self, col), how, labelfmt, **kwargs)
 
     def plot(self: PfLine, cols: str = None, children: bool = False) -> plt.Figure:
@@ -126,7 +142,7 @@ class PfLinePlot:
                     kwargs["how"] = "step"
 
                 self.plot_children(col, ax, is_category)
-                ax.legend(loc="upper right")
+                ax.legend()
             kwargs["alpha"] = 0.5
             s = getattr(self, col)
             vis.plot_timeseries(ax, s, **kwargs)

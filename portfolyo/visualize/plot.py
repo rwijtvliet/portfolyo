@@ -6,8 +6,6 @@ import matplotlib as mpl
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
-
-from .. import tools
 from .categories import Categories, Category  # noqa
 
 mpl.style.use("seaborn-v0_8")
@@ -55,16 +53,12 @@ mpl.style.use("seaborn-v0_8")
 MAX_XLABELS = 20
 
 
-def use_categories(ax: plt.Axes, s: pd.Series, cat: bool = None) -> bool:
-    """Determine if plot should be made with category axis (True) or datetime axis (False)."""
-    # We use categorical data if...
-    if (ax.lines or ax.collections or ax.containers) and ax.xaxis.have_units():
-        return cat  # ...ax already has category axis; or
-    elif cat is None and tools.freq.shortest(s.index.freq, "MS") == "MS":
-        return True  # ...it's the default for the given frequency; or
-    elif cat is True:
-        return True  # ...user wants it.
-    return False
+class ContinuousValuesNotSupported(Exception):
+    pass
+
+
+class CategoricalValuesNotSupported(Exception):
+    pass
 
 
 docstringliteral_plotparameters = """
@@ -90,26 +84,6 @@ def append_to_doc(text):
 
 
 @append_to_doc(docstringliteral_plotparameters)
-def plot_timeseries_as_jagged(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
-) -> None:
-    """Plot timeseries ``s`` to axis ``ax``, as jagged line and/or as markers. Use kwargs
-    ``linestyle`` and ``marker`` to specify line style and/or marker style. (Default: line only).
-    """
-    s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
-
-    if use_categories(ax, s, cat):
-        categories = Categories(s)
-        ax.plot(categories.x(), categories.y(), **kwargs)
-        ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-        set_data_labels(ax, categories.x(), categories.y(), labelfmt, False)
-        ax.autoscale()
-    else:
-        ax.plot(s.index, s.values, **kwargs)
-        set_data_labels(ax, s.index, s.values, labelfmt, False)
-
-
-@append_to_doc(docstringliteral_plotparameters)
 def plot_timeseries_as_bar(
     ax: plt.Axes,
     s: pd.Series,
@@ -121,7 +95,9 @@ def plot_timeseries_as_bar(
     """Plot timeseries ``s`` to axis ``ax``, as bars. Ideally, only used for plots with
     categorical (i.e, non-time) x-axis."""
     if not is_categorical(s):
-        raise Exception("This plot is not compatible with continous values")
+        raise ContinuousValuesNotSupported(
+            "This plot is not compatible with continous values"
+        )
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
@@ -143,7 +119,9 @@ def plot_timeseries_as_area(
     """Plot timeseries ``s`` to axis ``ax``, as stepped area between 0 and value. Ideally,
     only used for plots with time (i.e., non-categorical) axis."""
     if is_categorical(s):
-        raise Exception("This plot is not compatible with continous values")
+        raise CategoricalValuesNotSupported(
+            "This plot is not compatible with categorical values"
+        )
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
@@ -179,7 +157,9 @@ def plot_timeseries_as_step(
     """Plot timeseries ``s`` to axis ``ax``, as stepped line (horizontal and vertical lines).
     Ideally, only used for plots with time (i.e., non-categorical) axis."""
     if is_categorical(s):
-        raise Exception("This plot is not compatible with continous values")
+        raise CategoricalValuesNotSupported(
+            "This plot is not compatible with categorical values"
+        )
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
@@ -199,7 +179,9 @@ def plot_timeseries_as_hline(
     """Plot timeseries ``s`` to axis ``ax``, as horizontal lines. Ideally, only used for
     plots with time (i.e., non-categorical) axis."""
     if not is_categorical(s):
-        raise Exception("This plot is not compatible with continous values")
+        raise ContinuousValuesNotSupported(
+            "This plot is not compatible with continous values"
+        )
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
     categories = Categories(s)
@@ -215,7 +197,7 @@ def plot_timeseries_as_hline(
 def plot_timeseries(
     ax: plt.Axes,
     s: pd.Series,
-    how: str = "jagged",
+    how: str = "bar",
     labelfmt: str = None,
     cat: bool = None,
     **kwargs,
@@ -228,16 +210,15 @@ def plot_timeseries(
         Axes to plot to.
     s : pd.Series
         Timeseries to plot
-    how : str, optional (default: 'jagged')
-        How to plot the data; one of {'jagged', 'bar', 'area', 'step', 'hline'}.
+    how : str, optional (default: 'bar')
+        How to plot the data; one of {'bar', 'area', 'step', 'hline'}.
     labelfmt : str, optional (default: '')
         Labels are added to each datapoint in the specified format. ('' to add no labels)
     cat : bool, optional (default: True if frequency is monthly or larger)
         Plot as categorical x-axis.
     """
-    if how == "jagged":
-        plot_timeseries_as_jagged(ax, s, labelfmt, cat, **kwargs)
-    elif how == "bar":
+
+    if how == "bar":
         plot_timeseries_as_bar(ax, s, labelfmt, cat, **kwargs)
     elif how == "area":
         plot_timeseries_as_area(ax, s, labelfmt, cat, **kwargs)
@@ -247,7 +228,7 @@ def plot_timeseries(
         plot_timeseries_as_hline(ax, s, labelfmt, cat, **kwargs)
     else:
         raise ValueError(
-            f"Parameter ``how`` must be one of 'jagged', 'bar', 'area', 'step', 'hline'; got {how}."
+            f"Parameter ``how`` must be one of 'bar', 'area', 'step', 'hline'; got {how}."
         )
 
 
