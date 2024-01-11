@@ -320,6 +320,22 @@ def get_pfstate(i: pd.DatetimeIndex = None, avg=None, *, _seed: int = None) -> P
     return PfState.from_series(wo=wo, pu=pu, ws=ws, ps=ps)
 
 
+def get_nested_pfstate(
+    i: pd.DatetimeIndex = None, avg=None, *, _seed: int = None
+) -> PfState:
+    """Get portfolio state."""
+    if i is None:
+        i = get_index(_seed=_seed)
+    if _seed:
+        np.random.seed(_seed)
+    if avg is None:
+        avg = 200 ** np.random.rand()  # between 1 and 200
+    wo = -1 * mockup.w_offtake(i, avg)
+    pu = mockup.p_marketprices(i)
+    ws, ps = mockup.wp_sourced(wo)
+    return PfState.from_pfline(wo=wo, pu=pu, ws=ws, ps=ps)
+
+
 def get_pfstates(
     i: pd.DatetimeIndex = None, num=3, *, _seed: int = None
 ) -> Dict[str, PfState]:

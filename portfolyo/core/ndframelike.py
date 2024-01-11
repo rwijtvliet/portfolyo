@@ -42,6 +42,10 @@ class NDFrameLike(abc.ABC):
         a boolean array.)"""
         ...
 
+    @abc.abstractproperty
+    def slice(self):
+        ...
+
     @abc.abstractmethod
     def dataframe(
         self, cols: Iterable[str] = None, has_units: bool = True, *args, **kwargs

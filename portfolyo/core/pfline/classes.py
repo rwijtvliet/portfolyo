@@ -286,6 +286,7 @@ class FlatPfLine(PfLine):
     hedge_with = prices.Flat.hedge_with
     # map_to_year => on child classes
     loc = flat_methods.loc
+    slice = flat_methods.slice  # meh
     __getitem__ = flat_methods.__getitem__
     # __bool__ => on child classes
     __eq__ = flat_methods.__eq__
@@ -300,6 +301,7 @@ class NestedPfLine(PfLine, children.ChildFunctionality):
     hedge_with = prices.Nested.hedge_with
     map_to_year = nested_methods.map_to_year
     loc = nested_methods.loc
+    slice = nested_methods.slice
     __bool__ = nested_methods.__bool__
     __eq__ = nested_methods.__eq__
 

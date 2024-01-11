@@ -300,7 +300,7 @@ def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
         s = s.pint.to_base_units()
         set_portfolyo_attr(ax, "unit", s.pint.units)
 
-    ax.set_ylabel(f"{get_portfolyo_attr(ax,'unit'):~P}")
+    ax.set_ylabel(f"{get_portfolyo_attr(ax, 'unit'):~P}")
     return s
 
 
