@@ -85,6 +85,7 @@ def test_intersect(
 @pytest.mark.parametrize("indexorframe", ["idx", "fr"])
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize(("startdates", "freq", "expected_startdate"), TESTCASES)
+@pytest.mark.parametrize("ignore_freq", [True, False])
 def test_intersect_distinctfreq(
     indexorframe: str,
     startdates: Iterable[str],
@@ -92,6 +93,7 @@ def test_intersect_distinctfreq(
     tz: str,
     freq: str,
     expected_startdate: str,
+    ignore_freq: bool,
 ):
     """Test if intersection of indices with distinct frequencies gives correct result."""
     otherfreq = "H" if freq == "D" else "D"
@@ -99,13 +101,25 @@ def test_intersect_distinctfreq(
         get_idx(startdates[0], starttime, tz, freq),
         get_idx(startdates[1], starttime, tz, otherfreq),
     ]
-    do_test_intersect(indexorframe, idxs, ValueError)
+    if ignore_freq and indexorframe == "idx":
+        do_test_intersect(
+            indexorframe,
+            idxs,
+            expected_startdate,
+            expected_tz=tz,
+            expected_freq=freq,
+            expected_starttime=starttime,
+            ignore_freq=ignore_freq,
+        )
+    else:
+        do_test_intersect(indexorframe, idxs, ValueError)
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("indexorframe", ["idx", "fr"])
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize(("startdates", "freq", "expected_startdate"), TESTCASES)
+@pytest.mark.parametrize("ignore_tz", [True, False])
 def test_intersect_distincttz(
     indexorframe: str,
     startdates: Iterable[str],
@@ -113,6 +127,7 @@ def test_intersect_distincttz(
     tz: str,
     freq: str,
     expected_startdate: str,
+    ignore_tz: bool,
 ):
     """Test if intersection of indices with distinct timezones gives correct result."""
     othertz = None if tz == "Europe/Berlin" else "Europe/Berlin"
@@ -120,13 +135,25 @@ def test_intersect_distincttz(
         get_idx(startdates[0], starttime, tz, freq),
         get_idx(startdates[1], starttime, othertz, freq),
     ]
-    do_test_intersect(indexorframe, idxs, ValueError)
+    if ignore_tz and indexorframe == "idx":
+        do_test_intersect(
+            indexorframe,
+            idxs,
+            expected_startdate,
+            expected_tz=tz,
+            expected_freq=freq,
+            expected_starttime=starttime,
+            ignore_tz=ignore_tz,
+        )
+    else:
+        do_test_intersect(indexorframe, idxs, ValueError)
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("indexorframe", ["idx", "fr"])
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize(("startdates", "freq", "expected_startdate"), TESTCASES)
+@pytest.mark.parametrize("ignore_start_of_day", [True, False])
 def test_intersect_distinctstartofday(
     indexorframe: str,
     startdates: Iterable[str],
@@ -134,6 +161,7 @@ def test_intersect_distinctstartofday(
     tz: str,
     freq: str,
     expected_startdate: str,
+    ignore_start_of_day: bool,
 ):
     """Test if intersection of indices with distinct frequencies gives correct result."""
     otherstarttime = "00:00" if starttime == "06:00" else "06:00"
@@ -141,7 +169,18 @@ def test_intersect_distinctstartofday(
         get_idx(startdates[0], starttime, tz, freq),
         get_idx(startdates[1], otherstarttime, tz, freq),
     ]
-    do_test_intersect(indexorframe, idxs, ValueError)
+    if ignore_start_of_day and indexorframe == "idx":
+        do_test_intersect(
+            indexorframe,
+            idxs,
+            expected_startdate,
+            expected_tz=tz,
+            expected_freq=freq if (freq != "15T" and freq != "H") else "D",
+            expected_starttime=starttime,
+            ignore_start_of_day=ignore_start_of_day,
+        )
+    else:
+        do_test_intersect(indexorframe, idxs, ValueError)
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
@@ -164,12 +203,25 @@ def do_test_intersect(
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,
+    ignore_start_of_day: bool = False,
+    ignore_tz: bool = False,
+    ignore_freq: bool = False,
 ):
     if indexorframe == "idx":
-        do_test_fn = do_test_intersect_index
+        do_test_intersect_index(
+            idxs,
+            expected_startdate,
+            expected_starttime,
+            expected_tz,
+            expected_freq,
+            ignore_start_of_day,
+            ignore_tz,
+            ignore_freq,
+        )
     else:
-        do_test_fn = do_test_intersect_frame
-    do_test_fn(idxs, expected_startdate, expected_starttime, expected_tz, expected_freq)
+        do_test_intersect_frame(
+            idxs, expected_startdate, expected_starttime, expected_tz, expected_freq
+        )
 
 
 def do_test_intersect_index(
@@ -178,16 +230,29 @@ def do_test_intersect_index(
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,
+    ignore_start_of_day: bool = False,
+    ignore_tz: bool = False,
+    ignore_freq: bool = False,
 ):
     # Error case.
     if isinstance(expected_startdate, type) and issubclass(
         expected_startdate, Exception
     ):
         with pytest.raises(expected_startdate):
-            tools.intersect.indices(*idxs)
+            tools.intersect.indices(
+                *idxs,
+                ignore_start_of_day=ignore_start_of_day,
+                ignore_tz=ignore_tz,
+                ignore_freq=ignore_freq,
+            )
         return
     # Normal case.
-    result = tools.intersect.indices(*idxs)
+    result = tools.intersect.indices(
+        *idxs,
+        ignore_start_of_day=ignore_start_of_day,
+        ignore_tz=ignore_tz,
+        ignore_freq=ignore_freq,
+    )
     expected = get_idx(
         expected_startdate, expected_starttime, expected_tz, expected_freq
     )

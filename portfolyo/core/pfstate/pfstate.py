@@ -109,26 +109,6 @@ class PfState(
             sourced = None
         return cls(offtakevolume, unsourcedprice, sourced)
 
-    @classmethod
-    def from_pfline(
-        cls,
-        *,
-        pu: pd.Series,
-        qo: Optional[pd.Series] = None,
-        qs: Optional[pd.Series] = None,
-        rs: Optional[pd.Series] = None,
-        wo: Optional[pd.Series] = None,
-        ws: Optional[pd.Series] = None,
-        ps: Optional[pd.Series] = None,
-    ):
-        offtakevolume = create.nestedpfline({"q": qo, "w": wo})
-        unsourcedprice = create.nestedpfline({"p": pu})
-        if not (ws is qs is rs is ps is None):
-            sourced = create.nestedpfline({"w": ws, "q": qs, "r": rs, "p": ps})
-        else:
-            sourced = None
-        return cls(offtakevolume, unsourcedprice, sourced)
-
     def __post_init__(self):
         offtakevolume, unsourcedprice, sourced = pfstate_helper.make_pflines(
             self.offtakevolume, self.unsourcedprice, self.sourced
