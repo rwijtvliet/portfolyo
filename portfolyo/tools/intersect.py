@@ -2,6 +2,8 @@ from typing import List, Union
 
 import pandas as pd
 
+from portfolyo.tools.freq import longer_or_shorter, shortest
+
 
 def indices(
     *idxs: pd.DatetimeIndex,
@@ -78,7 +80,7 @@ def indices(
         # Save a copy of the original hours and minutes
         start_of_day = idxs[0][0].time()
         for i in range(len(idxs)):
-            if is_less_one_day(idxs[i].freq):
+            if longer_or_shorter(idxs[i].freq, "D") == -1:
                 idxs[i] = pd.date_range(
                     start=idxs[i].min(), end=idxs[i].max(), freq="D"
                 )
@@ -88,12 +90,12 @@ def indices(
 
     if ignore_freq is True:
         # Find the smallest frequency
-        smallest_freq = min(idxs, key=lambda x: freq_to_timestamp(x.freq)).freq
+        smallest_freq = shortest(*[x.freq for x in idxs])
         # change bigger freq into small one
         for i in range(len(idxs)):
             start = idxs[i].min()
             end = idxs[i].max()
-            if is_less_one_day(smallest_freq):
+            if longer_or_shorter(smallest_freq, "D") == -1:
                 end = end + pd.Timedelta(hours=23, minutes=59, seconds=59)
             idxs[i] = pd.date_range(start, end, freq=smallest_freq)
 
@@ -117,20 +119,6 @@ def indices(
         values = pd.date_range(start=min(values), end=max(values), freq=freq, tz=tz)
 
     return pd.DatetimeIndex(sorted(list(values)), freq=freq, name=name, tz=tz)
-
-
-def is_less_one_day(dateoffset):
-    """Returns True if frequency is shorter than daily
-    otherwise, returns False."""
-    ts = pd.Timestamp("1990-01-01")
-    day = pd.tseries.offsets.DateOffset(days=1)
-    return (ts + dateoffset) < (ts + day)
-
-
-def freq_to_timestamp(dateoffset):
-    """Transform frequency (f.e. "15T") into timestamp to enable comparison between frequencies"""
-    ts = pd.Timestamp("1990-01-01")
-    return ts + dateoffset
 
 
 def frames(
