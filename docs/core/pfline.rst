@@ -21,7 +21,7 @@ Kind
 
 An important characteristic of a portfolio line is its "kind". The property ``PfLine.kind`` has a value from the ``portfolyo.Kind`` enumeration and tells us the type of information it contains:
 
-* ``Kind.VOLUME``: "volume-only" portfolio line.
+ * 🟨 ``Kind.VOLUME``: "volume-only" portfolio line.
 
   This is a portfolio line that only contains volume information. 
   
@@ -29,17 +29,17 @@ An important characteristic of a portfolio line is its "kind". The property ``Pf
 
   The volume in each timestamp can be retrieved by the user in units of energy (e.g., MWh) or in units of power (e.g., MW).
 
-* ``Kind.PRICE``: "price-only" portfolio line.
+* 🟩 ``Kind.PRICE``: "price-only" portfolio line.
 
   This is a portfolio line which only contains price information. 
   
   For example, the forward price curve for a certain market area, or the fixed offtake price that a customer is paying for a certain delivery period.
 
-* ``Kind.REVENUE``: "revenue-only" portfolio line.
+* 🟦 ``Kind.REVENUE``: "revenue-only" portfolio line.
 
   For example, the payoff of a financially-settled put option, which has a monetary value (e.g., in Eur) without an associated volume being delivered.
 
-* ``Kind.COMPLETE``
+* 🟫 ``Kind.COMPLETE``
 
   This a portfolio line that contains volume, price and revenue information. 
   
@@ -72,7 +72,7 @@ To initialise a volume-only / price-only / revenue-only portfolio line, we must 
 DataFrame or dictionary of timeseries...
 ========================================
 
-or any other ``Mapping`` from (string) key values to ``pandas.Series``. 
+...or any other ``Mapping`` from (string) key values to ``pandas.Series``. 
 
 The keys (or dataframe column names) must each be one of the following: ``w`` (power), ``q`` (energy), ``p`` (price), ``r`` (revenue). Depending on the keys, the ``.kind`` of the portfolio line is determined.
 
@@ -107,7 +107,7 @@ Under the condition that a valid ``pint`` unit is present, we may also provide a
 Dictionary of portfolio lines...
 ================================
 
-or any other ``Mapping`` from (string) key values to ``PfLine`` objects. 
+...or any other ``Mapping`` from (string) key values to ``PfLine`` objects. 
 
 The keys are used as the children names: 
 
@@ -383,15 +383,14 @@ Addition and subtraction
 * Even if the both operands have the same kind, they must both be nested or both be flat. E.g., a flat price can be added to a flat price-only portfolio line, but not to a nested price-only portfolio line. Two nested price-only portfolio lines can be added.
 
 ================================================= =============== ============== ================ =================
-\                                                 Kind of portfolio line
+\                                                 Kind of portfolio line (`pfl.Kind`)
 ------------------------------------------------- -----------------------------------------------------------------
-\                                                 🟨               🟩              🟦                🟫
-\                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
+\                                                 🟨 ``VOLUME``    🟩 ``PRICE``    🟦 ``REVENUE``    🟫 ``COMPLETE`` 
 ================================================= =============== ============== ================ =================
-``PfLine`` ± volume                               🟨 e_            ❌              ❌                ❌              
-``PfLine`` ± price                                ❌               🟩 e_           ❌                ❌              
-``PfLine`` ± revenue                              ❌               ❌              🟦 e_             ❌           
-``PfLine`` ± complete                             ❌               ❌              ❌                🟫 e_        
+``pfl`` ± volume                                  🟨 e_            ❌              ❌                ❌              
+``pfl`` ± price                                   ❌               🟩 e_           ❌                ❌              
+``pfl`` ± revenue                                 ❌               ❌              🟦 e_             ❌           
+``pfl`` ± complete                                ❌               ❌              ❌                🟫 e_        
 ================================================= =============== ============== ================ =================
 
 Notes:
@@ -495,14 +494,13 @@ We can scale a portfolio line by multiplication with / division by a dimensionle
 Negation is implemented as multiplication with -1.
 
 ================================================= =============== ============== ================ =================
-\                                                 Kind of portfolio line
+\                                                 Kind of portfolio line (`pfl.Kind`)
 ------------------------------------------------- -----------------------------------------------------------------
-\                                                 🟨               🟩              🟦                🟫
-\                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
+\                                                 🟨 ``VOLUME``    🟩 ``PRICE``    🟦 ``REVENUE``    🟫 ``COMPLETE``
 ================================================= =============== ============== ================ =================
-``-PfLine`` (negation)                            🟨               🟩              🟦                🟫              
-``PfLine * dimensionless``                        🟨               🟩              🟦                🟫              
-``PfLine / dimensionless``                        🟨               🟩              🟦                🟫               
+``-pfl`` (negation)                               🟨               🟩              🟦                🟫              
+``pfl * dimensionless``                           🟨               🟩              🟦                🟫              
+``pfl / dimensionless``                           🟨               🟩              🟦                🟫               
 ================================================= =============== ============== ================ =================
 
 For example:
@@ -534,14 +532,13 @@ We can calculate the ratio of two portfolyo lines by dividing them.
 
 
 ================================================= =============== ============== ================ =================
-\                                                 Kind of portfolio line
+\                                                 Kind of portfolio line (`pfl.Kind`)
 ------------------------------------------------- -----------------------------------------------------------------
-\                                                 🟨               🟩              🟦                🟫
-\                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
+\                                                 🟨 ``VOLUME``    🟩 ``PRICE``    🟦 ``REVENUE``    🟫 ``COMPLETE``
 ================================================= =============== ============== ================ =================
-``PfLine / volume``                               ⬜ 2f_           ❌              (❌)              ❌              
-``PfLine / price``                                ❌               ⬜ 2f_          (❌)              ❌              
-``PfLine / revenue``                              ❌               ❌              ⬜ 2f_            ❌              
+``pfl / volume``                                  ⬛️ 2f_           ❌              (❌)              ❌              
+``pfl / price``                                   ❌               ⬛️ 2f_          (❌)              ❌              
+``pfl / revenue``                                 ❌               ❌              ⬛️ 2f_            ❌              
 ================================================= =============== ============== ================ =================
 
 Notes:
@@ -552,7 +549,7 @@ Notes:
   Both operands must be flat.
 
 (❌)
-  This operation is allowed but does not result in ratio. It is described in the section changekind_ below.
+  This operation is allowed but does not result in a ratio. It is described in the section changekind_ below.
 
 For example:
 
@@ -593,15 +590,14 @@ We can turn one kind of portfolio line into another kind, by multiplying with or
 * To combine two portfolio lines into a complete portfolio line, see the section :ref:`union`, below.
 
 ================================================= =============== ============== ================ =================
-\                                                 Kind of portfolio line
+\                                                 Kind of portfolio line (`pfl.Kind`)
 ------------------------------------------------- -----------------------------------------------------------------
-\                                                 🟨               🟩              🟦                🟫
-\                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
+\                                                 🟨 ``VOLUME``    🟩 ``PRICE``    🟦 ``REVENUE``    🟫 ``COMPLETE``  
 ================================================= =============== ============== ================ =================
-``PfLine * volume``                               ❌               🟦 `≥1f`_       ❌                ❌              
-``PfLine * price``                                🟦 `≥1f`_        ❌              ❌                ❌              
-``PfLine / volume``                               (❌)             ❌              🟩 `≥1f`_         ❌              
-``PfLine / price``                                ❌               (❌)            🟨 `≥1f`_         ❌              
+``pfl * volume``                                  ❌               🟦 `≥1f`_       ❌                ❌              
+``pfl * price``                                   🟦 `≥1f`_        ❌              ❌                ❌              
+``pfl / volume``                                  (❌)             ❌              🟩 `≥1f`_         ❌              
+``pfl / price``                                   ❌               (❌)            🟨 `≥1f`_         ❌              
 ================================================= =============== ============== ================ =================
 
 Notes:
@@ -642,14 +638,13 @@ We can combine portfolio lines of distinct kind into a complete portfolio line. 
 * Both operands must be flat. If necessary, first ``.flatten()`` a nested portfolio line.
 
 ================================================= =============== ============== ================ =================
-\                                                 Kind of portfolio line
+\                                                 Kind of portfolio line (`pfl.Kind`)
 ------------------------------------------------- -----------------------------------------------------------------
-\                                                 🟨               🟩              🟦                🟫
-\                                                 ``VOLUME``      ``PRICE``      ``REVENUE``      ``COMPLETE``  
+\                                                 🟨 ``VOLUME``    🟩 ``PRICE``    🟦 ``REVENUE``    🟫 ``COMPLETE``
 ================================================= =============== ============== ================ =================
-``PfLine | volume``                               ❌               🟫 `2f⠀`_       🟫 `2f⠀`_          ❌              
-``PfLine | price``                                🟫 `2f⠀`_        ❌              🟫 `2f⠀`_          ❌              
-``PfLine | revenue``                              🟫 `2f⠀`_        🟫 `2f⠀`_       ❌                ❌              
+``pfl | volume``                                  ❌               🟫 `2f⠀`_       🟫 `2f⠀`_          ❌              
+``pfl | price``                                   🟫 `2f⠀`_        ❌              🟫 `2f⠀`_          ❌              
+``pfl | revenue``                                 🟫 `2f⠀`_        🟫 `2f⠀`_       ❌                ❌              
 ================================================= =============== ============== ================ =================
 
 

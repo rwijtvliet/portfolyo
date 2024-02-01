@@ -9,6 +9,7 @@ import pandas as pd
 
 from . import floor as tools_floor
 from . import isboundary as tools_isboundary
+from . import stamp as tools_stamp
 
 
 def stamps(
@@ -29,11 +30,12 @@ def stamps(
         If a value is given for each, they are swapped if their order is incorrect.
     tz : str, optional (default: None)
         Timezone for the returned timestamps. Only used if both ``left`` and ``right``
-        are missing.
+        are missing, or if they are not pandas timestamps yet.
     start_of_day : dt.time, optional (default: midnight)
         Time of day at which daily-or-longer delivery periods start. E.g. if
         dt.time(hour=6), a delivery day is from 06:00:00 (incl) until 06:00:00 (excl).
-        Only used if both ``left`` and ``right`` are missing.
+        Only used if both ``left`` and ``right`` are missing, or if they are not pandas
+        timestamps yet and missing a time-component.
 
     Returns
     -------
@@ -41,13 +43,13 @@ def stamps(
 
     Notes
     -----
-    - Parameters ``tz`` and ``start_of_day`` are only used if ``left`` and ``right`` are
-      both not specified.
     - If both ``left`` and ``right`` are specified, an error is raised if their timezones
       are not identical or if their times are not identical.
     """
     # Convert both into timestamps, if possible. None is converted into pd.NaT
-    left, right = pd.Timestamp(left), pd.Timestamp(right)
+    # left, right = pd.Timestamp(left), pd.Timestamp(right)
+    left = tools_stamp.create(left, tz, start_of_day)
+    right = tools_stamp.create(right, tz, start_of_day)
 
     if right is pd.NaT:
         if left is pd.NaT:

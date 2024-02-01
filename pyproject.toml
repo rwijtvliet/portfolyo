@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "portfolyo"
-version = "0.5.7"
+version = "0.5.10"
 description = "Analyse and manipulate timeseries related to power and gas offtake portfolios"
 authors = [
     "Ruud Wijtvliet <rwijtvliet@gmail.com>",
@@ -22,8 +22,8 @@ numpy = "^1.26.2"
 
 [tool.poetry.group.test.dependencies]
 codecov = "^2.1.13"
-coverage = "^7.3.0"
 pytest = "^7.4.1"
+coverage = "^7.3.0"
 pytest-cov = "^4.1.0"
 pyyaml = "^6.0.1"
 openpyxl = "^3.1.2"

@@ -63,7 +63,13 @@ def get_testcase_A(
     """Create test case that uses ``columns`` as parameter."""
 
     # Data.
-    df = dev.get_dataframe(i, columns, has_unit)
+    df_out = dev.get_dataframe(i, columns, True)
+    if has_unit:
+        df = df_out
+    else:
+        df = df_out.astype(float)
+
+    # Input data into the initialisation function.
     if inputtype is InputTypeA.FLATDF:
         data_in = df
     elif inputtype is InputTypeA.FLATDICT:
@@ -73,7 +79,7 @@ def get_testcase_A(
         if len(data_in) == 1:
             data_in = data_in[0]  # ... or as single series
         if not has_unit:
-            df = Exception
+            df_out = Exception
     elif inputtype is InputTypeA.FLATPFLINE:
         data_in = create.flatpfline(df)
     elif inputtype is InputTypeA.NESTEDPFLINE:
@@ -90,15 +96,15 @@ def get_testcase_A(
     else:
         raise ValueError("unknown inputtype")
 
-    # Checks.
+    # Kind.
     if columns in ["w", "q"]:
         kind = Kind.VOLUME
-    elif columns in ["p"]:
+    elif columns == "p":
         kind = Kind.PRICE
     else:
         kind = Kind.COMPLETE
 
-    return InitTestcase(data_in, df, kind)
+    return InitTestcase(data_in, df_out, kind)
 
 
 def get_testcase_B(

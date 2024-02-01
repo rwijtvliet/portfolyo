@@ -29,7 +29,7 @@ def test_standardize_DST(
     Using quarterhour and daily timeseries, without gaps."""
 
     if not in_aware and in_tz != "Europe/Berlin":
-        return  # cannot convert tz-naive fr to different timezone
+        pytest.skip("Cannot convert tz-naive fr to different timezone.")
 
     if freq == "D":
         in_vals_num = 200

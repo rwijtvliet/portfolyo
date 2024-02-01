@@ -36,15 +36,52 @@ def test_leftandright_nonespecified(tz_param: str, starttime: str):
         ((None, "2021-10-09 06:00"), ("2021-01-01 06:00", "2021-10-09 06:00")),
     ],
 )
-def test_leftandright_onespecified(
+def test_leftandright_onespecified_astimestamp(
     tss: tuple, expected_tss: tuple, tz_specified: str, tz_param: str, starttime: str
 ):
-    """Test if start and end of interval are correctly calculated, if one is specified."""
+    """Test if start and end of interval are correctly calculated, if one is specified
+    as a timestamp."""
     # One specified, so tz parameter and start_of_day should be ignored.
     # There should be no timezone errors and no swapping is necessary.
     tss = [pd.Timestamp(ts, tz=tz_specified) for ts in tss]  # one will be NaT
     start_of_day = dt.time(hour=6) if starttime == "06:00" else None
     expected = [pd.Timestamp(ts, tz=tz_specified) for ts in expected_tss]
+    result = tools.leftandright.stamps(*tss, tz_param, start_of_day)
+
+    for a, b in zip(result, expected):
+        assert a == b
+
+
+@pytest.mark.parametrize("tz_param", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize(
+    ("tss,starttime,expected_tss"),
+    [
+        (("2020-01-01", None), None, ("2020-01-01", "2021-01-01")),
+        (("2020-01-01", None), "00:00", ("2020-01-01", "2021-01-01")),
+        (("2020-01-01", None), "06:00", ("2020-01-01 06:00", "2021-01-01 06:00")),
+        ((None, "2020-02-02"), None, ("2020-01-01", "2020-02-02")),
+        ((None, "2020-02-02"), "00:00", ("2020-01-01", "2020-02-02")),
+        ((None, "2020-02-02"), "06:00", ("2020-01-01 06:00", "2020-02-02 06:00")),
+        # starttime should be ignored, because already present in timestamp.
+        (("2020-03-03 06:00", None), None, ("2020-03-03 06:00", "2021-01-01 06:00")),
+        (("2020-03-03 06:00", None), "00:00", ("2020-03-03 06:00", "2021-01-01 06:00")),
+        (("2020-03-03 06:00", None), "06:00", ("2020-03-03 06:00", "2021-01-01 06:00")),
+        ((None, "2021-10-09 06:00"), None, ("2021-01-01 06:00", "2021-10-09 06:00")),
+        ((None, "2021-10-09 06:00"), "00:00", ("2021-01-01 06:00", "2021-10-09 06:00")),
+        ((None, "2021-10-09 06:00"), "06:00", ("2021-01-01 06:00", "2021-10-09 06:00")),
+    ],
+)
+def test_leftandright_onespecified_asstring(
+    tss: tuple, expected_tss: tuple, tz_param: str, starttime: str
+):
+    """Test if start and end of interval are correctly calculated, if one is specified
+    as a timestamp."""
+    # One specified, but as string. So tz parameter and start_of_day should be used.
+    # There should be no timezone errors and no swapping is necessary
+    start_of_day = {"06:00": dt.time(hour=6), "00:00": dt.time(hour=0), None: None}[
+        starttime
+    ]
+    expected = [pd.Timestamp(ts, tz=tz_param) for ts in expected_tss]
     result = tools.leftandright.stamps(*tss, tz_param, start_of_day)
 
     for a, b in zip(result, expected):
