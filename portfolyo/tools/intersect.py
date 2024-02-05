@@ -99,8 +99,8 @@ def indices_flex(
         return idxs[0]
     # convert tuple object into a list
     idxs = list(idxs)
-    # If we land here, we have at least 2 indices.
 
+    # If we land here, we have at least 2 indices.
     distinct_freqs = set([i.freq for i in idxs])
     if len(distinct_freqs) != 1 and ignore_freq is False:
         raise ValueError(f"Indices must have equal frequencies; got {distinct_freqs}.")
