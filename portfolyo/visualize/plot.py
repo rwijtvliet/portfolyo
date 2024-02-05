@@ -247,15 +247,12 @@ def get_portfolyo_attr(ax, name, default_val=None):
     Gets values from dictionary ax._portfolyo, if it doesn't exist returns None.
     """
     pattr = getattr(ax, "_portfolyo", {})
-    return pattr[name] if name in pattr else default_val
+    return pattr.get(name, default_val)
 
 
 def is_categorical(s: pd.Series) -> bool:
     """The function checks whether frequency of panda Series falls into continous or categorical group"""
-    if s.index.freq in ["AS", "QS", "MS"]:
-        return True
-    else:
-        return False
+    return s.index.freq in ["AS", "QS", "MS"]
 
 
 def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:

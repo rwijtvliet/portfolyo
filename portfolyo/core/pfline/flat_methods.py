@@ -51,7 +51,7 @@ class LocIndexer:
 
 class SliceIndexer:
     """Helper class to obtain FlatPfLine instance, whose index is subset of original index.
-    Exclude end index from the slice"""
+    Exclude end point from the slice."""
 
     def __init__(self, pfl: FlatPfLine):
         self.pfl = pfl
@@ -64,7 +64,4 @@ class SliceIndexer:
             date_end = date_end - timedelta(seconds=1)
 
         newdf = self.pfl.df.loc[date_start:date_end]
-        # newdf = self.pfl.df.loc[arg]
-        # if arg.stop is not None:
-        #     newdf = newdf.iloc[:-1]
         return self.pfl.__class__(newdf)  # use same (leaf) class

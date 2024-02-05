@@ -252,6 +252,8 @@ Index slice
 
 From ``pandas`` we know the ``.loc[]`` property which allows us to select a slice of the objects. This is implemented also for portfolio lines. Currently, it supports enering a slice of timestamps. It is a wrapper around the ``pandas.DataFrame.loc[]`` property, and therefore follows the same convention, with the end point being included in the result.
 
+Another slicing method is implemented with the ``.slice[]`` property. The improvement to ``.loc[]`` is, that ``.slice[]`` uses the more common convention of excluding the end point. This has several advantages, which stem from the fact that, unlike when using ``.loc``, using ``left = pfl.slice[:a]`` and ``right = pfl.slice[a:]`` returns portfolio lines that are complements - every timestamp in the original portfolio line is found in either the left or the right slice. This is useful when e.g. concatenating portfolio lines (see below.)
+
 .. exec_code::
 
    # --- hide: start ---
@@ -261,9 +263,32 @@ From ``pandas`` we know the ``.loc[]`` property which allows us to select a slic
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
    # continuation of previous code example
-   pfl.loc['2024':'2025']  # includes 2025
+   pfl.slice['2024':'2026']  # excludes 2026; 2026 interpreted as timestamp 2026-01-01 00:00:00
    # --- hide: start ---
-   print(pfl.loc['2024':'2025'])
+   print(pfl.slice['2024':'2026'])
+   # --- hide: stop ---
+
+
+Concatenation
+=============
+
+Portfolio lines can be concatenated with the ``portfolio.concat()`` function. This only works if the input portfolio lines have contain compatible information (the same frequency, timezone, start-of-day, kind, etc) and, crucially, their indices are gapless and without overlap. To remove any overlap, use the ``.slice[]`` property.
+
+.. exec_code::
+
+   # --- hide: start ---
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='AS', periods=3)
+   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
+   pfl = pf.PfLine(input_df)
+   # --- hide: stop ---
+   # continuation of previous code example
+   index2 = pd.date_range('2025', freq='AS', periods=3)  # 2 years' overlap with pfl
+   pfl2 = pf.PfLine(pd.DataFrame({'w':[22, 30, 40], 'p': [15, 20, 21]}, index))
+   # first two datapoints (until/excl 2026) from pfl, last two datapoints (from/incl 2026) from pfl2 
+   pf.concat([pfl.slice[:'2026'], pfl2.slice['2026':]]) 
+   # --- hide: start ---
+   print(pf.concat([pfl.slice[:'2026'], pfl2.slice['2026':]]))
    # --- hide: stop ---
 
 

@@ -55,7 +55,7 @@ class LocIndexer:
 
 class SliceIndexer:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index.
-    Exclude end index from the slice"""
+    Exclude end point from the slice."""
 
     def __init__(self, pfl: NestedPfLine):
         self.pfl = pfl

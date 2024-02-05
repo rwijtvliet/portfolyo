@@ -1,7 +1,7 @@
 import portfolyo as pf
 import pandas as pd
 
-index = pd.date_range("2020", "2024", freq="QS")
+index = pd.date_range("2020", "2024", freq="QS", inclusive="left")
 
 
 # FlatPfline
@@ -49,6 +49,6 @@ def state_test():
     print(pfs_to_concat == pfs_to_concat2)
 
 
-# flat_test()
+flat_test()
 # nested_test()
-state_test()
+# state_test()

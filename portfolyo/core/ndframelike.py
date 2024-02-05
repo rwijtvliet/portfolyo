@@ -44,9 +44,8 @@ class NDFrameLike(abc.ABC):
 
     @abc.abstractproperty
     def slice(self):
-        """Create a new instance with a subset of the rows (selection by row label(s) or
-        a boolean array.)
-        Different from loc since performs slicing with right-open interval"""
+        """Create a new instance with a subset of the rows.
+        Different from loc since performs slicing with right-open interval."""
         ...
 
     @abc.abstractmethod

@@ -2,19 +2,80 @@ import pandas as pd
 
 from portfolyo import tools
 
-# create a and b with  different frequencies
-# create c with the same freq as a
-# look how a intersect c behaves
+
+def freq():
+    # ignore freq
+    a = pd.date_range(
+        "2022-04-01",
+        "2024-07-01",
+        freq="QS",
+        tz="Asia/Kolkata",
+        inclusive="left",
+    )
+    b = pd.date_range(
+        "2021-01-01",
+        "2024-01-01",
+        freq="AS",
+        inclusive="left",
+    )
+    intersect = tools.intersect.indices_flex(a, b, ignore_freq=True, ignore_tz=True)
+    print(intersect)
 
 
-a = pd.date_range("2020-01-01", "2022-02-02", freq="15T")
-b = pd.date_range("2020-01-20", "2022-02-02", freq="D")
-c = pd.date_range("2021-01-01", "2024-01-01", freq="QS")
-d = pd.date_range("2022-04-01", "2024-07-01", freq="AS")
-intersect = tools.intersect.indices(a, b, ignore_freq=True)
-# intersect2 = tools.intersect.indices(a, c)
-# intersect3 = tools.intersect.indices(b, d)
-print(intersect)
-# print("\n")
-# print(intersect2)
-# print(intersect == intersect3)
+def start_day():
+    a = pd.date_range(
+        "2022-04-01 00:00", "2022-05-10 00:00", freq="D", inclusive="left"
+    )
+    b = pd.date_range(
+        "2022-04-01 06:00", "2022-07-15 06:00", freq="D", inclusive="left"
+    )
+    intersect = tools.intersect.indices_flex(a, b, ignore_start_of_day=True)
+    print(intersect)
+
+
+def tz():
+    a = pd.date_range(
+        "2022-04-01 00:00",
+        "2022-05-10 00:00",
+        freq="H",
+        tz="Europe/Berlin",
+        inclusive="left",
+    )
+    b = pd.date_range(
+        "2022-04-25 00:00",
+        "2022-05-15 00:00",
+        freq="H",
+        tz="Europe/Berlin",
+        inclusive="left",
+    )
+    intersect = tools.intersect.indices_flex(
+        a, b, ignore_tz=True, ignore_start_of_day=True
+    )
+    print(intersect)
+
+
+def all():
+    a = pd.date_range(
+        "2022-01-01 00:00",
+        "2023-01-01 00:00",
+        freq="15T",
+        tz="Asia/Kolkata",
+        inclusive="left",
+    )
+    b = pd.date_range(
+        "2022-01-20 06:00",
+        "2023-01-01 06:00",
+        freq="H",
+        tz=None,
+        inclusive="left",
+    )
+    intersect = tools.intersect.indices_flex(
+        a, b, ignore_freq=True, ignore_tz=True, ignore_start_of_day=True
+    )
+    print(intersect)
+
+
+# tz()
+# start_day()
+# freq()
+all()
