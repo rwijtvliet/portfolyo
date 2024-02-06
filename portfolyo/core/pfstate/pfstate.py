@@ -280,6 +280,10 @@ class PfState(
     def loc(self) -> _LocIndexer:  # from ABC
         return _LocIndexer(self)
 
+    @property
+    def slice(self) -> _SliceIndexer:  # from ABC
+        return _SliceIndexer(self)
+
 
 class _LocIndexer:
     """Helper class to obtain PfState instance, whose index is subset of original index."""
@@ -291,4 +295,18 @@ class _LocIndexer:
         offtakevolume = self.pfs.offtake.volume.loc[arg]
         unsourcedprice = self.pfs.unsourcedprice.loc[arg]
         sourced = self.pfs.sourced.loc[arg]
+        return PfState(offtakevolume, unsourcedprice, sourced)
+
+
+class _SliceIndexer:
+    """Helper class to obtain PfState instance, whose index is subset of original index.
+    Exclude end index from the slice"""
+
+    def __init__(self, pfs):
+        self.pfs = pfs
+
+    def __getitem__(self, arg) -> PfState:
+        offtakevolume = self.pfs.offtake.volume.slice[arg]
+        unsourcedprice = self.pfs.unsourcedprice.slice[arg]
+        sourced = self.pfs.sourced.slice[arg]
         return PfState(offtakevolume, unsourcedprice, sourced)

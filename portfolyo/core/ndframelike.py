@@ -42,6 +42,12 @@ class NDFrameLike(abc.ABC):
         a boolean array.)"""
         ...
 
+    @abc.abstractproperty
+    def slice(self):
+        """Create a new instance with a subset of the rows.
+        Different from loc since performs slicing with right-open interval."""
+        ...
+
     @abc.abstractmethod
     def dataframe(
         self, cols: Iterable[str] = None, has_units: bool = True, *args, **kwargs

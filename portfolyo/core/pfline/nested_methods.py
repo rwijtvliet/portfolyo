@@ -37,6 +37,11 @@ def loc(self: NestedPfLine) -> LocIndexer:
     return LocIndexer(self)
 
 
+@property
+def slice(self: NestedPfLine) -> SliceIndexer:
+    return SliceIndexer(self)
+
+
 class LocIndexer:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index."""
 
@@ -45,4 +50,16 @@ class LocIndexer:
 
     def __getitem__(self, arg) -> NestedPfLine:
         newchildren = {name: child.loc[arg] for name, child in self.pfl.items()}
+        return self.pfl.__class__(newchildren)
+
+
+class SliceIndexer:
+    """Helper class to obtain NestedPfLine instance, whose index is subset of original index.
+    Exclude end point from the slice."""
+
+    def __init__(self, pfl: NestedPfLine):
+        self.pfl = pfl
+
+    def __getitem__(self, arg) -> NestedPfLine:
+        newchildren = {name: child.slice[arg] for name, child in self.pfl.items()}
         return self.pfl.__class__(newchildren)
