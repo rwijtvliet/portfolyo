@@ -7,8 +7,9 @@ from portfolyo import dev
 
 @pytest.mark.parametrize("freq", ["MS", "AS", "QS", "D", "15T"])
 @pytest.mark.parametrize("slice_start", ["2021", "2022", "2022-01-02"])
-def test_flat_slice_start(slice_start, freq):
-    index = pd.date_range("2020", "2024", freq=freq, inclusive="left")
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_flat_slice_start(slice_start: str, freq: str, tz: str):
+    index = pd.date_range("2020", "2024", freq=freq, inclusive="left", tz=tz)
     pfl1 = dev.get_flatpfline(index)
     assert pfl1.slice[slice_start:] == pfl1.loc[slice_start:]
 
