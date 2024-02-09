@@ -5,6 +5,7 @@ description = "Analyse and manipulate timeseries related to power and gas offtak
 authors = [
     "Ruud Wijtvliet <rwijtvliet@gmail.com>",
     "Sakshi Singh <sakshisingh1809@gmail.com>",
+    "Alina Voilova <voilova.alina@gmail.com>",
 ]
 license = "BSD-3"
 readme = "README.rst"

@@ -252,6 +252,8 @@ Index slice
 
 From ``pandas`` we know the ``.loc[]`` property which allows us to select a slice of the objects. This is implemented also for portfolio lines. Currently, it supports enering a slice of timestamps. It is a wrapper around the ``pandas.DataFrame.loc[]`` property, and therefore follows the same convention, with the end point being included in the result.
 
+Another slicing method is implemented with the ``.slice[]`` property. The improvement to ``.loc[]`` is, that ``.slice[]`` uses the more common convention of excluding the end point. This has several advantages, which stem from the fact that, unlike when using ``.loc``, using ``left = pfl.slice[:a]`` and ``right = pfl.slice[a:]`` returns portfolio lines that are complements - every timestamp in the original portfolio line is found in either the left or the right slice. This is useful when e.g. concatenating portfolio lines (see below.)
+
 .. exec_code::
 
    # --- hide: start ---
@@ -261,10 +263,11 @@ From ``pandas`` we know the ``.loc[]`` property which allows us to select a slic
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
    # continuation of previous code example
-   pfl.loc['2024':'2025']  # includes 2025
+   pfl.slice['2024':'2026']  # excludes 2026; 2026 interpreted as timestamp 2026-01-01 00:00:00
    # --- hide: start ---
-   print(pfl.loc['2024':'2025'])
+   print(pfl.slice['2024':'2026'])
    # --- hide: stop ---
+
 
 
 Volume-only, price-only or revenue-only
