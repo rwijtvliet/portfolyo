@@ -87,9 +87,9 @@ def get_frames(
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(("startdates", "freq", "expected_startdate"), TESTCASES)
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
-# @pytest.mark.parametrize("indexorframe", ["idx", "fr"])
+@pytest.mark.parametrize("indexorframe", ["idx", "fr"])
 def test_intersect_flex_ignore_start_of_day(
-    # indexorframe: str,
+    indexorframe: str,
     startdates: Iterable[str],
     starttime: str,
     tz: str,
@@ -114,7 +114,7 @@ def test_intersect_flex_ignore_start_of_day(
         ),
     ]
     do_test_intersect(
-        "idx",
+        indexorframe,
         idxs,
         expected_startdate,
         expected_tz=tz,
