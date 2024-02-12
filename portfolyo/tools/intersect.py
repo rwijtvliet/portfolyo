@@ -221,10 +221,10 @@ def frames(
     The indices must have equal frequency, timezone, start-of-day. Otherwise, an error
     is raised. If there is no overlap, empty frames are returned.
     """
-    new_idx = indices_flex(
+    new_idxs = indices_flex(
         *[fr.index for fr in frames],
         ignore_freq=ignore_freq,
         ignore_tz=ignore_tz,
         ignore_start_of_day=ignore_start_of_day,
     )
-    return [fr.loc[idx] for idx, fr in zip(new_idx, frames)]
+    return [fr.loc[idx] for idx, fr in zip(new_idxs, frames)]

@@ -269,6 +269,28 @@ Another slicing method is implemented with the ``.slice[]`` property. The improv
    # --- hide: stop ---
 
 
+Concatenation
+=============
+
+Portfolio lines can be concatenated with the ``portfolio.concat()`` function. This only works if the input portfolio lines have contain compatible information (the same frequency, timezone, start-of-day, kind, etc) and, crucially, their indices are gapless and without overlap. To remove any overlap, use the ``.slice[]`` property.
+
+.. exec_code::
+
+   # --- hide: start ---
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='AS', periods=3)
+   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
+   pfl = pf.PfLine(input_df)
+   # --- hide: stop ---
+   # continuation of previous code example
+   index2 = pd.date_range('2025', freq='AS', periods=3)  # 2 years' overlap with pfl
+   pfl2 = pf.PfLine(pd.DataFrame({'w':[22, 30, 40], 'p': [15, 20, 21]}, index))
+   # first two datapoints (until/excl 2026) from pfl, last two datapoints (from/incl 2026) from pfl2 
+   pf.concat([pfl.slice[:'2026'], pfl2.slice['2026':]]) 
+   # --- hide: start ---
+   print(pf.concat([pfl.slice[:'2026'], pfl2.slice['2026':]]))
+   # --- hide: stop ---
+
 
 Volume-only, price-only or revenue-only
 =======================================
