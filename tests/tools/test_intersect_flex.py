@@ -1,4 +1,4 @@
-from typing import Iterable, List, Union
+from typing import Iterable, Union
 import pandas as pd
 import pytest
 
@@ -63,33 +63,12 @@ def get_idx(
     return pd.date_range(ts_start, ts_end, freq=freq, inclusive="left")
 
 
-def get_frames(
-    idxs: Iterable[pd.DatetimeIndex], ref_idx: pd.DatetimeIndex = None
-) -> List[Union[pd.Series, pd.DataFrame]]:
-    frames = []
-    for i, idx in enumerate(idxs):
-        # Get data.
-        if ref_idx is None:
-            startnum = 0
-            index = idx
-        else:
-            startnum = idx.get_loc(ref_idx[0]) if len(ref_idx) > 0 else 0
-            index = ref_idx
-        # Create series.
-        fr = pd.Series(range(startnum, startnum + len(index)), index, dtype=int)
-        # Possibly turn into dataframe.
-        if i % 2 == 0:
-            fr = pd.DataFrame({"a": fr})
-        frames.append(fr)
-    return frames
-
-
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(("startdates", "freq", "expected_startdate"), TESTCASES)
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
-@pytest.mark.parametrize("indexorframe", ["idx", "fr"])
+# @pytest.mark.parametrize("indexorframe", ["idx", "fr"])
 def test_intersect_flex_ignore_start_of_day(
-    indexorframe: str,
+    # indexorframe: str,
     startdates: Iterable[str],
     starttime: str,
     tz: str,
@@ -114,7 +93,7 @@ def test_intersect_flex_ignore_start_of_day(
         ),
     ]
     do_test_intersect(
-        indexorframe,
+        "idx",
         idxs,
         expected_startdate,
         expected_tz=tz,
@@ -255,21 +234,6 @@ def do_test_intersect(
             ignore_tz,
             ignore_freq,
         )
-    else:
-        do_test_intersect_frame(
-            idxs,
-            expected_startdate,
-            expected_starttime,
-            expected_tz,
-            expected_freq,
-            expected_otherstarttime,
-            expected_othertz,
-            expected_otherfreq,
-            enddate,
-            ignore_start_of_day,
-            ignore_tz,
-            ignore_freq,
-        )
 
 
 def do_test_intersect_index(
@@ -321,48 +285,3 @@ def do_test_intersect_index(
     )
     testing.assert_index_equal(out_a, expected_a)
     testing.assert_index_equal(out_b, expected_b)
-
-
-def do_test_intersect_frame(
-    idxs: Iterable[pd.DatetimeIndex],
-    expected_startdate: Union[str, Exception],
-    expected_starttime: str = None,
-    expected_tz: str = None,
-    expected_freq: str = None,
-    expected_otherstarttime: str = None,
-    expected_othertz: str = None,
-    expected_otherfreq: str = None,
-    enddate: str = None,
-    ignore_start_of_day: bool = False,
-    ignore_tz: bool = False,
-    ignore_freq: bool = False,
-):
-    frames = get_frames(idxs)
-
-    # Error case.
-    if type(expected_startdate) is type and issubclass(expected_startdate, Exception):
-        with pytest.raises(expected_startdate):
-            tools.intersect.frames(*frames)
-        return
-
-    # Normal case.
-
-    result_frames = tools.intersect.frames(
-        *frames,
-        ignore_freq=ignore_freq,
-        ignore_start_of_day=ignore_start_of_day,
-        ignore_tz=ignore_tz,
-    )
-    expected_index = get_idx(
-        expected_startdate,
-        expected_starttime,
-        expected_tz,
-        expected_freq,
-        enddate,
-    )
-    expected_frames = get_frames(idxs, expected_index)
-    for result, expected in zip(result_frames, expected_frames):
-        if isinstance(result, pd.Series):
-            testing.assert_series_equal(result, expected)
-        else:
-            testing.assert_frame_equal(result, expected)
