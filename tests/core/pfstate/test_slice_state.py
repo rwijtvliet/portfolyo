@@ -26,7 +26,15 @@ def test_slice_state(slice_start, slice_end, freq):
 
 
 @pytest.mark.parametrize("freq", ["MS", "AS", "QS", "D", "15T"])
-@pytest.mark.parametrize("slice_start", ["2021", "2022", "2022-01-02"])
+@pytest.mark.parametrize(
+    "slice_start",
+    [
+        "2021",
+        "2022",
+        "2022-01-02",
+        "2022-01-02 14:00",
+    ],
+)
 def test_state_slice_start(slice_start, freq):
     index = pd.date_range("2020", "2024", freq=freq, inclusive="left")
     pfs = dev.get_pfstate(index)
