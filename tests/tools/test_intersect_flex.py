@@ -1,9 +1,9 @@
 from typing import Iterable, Union
+
 import pandas as pd
 import pytest
 
 from portfolyo import testing, tools
-
 
 COMMON_END = "2022-02-02"
 
@@ -285,3 +285,15 @@ def do_test_intersect_index(
     )
     testing.assert_index_equal(out_a, expected_a)
     testing.assert_index_equal(out_b, expected_b)
+
+
+def test_intersect_flex_dst():
+    """Test if intersection keeps working if DST-boundary is right at end."""
+    i1 = pd.date_range("2020", "2020-03-29", freq="D", tz="Europe/Berlin")
+    i2 = pd.date_range("2020", "2020-03-30", freq="D", tz="Europe/Berlin")
+
+    expected = pd.date_range("2020", "2020-03-29", freq="D", tz="Europe/Berlin")
+
+    result1, result2 = tools.intersect.indices_flex(i1, i2)
+    testing.assert_index_equal(result1, expected)
+    testing.assert_index_equal(result2, expected)
