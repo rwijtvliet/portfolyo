@@ -755,6 +755,6 @@ NB: be cautious in using the output of this method. The values in the "sub-dataf
 API
 ---
 
-.. autoclass:: portfolyo.PfLine
-   :members:
-   :inherited-members: 
+.. .. autoclass:: portfolyo.PfLine
+..    :members:
+..    :inherited-members: 
