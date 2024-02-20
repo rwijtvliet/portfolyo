@@ -1,6 +1,7 @@
 from typing import List, Union, Tuple
 
 import pandas as pd
+from portfolyo import tools
 
 from portfolyo.tools.freq import longest
 from datetime import datetime
@@ -109,54 +110,55 @@ def indices_flex(
     if len(distinct_tzs) != 1 and ignore_tz is False:
         raise ValueError(f"Indices must have equal timezones; got {distinct_tzs}.")
 
+    empty_idx = [len(i) == 0 for i in idxs]
+    if any(empty_idx):
+        return pd.DatetimeIndex([])
+
+    # If we land here, we have at least 2 indices, all are not empty.
+
+    distinct_sod = set([i[0].time() for i in idxs])
+    if len(distinct_sod) != 1 and ignore_start_of_day is False:
+        raise ValueError(f"Indices must have equal start-of-day; got {distinct_sod}.")
+
     freq, name, tz = [], [], []
     for i in range(len(idxs)):
         freq.append(idxs[i].freq)
         name.append(idxs[i].name)
         tz.append(idxs[i].tz)
 
-    empty_idx = [len(i) == 0 for i in idxs]
-    if any(empty_idx):
-        return pd.DatetimeIndex([])
-
-    # If we land here, we have at least 2 indices, all are not empty, with equal tz and freq.
-
-    distinct_sod = set([i[0].time() for i in idxs])
-    if len(distinct_sod) != 1 and ignore_start_of_day is False:
-        raise ValueError(f"Indices must have equal start-of-day; got {distinct_sod}.")
-
     # add one interval of the respective freq to each index (this way, a given date-range from A-B that was exclusive
     # of B is now inclusive of B - this helps when we need to convert frequencies or times-of-day without loosing
     # data. At the end, we exclude the end-date of the final result again.)
-    idxs = [
-        idx.append(
-            pd.DatetimeIndex([idx[-1] + pd.tseries.frequencies.to_offset(idx.freq)])
-        )
-        for idx in idxs
-    ]
+    # idxs = [
+    #     idx.append(
+    #         pd.DatetimeIndex([idx[-1] + pd.tseries.frequencies.to_offset(idx.freq)])
+    #     )
+    #     for idx in idxs
+    # ]
 
-    if ignore_freq is True:
-        # Find the smallest frequency
-        biggest_freq = longest(*freq)
-        # change bigger freq into small one
+    if ignore_freq is True and len(distinct_freqs) != 1:
+        # Find the longest frequency
+        longest_freq = longest(*freq)
+        # trim datetimeindex
         for i in range(len(idxs)):
-            start = idxs[i].min()
-            end = idxs[i].max()
-            idxs[i] = pd.date_range(start, end, freq=biggest_freq, inclusive="both")
+            # if idxs[i].freq is not the same as longest freq, we trim idxs[i]
+            if idxs[i].freq != longest_freq:
+                idxs[i] = tools.trim.index(idxs[i], longest_freq)
 
-    if ignore_tz is True:
+    if ignore_tz is True and len(distinct_tzs) != 1:
         # set timezone to none for all values
         for i in range(len(idxs)):
             idxs[i] = idxs[i].tz_localize(None)
 
-    if ignore_start_of_day is True:
+    if ignore_start_of_day is True and len(distinct_sod) != 1:
         # Save a copy of the original hours and minutes
         start_of_day = [x[0].time() for x in idxs]
-        # Set the time components to midnight for each timestamp in the list
-        idxs = [timestamp.normalize() for timestamp in idxs]
+        # Set the time components to midnight for each index in the list
+        idxs = [index.normalize() for index in idxs]
 
     # Calculation is cumbersome: pandas DatetimeIndex.intersection not working correctly on timezone-aware indices (#46702)
     values = set(idxs[0])
+    # intersection is not working on datetimeindex with different freq->we need to use mask
     for i in idxs[1:]:
         values = values.intersection(set(i))
     values = sorted(values)
@@ -168,7 +170,7 @@ def indices_flex(
     for i in range(len(idxs)):
         start = min(values)
         end = max(values)
-        inclusive = "left"
+        inclusive = "both"
 
         if ignore_start_of_day is True:
             start = datetime.combine(pd.to_datetime(start).date(), start_of_day[i])
