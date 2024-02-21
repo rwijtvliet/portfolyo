@@ -1,22 +1,16 @@
 # import pandas as pd
 # import portfolyo as pf
 from __future__ import annotations
-from typing import TYPE_CHECKING, Union, List
-
+from typing import Union
 import pandas as pd
+from portfolyo import tools
 
-from portfolyo.core.pfline import create
-from ..pfline import classes
+from ..pfstate import PfState
 from collections import defaultdict
 from ..pfline.enums import Structure
 
-# from ..pfline.dataframeexport import Flat, Nested
-
-if TYPE_CHECKING:  # needed to avoid circular imports
-    from ..pfline import PfLine
-    from ..pfstate import PfState
-# import itertools
-from portfolyo import tools
+from ..pfline import PfLine, create
+from .. import pfstate
 
 
 def general(*pfl_or_pfs: Union[PfLine, PfState]) -> None:
@@ -33,11 +27,10 @@ def general(*pfl_or_pfs: Union[PfLine, PfState]) -> None:
     None
 
     """
-
-    if all(isinstance(item, classes.PfLine) for item in pfl_or_pfs):
-        concat_pflines(*pfl_or_pfs)
-    elif all(isinstance(item, classes.PfState) for item in pfl_or_pfs):
-        concat_pfstates(*pfl_or_pfs)
+    if all(isinstance(item, PfLine) for item in pfl_or_pfs):
+        return concat_pflines(*pfl_or_pfs)
+    elif all(isinstance(item, PfState) for item in pfl_or_pfs):
+        return concat_pfstates(*pfl_or_pfs)
     else:
         raise NotImplementedError(
             "Concatenation is implemented only for PfState or PfLine."
@@ -63,15 +56,6 @@ def concat_pflines(*pfls: PfLine) -> PfLine:
         Concatenated version of List[PfLine].
 
     """
-
-    # for a, b in itertools.combinations(pfls, 2):
-    #     if a.kind == b.kind:
-    #         raise TypeError("Not possible to concatenate PfLines of different kinds.")
-
-    # we need to check every element on the list and compare each element to each other element
-    # would it be better to check every element at first for freq and such and then divide by flat and nested
-    # or run checks on flat/nested first
-    # TODO: to ask whether children and parent have the same tz and so on->yes
     if len(pfls) < 2:
         print("Concatenate needs at least two elements.")
         return
@@ -107,17 +91,40 @@ def concat_pflines(*pfls: PfLine) -> PfLine:
 
     # concat(a,b) and concat(b,a) should give the same result:
     sorted_pfls = sorted(pfls, key=lambda pfl: pfl.index[0])
+    if pfls[0].structure is Structure.FLAT:
+        # create flat dataframe of parent
+        dataframes_flat = [pfl.df for pfl in sorted_pfls]
+        # concatenate dataframes into one
+        concat_data = pd.concat(dataframes_flat, axis=0)
+        return create.flatpfline(concat_data)
+    child_data = {}
+    for name, children in sorted_children.items():
+        # for every name in children need to concatenate elements
+        child_data[name] = concat_pflines(*children)
+
+    # create pfline from dataframes: ->
     # call the constructor of pfl to check check gapplesnes and overplap
-    dataframes = [
-        pfl.dataframe() for pfl in sorted_pfls
-    ]  # will it work regardless of structure?
-    # concatenate dataframes into one
-    concat_data = pd.concat(dataframes, axis=0)
-    print("Data", concat_data)
-    # create pfline from dataframes
-    concat_pfls = create.pfline(concat_data)
-    print("Concatenate pfls", concat_pfls)
+    output = create.nestedpfline(child_data)
+    return output
 
 
-def concat_pfstates(pfs: List[PfState]) -> PfState:
-    pass
+def concat_pfstates(*pfss: PfState) -> PfState:
+    """
+    Parameters
+    ----------
+    pfls: List[PfLine]
+        The input values.
+
+    Returns
+    -------
+    PfLine
+        Concatenated version of List[PfLine].
+
+    """
+    if len(pfss) < 2:
+        print("Concatenate needs at least two elements.")
+        return
+    offtakevolume = concat_pflines(*[pfs.offtakevolume for pfs in pfss])
+    sourced = concat_pflines(*[pfs.sourced for pfs in pfss])
+    unsourcedprice = concat_pflines(*[pfs.unsourcedprice for pfs in pfss])
+    return pfstate.PfState(offtakevolume, unsourcedprice, sourced)
