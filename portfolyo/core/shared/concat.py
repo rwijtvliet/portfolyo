@@ -47,18 +47,19 @@ def concat_pflines(*pfls: PfLine) -> PfLine:
 
     Parameters
     ----------
-    pfls: List[PfLine]
+    *pfls: PfLine
         The input values.
 
     Returns
     -------
     PfLine
-        Concatenated version of List[PfLine].
+        Concatenated version of PfLines.
 
     """
     if len(pfls) < 2:
-        print("Concatenate needs at least two elements.")
-        return
+        raise NotImplementedError(
+            "Cannot perform operation with less than 2 portfolio liness."
+        )
     if len({pfl.kind for pfl in pfls}) != 1:
         raise TypeError("Not possible to concatenate PfLines of different kinds.")
     if len({pfl.index.freq for pfl in pfls}) != 1:
@@ -96,7 +97,17 @@ def concat_pflines(*pfls: PfLine) -> PfLine:
         dataframes_flat = [pfl.df for pfl in sorted_pfls]
         # concatenate dataframes into one
         concat_data = pd.concat(dataframes_flat, axis=0)
-        return create.flatpfline(concat_data)
+        try:
+            # Call create.flatpfline() and catch any ValueError
+            result = create.flatpfline(concat_data)
+        except ValueError as e:
+            # Handle the error
+            print("An error occurred:", e)
+            result = None
+            raise ValueError(
+                "Error by creating PfLine. PfLine is either not gapples or has overlaps"
+            ) from e
+        return result
     child_data = {}
     for name, children in sorted_children.items():
         # for every name in children need to concatenate elements
@@ -104,21 +115,31 @@ def concat_pflines(*pfls: PfLine) -> PfLine:
 
     # create pfline from dataframes: ->
     # call the constructor of pfl to check check gapplesnes and overplap
-    output = create.nestedpfline(child_data)
-    return output
+    try:
+        # Call create.flatpfline() and catch any ValueError
+        result = create.nestedpfline(child_data)
+    except ValueError as e:
+        # Handle the error here
+        print("An error occurred:", e)
+        result = None  # or some other default value
+        raise ValueError(
+            "Error by creating PfLine. PfLine is either not gapples or has overlaps"
+        ) from e
+
+    return result
 
 
 def concat_pfstates(*pfss: PfState) -> PfState:
     """
     Parameters
     ----------
-    pfls: List[PfLine]
+    *pfss: PfState
         The input values.
 
     Returns
     -------
-    PfLine
-        Concatenated version of List[PfLine].
+    PfState
+        Concatenated version of PfStates.
 
     """
     if len(pfss) < 2:
