@@ -6,13 +6,17 @@ from portfolyo import dev
 
 
 @pytest.mark.parametrize("freq", ["MS", "AS", "QS", "D", "15T"])
-@pytest.mark.parametrize("slice_start", ["2021", "2022", "2022-01-02"])
-def test_flat_slice_start(slice_start, freq):
-    index = pd.date_range("2020", "2024", freq=freq, inclusive="left")
+@pytest.mark.parametrize(
+    "slice_start", ["2021", "2022", "2022-01-02", "2022-05-23 14:34"]
+)
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_flat_slice_start(slice_start: str, freq: str, tz: str):
+    index = pd.date_range("2020", "2024", freq=freq, inclusive="left", tz=tz)
     pfl1 = dev.get_flatpfline(index)
     assert pfl1.slice[slice_start:] == pfl1.loc[slice_start:]
 
 
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("freq", ["MS", "AS", "QS", "D", "15T"])
 @pytest.mark.parametrize(
     "slice_end",
@@ -24,8 +28,8 @@ def test_flat_slice_start(slice_start, freq):
         ("2022-01-02", "2022-01-01"),
     ],
 )
-def test_flat_slice_end(slice_end, freq):
-    index = pd.date_range("2020", "2024", freq=freq, inclusive="left")
+def test_flat_slice_end(slice_end: str, freq: str, tz: str):
+    index = pd.date_range("2020", "2024", freq=freq, inclusive="left", tz=tz)
     pfl1 = dev.get_flatpfline(index)
     assert pfl1.slice[: slice_end[0]] == pfl1.loc[: slice_end[1]]
 
@@ -35,11 +39,12 @@ def test_flat_slice_end(slice_end, freq):
     "where",
     ["2022", "2022-03", "2022-04-21", "2022-05-23 14:34"],
 )
-def test_flat_slice_whole(where: str, freq: str):
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_flat_slice_whole(where: str, freq: str, tz: str):
     """Test that slicing splits the pfl in 2 non-overlapping pieces without gap
     (i.e., ensure that each original timestamp is in exactly one of the resulting pieces.)
     """
-    index = pd.date_range("2020", "2024", freq=freq, inclusive="left")
+    index = pd.date_range("2020", "2024", freq=freq, inclusive="left", tz=tz)
     pfl1 = dev.get_flatpfline(index)
     left, right = pfl1.slice[:where], pfl1.slice[where:]
     # Test that each timestamp is present at least once.
@@ -49,14 +54,24 @@ def test_flat_slice_whole(where: str, freq: str):
 
 
 @pytest.mark.parametrize("freq", ["MS", "AS", "QS", "D", "15T"])
-@pytest.mark.parametrize("slice_start", ["2021", "2022", "2022-01-02"])
-def test_nested_slice_start(slice_start, freq):
-    index = pd.date_range("2020", "2024", freq=freq, inclusive="left")
+@pytest.mark.parametrize(
+    "slice_start",
+    [
+        "2021",
+        "2022",
+        "2022-01-02",
+        "2022-01-02 14:30",
+    ],
+)
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_nested_slice_start(slice_start: str, freq: str, tz: str):
+    index = pd.date_range("2020", "2024", freq=freq, inclusive="left", tz=tz)
     pfl1 = dev.get_nestedpfline(index)
     assert pfl1.slice[slice_start:] == pfl1.loc[slice_start:]
 
 
 @pytest.mark.parametrize("freq", ["MS", "AS", "QS", "D", "15T"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize(
     "slice_end",
     [
@@ -67,22 +82,23 @@ def test_nested_slice_start(slice_start, freq):
         ("2022-01-02", "2022-01-01"),
     ],
 )
-def test_nested_slice_end(slice_end, freq):
-    index = pd.date_range("2020", "2024", freq=freq, inclusive="left")
+def test_nested_slice_end(slice_end: str, freq: str, tz: str):
+    index = pd.date_range("2020", "2024", freq=freq, inclusive="left", tz=tz)
     pfl1 = dev.get_nestedpfline(index)
     assert pfl1.slice[: slice_end[0]] == pfl1.loc[: slice_end[1]]
 
 
 @pytest.mark.parametrize("freq", ["MS", "AS", "QS", "D", "15T"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize(
     "where",
     ["2022", "2022-03", "2022-04-21", "2022-05-23 14:34"],
 )
-def test_nested_slice_whole(where: str, freq: str):
+def test_nested_slice_whole(where: str, freq: str, tz: str):
     """Test that slicing splits the pfl in 2 non-overlapping pieces without gap
     (i.e., ensure that each original timestamp is in exactly one of the resulting pieces.)
     """
-    index = pd.date_range("2020", "2024", freq=freq, inclusive="left")
+    index = pd.date_range("2020", "2024", freq=freq, inclusive="left", tz=tz)
     pfl1 = dev.get_nestedpfline(index)
     left, right = pfl1.slice[:where], pfl1.slice[where:]
     # Test that each timestamp is present at least once.
