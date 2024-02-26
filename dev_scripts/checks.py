@@ -1,5 +1,6 @@
 import pandas as pd
-from portfolyo.core.pfline.classes import PfLine
+import portfolyo as pf
+from portfolyo.core.shared import concat
 
 
 def get_idx(
@@ -14,28 +15,7 @@ def get_idx(
     return pd.date_range(ts_start, ts_end, freq=freq, inclusive="left")
 
 
-def get_pfl(
-    idx: pd.DatetimeIndex = None,
-    # kind: Kind = Kind.COMPLETE,
-) -> PfLine:
-    pfl = PfLine(pd.Series(range(0, len(idx)), idx, dtype="pint[MW]"))
-    return pfl
-
-
-idxs = [
-    get_idx("2020", "00:00", None, "AS", "2022"),
-    get_idx("2022", "00:00", None, "AS", "2024"),
-]
-
-print(len(idxs[0]))
-pfl = get_pfl(idxs[0])
-pfl2 = get_pfl(idxs[1])
-index = get_idx("2020", "00:00", None, "AS", "2024")
-pfl3 = get_pfl(index)
-print(pfl)
-print(pfl2)
-print(pfl3)
-# index = pd.date_range("2020", "2024", freq="QS", inclusive="left")
+index = pd.date_range("2020", "2024", freq="QS", inclusive="left")
 # index2 = pd.date_range("2023", "2025", freq="QS", inclusive="left")
 # pfl = pf.dev.get_flatpfline(index)
 # pfl2 = pf.dev.get_flatpfline(index2)
@@ -43,9 +23,20 @@ print(pfl3)
 # print(pfl2)
 
 # pfs = pf.dev.get_pfstate(index)
+
 # pfs2 = pf.dev.get_pfstate(index2)
 # pfl3 = concat.general(pfl, pfl2)
 # print(pfl3)
 
 # print(index)
 # print(index2)
+
+whole_pfl = pf.dev.get_nestedpfline(index)
+pfl_a = whole_pfl.slice[:"2021"]
+
+pfl_b = whole_pfl.slice["2021":"2022"]
+pfl_c = whole_pfl.slice["2022":]
+result = concat.concat_pflines(pfl_a, pfl_b, pfl_c)
+result2 = concat.concat_pflines(pfl_b, pfl_c, pfl_a)
+print(result)
+print(result2)

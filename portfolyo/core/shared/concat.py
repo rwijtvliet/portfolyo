@@ -6,7 +6,6 @@ import pandas as pd
 from portfolyo import tools
 
 from ..pfstate import PfState
-from collections import defaultdict
 from ..pfline.enums import Structure
 
 from ..pfline import PfLine, create
@@ -75,19 +74,13 @@ def concat_pflines(*pfls: PfLine) -> PfLine:
     if len({pfl.structure for pfl in pfls}) != 1:
         raise TypeError("Not possible to concatenate PfLines of different structures.")
     if pfls[0].structure is Structure.NESTED:
-        sorted_children = defaultdict(list)
+        child_names = pfls[0].children.keys()
         for pfl in pfls:
-            for name, child in pfl.items():
-                sorted_children[name].append(child)
-        for name, children in sorted_children.items():
-            if len(children) != len(pfls):
-                raise ValueError
-
-        children_names_sets = [{name for name in pfl.children} for pfl in pfls]
-        if len(children_names_sets) != len(pfls[0].children):
-            raise TypeError(
-                "Not possible to concatenate PfLines with different children names."
-            )
+            diffs = set(child_names) ^ set(pfl.children.keys())
+            if len(diffs) != 0:
+                raise TypeError(
+                    "Not possible to concatenate PfLines with different children names."
+                )
     # If we reach here, all pfls have same kind, same number and names of children.
 
     # concat(a,b) and concat(b,a) should give the same result:
@@ -99,34 +92,22 @@ def concat_pflines(*pfls: PfLine) -> PfLine:
         concat_data = pd.concat(dataframes_flat, axis=0)
         try:
             # Call create.flatpfline() and catch any ValueError
-            result = create.flatpfline(concat_data)
+            return create.flatpfline(concat_data)
         except ValueError as e:
             # Handle the error
-            print("An error occurred:", e)
-            result = None
             raise ValueError(
-                "Error by creating PfLine. PfLine is either not gapples or has overlaps"
+                "Error by creating PfLine. PfLine is either not gapless or has overlaps"
             ) from e
-        return result
     child_data = {}
-    for name, children in sorted_children.items():
+    child_names = pfls[0].children.keys()
+    for cname in child_names:
         # for every name in children need to concatenate elements
-        child_data[name] = concat_pflines(*children)
+        child_values = [pfl.children[cname] for pfl in sorted_pfls]
+        child_data[cname] = concat_pflines(*child_values)
 
     # create pfline from dataframes: ->
-    # call the constructor of pfl to check check gapplesnes and overplap
-    try:
-        # Call create.flatpfline() and catch any ValueError
-        result = create.nestedpfline(child_data)
-    except ValueError as e:
-        # Handle the error here
-        print("An error occurred:", e)
-        result = None  # or some other default value
-        raise ValueError(
-            "Error by creating PfLine. PfLine is either not gapples or has overlaps"
-        ) from e
-
-    return result
+    # call the constructor of pfl to check check gaplesnes and overplap
+    return create.nestedpfline(child_data)
 
 
 def concat_pfstates(*pfss: PfState) -> PfState:

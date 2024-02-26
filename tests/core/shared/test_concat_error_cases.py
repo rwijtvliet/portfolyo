@@ -60,3 +60,21 @@ def test_app_lenght():
     pfl = dev.get_flatpfline(index)
     with pytest.raises(NotImplementedError):
         _ = concat.concat_pflines(pfl)
+
+
+def test_concat_children():
+    index = pd.date_range("2020-01-01", "2024", freq="QS", inclusive="left")
+    index2 = pd.date_range("2024-01-01", "2025", freq="QS", inclusive="left")
+    pfl = dev.get_flatpfline(index)
+    pfl2 = dev.get_nestedpfline(index2)
+    with pytest.raises(TypeError):
+        _ = concat.concat_pflines(pfl, pfl2)
+
+
+def test_concat_diff_children():
+    index = pd.date_range("2020-01-01", "2024", freq="QS", inclusive="left")
+    index2 = pd.date_range("2024-01-01", "2025", freq="QS", inclusive="left")
+    pfl = dev.get_nestedpfline(index)
+    pfl2 = dev.get_nestedpfline(index2).drop_child(name="a")
+    with pytest.raises(TypeError):
+        _ = concat.concat_pflines(pfl, pfl2)
