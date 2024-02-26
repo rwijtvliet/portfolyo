@@ -270,6 +270,7 @@ Another slicing method is implemented with the ``.slice[]`` property. The improv
 
 
 
+
 Volume-only, price-only or revenue-only
 =======================================
 

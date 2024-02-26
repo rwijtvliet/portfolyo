@@ -154,7 +154,7 @@ def test_intersect_nooverlap(indexorframe: str, tz: str, freq: str, starttime: s
         get_idx("2020-01-01", starttime, tz, freq, "2022-01-01"),
         get_idx("2023-01-01", starttime, tz, freq, "2025-01-01"),
     ]
-    do_test_intersect(indexorframe, idxs, None, "", tz, freq)
+    do_test_intersect(indexorframe, idxs, None, "", tz, freq, check_freq=False)
 
 
 def do_test_intersect(
@@ -164,12 +164,21 @@ def do_test_intersect(
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,
+    **kwargs,
 ):
     if indexorframe == "idx":
-        do_test_fn = do_test_intersect_index
+        do_test_intersect_index(
+            idxs, expected_startdate, expected_starttime, expected_tz, expected_freq
+        )
     else:
-        do_test_fn = do_test_intersect_frame
-    do_test_fn(idxs, expected_startdate, expected_starttime, expected_tz, expected_freq)
+        do_test_intersect_frame(
+            idxs,
+            expected_startdate,
+            expected_starttime,
+            expected_tz,
+            expected_freq,
+            **kwargs,
+        )
 
 
 def do_test_intersect_index(
@@ -200,17 +209,31 @@ def do_test_intersect_frame(
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,
+    ignore_freq: bool = False,
+    ignore_start_of_day: bool = False,
+    ignore_tz: bool = False,
+    **kwargs,
 ):
     frames = get_frames(idxs)
 
     # Error case.
     if type(expected_startdate) is type and issubclass(expected_startdate, Exception):
         with pytest.raises(expected_startdate):
-            tools.intersect.frames(*frames)
+            tools.intersect.frames(
+                *frames,
+                ignore_start_of_day=ignore_start_of_day,
+                ignore_tz=ignore_tz,
+                ignore_freq=ignore_freq,
+            )
         return
 
     # Normal case.
-    result_frames = tools.intersect.frames(*frames)
+    result_frames = tools.intersect.frames(
+        *frames,
+        ignore_freq=ignore_freq,
+        ignore_start_of_day=ignore_start_of_day,
+        ignore_tz=ignore_tz,
+    )
     expected_index = get_idx(
         expected_startdate, expected_starttime, expected_tz, expected_freq
     )
@@ -218,6 +241,6 @@ def do_test_intersect_frame(
 
     for result, expected in zip(result_frames, expected_frames):
         if isinstance(result, pd.Series):
-            testing.assert_series_equal(result, expected)
+            testing.assert_series_equal(result, expected, **kwargs)
         else:
-            testing.assert_frame_equal(result, expected)
+            testing.assert_frame_equal(result, expected, **kwargs)
