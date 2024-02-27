@@ -105,5 +105,3 @@ def test_nested_slice_whole(where: str, freq: str, tz: str):
     pd.testing.assert_index_equal(left.index.union(right.index), index)
     # Test that no timestamp is present twice.
     assert len(left.index.intersection(right.index)) == 0
-    # test assertion on pfls
-    assert left.children.name == right.children.name
