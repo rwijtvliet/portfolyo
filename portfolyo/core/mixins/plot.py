@@ -172,7 +172,7 @@ class PfLinePlot:
 
         return return_val
 
-    def get_children_with_colors(self: PfLine) -> List[Tuple(str, PfLine, vis.Color)]:
+    def get_children_with_colors(self: PfLine) -> List[Tuple[str, PfLine, vis.Color]]:
         # return a list of child columns with a color for each
         return [
             (name, child, color_enum.value.lighten(0.5))
@@ -212,52 +212,7 @@ class PfLinePlot:
 
 
 class PfStatePlot:
-    # def plot_to_ax(
-    #     self: PfState, ax: plt.Axes, line: str = "offtake", col: str = None, **kwargs
-    # ) -> None:
-    #     """Plot a timeseries of a PfState in the portfolio state to a specific axes.
-
-    #     Parameters
-    #     ----------
-    #     ax : plt.Axes
-    #         The axes object to which to plot the timeseries.
-    #     line : str, optional
-    #         The pfline to plot. One of {'offtake' (default), 'sourced', 'unsourced',
-    #         'netposition', 'procurement', 'sourcedfraction'}.
-    #     col : str, optional
-    #         The column to plot. Default: plot volume `w` [MW] (if available) or else
-    #         price `p` [Eur/MWh].
-    #     Any additional kwargs are passed to the pd.Series.plot function.
-    #     """
-    #     if line == "offtake":
-    #         how = DEFAULTHOW.get(col, "step")
-    #         (-self.offtake).plot_to_ax(ax, col, how)
-    #         ax.bar_label(
-    #             ax.containers[0], label_type="edge", fmt="%,.0f".replace(",", " ")
-    #         )
-
-    #     elif line.endswith("sourcedfraction"):  # (un)sourcedfraction
-    #         fractions = getattr(self, line)
-    #         vis.plot_timeseries(ax, fractions, how="bar", color="grey")
-    #         ax.bar_label(
-    #             ax.containers[0],
-    #             label_type="edge",
-    #             labels=fractions.apply("{:.0%}".format),
-    #         )  # print labels on top of each bar
-
-    #     elif line == "sourced":
-    #         self.sourced.plot_to_ax(
-    #             ax,
-    #             col,
-    #         )
-    #         if col == "p":
-
-    #             vis.plot_timeseries(ax, self.unsourcedprice["p"], how="bar", alpha=0.0)
-    #             ax.bar_label(
-    #                 ax.containers[0], label_type="center", fmt="%.2f"
-    #             )  # print labels on top of each bar
-
-    def plot(self: PfState) -> plt.Figure:
+    def plot(self: PfState, children: bool = False) -> plt.Figure:
         """Plot the portfolio state.
 
         Parameters
@@ -282,28 +237,56 @@ class PfStatePlot:
         # If freq is MS or longer: use categorical axes. Plot volumes in MWh.
         # If freq is D or shorter: use time axes. Plot volumes in MW.
         is_category = tools.freq.shortest(self.index.freq, "MS") == "MS"
-
+        so, ss, usv = (
+            -1 * self.offtakevolume,
+            self.sourced,
+            self.unsourced,
+        )
+        pr_kwargs = defaultkwargs("p", is_category)
         # Volumes.
         if is_category:
-            so, ss, usv = -1 * self.offtakevolume.q, self.sourced.q, self.unsourced.q
             kwargs = defaultkwargs("q", is_category)
+            value = "q"
         else:
-            so, ss, usv = -1 * self.offtakevolume.w, self.sourced.w, self.unsourced.w
             kwargs = defaultkwargs("w", is_category)
-        vis.plot_timeseries(axes[0], so, **kwargs)
-        vis.plot_timeseries(axes[1], ss, **kwargs)
+            value = "w"
+        so.plot_to_ax(axes[0], value, children=children, **kwargs)
+        ss.plot_to_ax(axes[1], value, children=children, **kwargs)
         # Unsourced volume.
-        vis.plot_timeseries(axes[2], usv, **kwargs)
-
+        usv.plot_to_ax(axes[2], value, **kwargs)
         # Procurement Price.
-        vis.plot_timeseries(axes[3], self.pnl_cost.p, **defaultkwargs("p", is_category))
-        # sourced price
-        vis.plot_timeseries(axes[4], self.sourced.p, **defaultkwargs("p", is_category))
-
-        # unsourced price
-        vis.plot_timeseries(
-            axes[5], self.unsourced.p, **defaultkwargs("p", is_category)
+        self.pnl_cost.plot_to_ax(
+            axes[3],
+            "p",
+            **pr_kwargs,
         )
+        self.sourced.plot_to_ax(
+            axes[4],
+            "p",
+            children=children,
+            **pr_kwargs,
+        )
+        # Unsourced price
+        self.unsourced.plot_to_ax(
+            axes[5],
+            "p",
+            **pr_kwargs,
+        )
+
+        # vis.plot_timeseries(axes[0], so, **kwargs)
+        # vis.plot_timeseries(axes[1], ss, **kwargs)
+        # # Unsourced volume.
+        # vis.plot_timeseries(axes[2], usv, **kwargs)
+
+        # # Procurement Price.
+        # vis.plot_timeseries(axes[3], self.pnl_cost.p, **defaultkwargs("p", is_category))
+        # # sourced price
+        # vis.plot_timeseries(axes[4], self.sourced.p, **defaultkwargs("p", is_category))
+
+        # # unsourced price
+        # vis.plot_timeseries(
+        #     axes[5], self.unsourced.p, **defaultkwargs("p", is_category)
+        # )
 
         # Empty.
 
