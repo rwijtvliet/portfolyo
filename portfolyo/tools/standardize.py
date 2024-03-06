@@ -8,6 +8,7 @@ import pandas as pd
 from pytz import AmbiguousTimeError, NonExistentTimeError
 
 from . import freq as tools_freq
+from . import right as tools_right
 from . import righttoleft as tools_righttoleft
 from . import tzone as tools_tzone
 
@@ -136,16 +137,8 @@ def frame(
     # Now the data has frequency set. It is tz-aware (possibly with wrong tz) or tz-agnostic.
 
     # Fix timezone.
-    if force == "aware":
-        fr = tools_tzone.force_aware(fr, tz, floating=floating)
-    elif force == "agnostic" or force == "naive":
-        fr = tools_tzone.force_agnostic(fr)
-    elif force is None:  # don't try to fix timezone.
-        pass
-    else:
-        raise ValueError(
-            f"Parameter ``force`` must be one of 'aware', 'agnostic'; got {force}."
-        )
+    if force is not None:
+        fr = _fix_timezone(fr, force, tz, floating)
 
     # Check if index is OK; otherwise raise error.
     try:
@@ -154,9 +147,21 @@ def frame(
         raise ValueError("Could not standardize this frame") from e
 
     # Standardize index name.
-    fr.index.name = "ts_left"
+    fr = _standardize_index_name(fr)
     # After standardizing timezone, the frequency should have been set.
     return tools_freq.set_to_frame(fr, freq_input, strict=force_freq)
+
+
+def _fix_timezone(fr, force, tz, floating):
+    if force == "aware":
+        return tools_tzone.force_aware(fr, tz, floating=floating)
+    elif force == "agnostic" or force == "naive":
+        return tools_tzone.force_agnostic(fr)
+    raise ValueError(f"Parameter ``force`` must be 'aware' or 'agnostic'; got {force}.")
+
+
+def _standardize_index_name(fr: Union[pd.Series, pd.DataFrame]):
+    return fr.rename_axis(index="ts_left")
 
 
 def assert_frame_standardized(fr: Union[pd.Series, pd.DataFrame]):
@@ -189,7 +194,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
         if i[0].minute != startminute:
             err = ("right-bound", "15 min past the") if __right else ("", "at a full")
             raise AssertionError(
-                f"An index with {err[0]} quarterhourly values must start {err[1]} hour; found {i[0]}."
+                f"The first element in an index with {err[0]} quarterhourly values must be {err[1]} hour; found {i[0]}."
             )
 
         if any(not_ok := [ts.minute not in (0, 15, 30, 45) for ts in i]):
@@ -205,7 +210,20 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
             )
 
     # Check time-of-day.
-    if tools_freq.up_or_down(freq, "D") >= 0:
+    if tools_freq.up_or_down(freq, "H") <= 0:  # hour or shorter
+        if not __right:
+            start = i[0]
+            end = tools_right.stamp(i[-1], i.freq)
+        else:
+            start = tools_righttoleft.index(i)[0]
+            end = i[-1]
+        if start.time != end.time:
+            raise AssertionError(
+                "An index must contain full days. If it has hourly-or-shorter values, this means "
+                f"that the start time of the first period ({start}) must equal the end time of the "
+                f"last period ({end}), which is not the case."
+            )
+    else:  # days or longer
         if not len(times := set(i.time)) == 1:
             raise AssertionError(
                 "In an index with daily-or-longer values, all timestamps (all periods) should"
