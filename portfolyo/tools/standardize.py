@@ -217,7 +217,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
         else:
             start = tools_righttoleft.index(i)[0]
             end = i[-1]
-        if start.time != end.time:
+        if start.time() != end.time():
             raise AssertionError(
                 "An index must contain full days. If it has hourly-or-shorter values, this means "
                 f"that the start time of the first period ({start}) must equal the end time of the "

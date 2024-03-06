@@ -18,7 +18,7 @@ i_less = pd.date_range("2020-01-15", freq="D", periods=60)
 s_less = dev.get_series(i_less, "")
 i_more = pd.date_range("2019-12-15", freq="D", periods=100)
 s_more = dev.get_series(i_more, "")
-i_difffreq = pd.date_range("2020", freq="H", periods=80)
+i_difffreq = pd.date_range("2020", freq="H", periods=24 * 5)
 s_difffreq = dev.get_series(i_difffreq, "")
 
 
