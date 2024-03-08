@@ -56,7 +56,7 @@ def get_index(
 def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:
     """Shorten index with (quarter)hourly values if necessary to ensure that an integer
     number of calendar days is included."""
-    if (i[-1] - i[0]).total_seconds() < 24 * 3600:
+    if (i[-1] - i[0]).total_seconds() < 23 * 3600:
         raise ValueError("Index must contain at least one full day")
     # Must ensure that index is integer number of days.
     for _ in range(0, 100):  # max 100 quarterhours in a day (@ end of DST)
