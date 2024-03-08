@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING, Dict, List, Tuple
 
 import matplotlib
 import numpy as np
-import itertools
 from matplotlib import pyplot as plt
 
 from ... import tools
@@ -174,12 +173,24 @@ class PfLinePlot:
 
     def get_children_with_colors(self: PfLine) -> List[Tuple[str, PfLine, vis.Color]]:
         # return a list of child columns with a color for each
+        # return [
+        #     (name, child, color_enum.value.lighten(0.5))
+        #     for (name, child), color_enum in zip(
+        #         self.items(), itertools.cycle(vis.Colors.General)
+        #     )
+        # ]
         return [
-            (name, child, color_enum.value.lighten(0.5))
-            for (name, child), color_enum in zip(
-                self.items(), itertools.cycle(vis.Colors.General)
-            )
+            (name, child, self.hash_and_map_to_color(name))
+            for (name, child) in self.items()
         ]
+
+    def hash_and_map_to_color(self: PfLine, name: str) -> vis.Color:
+        # Use a hash function to hash the name
+        hashed_value = hash(name)
+        # Calculate the index in the General colors enum based on the hashed value
+        index = hashed_value % len(vis.Colors.General)
+        # Return the color associated with the index
+        return list(vis.Colors.General)[index].value
 
     def plot_children(self: PfLine, col: str, ax: plt.Axes, is_category: bool) -> None:
         """Plot children of the PfLine to the same ax as parent.
@@ -272,24 +283,6 @@ class PfStatePlot:
             "p",
             **pr_kwargs,
         )
-
-        # vis.plot_timeseries(axes[0], so, **kwargs)
-        # vis.plot_timeseries(axes[1], ss, **kwargs)
-        # # Unsourced volume.
-        # vis.plot_timeseries(axes[2], usv, **kwargs)
-
-        # # Procurement Price.
-        # vis.plot_timeseries(axes[3], self.pnl_cost.p, **defaultkwargs("p", is_category))
-        # # sourced price
-        # vis.plot_timeseries(axes[4], self.sourced.p, **defaultkwargs("p", is_category))
-
-        # # unsourced price
-        # vis.plot_timeseries(
-        #     axes[5], self.unsourced.p, **defaultkwargs("p", is_category)
-        # )
-
-        # Empty.
-
         # Set titles.
         axes[0].set_title("Offtake volume")
         axes[1].set_title("Sourced volume")
