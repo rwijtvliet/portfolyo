@@ -142,7 +142,7 @@ class PfLinePlot:
 
                 self.plot_children(col, ax, is_category)
                 ax.legend()
-            kwargs["alpha"] = 0.5
+            kwargs["alpha"] = 0.8
             s = getattr(self, col)
             vis.plot_timeseries(ax, s, **kwargs)
 
@@ -172,13 +172,6 @@ class PfLinePlot:
         return return_val
 
     def get_children_with_colors(self: PfLine) -> List[Tuple[str, PfLine, vis.Color]]:
-        # return a list of child columns with a color for each
-        # return [
-        #     (name, child, color_enum.value.lighten(0.5))
-        #     for (name, child), color_enum in zip(
-        #         self.items(), itertools.cycle(vis.Colors.General)
-        #     )
-        # ]
         return [
             (name, child, self.hash_and_map_to_color(name))
             for (name, child) in self.items()
@@ -218,6 +211,8 @@ class PfLinePlot:
             colors.append(color)
             if is_stacked_type:
                 kwargs["bottom"] = offsets[name]
+                kwargs["hatch"] = ".."
+                kwargs["alpha"] = 0.7
 
             vis.plot_timeseries(ax, getattr(child, col), **kwargs)
 
