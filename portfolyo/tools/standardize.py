@@ -19,9 +19,8 @@ def frame(
     force: str = None,
     bound: str = "left",
     *,
-    tz: str = "Europe/Berlin",
+    tz: str = None,
     floating: bool = True,
-    index_col: str = None,
     force_freq: str = None,
 ) -> Union[pd.Series, pd.DataFrame]:
     """Standardize a series or dataframe.
@@ -41,12 +40,9 @@ def frame(
         If ``force`` == 'aware': how to convert to ``tz`` if ``fr`` has other timezone.
         Keep local time (``floating`` == True) or keep universal time (``floating`` ==
         False). Ignored if ``force`` == 'agnostic' or None.
-    index_col : str, optional
-        Column to create the timestamp from. Use existing index if none specified.
-        Ignored if ``fr`` is not a DataFrame.
-    force_freq : str, optional
+    force_freq : str, optional (default: None)
         If a frequency cannot be inferred from the data (e.g. due to gaps), it is
-        resampled at this frequency. Default: raise Exception.
+        resampled at this frequency and the gaps are filled with NaN-values.
 
     Returns
     -------
@@ -68,11 +64,7 @@ def frame(
     kwargs = {"tz": tz, "floating": floating, "force_freq": force_freq}
 
     # Set index.
-    if index_col and isinstance(fr, pd.DataFrame):
-        fr = fr.set_index(index_col)
-    else:
-        fr = fr.copy()  # don't change passed-in fr
-    fr.index = pd.DatetimeIndex(fr.index)  # turn / try to turn into datetime
+    fr = fr.set_axis(pd.DatetimeIndex(fr.index))  # turn / try to turn into datetime
 
     # We want to cover 2 additional cases for convenience sake:
     # a. The user passes a frame that still needs to be localized (--> freq unknown)
@@ -86,14 +78,7 @@ def frame(
     # The data may be right-bound.
 
     if bound == "right":  # right -> left
-        for how in ["A", "B"]:
-            try:
-                fr_left = fr.set_axis(tools_righttoleft.index(fr.index, how))
-                return frame(fr_left, force, "left", **kwargs)
-            except ValueError as e:
-                if how == "B":
-                    raise ValueError("Cannot make this frame left-bound.") from e
-                pass
+        return _fix_rightbound(fr, {**kwargs, "force": force})
 
     # Now the data is left-bound.
     # If the frequency is not found, and it is tz-naive, the index may need to be localized.
@@ -114,8 +99,9 @@ def frame(
 
     if not freq_input and force_freq:
         # No freq has been found, but user specifies which freq it should be.
-        fr_withfreq = fr.asfreq(force_freq)
-        return frame(fr_withfreq, force, "left", tz=tz, floating=floating)
+        return _fix_forcefreq(
+            fr, force_freq, {"tz": tz, "floating": floating, "force": force}
+        )
 
     elif not freq_input and not force_freq:
         # No freq has been bound, and user specifies no freq either.
@@ -150,6 +136,22 @@ def frame(
     fr = _standardize_index_name(fr)
     # After standardizing timezone, the frequency should have been set.
     return tools_freq.set_to_frame(fr, freq_input, strict=force_freq)
+
+
+def _fix_rightbound(fr, kwargs):
+    for how in ["A", "B"]:
+        try:
+            i_left = tools_righttoleft.index(fr.index, how)
+            fr_left = fr.set_axis(i_left)
+            return frame(fr_left, bound="left", **kwargs)
+        except ValueError:
+            pass
+    raise ValueError("Cannot make this frame left-bound.")
+
+
+def _fix_forcefreq(fr, force_freq, kwargs):
+    fr_withfreq = fr.asfreq(force_freq)
+    return frame(fr_withfreq, bound="left", **kwargs)
 
 
 def _fix_timezone(fr, force, tz, floating):
@@ -219,7 +221,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
             end = i[-1]
         if start.time() != end.time():
             raise AssertionError(
-                "An index must contain full days. If it has hourly-or-shorter values, this means "
+                "An index must contain full days. For hourly-or-shorter values, this means "
                 f"that the start time of the first period ({start}) must equal the end time of the "
                 f"last period ({end}), which is not the case."
             )
