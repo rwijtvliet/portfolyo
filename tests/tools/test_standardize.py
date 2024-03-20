@@ -65,26 +65,25 @@ def test_standardize_DST(
     if bound == "right":
         td = pd.Timedelta(hours=24 if freq == "D" else 0.25)
         iin = pd.DatetimeIndex([*iin[1:], iin[-1] + td])
-    kw = {"bound": bound, "floating": False, "tz": out_tz}
+    kw = {"floating": False, "tz": out_tz}
 
     # Do actual tests.
     if isinstance(expected, pd.Series):
         # 1: Using expected frame: should stay the same.
-        result = tools.standardize.frame(expected, force)
+        result = tools.standardize.frame(expected, force, **kw)
         pd.testing.assert_series_equal(result, expected)
         # 2: Series.
-        result = tools.standardize.frame(pd.Series(in_vals, iin), force, **kw)
+        result = tools.standardize.frame(
+            pd.Series(in_vals, iin), force, bound=bound, **kw
+        )
         pd.testing.assert_series_equal(result, expected)
     else:
         # 1: Using expected frame: should stay the same.
-        result = tools.standardize.frame(expected, force)
+        result = tools.standardize.frame(expected, force, **kw)
         pd.testing.assert_frame_equal(result, expected)
-        # 2: Dataframe with index.
-        result = tools.standardize.frame(pd.DataFrame({"a": in_vals}, iin), force, **kw)
-        pd.testing.assert_frame_equal(result, expected)
-        # 3: Dataframe with column that must become index.
+        # 2: Dataframe.
         result = tools.standardize.frame(
-            pd.DataFrame({"a": in_vals, "t": iin}), force, index_col="t", **kw
+            pd.DataFrame({"a": in_vals}, iin), force, bound=bound, **kw
         )
         pd.testing.assert_frame_equal(result, expected)
 
@@ -161,11 +160,10 @@ def test_standardize_freq(freq, in_tz, floating, series_or_df, force):
 
 
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("remove", ["remove", "none"])
+@pytest.mark.parametrize("remove", ["remove_some", "remove_none"])
 @pytest.mark.parametrize("in_tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("freq", tools.freq.FREQUENCIES)
-@pytest.mark.parametrize("force_freq", [*tools.freq.FREQUENCIES, "M", "AS-FEB", None])
-def test_standardize_gaps(freq, in_tz, remove, series_or_df, force_freq):
+def test_standardize_gaps(freq, in_tz, remove, series_or_df):
     """Test raising errors on index with gaps. Don't test timezone-conversion."""
     force = "agnostic" if in_tz is None else "aware"
     out_tz = in_tz
@@ -174,7 +172,7 @@ def test_standardize_gaps(freq, in_tz, remove, series_or_df, force_freq):
     i = dev.get_index(freq, in_tz, _seed=1)
 
     # remove timestamp from middle of index.
-    if remove == "remove":
+    if remove == "remove_some":
         i = i.delete((len(i) - 2) // 2)
 
     # Add values.
@@ -183,18 +181,13 @@ def test_standardize_gaps(freq, in_tz, remove, series_or_df, force_freq):
     # See if error is raised.
     if (
         # fr has frequency, but it's a forbidden frequency
-        (remove == "none" and freq not in tools.freq.FREQUENCIES)
-        # fr has frequency, but user wants to force a different frequency
-        or (remove == "none" and freq != force_freq and force_freq is not None)
-        # fr does not have frequency, and user does not specify a forced frequency
-        or (remove == "remove" and not force_freq)
-        # user wants to force a frequency, but it's a forbidden frequency
-        or (force_freq is not None and force_freq not in tools.freq.FREQUENCIES)
+        (remove == "remove_none" and freq not in tools.freq.FREQUENCIES)
+        # fr does not have frequency
+        or (remove == "remove_some")
     ):
         with pytest.raises(ValueError):
-            _ = tools.standardize.frame(fr, force, tz=out_tz, force_freq=force_freq)
+            _ = tools.standardize.frame(fr, force, tz=out_tz)
         return
 
-    result = tools.standardize.frame(fr, force, tz=out_tz, force_freq=force_freq)
-    expected_freq = force_freq or freq
-    assert result.index.freq == expected_freq
+    result = tools.standardize.frame(fr, force, tz=out_tz)
+    assert result.index.freq == freq
