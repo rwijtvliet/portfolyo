@@ -64,4 +64,4 @@ def plot_pfline_to_ax(value: str, how: str, children: int = 1):
     plt.show()
 
 
-plot_pfline_to_ax("w", "area", 4)
+plot_pfline_to_ax("q", "bar", 4)

@@ -10,7 +10,7 @@ from portfolyo.core.pfstate.pfstate import PfState
 
 
 index = pd.date_range(
-    "2022-01-01", "2022-02-01", freq="D", tz="Europe/Berlin", inclusive="left"
+    "2022-06-01", "2024-02-01", freq="D", tz="Europe/Berlin", inclusive="left"
 )
 pfs = pf.dev.get_pfstate(index)
 pfs2 = pfs.asfreq("MS")
@@ -27,5 +27,5 @@ print(offtakevolume2)
 
 # pfl2.print()
 
-pfs3.plot(children=True)
+pfs2.plot(children=False)
 plt.show()

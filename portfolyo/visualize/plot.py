@@ -128,15 +128,9 @@ def plot_timeseries_as_area(
     splot = s.copy()  # modified with additional (repeated) datapoint
     splot[splot.index.right[-1]] = splot.values[-1]
 
-    if "bottom" in kwargs:
-        bottom = kwargs["bottom"]
-        bottom.append(bottom[-1])
-        del kwargs["bottom"]
-    else:
-        bottom = [0.0 for i in range(0, splot.size)]
+    bottom = [0.0 for i in range(0, splot.size)]
     # make bottom into pintarray
     bottom = bottom * splot.values[0].units
-    # bottom = bottom * splot.pint.units
 
     ax.fill_between(
         splot.index,
@@ -166,7 +160,7 @@ def plot_timeseries_as_step(
     splot = s.copy()  # modified with additional (repeated) datapoint
     splot[splot.index.right[-1]] = splot.values[-1]
 
-    ax.step(splot.index, splot.values, where="post", **kwargs)
+    ax.step(splot.index, splot.values, where="mid", **kwargs)
     delta = s.index.right - s.index
     set_data_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
     ax.autoscale()
@@ -186,7 +180,7 @@ def plot_timeseries_as_hline(
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
     categories = Categories(s)
     # Center around x-tick:
-    ax.hlines(categories.y(), categories.x() - 0.5, categories.x() + 0.5, **kwargs)
+    ax.hlines(categories.y(), categories.x() - 0.4, categories.x() + 0.4, **kwargs)
     ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
     set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
     ax.autoscale()

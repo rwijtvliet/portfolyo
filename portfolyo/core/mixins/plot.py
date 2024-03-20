@@ -4,6 +4,7 @@ Module with mixins, to add 'plot-functionality' to PfLine and PfState classes.
 
 from __future__ import annotations
 
+import hashlib
 from typing import TYPE_CHECKING, Dict, List, Tuple
 
 import matplotlib
@@ -32,7 +33,7 @@ def defaultkwargs(col: str, is_cat: bool):
     """Styling and type of graph, depending on column ``col`` and whether or not the x-axis
     is a category axis (``is_cat``)."""
     kwargs = {}
-    kwargs["alpha"] = 0.8
+    kwargs["alpha"] = 0.7
     # Add defaults for each column.
     kwargs["color"] = getattr(vis.Colors.Wqpr, col, "grey")
     kwargs["labelfmt"] = DEFAULTFMT.get(col, "{:.2f}")
@@ -78,13 +79,6 @@ class PfLinePlot:
         if children:
             # Plot on category axis if freq monthly or longer, else on time axis.
             is_category = tools.freq.shortest(self.index.freq, "MS") == "MS"
-            # adjust kwargs for parent if plotting children
-            if how == "bar":
-                kwargs["color"] = "none"
-                kwargs["edgecolor"] = "seagreen"
-                kwargs["linewidth"] = 2
-            if how == "area":
-                how = "step"
 
             self.plot_children(col, ax, is_category)
             ax.legend()
@@ -132,44 +126,12 @@ class PfLinePlot:
             kwargs = defaultkwargs(col, is_category)
 
             if children:
-                # adjust kwargs for parent if plotting children
-                if kwargs["how"] == "bar":
-                    kwargs["color"] = "none"
-                    kwargs["edgecolor"] = "seagreen"
-                    kwargs["linewidth"] = 2
-                if kwargs["how"] == "area":
-                    kwargs["how"] = "step"
-
                 self.plot_children(col, ax, is_category)
                 ax.legend()
-            kwargs["alpha"] = 0.8
             s = getattr(self, col)
             vis.plot_timeseries(ax, s, **kwargs)
 
         return fig
-
-    def get_stacked_offsets(self: PfLine, col: str) -> Dict[str, List[List[float]]]:
-        # Calculates offset for each child based on the height of the previous child
-        # It disdinguishes between postive and negative offsets
-        # Saves values of offsets in 2 dimmensional array: for positive and negative offsets
-        return_val = {}
-
-        bottom_offset = [[0.0, 0.0] for i in range(0, self.index.size)]
-        for name, child in self.items():
-            bar_heights = getattr(child, col)
-            offsets = [0.0 for i in range(0, self.index.size)]
-            for i in range(0, len(bar_heights)):
-                obj = bar_heights[i]
-                if obj.magnitude > 0:
-                    offsets[i] = bottom_offset[i][0]
-                    bottom_offset[i][0] += obj.magnitude
-                else:
-                    offsets[i] = bottom_offset[i][1]
-                    bottom_offset[i][1] += obj.magnitude
-
-            return_val[name] = offsets
-
-        return return_val
 
     def get_children_with_colors(self: PfLine) -> List[Tuple[str, PfLine, vis.Color]]:
         return [
@@ -178,10 +140,12 @@ class PfLinePlot:
         ]
 
     def hash_and_map_to_color(self: PfLine, name: str) -> vis.Color:
-        # Use a hash function to hash the name
-        hashed_value = hash(name)
+        # Use SHA-256 to hash the name
+        hashed_value = hashlib.sha256(name.encode()).hexdigest()
+        # Convert the hashed value to an integer
+        hashed_int = int(hashed_value, 16)
         # Calculate the index in the General colors enum based on the hashed value
-        index = hashed_value % len(vis.Colors.General)
+        index = hashed_int % len(vis.Colors.General)
         # Return the color associated with the index
         return list(vis.Colors.General)[index].value
 
@@ -200,19 +164,19 @@ class PfLinePlot:
         """
         kwargs = defaultkwargs(col, is_category)
         kwargs["labelfmt"] = ""
-        is_stacked_type = kwargs["how"] == "bar" or kwargs["how"] == "area"
+        kwargs["alpha"] = 0.9
+        # is_stacked_type = kwargs["how"] == "bar" or kwargs["how"] == "area"
 
-        if is_stacked_type:
-            offsets = self.get_stacked_offsets(col)
         colors = []
         for name, child, color in self.get_children_with_colors():
             kwargs["color"] = color
             kwargs["label"] = name
+            print("Color of child", name, "is:", color)
             colors.append(color)
-            if is_stacked_type:
-                kwargs["bottom"] = offsets[name]
-                kwargs["hatch"] = ".."
-                kwargs["alpha"] = 0.7
+            if kwargs["how"] == "bar":
+                kwargs["how"] = "hline"
+            elif kwargs["how"] == "area":
+                kwargs["how"] = "step"
 
             vis.plot_timeseries(ax, getattr(child, col), **kwargs)
 
@@ -297,8 +261,10 @@ class PfStatePlot:
         # Set ticks.
         axes[0].xaxis.set_tick_params(labeltop=False, labelbottom=True)
         axes[1].xaxis.set_tick_params(labeltop=False, labelbottom=True)
-        axes[2].xaxis.set_tick_params(labeltop=False, labelbottom=False)
+        axes[2].xaxis.set_tick_params(labeltop=False, labelbottom=True)
         axes[3].xaxis.set_tick_params(labeltop=False, labelbottom=False)
+        axes[4].xaxis.set_tick_params(labeltop=False, labelbottom=False)
+        axes[5].xaxis.set_tick_params(labeltop=False, labelbottom=False)
 
         fig.tight_layout()
         return fig
