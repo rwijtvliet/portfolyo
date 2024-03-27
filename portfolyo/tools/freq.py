@@ -230,7 +230,7 @@ def set_to_index(
     Parameters
     ----------
     i : pd.DatetimeIndex
-    wanted : str, optional
+    wanted : str, optional (default: None)
         Frequency to set. If none provided, try to infer.
     strict : bool, optional (default: False)
         If True, raise ValueError if a valid frequency is not found.
@@ -293,6 +293,5 @@ def set_to_frame(
             "The data does not have a datetime index and can therefore not have a frequency."
         )
 
-    fr = fr.copy()
-    fr.index = set_to_index(fr.index, wanted, strict)
-    return fr
+    i = set_to_index(fr.index, wanted, strict)
+    return fr.set_axis(i, axis=0)

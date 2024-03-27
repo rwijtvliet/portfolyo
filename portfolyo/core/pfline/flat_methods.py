@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from portfolyo import tools
+
 from ... import testing
 import pandas as pd
 
@@ -45,6 +47,13 @@ class LocIndexer:
 
     def __getitem__(self, arg) -> FlatPfLine:
         newdf = self.pfl.df.loc[arg]
+        try:
+            tools.standardize.assert_frame_standardized(newdf)
+        except AssertionError as e:
+            raise ValueError(
+                "Timeseries not in expected form. See ``portfolyo.standardize()`` for more information."
+            ) from e
+
         return self.pfl.__class__(newdf)  # use same (leaf) class
 
 
@@ -63,4 +72,10 @@ class SliceIndexer:
             mask &= self.pfl.index < arg.stop
 
         newdf = self.pfl.df.loc[mask]
+        try:
+            tools.standardize.assert_frame_standardized(newdf)
+        except AssertionError as e:
+            raise ValueError(
+                "Timeseries not in expected form. See ``portfolyo.standardize()`` for more information."
+            ) from e
         return self.pfl.__class__(newdf)  # use same (leaf) class

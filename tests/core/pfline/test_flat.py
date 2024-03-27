@@ -107,13 +107,13 @@ def test_flatpfline_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
 def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
     """Test if changing frequency is done correctly (when it's possible)."""
 
-    # Includes at 2 full years
+    # Includes at least 2 full years
     a, m, d = np.array([2016, 1, 1]) + np.random.randint(0, 12, 3)  # each + 0..11
     start = f"{a}-{m}-{d}"
     a, (m, d) = a + 3, np.array([1, 1]) + np.random.randint(0, 12, 2)  # each + 0..11
     end = f"{a}-{m}-{d}"
 
-    i = pd.date_range(start, end, freq=freq, tz=tz)
+    i = pd.date_range(start, end, freq=freq, inclusive="left", tz=tz)
     df = dev.get_dataframe(i, columns)
     pfl1 = create.flatpfline(df)
     pfl2 = pfl1.asfreq(newfreq)
@@ -143,8 +143,9 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
 def test_flatpfline_asfreqimpossible(freq, newfreq, kind):
     """Test if changing frequency raises error if it's impossible."""
 
-    periods = {"H": 200, "15T": 2000, "D": 20}[freq]
-    i = pd.date_range("2020-04-06", freq=freq, periods=periods, tz="Europe/Berlin")
+    i = pd.date_range(
+        "2020-04-06", "2020-04-16", freq=freq, inclusive="left", tz="Europe/Berlin"
+    )
     pfl = dev.get_flatpfline(i, kind)
     with pytest.raises(ValueError):
         _ = pfl.asfreq(newfreq)
