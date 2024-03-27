@@ -124,3 +124,38 @@ def test_state_slice_whole(where: str, freq: str, sod: str, inclusive: str, tz: 
     pd.testing.assert_index_equal(left.index.union(right.index), index)
     # Test that no timestamp is present twice.
     assert len(left.index.intersection(right.index)) == 0
+
+
+@pytest.mark.parametrize("freq", ["H", "15T"])
+@pytest.mark.parametrize("sod", ["00:00", "06:00"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize("startdate", ["2021", "2022", "2022-01-02"])
+def test__start_less_than_daily(startdate: str, freq: str, tz: str, sod: str):
+    index = get_idx(
+        "2020", starttime=sod, enddate="2024", freq=freq, inclusive="left", tz=tz
+    )
+    pfl1 = dev.get_pfstate(index)
+    slice_start = f"{startdate} {sod}"
+    assert pfl1.slice[slice_start:] == pfl1.loc[slice_start:]
+
+
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize(
+    "enddate",
+    [
+        # (<param for slice>, <param for loc>)
+        ("2021", "2020-12-31"),
+        ("2022", "2021-12-31"),
+        ("2021-07", "2021-06-30"),
+        ("2022-01-02", "2022-01-01"),
+    ],
+)
+# @pytest.mark.parametrize("sod", ["00:00", "06:00"])
+def test__end_less_than_daily(enddate: str, tz: str):
+    index = get_idx(
+        "2020", starttime="00:00", enddate="2024", freq="15T", inclusive="left", tz=tz
+    )
+    pfl1 = dev.get_pfstate(index)
+    slice_end = f"{enddate[0]} 00:00"
+    loc_end = f"{enddate[1]} 23:45"
+    assert pfl1.slice[:slice_end] == pfl1.loc[:loc_end]

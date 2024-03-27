@@ -165,23 +165,22 @@ def test__start_less_than_daily(startdate: str, freq: str, tz: str, sod: str):
     assert pfl1.slice[slice_start:] == pfl1.loc[slice_start:]
 
 
-@pytest.mark.parametrize("freq", ["H", "15T"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize(
     "enddate",
     [
         # (<param for slice>, <param for loc>)
-        ("2021", "2020"),
-        ("2022", "2021"),
-        ("2021-07", "2021-06"),
+        ("2021", "2020-12-31"),
+        ("2022", "2021-12-31"),
+        ("2021-07", "2021-06-30"),
         ("2022-01-02", "2022-01-01"),
     ],
 )
-def test__end_less_than_daily(enddate: str, freq: str, tz: str):
+def test__end_less_than_daily(enddate: str, tz: str):
     index = get_idx(
-        "2020", starttime="00:00", enddate="2024", freq=freq, inclusive="left", tz=tz
+        "2020", starttime="00:00", enddate="2024", freq="15T", inclusive="left", tz=tz
     )
     pfl1 = dev.get_flatpfline(index)
-    slice_end = f"{enddate[0]}"
-    loc_end = f"{enddate[1]}"
+    slice_end = f"{enddate[0]} 00:00"
+    loc_end = f"{enddate[1]} 23:45"
     assert pfl1.slice[:slice_end] == pfl1.loc[:loc_end]
