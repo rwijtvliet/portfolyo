@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>portfolyo :: Dimensions and Units</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="../_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="../genindex.html"/>
+
+  <link rel="stylesheet" href="../_static/css/insegel.css"/>
+  <link rel="stylesheet" href="../_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="../_static/sphinx_highlight.js"></script>
+      <script type="text/javascript" src="../https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>portfolyo</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="dimensions-and-units">
+<h1>Dimensions and Units<a class="headerlink" href="#dimensions-and-units" title="Link to this heading">¶</a></h1>
+<p>We are usually dealing with data that has a certain physical dimension, which determines what kind of information it is and which are valid units. For example, if we are dealing with energy (i.e., “capacity to perform work”), some valid units are Joule, Megawatt-hour, calorie, and BTU.</p>
+<nav class="contents local" id="page-contents">
+<p class="topic-title">Page contents:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#abbreviations" id="id1">Abbreviations</a></p></li>
+<li><p><a class="reference internal" href="#missing-or-non-default-units" id="id2">Missing or non-default units</a></p></li>
+<li><p><a class="reference internal" href="#other-naming-conventions" id="id3">Other naming conventions</a></p></li>
+</ul>
+</nav>
+<section id="abbreviations">
+<h2><a class="toc-backref" href="#id1" role="doc-backlink">Abbreviations</a><a class="headerlink" href="#abbreviations" title="Link to this heading">¶</a></h2>
+<p>In <code class="docutils literal notranslate"><span class="pre">portfolyo</span></code>, a convention is used for the abbreviation the most relevant dimensions, as well as their default units.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Abbreviation</p></th>
+<th class="head"><p>Dimension</p></th>
+<th class="head"><p>Default unit</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">w</span></code></p></td>
+<td><p>Power (energy per duration)</p></td>
+<td><p>Megawatt [MW]</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">q</span></code></p></td>
+<td><p>Energy (power times duration)</p></td>
+<td><p>Megawatt-hour [MWh]</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">p</span></code></p></td>
+<td><p>Price (revenue per energy)</p></td>
+<td><p>Euro per Megawatt-hour [Eur/MWh]</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">r</span></code></p></td>
+<td><p>Revenue  (or any other
+absolute monetary value)</p></td>
+<td><p>Euro [Eur]</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">duration</span></code></p></td>
+<td><p>Duration (of a delivery period)</p></td>
+<td><p>hours [h]</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">nodim</span></code></p></td>
+<td><p>dimensionless</p></td>
+<td><p>none</p></td>
+</tr>
+</tbody>
+</table>
+<p>Remarks:</p>
+<ul class="simple">
+<li><p>Concerning “Power”: not to be confused with power as a synonym for electricity.</p></li>
+<li><p>Concerning “Revenue”: Unfortunately, there is no perfect word here. We cannot universally use “cost” or “income”, as it depends on the situation, which one applies. “Value” is too vague, and “monetary value” too long.</p></li>
+</ul>
+</section>
+<section id="missing-or-non-default-units">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">Missing or non-default units</a><a class="headerlink" href="#missing-or-non-default-units" title="Link to this heading">¶</a></h2>
+<p>Using <code class="docutils literal notranslate"><span class="pre">pint</span></code>, a user can specify not only the magnitude of a value (or Series or DataFrame), but also its <em>units</em>. For more information on how this is handled, see <a class="reference internal" href="../core/interoperability.html#nameunitcompatibility"><span class="std std-ref">here</span></a>.</p>
+<p>In short:</p>
+<ul class="simple">
+<li><p>If both an abbreviation and a unit are specified, they should be compatible.</p></li>
+<li><p>If a unit is specified, the values are automatically converted to the default unit.</p></li>
+<li><p>If no abbreviation is specified, the unit is used to deduce it (using the table above).</p></li>
+</ul>
+</section>
+<section id="other-naming-conventions">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Other naming conventions</a><a class="headerlink" href="#other-naming-conventions" title="Link to this heading">¶</a></h2>
+<p>“volume” and “quantity” are often used to indicate either power or energy without having to specify, which one. In most situations, it is clear from context which delivery period is meant, so knowing one, we can calculate the other. E.g. 100 MW in January means 74 400 MWh.</p>
+</section>
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Core functionality</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/objects.html">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/pfline.html">PfLine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/pfstate.html">PfState</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/interoperability.html">Interoperability</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part1.html">Tutorial part 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part2.html">Tutorial part 2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part3.html">Tutorial part 3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part4.html">Tutorial part 4</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Specialized topics</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="dataprep.html">Preprocessing input data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timezones.html">Timezones</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Dimensions and Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resampling.html">Resampling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Full reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../full_reference.html">Full reference</a></li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="../_sources/specialized_topics/dimensions.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; Ruud Wijtvliet
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

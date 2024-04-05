@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>portfolyo :: Objects</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="../_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="../genindex.html"/>
+
+  <link rel="stylesheet" href="../_static/css/insegel.css"/>
+  <link rel="stylesheet" href="../_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="../_static/sphinx_highlight.js"></script>
+      <script type="text/javascript" src="../https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>portfolyo</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="objects">
+<h1>Objects<a class="headerlink" href="#objects" title="Link to this heading">¶</a></h1>
+<p>The objects at the center of the library are <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> and <code class="docutils literal notranslate"><span class="pre">PfState</span></code>.</p>
+<section id="pfline">
+<h2>PfLine<a class="headerlink" href="#pfline" title="Link to this heading">¶</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> object stores a timeseries containing volume information, price information, or both.</p>
+<p>For example:</p>
+<ul class="simple">
+<li><p>The gas forward price curve for a certain market area, in daily resolution, for tomorrow until the end of the frontyear+4. This <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> only contains price information with e.g. a unit of Eur/MWh.</p></li>
+<li><p>The expected offtake volume of a certain portfolio, for the coming calender year, in quarterhourly resolution. This is a <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> that only contains volume information. The volume in each timestamp can be retrieved by the user in units of energy (e.g., MWh) or in units of power (e.g., MW).</p></li>
+<li><p>The sourced volume of the same portfolio, again for the coming calender year but in monthly resolution. This is a <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> that, for each timestamp, contains a volume (the contracted volume, both as energy and as power), a price (for which the volume was contracted) and a revenue (in Eur, being the multiplication of the energy and the price).</p></li>
+</ul>
+<p>More information can be found here: <a class="reference internal" href="pfline.html"><span class="doc">PfLine</span></a>.</p>
+</section>
+<section id="pfstate">
+<h2>PfState<a class="headerlink" href="#pfstate" title="Link to this heading">¶</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">PfState</span></code> object stores several <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> objects that all relate to the same portfolio. It stores information about the offtake in the portfolio; how much volume has currently been sourced and at what price; how much volume is consequently still unsourced and what is its current market price; what is the current best-guess for the procurement price of the portfolio (i.e., combining sourced and unsourced volumes to satisfy offtake), etc.</p>
+<p>More information can be found here: <a class="reference internal" href="pfstate.html"><span class="doc">PfState</span></a>.</p>
+</section>
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Core functionality</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pfline.html">PfLine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pfstate.html">PfState</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interoperability.html">Interoperability</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part1.html">Tutorial part 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part2.html">Tutorial part 2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part3.html">Tutorial part 3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part4.html">Tutorial part 4</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Specialized topics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/dataprep.html">Preprocessing input data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/timezones.html">Timezones</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/dimensions.html">Dimensions and Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/indices.html">Indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/resampling.html">Resampling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Full reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../full_reference.html">Full reference</a></li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="../_sources/core/objects.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; Ruud Wijtvliet
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

@@ -17,7 +17,7 @@ build:
       - poetry install --with docs
 
 sphinx:
-  configuration: docs/conf.py
+  configuration: poetry run docs/conf.py
 
 submodules:
   include: all

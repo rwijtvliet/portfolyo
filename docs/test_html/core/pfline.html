@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>portfolyo :: PfLine</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="../_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="../genindex.html"/>
+
+  <link rel="stylesheet" href="../_static/css/insegel.css"/>
+  <link rel="stylesheet" href="../_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="../_static/sphinx_highlight.js"></script>
+      <script type="text/javascript" src="../https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>portfolyo</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="pfline">
+<h1>PfLine<a class="headerlink" href="#pfline" title="Link to this heading">¶</a></h1>
+<p>The basic building block of the <code class="docutils literal notranslate"><span class="pre">portfolyo</span></code> package is the “portfolio line” (<code class="docutils literal notranslate"><span class="pre">PfLine</span></code>). Instances of this class store a timeseries containing volume information, price information, or both. This page discusses their most important properties, and how to use them.</p>
+<p>For a tutorial, <a class="reference internal" href="../tutorial/index.html"><span class="doc">see here</span></a>.</p>
+<p>It is assumed that you are familiar with the following dimension abbrevations: <code class="docutils literal notranslate"><span class="pre">w</span></code> for power, <code class="docutils literal notranslate"><span class="pre">q</span></code> for energy, <code class="docutils literal notranslate"><span class="pre">p</span></code> for price, and <code class="docutils literal notranslate"><span class="pre">r</span></code> for revenue; see <a class="reference internal" href="../specialized_topics/dimensions.html"><span class="doc">this page for more information</span></a>.</p>
+<nav class="contents local" id="page-contents">
+<p class="topic-title">Page contents:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#kind" id="id4">Kind</a></p></li>
+<li><p><a class="reference internal" href="#initialisation" id="id5">Initialisation</a></p></li>
+<li><p><a class="reference internal" href="#flat-or-nested" id="id6">Flat or Nested</a></p></li>
+<li><p><a class="reference internal" href="#accessing-data" id="id7">Accessing data</a></p></li>
+<li><p><a class="reference internal" href="#plotting-excel-clipboard" id="id8">Plotting / Excel / Clipboard</a></p></li>
+<li><p><a class="reference internal" href="#resampling" id="id9">Resampling</a></p></li>
+<li><p><a class="reference internal" href="#arithmatic" id="id10">Arithmatic</a></p></li>
+<li><p><a class="reference internal" href="#set-timeseries" id="id11">Set timeseries</a></p></li>
+<li><p><a class="reference internal" href="#hedging" id="id12">Hedging</a></p></li>
+<li><p><a class="reference internal" href="#peak-and-offpeak" id="id13">Peak and offpeak</a></p></li>
+<li><p><a class="reference internal" href="#api" id="id14">API</a></p></li>
+</ul>
+</nav>
+<section id="kind">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Kind</a><a class="headerlink" href="#kind" title="Link to this heading">¶</a></h2>
+<p>An important characteristic of a portfolio line is its “kind”. The property <code class="docutils literal notranslate"><span class="pre">PfLine.kind</span></code> has a value from the <code class="docutils literal notranslate"><span class="pre">portfolyo.Kind</span></code> enumeration and tells us the type of information it contains:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>🟨 <code class="docutils literal notranslate"><span class="pre">Kind.VOLUME</span></code>: “volume-only” portfolio line.</p></li>
+</ul>
+<blockquote>
+<div><p>This is a portfolio line that only contains volume information.</p>
+<p>As an example, consider the expected/projected development of offtake volume of a customer or customer group.</p>
+<p>The volume in each timestamp can be retrieved by the user in units of energy (e.g., MWh) or in units of power (e.g., MW).</p>
+</div></blockquote>
+</div></blockquote>
+<ul>
+<li><p>🟩 <code class="docutils literal notranslate"><span class="pre">Kind.PRICE</span></code>: “price-only” portfolio line.</p>
+<p>This is a portfolio line which only contains price information.</p>
+<p>For example, the forward price curve for a certain market area, or the fixed offtake price that a customer is paying for a certain delivery period.</p>
+</li>
+<li><p>🟦 <code class="docutils literal notranslate"><span class="pre">Kind.REVENUE</span></code>: “revenue-only” portfolio line.</p>
+<p>For example, the payoff of a financially-settled put option, which has a monetary value (e.g., in Eur) without an associated volume being delivered.</p>
+</li>
+<li><p>🟫 <code class="docutils literal notranslate"><span class="pre">Kind.COMPLETE</span></code></p>
+<p>This a portfolio line that contains volume, price and revenue information.</p>
+<p>For example: the volume that has been sourced to hedge a certain portfolio, e.g. in monthly or quarterly blocks.</p>
+<p>For each timestamp we have a volume (the contracted volume, both as energy and as power), a price (for which the volume was contracted) and a revenue (i.e., the multiplication of the energy and the price).</p>
+</li>
+</ul>
+<p>“Volume-only” and “complete” portfolio lines contain redundant information. For the volume, the power (in MW) can be calculated by dividing the energy (in MWh) by the duration of the timestamp (in h). Likewise, the price (in Eur/MWh) can be calculated by dividing the revenue (in Eur) by the energy (in MWh). See also the note in the next section.</p>
+</section>
+<section id="initialisation">
+<h2><a class="toc-backref" href="#id5" role="doc-backlink">Initialisation</a><a class="headerlink" href="#initialisation" title="Link to this heading">¶</a></h2>
+<p>There are many ways to specify the timeseries from which to initialise a portfolio line; here we will discuss the most common ones. In all cases it is assumed that <a class="reference internal" href="../specialized_topics/dataprep.html"><span class="doc">the data has been prepared and standardized</span></a>.</p>
+<section id="in-general">
+<h3>In General<a class="headerlink" href="#in-general" title="Link to this heading">¶</a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">portfolyo</span></code> tries to determine the dimension of information (e.g., if it is a price or a volume) using its key (if it has one) and its unit (also, if it has one) - see the section on <a class="reference internal" href="interoperability.html#nameunitcompatibility"><span class="std std-ref">Compatilibity of abbrevation and unit</span></a>.</p>
+<p>To initialise a volume-only / price-only / revenue-only portfolio line, we must only provide a volume / price / revenue timeseries. To initialise a complete portfolio line, we must supply at least 2 of the following timeseries: prices, volumes, revenues.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Specifying volumes: it is not necessary to specify both power (<code class="docutils literal notranslate"><span class="pre">w</span></code>) and energy (<code class="docutils literal notranslate"><span class="pre">q</span></code>); for a given timestamp we can calculate one from the other. If both <em>are</em> specified, they should be consistent with each other.</p>
+<p>Specifying volumes and prices: the same goes when specifying volume (either <code class="docutils literal notranslate"><span class="pre">w</span></code> or <code class="docutils literal notranslate"><span class="pre">q</span></code>), price (<code class="docutils literal notranslate"><span class="pre">p</span></code>) and revenue (<code class="docutils literal notranslate"><span class="pre">r</span></code>). Only two are needed, and if more <em>are</em> specified, they should be consistent.</p>
+</div>
+</section>
+<section id="dataframe-or-dictionary-of-timeseries">
+<h3>DataFrame or dictionary of timeseries…<a class="headerlink" href="#dataframe-or-dictionary-of-timeseries" title="Link to this heading">¶</a></h3>
+<p>…or any other <code class="docutils literal notranslate"><span class="pre">Mapping</span></code> from (string) key values to <code class="docutils literal notranslate"><span class="pre">pandas.Series</span></code>.</p>
+<p>The keys (or dataframe column names) must each be one of the following: <code class="docutils literal notranslate"><span class="pre">w</span></code> (power), <code class="docutils literal notranslate"><span class="pre">q</span></code> (energy), <code class="docutils literal notranslate"><span class="pre">p</span></code> (price), <code class="docutils literal notranslate"><span class="pre">r</span></code> (revenue). Depending on the keys, the <code class="docutils literal notranslate"><span class="pre">.kind</span></code> of the portfolio line is determined.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">portfolyo</span> <span class="k">as</span> <span class="nn">pf</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s1">&#39;2024&#39;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;AS&#39;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">input_dict</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;w&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">200</span><span class="p">,</span> <span class="mi">220</span><span class="p">,</span> <span class="mf">300.0</span><span class="p">],</span> <span class="n">index</span><span class="p">)}</span>
+<span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">input_dict</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>PfLine object with volume information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2027-01-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;YearBegin: month=1&gt; (3 datapoints)
+                                     w           q
+                                    MW         MWh
+
+2024-01-01 00:00:00              200.0   1 756 800
+2025-01-01 00:00:00              220.0   1 927 200
+2026-01-01 00:00:00              300.0   2 628 000
+</pre></div>
+</div>
+</section>
+<section id="timeseries-with-unit">
+<h3>Timeseries with unit<a class="headerlink" href="#timeseries-with-unit" title="Link to this heading">¶</a></h3>
+<p>Under the condition that a valid <code class="docutils literal notranslate"><span class="pre">pint</span></code> unit is present, we may also provide a single timeseries (<code class="docutils literal notranslate"><span class="pre">pandas.Series</span></code>), or an iterable of timeseries. They are automatically converted to the default unit.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># using the imports and index from the previous example</span>
+<span class="n">input_series</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">10</span><span class="p">,</span> <span class="mf">11.5</span><span class="p">,</span> <span class="mf">10.8</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;pint[ctEur/kWh]&#39;</span><span class="p">)</span>
+<span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">input_series</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>PfLine object with price information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2027-01-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;YearBegin: month=1&gt; (3 datapoints)
+                                    p
+                              Eur/MWh
+
+2024-01-01 00:00:00            100.00
+2025-01-01 00:00:00            115.00
+2026-01-01 00:00:00            108.00
+</pre></div>
+</div>
+</section>
+<section id="dictionary-of-portfolio-lines">
+<h3>Dictionary of portfolio lines…<a class="headerlink" href="#dictionary-of-portfolio-lines" title="Link to this heading">¶</a></h3>
+<p>…or any other <code class="docutils literal notranslate"><span class="pre">Mapping</span></code> from (string) key values to <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> objects.</p>
+<p>The keys are used as the children names:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pfl1</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.22</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;pint[GW]&#39;</span><span class="p">))</span>
+<span class="n">pfl2</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">100</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mf">200.0</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;pint[MW]&#39;</span><span class="p">))</span>
+<span class="n">dict_of_children</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;southeast&#39;</span><span class="p">:</span> <span class="n">pfl1</span><span class="p">,</span> <span class="s1">&#39;northwest&#39;</span><span class="p">:</span> <span class="n">pfl2</span><span class="p">}</span>
+<span class="n">pfl</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">dict_of_children</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>PfLine object with volume information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2027-01-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;YearBegin: month=1&gt; (3 datapoints)
+. Children: &#39;southeast&#39; (volume), &#39;northwest&#39; (volume)
+                                     w           q
+                                    MW         MWh
+
+2024-01-01 00:00:00              300.0   2 635 200
+2025-01-01 00:00:00              370.0   3 241 200
+2026-01-01 00:00:00              500.0   4 380 000
+</pre></div>
+</div>
+<p>Note that the aggregate values are shown.</p>
+<p>Nesting is not limited to one level, and, instead of having each value be a <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> objects, it is actually sufficient that each value can be used to initialise a <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> object.</p>
+</section>
+</section>
+<section id="flat-or-nested">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Flat or Nested</a><a class="headerlink" href="#flat-or-nested" title="Link to this heading">¶</a></h2>
+<p>As seen in the final initialisation example, we can create <em>nested</em> portfolio lines, where a portfolio line contains one or more named children (which are also portfolio lines). This in contrast to the <em>‘flat’</em> portfolio lines we created in the first initialisation example.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When checking the types, you will see that these are actually different classes - in the examples above <code class="docutils literal notranslate"><span class="pre">FlatVolumePfLine</span></code>, <code class="docutils literal notranslate"><span class="pre">FlatPricePfLine</span></code>, and <code class="docutils literal notranslate"><span class="pre">NestedVolumePfLine</span></code>. All are descendents of the <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> base class. When initialising a <code class="docutils literal notranslate"><span class="pre">PfLine</span></code>, the correct type will be returned based on the input data.</p>
+</div>
+<p>For nested portfolio lines, we are always looking at and working with the the top level, i.e., the sum/aggregate - unless explicitly requested otherwise by the user.</p>
+<p>An example of where a nested portfolio line makes sense, is to combine procurement on the forward market and spot trade into a single “sourced” portfolio line. We can then easily work with the aggregate values, but the values of the individual markets are also still available.</p>
+<p>It is important to note that both types of portfolio line contain the exact same methods and properties that are described in the rest of this document. Nested portfolio lines do have a few additional methods which are described now.</p>
+<section id="working-with-children">
+<h3>Working with children<a class="headerlink" href="#working-with-children" title="Link to this heading">¶</a></h3>
+<p>The following common operations on nested portfolio lines are implemented:</p>
+<ul>
+<li><p>We can access a particular child by using its name as an index, e.g. <code class="docutils literal notranslate"><span class="pre">pfl['southeast']</span></code>. If it does not collide with any of the attribute names, we can also access it by attribute, e.g. <code class="docutils literal notranslate"><span class="pre">pfl.southeast</span></code>.</p></li>
+<li><p>We can iterate over all children with <code class="docutils literal notranslate"><span class="pre">for</span> <span class="pre">name</span> <span class="pre">in</span> <span class="pre">pfl</span></code> or <code class="docutils literal notranslate"><span class="pre">for</span> <span class="pre">(name,</span> <span class="pre">child)</span> <span class="pre">in</span> <span class="pre">pfl.items()</span></code>.</p></li>
+<li><p>We can add a new child to a portfolio with <code class="docutils literal notranslate"><span class="pre">pfl_new</span> <span class="pre">=</span> <span class="pre">pfl.set_child('southwest',</span> <span class="pre">...)</span></code>. this returns a reference to the new object; the original object is unchanged. (It is immutable by design.)</p></li>
+<li><p>Likewise, we can remove a child from the portfolio with <code class="docutils literal notranslate"><span class="pre">pfl_new</span> <span class="pre">=</span> <span class="pre">pfl.drop_child('southeast')</span></code>. At least one child should remain.</p></li>
+<li><p>If we are no longer interested in the particulars of each child, we can keep only the top-level information with the <code class="docutils literal notranslate"><span class="pre">.flatten()</span></code> method, which returns a flattened copy of the object.</p>
+<p>Note that a portfolio line may quietly be flattened whenever an operation is done that is ambiguous or undefined for a portfolio line with children. See the section on <a class="reference internal" href="#arithmatic">arithmatic</a> below.</p>
+</li>
+</ul>
+</section>
+</section>
+<section id="accessing-data">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Accessing data</a><a class="headerlink" href="#accessing-data" title="Link to this heading">¶</a></h2>
+<p>In order to get our data out of a portfolio line, the following options are available.</p>
+<section id="timeseries">
+<h3>Timeseries<a class="headerlink" href="#timeseries" title="Link to this heading">¶</a></h3>
+<p>The properties <code class="docutils literal notranslate"><span class="pre">PfLine.w</span></code>, <code class="docutils literal notranslate"><span class="pre">.q</span></code>, <code class="docutils literal notranslate"><span class="pre">.p</span></code> and <code class="docutils literal notranslate"><span class="pre">.r</span></code> always return the information as a <code class="docutils literal notranslate"><span class="pre">pandas.Series</span></code>. These have a <code class="docutils literal notranslate"><span class="pre">pint</span></code> unit, which can be stripped using <code class="docutils literal notranslate"><span class="pre">.pint.m</span></code> (or <code class="docutils literal notranslate"><span class="pre">.pint.magnitude</span></code>).</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">portfolyo</span> <span class="k">as</span> <span class="nn">pf</span><span class="o">,</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s1">&#39;2024&#39;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;AS&#39;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">input_df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s1">&#39;w&#39;</span><span class="p">:[</span><span class="mi">200</span><span class="p">,</span> <span class="mi">220</span><span class="p">,</span> <span class="mi">300</span><span class="p">],</span> <span class="s1">&#39;p&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">100</span><span class="p">,</span> <span class="mi">150</span><span class="p">,</span> <span class="mi">200</span><span class="p">]},</span> <span class="n">index</span><span class="p">)</span>
+<span class="n">pfl</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">input_df</span><span class="p">)</span>
+
+<span class="n">pfl</span><span class="o">.</span><span class="n">r</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>2024-01-01    175680000.0
+2025-01-01    289080000.0
+2026-01-01    525600000.0
+Freq: AS-JAN, Name: r, dtype: pint[Eur]
+</pre></div>
+</div>
+</section>
+<section id="dataframe">
+<h3>DataFrame<a class="headerlink" href="#dataframe" title="Link to this heading">¶</a></h3>
+<p>If we want to extract more than one timeseries, we can use the <code class="docutils literal notranslate"><span class="pre">.df</span></code> attribute, which contains all relevant (top-level) timeseries.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">pfl</span><span class="o">.</span><span class="n">df</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>                w          q      p            r
+2024-01-01  200.0  1756800.0  100.0  175680000.0
+2025-01-01  220.0  1927200.0  150.0  289080000.0
+2026-01-01  300.0  2628000.0  200.0  525600000.0
+</pre></div>
+</div>
+<p>We can also use the <code class="docutils literal notranslate"><span class="pre">.dataframe()</span></code> method, which has a few options to control the exact format and contents of the dataframe.</p>
+</section>
+<section id="index">
+<h3>Index<a class="headerlink" href="#index" title="Link to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">PfLine.index</span></code> property returns the <code class="docutils literal notranslate"><span class="pre">pandas.DatetimeIndex</span></code> that applies to the data. This includes the frequency that tells us how long the time periods are that start at each of the timestamps in the index.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">pfl</span><span class="o">.</span><span class="n">index</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>DatetimeIndex([&#39;2024-01-01&#39;, &#39;2025-01-01&#39;, &#39;2026-01-01&#39;], dtype=&#39;datetime64[ns]&#39;, freq=&#39;AS-JAN&#39;)
+</pre></div>
+</div>
+<p>For convenience, <code class="docutils literal notranslate"><span class="pre">portfolyo</span></code> adds a <code class="docutils literal notranslate"><span class="pre">.duration</span></code> and a <code class="docutils literal notranslate"><span class="pre">right</span></code> property to the <code class="docutils literal notranslate"><span class="pre">pandas.DatetimeIndex</span></code> class, which do as we would predict:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">pfl</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">duration</span><span class="p">,</span> <span class="n">pfl</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">right</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>2024-01-01    8784.0
+2025-01-01    8760.0
+2026-01-01    8760.0
+Freq: AS-JAN, Name: duration, dtype: pint[h] 
+ DatetimeIndex([&#39;2025-01-01&#39;, &#39;2026-01-01&#39;, &#39;2027-01-01&#39;], dtype=&#39;datetime64[ns]&#39;, name=&#39;right&#39;, freq=&#39;AS-JAN&#39;)
+</pre></div>
+</div>
+</section>
+<section id="index-slice">
+<h3>Index slice<a class="headerlink" href="#index-slice" title="Link to this heading">¶</a></h3>
+<p>From <code class="docutils literal notranslate"><span class="pre">pandas</span></code> we know the <code class="docutils literal notranslate"><span class="pre">.loc[]</span></code> property which allows us to select a slice of the objects. This is implemented also for portfolio lines. Currently, it supports enering a slice of timestamps. It is a wrapper around the <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame.loc[]</span></code> property, and therefore follows the same convention, with the end point being included in the result.</p>
+<p>Another slicing method is implemented with the <code class="docutils literal notranslate"><span class="pre">.slice[]</span></code> property. The improvement to <code class="docutils literal notranslate"><span class="pre">.loc[]</span></code> is, that <code class="docutils literal notranslate"><span class="pre">.slice[]</span></code> uses the more common convention of excluding the end point. This has several advantages, which stem from the fact that, unlike when using <code class="docutils literal notranslate"><span class="pre">.loc</span></code>, using <code class="docutils literal notranslate"><span class="pre">left</span> <span class="pre">=</span> <span class="pre">pfl.slice[:a]</span></code> and <code class="docutils literal notranslate"><span class="pre">right</span> <span class="pre">=</span> <span class="pre">pfl.slice[a:]</span></code> returns portfolio lines that are complements - every timestamp in the original portfolio line is found in either the left or the right slice. This is useful when e.g. concatenating portfolio lines (see below.)</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">pfl</span><span class="o">.</span><span class="n">slice</span><span class="p">[</span><span class="s1">&#39;2024&#39;</span><span class="p">:</span><span class="s1">&#39;2026&#39;</span><span class="p">]</span>  <span class="c1"># excludes 2026; 2026 interpreted as timestamp 2026-01-01 00:00:00</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>PfLine object with complete information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2026-01-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;YearBegin: month=1&gt; (2 datapoints)
+                                     w           q           p             r
+                                    MW         MWh     Eur/MWh           Eur
+
+2024-01-01 00:00:00              200.0   1 756 800      100.00   175 680 000
+2025-01-01 00:00:00              220.0   1 927 200      150.00   289 080 000
+</pre></div>
+</div>
+</section>
+<section id="volume-only-price-only-or-revenue-only">
+<h3>Volume-only, price-only or revenue-only<a class="headerlink" href="#volume-only-price-only-or-revenue-only" title="Link to this heading">¶</a></h3>
+<p>With the <code class="docutils literal notranslate"><span class="pre">.volume</span></code>, <code class="docutils literal notranslate"><span class="pre">.price</span></code> and <code class="docutils literal notranslate"><span class="pre">.revenue</span></code> properties, we are able to extract the specified data from a complete portfolio line. For nested portfolios lines, the returned <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> may still be flat; this is the case if keeping the children would lead to incorrect values. (E.g., getting the price part of a nested complete portfolio line: the aggregate price is the average of the children’s prices, <em>weighted with their volumes</em>. The individual prices cannot simply be added up.)</p>
+<p>Further below, in the section on <a class="reference internal" href="#arithmatic">arithmatic</a>, we see the reverse operation: combining two portfolio lines into a complete one.</p>
+</section>
+</section>
+<section id="plotting-excel-clipboard">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">Plotting / Excel / Clipboard</a><a class="headerlink" href="#plotting-excel-clipboard" title="Link to this heading">¶</a></h2>
+<p>There are several ways to get data into other formats.</p>
+<section id="plotting">
+<h3>Plotting<a class="headerlink" href="#plotting" title="Link to this heading">¶</a></h3>
+<p>The data can be shown graphically with the <code class="docutils literal notranslate"><span class="pre">.plot()</span></code> method:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">pfl</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="../_images/fig_plot_pfl.png" src="../_images/fig_plot_pfl.png" />
+</section>
+<section id="excel-and-clipboard">
+<h3>Excel and clipboard<a class="headerlink" href="#excel-and-clipboard" title="Link to this heading">¶</a></h3>
+<p>Often, further data analyses are done in Excel. If you have a Workbook open, the easiest way is to copy the portfolio line data to the clipboard with the <code class="docutils literal notranslate"><span class="pre">.to_clipboard()</span></code> method. From there, it can be pasted onto a worksheet.</p>
+<p>Alternatively, the data can be saved as an Excel workbook with the <code class="docutils literal notranslate"><span class="pre">.to_excel()</span></code> method.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">pfl</span><span class="o">.</span><span class="n">to_clipboard</span><span class="p">()</span>
+<span class="n">pfl</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="s2">&quot;sourced_volume.xlsx&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../_images/excel_output_pfl.png" src="../_images/excel_output_pfl.png" />
+</section>
+</section>
+<section id="resampling">
+<h2><a class="toc-backref" href="#id9" role="doc-backlink">Resampling</a><a class="headerlink" href="#resampling" title="Link to this heading">¶</a></h2>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">.asfreq()</span></code> method, we can quickly and correctly downsample our data, e.g. to monthly or yearly values. For price-and-volume portfolio lines, the prices are weighted with the energy as one would expect:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">pfl</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s1">&#39;QS&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>PfLine object with complete information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2027-01-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;QuarterBegin: startingMonth=1&gt; (12 datapoints)
+                                     w           q           p             r
+                                    MW         MWh     Eur/MWh           Eur
+
+2024-01-01 00:00:00              200.0     436 800      100.00    43 680 000
+2024-04-01 00:00:00              200.0     436 800      100.00    43 680 000
+2024-07-01 00:00:00              200.0     441 600      100.00    44 160 000
+2024-10-01 00:00:00              200.0     441 600      100.00    44 160 000
+2025-01-01 00:00:00              220.0     475 200      150.00    71 280 000
+2025-04-01 00:00:00              220.0     480 480      150.00    72 072 000
+2025-07-01 00:00:00              220.0     485 760      150.00    72 864 000
+2025-10-01 00:00:00              220.0     485 760      150.00    72 864 000
+2026-01-01 00:00:00              300.0     648 000      200.00   129 600 000
+2026-04-01 00:00:00              300.0     655 200      200.00   131 040 000
+2026-07-01 00:00:00              300.0     662 400      200.00   132 480 000
+2026-10-01 00:00:00              300.0     662 400      200.00   132 480 000
+</pre></div>
+</div>
+<p>For more information about resampling in general, see <a class="reference internal" href="../specialized_topics/resampling.html"><span class="doc">this page</span></a>.</p>
+</section>
+<section id="arithmatic">
+<span id="id1"></span><h2><a class="toc-backref" href="#id10" role="doc-backlink">Arithmatic</a><a class="headerlink" href="#arithmatic" title="Link to this heading">¶</a></h2>
+<p>There are many ways to change and interact with <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> instances. An intuitive way is through arithmatic, described below. The operations are grouped by the operator, and colors are used to more easily indicate the type of the output value.</p>
+<p>General remarks:</p>
+<ul>
+<li><p>The operands are defined liberally. E.g. “price” means any object that can be interpreted as a price: a single <code class="docutils literal notranslate"><span class="pre">pint.Quantity</span></code> with a valid price unit; a <code class="docutils literal notranslate"><span class="pre">pandas.Series</span></code> with a <code class="docutils literal notranslate"><span class="pre">pint</span></code> unit of price, a dictionary with a single key <code class="docutils literal notranslate"><span class="pre">&quot;p&quot;</span></code>, a <code class="docutils literal notranslate"><span class="pre">pandas.Dataframe</span></code> with a single column <code class="docutils literal notranslate"><span class="pre">&quot;p&quot;</span></code>, or a price-only portfolio line; see <a class="reference internal" href="interoperability.html"><span class="doc">Interoperability</span></a>.</p>
+<p>The following code example shows a few equivalent operations.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">portfolyo</span> <span class="k">as</span> <span class="nn">pf</span><span class="o">,</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s1">&#39;2024&#39;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;AS&#39;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">pfl</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mf">2.2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;pint[MW]&#39;</span><span class="p">))</span>
+<span class="n">pfl_1</span> <span class="o">=</span> <span class="n">pfl</span> <span class="o">+</span> <span class="p">{</span><span class="s1">&#39;q&#39;</span><span class="p">:</span> <span class="mf">50.0</span><span class="p">}</span>  <span class="c1"># standard unit (here: MWh) is assumed</span>
+<span class="n">pfl_2</span> <span class="o">=</span> <span class="n">pfl</span> <span class="o">+</span> <span class="n">pf</span><span class="o">.</span><span class="n">Q_</span><span class="p">(</span><span class="mf">50000.0</span><span class="p">,</span> <span class="s1">&#39;kWh&#39;</span><span class="p">)</span>
+<span class="n">pfl_3</span> <span class="o">=</span> <span class="n">pfl</span> <span class="o">+</span> <span class="p">{</span><span class="s1">&#39;q&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">50.0</span><span class="p">],</span> <span class="n">index</span><span class="p">)}</span>
+<span class="n">pfl_4</span> <span class="o">=</span> <span class="n">pfl</span> <span class="o">+</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">({</span><span class="s1">&#39;q&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mf">50.0</span><span class="p">],</span> <span class="n">index</span><span class="p">)})</span>
+<span class="n">pfl_1</span> <span class="o">==</span> <span class="n">pfl_2</span> <span class="o">==</span> <span class="n">pfl_3</span> <span class="o">==</span> <span class="n">pfl_4</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>True
+</pre></div>
+</div>
+</li>
+<li><p>A single value is understood to apply uniformly to each timestamp in the index of the portfolio line.</p></li>
+<li><p>When doing arithmatic with a flat portfolio line, the result is again a flat portfolio line.</p></li>
+<li><p>When doing arithmatic with a nested portfolio line, the children are also present in the result.</p></li>
+<li><p>Arithmatic does silent flattening if necessary. E.g., if an operation is only possible if one or both of the operands is flat, this will be done automatically. (A nested portfolio line can also be flattened manually with the <code class="docutils literal notranslate"><span class="pre">.flatten()</span></code> method.)</p></li>
+<li><p>However, an <code class="docutils literal notranslate"><span class="pre">Exception</span></code> is raised in case of ambiguity concerning the unit. E.g., when adding a <code class="docutils literal notranslate"><span class="pre">float</span></code> value to a <code class="docutils literal notranslate"><span class="pre">PRICE</span></code> portfolio line. Solution: explicitly convert into a <code class="docutils literal notranslate"><span class="pre">pint.Quantity</span></code> using <code class="docutils literal notranslate"><span class="pre">pf.Q_()</span></code>.</p></li>
+<li><p>The usual relationship between addition and multiplication holds. E.g., for a given portfolio line <code class="docutils literal notranslate"><span class="pre">pfl</span></code>, the following two calculations have the same return value: <code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">+</span> <span class="pre">pfl</span></code> and <code class="docutils literal notranslate"><span class="pre">2</span> <span class="pre">*</span> <span class="pre">pfl</span></code>.</p></li>
+</ul>
+<section id="addition-and-subtraction">
+<h3>Addition and subtraction<a class="headerlink" href="#addition-and-subtraction" title="Link to this heading">¶</a></h3>
+<ul class="simple">
+<li><p>Addition and subtraction are only possible between operands of the same kind. E.g., to a price-only portfolio line, a price can be added, but not e.g. a volume.</p></li>
+<li><p>Even if the both operands have the same kind, they must both be nested or both be flat. E.g., a flat price can be added to a flat price-only portfolio line, but not to a nested price-only portfolio line. Two nested price-only portfolio lines can be added.</p></li>
+</ul>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p></p></th>
+<th class="head" colspan="4"><p>Kind of portfolio line (<cite>pfl.Kind</cite>)</p></th>
+</tr>
+<tr class="row-even"><th class="head"><p></p></th>
+<th class="head"><p>🟨 <code class="docutils literal notranslate"><span class="pre">VOLUME</span></code></p></th>
+<th class="head"><p>🟩 <code class="docutils literal notranslate"><span class="pre">PRICE</span></code></p></th>
+<th class="head"><p>🟦 <code class="docutils literal notranslate"><span class="pre">REVENUE</span></code></p></th>
+<th class="head"><p>🟫 <code class="docutils literal notranslate"><span class="pre">COMPLETE</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span></code> ± volume</p></td>
+<td><p>🟨 <a class="reference internal" href="#e">e</a></p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span></code> ± price</p></td>
+<td><p>❌</p></td>
+<td><p>🟩 <a class="reference internal" href="#e">e</a></p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span></code> ± revenue</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>🟦 <a class="reference internal" href="#e">e</a></p></td>
+<td><p>❌</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span></code> ± complete</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>🟫 <a class="reference internal" href="#e">e</a></p></td>
+</tr>
+</tbody>
+</table>
+<p>Notes:</p>
+<dl class="simple" id="e">
+<dt>e</dt><dd><p>“Equal”: both operands must be flat or both must be nested.</p>
+</dd>
+</dl>
+<p>Here are several examples.</p>
+<ul>
+<li><p>Adding a volume to a volume-only portfolio line:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">portfolyo</span> <span class="k">as</span> <span class="nn">pf</span><span class="o">,</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s1">&#39;2024&#39;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;AS&#39;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">vol</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mf">4.6</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;pint[MW]&#39;</span><span class="p">))</span>
+<span class="n">vol</span> <span class="o">+</span> <span class="n">pf</span><span class="o">.</span><span class="n">Q_</span><span class="p">(</span><span class="mf">10.0</span><span class="p">,</span> <span class="s1">&#39;GWh&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>PfLine object with volume information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2027-01-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;YearBegin: month=1&gt; (3 datapoints)
+                                     w           q
+                                    MW         MWh
+
+2024-01-01 00:00:00                5.1      45 136
+2025-01-01 00:00:00                5.7      50 296
+2026-01-01 00:00:00                4.1      36 280
+</pre></div>
+</div>
+</li>
+<li><p>When adding (or subtracting) two nested portfolio lines, the children are merged:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">vol_2</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">({</span>
+    <span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">4</span><span class="p">,</span> <span class="mf">4.6</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;pint[MW]&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mf">1.8</span><span class="p">,</span> <span class="mf">1.9</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;pint[MW]&#39;</span><span class="p">)</span>
+<span class="p">})</span>
+<span class="n">vol_3</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">({</span>
+    <span class="s1">&#39;B&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">1.9</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;pint[MW]&#39;</span><span class="p">),</span>
+    <span class="s1">&#39;C&#39;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">2</span><span class="p">,</span> <span class="mf">2.2</span><span class="p">,</span> <span class="mf">3.8</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;pint[MW]&#39;</span><span class="p">)</span>
+<span class="p">})</span>
+<span class="n">diff</span> <span class="o">=</span> <span class="n">vol_2</span> <span class="o">-</span> <span class="n">vol_3</span>
+
+<span class="nb">print</span><span class="p">([</span><span class="n">name</span> <span class="k">for</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">diff</span><span class="p">])</span>
+<span class="n">diff</span><span class="p">[</span><span class="s1">&#39;B&#39;</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>[&#39;A&#39;, &#39;C&#39;, &#39;B&#39;]
+
+PfLine object with volume information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2027-01-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;YearBegin: month=1&gt; (3 datapoints)
+                                     w           q
+                                    MW         MWh
+
+2024-01-01 00:00:00                0.5       4 392
+2025-01-01 00:00:00               -2.0     -17 520
+2026-01-01 00:00:00                0.0           0
+</pre></div>
+</div>
+</li>
+<li><p>A flat and a nested portfolio line cannot be added…</p>
+<p>…and if we try, the nested one is flattened (and the result is also a flat portfolio line):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">vol</span> <span class="o">+</span> <span class="n">vol_2</span>
+</pre></div>
+</div>
+<p>If we want, we can keep the children. In that case, we must give the flat one a name as well (and the result is a nested portfolio line):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">vol_2</span> <span class="o">+</span> <span class="p">{</span><span class="s1">&#39;D&#39;</span><span class="p">:</span> <span class="n">vol</span><span class="p">}</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>PfLine object with volume information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2027-01-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;YearBegin: month=1&gt; (3 datapoints)
+. Children: &#39;D&#39; (volume), &#39;B&#39; (volume), &#39;A&#39; (volume)
+                                     w           q
+                                    MW         MWh
+
+2024-01-01 00:00:00                9.0      79 056
+2025-01-01 00:00:00                7.4      64 824
+2026-01-01 00:00:00                7.9      69 204
+</pre></div>
+</div>
+</li>
+</ul>
+</section>
+<section id="scaling">
+<h3>Scaling<a class="headerlink" href="#scaling" title="Link to this heading">¶</a></h3>
+<p>We can scale a portfolio line by multiplication with / division by a dimensionless (e.g. <code class="docutils literal notranslate"><span class="pre">float</span></code>) value.</p>
+<ul class="simple">
+<li><p>This applied to flat and nested portfolio line, regardless of the kind.</p></li>
+<li><p>The result is a portfolio line of the same kind.</p></li>
+<li><p>If the portfolio line is nested, the scaling applies to all children.</p></li>
+<li><p>For complete portfolio lines, the volume and revenue are scaled, while the price remains unchanged.</p></li>
+</ul>
+<p>Negation is implemented as multiplication with -1.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p></p></th>
+<th class="head" colspan="4"><p>Kind of portfolio line (<cite>pfl.Kind</cite>)</p></th>
+</tr>
+<tr class="row-even"><th class="head"><p></p></th>
+<th class="head"><p>🟨 <code class="docutils literal notranslate"><span class="pre">VOLUME</span></code></p></th>
+<th class="head"><p>🟩 <code class="docutils literal notranslate"><span class="pre">PRICE</span></code></p></th>
+<th class="head"><p>🟦 <code class="docutils literal notranslate"><span class="pre">REVENUE</span></code></p></th>
+<th class="head"><p>🟫 <code class="docutils literal notranslate"><span class="pre">COMPLETE</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">-pfl</span></code> (negation)</p></td>
+<td><p>🟨</p></td>
+<td><p>🟩</p></td>
+<td><p>🟦</p></td>
+<td><p>🟫</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">*</span> <span class="pre">dimensionless</span></code></p></td>
+<td><p>🟨</p></td>
+<td><p>🟩</p></td>
+<td><p>🟦</p></td>
+<td><p>🟫</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">/</span> <span class="pre">dimensionless</span></code></p></td>
+<td><p>🟨</p></td>
+<td><p>🟩</p></td>
+<td><p>🟦</p></td>
+<td><p>🟫</p></td>
+</tr>
+</tbody>
+</table>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">portfolyo</span> <span class="k">as</span> <span class="nn">pf</span><span class="o">,</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s1">&#39;2024&#39;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;MS&#39;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">vol</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">100</span><span class="p">,</span> <span class="mi">250</span><span class="p">,</span> <span class="mi">100</span><span class="p">],</span> <span class="n">index</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s1">&#39;pint[MW]&#39;</span><span class="p">))</span>
+<span class="n">vol</span> <span class="o">*</span> <span class="mi">2</span>  <span class="c1"># multiplication with factor results in scaled portfolio line</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>PfLine object with volume information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2024-04-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;MonthBegin&gt; (3 datapoints)
+                                     w           q
+                                    MW         MWh
+
+2024-01-01 00:00:00              200.0     148 800
+2024-02-01 00:00:00              500.0     348 000
+2024-03-01 00:00:00              200.0     148 800
+</pre></div>
+</div>
+</section>
+<section id="calculating-ratio">
+<span id="calcratio"></span><h3>Calculating ratio<a class="headerlink" href="#calculating-ratio" title="Link to this heading">¶</a></h3>
+<p>We can calculate the ratio of two portfolyo lines by dividing them.</p>
+<ul class="simple">
+<li><p>The portfolio lines must both be flat, and of the same kind.</p></li>
+<li><p>The result is a dimensionless <code class="docutils literal notranslate"><span class="pre">pandas.Series</span></code>.</p></li>
+<li><p>None of the operands may be nested. First <code class="docutils literal notranslate"><span class="pre">.flatten()</span></code> if necessary.</p></li>
+<li><p>None of the operands may be a complete portfolio line. First select the <code class="docutils literal notranslate"><span class="pre">.volume</span></code>, <code class="docutils literal notranslate"><span class="pre">.price</span></code> or <code class="docutils literal notranslate"><span class="pre">.revenue</span></code> if necessary.</p></li>
+</ul>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p></p></th>
+<th class="head" colspan="4"><p>Kind of portfolio line (<cite>pfl.Kind</cite>)</p></th>
+</tr>
+<tr class="row-even"><th class="head"><p></p></th>
+<th class="head"><p>🟨 <code class="docutils literal notranslate"><span class="pre">VOLUME</span></code></p></th>
+<th class="head"><p>🟩 <code class="docutils literal notranslate"><span class="pre">PRICE</span></code></p></th>
+<th class="head"><p>🟦 <code class="docutils literal notranslate"><span class="pre">REVENUE</span></code></p></th>
+<th class="head"><p>🟫 <code class="docutils literal notranslate"><span class="pre">COMPLETE</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">/</span> <span class="pre">volume</span></code></p></td>
+<td><p>⬛️ <a class="reference internal" href="#f">2f</a></p></td>
+<td><p>❌</p></td>
+<td><p>(❌)</p></td>
+<td><p>❌</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">/</span> <span class="pre">price</span></code></p></td>
+<td><p>❌</p></td>
+<td><p>⬛️ <a class="reference internal" href="#f">2f</a></p></td>
+<td><p>(❌)</p></td>
+<td><p>❌</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">/</span> <span class="pre">revenue</span></code></p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>⬛️ <a class="reference internal" href="#f">2f</a></p></td>
+<td><p>❌</p></td>
+</tr>
+</tbody>
+</table>
+<p>Notes:</p>
+<dl class="simple" id="f">
+<dt>2f</dt><dd><p>Both operands must be flat.</p>
+</dd>
+<dt>(❌)</dt><dd><p>This operation is allowed but does not result in a ratio. It is described in the section <a class="reference internal" href="#changekind">changekind</a> below.</p>
+</dd>
+</dl>
+<p>For example:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">vol</span> <span class="o">/</span> <span class="n">pf</span><span class="o">.</span><span class="n">Q_</span><span class="p">(</span><span class="mf">200.0</span><span class="p">,</span> <span class="s1">&#39;MW&#39;</span><span class="p">)</span>  <span class="c1"># division by volume results in dimensionless series</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>2024-01-01     0.5
+2024-02-01    1.25
+2024-03-01     0.5
+Freq: MS, Name: fraction, dtype: pint[]
+</pre></div>
+</div>
+</section>
+<section id="changing-kind">
+<span id="changekind"></span><h3>Changing kind<a class="headerlink" href="#changing-kind" title="Link to this heading">¶</a></h3>
+<p>We can turn one kind of portfolio line into another kind, by multiplying with or division by the correct (third) kind.</p>
+<ul>
+<li><p>Concrete, because price * volume = revenue, we have these possibilities:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Multiplying a volume portfolio line with a price portfolio line results in a revenue portfolio line.</p></li>
+<li><p>Dividing a revenue portfolio line by a price portfolio line results in a volume portfolio line.</p></li>
+<li><p>Dividing a revenue portfolio line by a volume portfolio line results in a price portfolio line.</p></li>
+</ul>
+</div></blockquote>
+</li>
+<li><p>At most one of the operands may be nested. First <code class="docutils literal notranslate"><span class="pre">.flatten()</span></code> if necessary.</p></li>
+<li><p>If one of the operands is nested, the value of the flat operand is combined with each child of the nested one.</p></li>
+<li><p>None of the operands may be a complete portfolio line. First select the <code class="docutils literal notranslate"><span class="pre">.volume</span></code>, <code class="docutils literal notranslate"><span class="pre">.price</span></code> or <code class="docutils literal notranslate"><span class="pre">.revenue</span></code> if necessary.</p></li>
+<li><p>To combine two portfolio lines into a complete portfolio line, see the section <a class="reference internal" href="#union"><span class="std std-ref">Union into complete portfolio line</span></a>, below.</p></li>
+</ul>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p></p></th>
+<th class="head" colspan="4"><p>Kind of portfolio line (<cite>pfl.Kind</cite>)</p></th>
+</tr>
+<tr class="row-even"><th class="head"><p></p></th>
+<th class="head"><p>🟨 <code class="docutils literal notranslate"><span class="pre">VOLUME</span></code></p></th>
+<th class="head"><p>🟩 <code class="docutils literal notranslate"><span class="pre">PRICE</span></code></p></th>
+<th class="head"><p>🟦 <code class="docutils literal notranslate"><span class="pre">REVENUE</span></code></p></th>
+<th class="head"><p>🟫 <code class="docutils literal notranslate"><span class="pre">COMPLETE</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">*</span> <span class="pre">volume</span></code></p></td>
+<td><p>❌</p></td>
+<td><p>🟦 <a class="reference internal" href="#id2">≥1f</a></p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">*</span> <span class="pre">price</span></code></p></td>
+<td><p>🟦 <a class="reference internal" href="#id2">≥1f</a></p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">/</span> <span class="pre">volume</span></code></p></td>
+<td><p>(❌)</p></td>
+<td><p>❌</p></td>
+<td><p>🟩 <a class="reference internal" href="#id2">≥1f</a></p></td>
+<td><p>❌</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">/</span> <span class="pre">price</span></code></p></td>
+<td><p>❌</p></td>
+<td><p>(❌)</p></td>
+<td><p>🟨 <a class="reference internal" href="#id2">≥1f</a></p></td>
+<td><p>❌</p></td>
+</tr>
+</tbody>
+</table>
+<p>Notes:</p>
+<dl class="simple" id="id2">
+<dt>≥1f</dt><dd><p>At least one of the operands must be flat.</p>
+</dd>
+<dt>(❌)</dt><dd><p>This operation is allowed but results in a ratio. It is described in the section <a class="reference internal" href="#calcratio"><span class="std std-ref">Calculating ratio</span></a> above.</p>
+</dd>
+</dl>
+<p>Here is an examples:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">vol</span> <span class="o">*</span> <span class="n">pf</span><span class="o">.</span><span class="n">Q_</span><span class="p">(</span><span class="mf">100.0</span><span class="p">,</span> <span class="s1">&#39;Eur/MWh&#39;</span><span class="p">)</span>  <span class="c1"># multiplication with price results in revenue</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>PfLine object with revenue information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2024-04-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;MonthBegin&gt; (3 datapoints)
+                                      r
+                                    Eur
+
+2024-01-01 00:00:00           7 440 000
+2024-02-01 00:00:00          17 400 000
+2024-03-01 00:00:00           7 440 000
+</pre></div>
+</div>
+</section>
+<section id="union-into-complete-portfolio-line">
+<span id="union"></span><h3>Union into complete portfolio line<a class="headerlink" href="#union-into-complete-portfolio-line" title="Link to this heading">¶</a></h3>
+<p>We can combine portfolio lines of distinct kind into a complete portfolio line. We use the union operator <code class="docutils literal notranslate"><span class="pre">|</span></code> for this.</p>
+<ul class="simple">
+<li><p>None of the operands may be a complete portfolio line. First select the <code class="docutils literal notranslate"><span class="pre">.volume</span></code>, <code class="docutils literal notranslate"><span class="pre">.price</span></code> or <code class="docutils literal notranslate"><span class="pre">.revenue</span></code> if necessary.</p></li>
+<li><p>Both operands must be flat. If necessary, first <code class="docutils literal notranslate"><span class="pre">.flatten()</span></code> a nested portfolio line.</p></li>
+</ul>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p></p></th>
+<th class="head" colspan="4"><p>Kind of portfolio line (<cite>pfl.Kind</cite>)</p></th>
+</tr>
+<tr class="row-even"><th class="head"><p></p></th>
+<th class="head"><p>🟨 <code class="docutils literal notranslate"><span class="pre">VOLUME</span></code></p></th>
+<th class="head"><p>🟩 <code class="docutils literal notranslate"><span class="pre">PRICE</span></code></p></th>
+<th class="head"><p>🟦 <code class="docutils literal notranslate"><span class="pre">REVENUE</span></code></p></th>
+<th class="head"><p>🟫 <code class="docutils literal notranslate"><span class="pre">COMPLETE</span></code></p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">|</span> <span class="pre">volume</span></code></p></td>
+<td><p>❌</p></td>
+<td><p>🟫 <a class="reference internal" href="#id3">2f⠀</a></p></td>
+<td><p>🟫 <a class="reference internal" href="#id3">2f⠀</a></p></td>
+<td><p>❌</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">|</span> <span class="pre">price</span></code></p></td>
+<td><p>🟫 <a class="reference internal" href="#id3">2f⠀</a></p></td>
+<td><p>❌</p></td>
+<td><p>🟫 <a class="reference internal" href="#id3">2f⠀</a></p></td>
+<td><p>❌</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pfl</span> <span class="pre">|</span> <span class="pre">revenue</span></code></p></td>
+<td><p>🟫 <a class="reference internal" href="#id3">2f⠀</a></p></td>
+<td><p>🟫 <a class="reference internal" href="#id3">2f⠀</a></p></td>
+<td><p>❌</p></td>
+<td><p>❌</p></td>
+</tr>
+</tbody>
+</table>
+<dl class="simple" id="id3">
+<dt>2f</dt><dd><p>Both operands must be flat.</p>
+</dd>
+</dl>
+<p>Example with flat portfolio lines:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">vol</span> <span class="o">|</span> <span class="n">pf</span><span class="o">.</span><span class="n">Q_</span><span class="p">(</span><span class="mf">100.0</span><span class="p">,</span> <span class="s1">&#39;Eur/MWh&#39;</span><span class="p">)</span>  <span class="c1"># union with price results in complete portfolio line</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>PfLine object with complete information.
+. Start: 2024-01-01 00:00:00 (incl)    . Timezone    : none  
+. End  : 2024-04-01 00:00:00 (excl)    . Start-of-day: 00:00:00  
+. Freq : &lt;MonthBegin&gt; (3 datapoints)
+                                     w           q           p             r
+                                    MW         MWh     Eur/MWh           Eur
+
+2024-01-01 00:00:00              100.0      74 400      100.00     7 440 000
+2024-02-01 00:00:00              250.0     174 000      100.00    17 400 000
+2024-03-01 00:00:00              100.0      74 400      100.00     7 440 000
+</pre></div>
+</div>
+</section>
+</section>
+<section id="set-timeseries">
+<h2><a class="toc-backref" href="#id11" role="doc-backlink">Set timeseries</a><a class="headerlink" href="#set-timeseries" title="Link to this heading">¶</a></h2>
+<p>Sometimes we may want to replace one part of a <code class="docutils literal notranslate"><span class="pre">PfLine</span></code>, while keeping the others the same. For this, first select the part we want to keep, and then use the union operator to combine it with the wanted quantity. E.g.: <code class="docutils literal notranslate"><span class="pre">pfl.volume</span> <span class="pre">|</span> <span class="pre">pf.Q_(100,</span> <span class="pre">'Eur/MWh')</span></code></p>
+</section>
+<section id="hedging">
+<span id="pflinehedging"></span><h2><a class="toc-backref" href="#id12" role="doc-backlink">Hedging</a><a class="headerlink" href="#hedging" title="Link to this heading">¶</a></h2>
+<p>In general, hedging is the act of reducing the exposure to certain risks. In power and gas portfolios, it is common for customers to pay a fixed, pre-agreed price for the volume they consume. By sourcing volume on the market as soon as a customer is acquired, the open positions can be kept small, effectively hedging the portfolio’s profit against market price changes.</p>
+<p>A perfect hedge would be to buy the exact offtake volume of a portfolio in every delivery period at the shortest time-scale, e.g., days for gas and (quarter) hours for power. This is usually not possible, and hedging is done with standard products instead. Depending on the time until delivery, these may be month, quarter, or year bands; in power these exists for base, peak, and offpeak.</p>
+<p>Using the <code class="docutils literal notranslate"><span class="pre">.hedge_with()</span></code> method, the volume timeseries in a portfolio line is compared with a price timeseries, and the corresponding portfolio line in standard products is returned. Parameters specify the forward price curve, the length of the products (e.g. months), the hedge method (volume hedge or value hedge), and whether to use a base band or split in peak and offpeak values.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">portfolyo</span> <span class="k">as</span> <span class="nn">pf</span><span class="o">,</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s1">&#39;2024-04-01&#39;</span><span class="p">,</span> <span class="s1">&#39;2024-06-01&#39;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="n">inclusive</span><span class="o">=</span><span class="s1">&#39;left&#39;</span><span class="p">)</span>
+<span class="n">offtake</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">pf</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">w_offtake</span><span class="p">(</span><span class="n">index</span><span class="p">))</span>  <span class="c1"># mock offtake volumes</span>
+<span class="n">prices</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">pf</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">p_marketprices</span><span class="p">(</span><span class="n">index</span><span class="p">))</span> <span class="c1"># mock market prices</span>
+<span class="c1"># Create hedge</span>
+<span class="n">hedge</span> <span class="o">=</span> <span class="n">offtake</span><span class="o">.</span><span class="n">hedge_with</span><span class="p">(</span><span class="n">prices</span><span class="p">,</span> <span class="s1">&#39;vol&#39;</span><span class="p">)</span>
+<span class="c1"># Compare the two:</span>
+<span class="p">(</span><span class="n">offtake</span> <span class="o">|</span> <span class="n">prices</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+<span class="n">hedge</span><span class="o">.</span><span class="n">plot</span><span class="p">()</span>
+</pre></div>
+</div>
+<img alt="../_images/fig_offtake.png" src="../_images/fig_offtake.png" />
+<img alt="../_images/fig_hedge.png" src="../_images/fig_hedge.png" />
+</section>
+<section id="peak-and-offpeak">
+<h2><a class="toc-backref" href="#id13" role="doc-backlink">Peak and offpeak</a><a class="headerlink" href="#peak-and-offpeak" title="Link to this heading">¶</a></h2>
+<p>For portfolio lines with (quarter)hourly data, the <code class="docutils literal notranslate"><span class="pre">.po()</span></code> method splits the values in peak and offpeak. We can again specify if we want monthly, quarterly, or yearly values.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># continuation of previous code example</span>
+<span class="n">offtake</span><span class="o">.</span><span class="n">po</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>               peak                      ...             offpeak                    
+           duration                   w  ...                   w                   q
+2024-04-01    264.0  126.22950556323435  ...  100.01148870756496   45605.23885064962
+2024-05-01    276.0  115.90513004160178  ...    90.3070645673388  42263.706217514555
+
+[2 rows x 6 columns]
+</pre></div>
+</div>
+<p>NB: be cautious in using the output of this method. The values in the “sub-dataframes” do not apply to the entire time period, so the usual relations (e.g. energy = power * duration) do not hold if the duration of the entire time period is used. For convenience, the relevant duration (of only the peak or only the offpeak hours) is included in the dataframe.</p>
+</section>
+<section id="api">
+<h2><a class="toc-backref" href="#id14" role="doc-backlink">API</a><a class="headerlink" href="#api" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="portfolyo.PfLine">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">portfolyo.</span></span><span class="sig-name descname"><span class="pre">PfLine</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#portfolyo.PfLine" title="Link to this definition">¶</a></dt>
+<dd><p>Class to hold a related energy timeseries. This can be volume data (with q
+[MWh] and w [MW]), price data (with p [Eur/MWh]), revenue data (with r [Eur]), or
+a combination of all.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.asfreq">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">asfreq</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'MS'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">NDFrameLike</span></span></span><a class="headerlink" href="#portfolyo.PfLine.asfreq" title="Link to this definition">¶</a></dt>
+<dd><p>Resample the instance to a new frequency.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>freq</strong> (<em>str</em><em>, </em><em>optional</em>) – The frequency at which to resample. ‘AS’ for year, ‘QS’ for quarter, ‘MS’
+(default) for month, ‘D for day’, ‘H’ for hour, ‘15T’ for quarterhour.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Resampled at wanted frequency.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Instance</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.dataframe">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Iterable</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">has_units</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#portfolyo.PfLine.dataframe" title="Link to this definition">¶</a></dt>
+<dd><p>DataFrame for portfolio line in default units.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cols</strong> (<em>str</em><em>, </em><em>optional</em><em> (</em><em>default: all that are available</em><em>)</em>) – The columns (w, q, p, r) to include in the dataframe.
+Columns that are not available are silently excluded.</p></li>
+<li><p><strong>has_units</strong> (<em>bool</em><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – <ul>
+<li><dl class="simple">
+<dt>If True, return dataframe with <code class="docutils literal notranslate"><span class="pre">pint</span></code> units. (The unit can be extracted</dt><dd><p>as a column level with <code class="docutils literal notranslate"><span class="pre">.pint.dequantify()</span></code>).</p>
+</dd>
+</dl>
+</li>
+<li><p>If False, return dataframe with float values.</p></li>
+</ul>
+</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>pd.DataFrame</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.flatten">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">flatten</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#portfolyo.PfLine" title="portfolyo.core.pfline.classes.PfLine"><span class="pre">PfLine</span></a></span></span><a class="headerlink" href="#portfolyo.PfLine.flatten" title="Link to this definition">¶</a></dt>
+<dd><p>Return flattened instance, i.e., without children.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.hedge_with">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">hedge_with</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">PricePfLine</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">how</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'val'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'MS'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">po</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#portfolyo.PfLine" title="portfolyo.core.pfline.classes.PfLine"><span class="pre">PfLine</span></a></span></span><a class="headerlink" href="#portfolyo.PfLine.hedge_with" title="Link to this definition">¶</a></dt>
+<dd><p>Hedge the volume in the portfolio line with a price curve.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>p</strong> (<em>PricePfLine</em>) – Portfolio line with prices to be used in the hedge.</p></li>
+<li><p><strong>how</strong> (<em>str</em><em>, </em><em>optional</em><em> (</em><em>Default: 'val'</em><em>)</em>) – Hedge-constraint. ‘vol’ for volumetric hedge, ‘val’ for value hedge.</p></li>
+<li><p><strong>freq</strong> (<em>{'D'</em><em> (</em><em>days</em><em>)</em><em>, </em><em>'MS'</em><em> (</em><em>months</em><em>, </em><em>default</em><em>)</em><em>, </em><em>'QS'</em><em> (</em><em>quarters</em><em>)</em><em>, </em><em>'AS'</em><em> (</em><em>years</em><em>)</em><em>}</em>) – Frequency of hedging products. E.g. ‘QS’ to hedge with quarter products.</p></li>
+<li><p><strong>po</strong> (<em>bool</em><em>, </em><em>optional</em>) – Type of hedging products. Set to True to split hedge into peak and offpeak.
+(Default: split if volume timeseries has hourly values or shorter.)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Hedged volume and prices. Index with same frequency as original, but every
+timestamp within a given hedging frequency has the same volume [MW] and price.
+(or, one volume-price pair for peak, and another volume-price pair for offpeak.)</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#portfolyo.PfLine" title="portfolyo.PfLine">PfLine</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>If the PfLine contains prices, these are ignored.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="portfolyo.PfLine.index">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">index</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">DatetimeIndex</span></em><a class="headerlink" href="#portfolyo.PfLine.index" title="Link to this definition">¶</a></dt>
+<dd><p>Index of the data, containing the left-bound timestamps of the delivery periods.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="portfolyo.PfLine.loc">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">loc</span></span><a class="headerlink" href="#portfolyo.PfLine.loc" title="Link to this definition">¶</a></dt>
+<dd><p>Create a new instance with a subset of the rows (selection by row label(s) or
+a boolean array.)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.map_to_year">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">map_to_year</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">year</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">holiday_country</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#portfolyo.PfLine" title="portfolyo.core.pfline.classes.PfLine"><span class="pre">PfLine</span></a></span></span><a class="headerlink" href="#portfolyo.PfLine.map_to_year" title="Link to this definition">¶</a></dt>
+<dd><p>Transfer the data to a hypothetical other year.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>year</strong> (<em>int</em>) – Year to transfer the data to.</p></li>
+<li><p><strong>holiday_country</strong> (<em>str</em><em>, </em><em>optional</em><em> (</em><em>default: None</em><em>)</em>) – Country or region for which to assume the holidays. E.g. ‘DE’ (Germany), ‘NL’
+(Netherlands), or ‘USA’. See <code class="docutils literal notranslate"><span class="pre">holidays.list_supported_countries()</span></code> for
+allowed values.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#portfolyo.PfLine" title="portfolyo.PfLine">PfLine</a></p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Useful for daily (and shorter) data. Copies over the data but takes weekdays (and
+holidays) of target year into consideration. See <code class="docutils literal notranslate"><span class="pre">portfolyo.map_frame_as_year()</span></code>
+for more information.
+Inaccurate for monthly data and longer, because we only have one value per month,
+and can therefore not take different number of holidays/weekends (i.e., offpeak
+hours) into consideration.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="portfolyo.PfLine.p">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">p</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Series</span></em><a class="headerlink" href="#portfolyo.PfLine.p" title="Link to this definition">¶</a></dt>
+<dd><p>Return (flat) price timeseries in [Eur/MWh].</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.plot">
+<span class="sig-name descname"><span class="pre">plot</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cols</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">plt.Figure</span></span></span><a class="headerlink" href="#portfolyo.PfLine.plot" title="Link to this definition">¶</a></dt>
+<dd><p>Plot one or more timeseries of the PfLine.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>cols</strong> (<em>str</em><em>, </em><em>optional</em>) – The columns to plot. Default: plot volume (in [MW] for daily values and
+shorter, [MWh] for monthly values and longer) and price <cite>p</cite> [Eur/MWh]
+(if available).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The figure object to which the series was plotted.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>plt.Figure</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.plot_to_ax">
+<span class="sig-name descname"><span class="pre">plot_to_ax</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">plt.Axes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">col</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">how</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labelfmt</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#portfolyo.PfLine.plot_to_ax" title="Link to this definition">¶</a></dt>
+<dd><p>Plot a timeseries of the PfLine to a specific axes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>ax</strong> (<em>plt.Axes</em>) – The axes object to which to plot the timeseries.</p></li>
+<li><p><strong>col</strong> (<em>str</em>) – The column to plot. One of {‘w’, ‘q’, ‘p’, ‘r’}.</p></li>
+<li><p><strong>how</strong> (<em>str</em>) – How to plot the data. One of {‘jagged’, ‘bar’, ‘area’, ‘step’, ‘hline’}.</p></li>
+<li><p><strong>labelfmt</strong> (<em>str</em>) – Labels are added to each datapoint in the specified format. (’’ to add no labels)</p></li>
+<li><p><strong>function.</strong> (<em>Any additional kwargs are passed to the pd.Series.plot</em>) – </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.po">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">po</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">freq</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'MS'</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DataFrame</span></span></span><a class="headerlink" href="#portfolyo.PfLine.po" title="Link to this definition">¶</a></dt>
+<dd><p>Decompose the portfolio line into peak and offpeak values. Takes simple averages
+of volume [MW] and price [Eur/MWh] - does not hedge!</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>freq</strong> (<em>{'MS'</em><em> (</em><em>months</em><em>, </em><em>default</em><em>)</em><em>, </em><em>'QS'</em><em> (</em><em>quarters</em><em>)</em><em>, </em><em>'AS'</em><em> (</em><em>years</em><em>)</em><em>}</em>) – Frequency of resulting dataframe.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The dataframe shows a composition into peak and offpeak values.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>pd.DataFrame</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Only relevant for hourly (and shorter) data.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="portfolyo.PfLine.price">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">price</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#portfolyo.PfLine" title="portfolyo.core.pfline.classes.PfLine"><span class="pre">PfLine</span></a></em><a class="headerlink" href="#portfolyo.PfLine.price" title="Link to this definition">¶</a></dt>
+<dd><p>Return price-only PfLine.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.print">
+<span class="sig-name descname"><span class="pre">print</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flatten</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_of_ts</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">color</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#portfolyo.PfLine.print" title="Link to this definition">¶</a></dt>
+<dd><p>Treeview of the portfolio line.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>flatten</strong> (<em>bool</em><em>, </em><em>optional</em><em> (</em><em>default: False</em><em>)</em>) – if True, show only the top-level (aggregated) information.</p></li>
+<li><p><strong>num_of_ts</strong> (<em>int</em><em>, </em><em>optional</em><em> (</em><em>default: 5</em><em>)</em>) – How many timestamps to show for each PfLine.</p></li>
+<li><p><strong>color</strong> (<em>bool</em><em>, </em><em>optional</em><em> (</em><em>default: True</em><em>)</em>) – Make tree structure clearer by including colors. May not work on all output
+devices.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="portfolyo.PfLine.q">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">q</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Series</span></em><a class="headerlink" href="#portfolyo.PfLine.q" title="Link to this definition">¶</a></dt>
+<dd><p>Return (flat) volume timeseries in [MWh].</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="portfolyo.PfLine.r">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">r</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Series</span></em><a class="headerlink" href="#portfolyo.PfLine.r" title="Link to this definition">¶</a></dt>
+<dd><p>Return (flat) revenue timeseries in [Eur].</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="portfolyo.PfLine.revenue">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">revenue</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#portfolyo.PfLine" title="portfolyo.core.pfline.classes.PfLine"><span class="pre">PfLine</span></a></em><a class="headerlink" href="#portfolyo.PfLine.revenue" title="Link to this definition">¶</a></dt>
+<dd><p>Return revenue-only PfLine</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="portfolyo.PfLine.slice">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">slice</span></span><a class="headerlink" href="#portfolyo.PfLine.slice" title="Link to this definition">¶</a></dt>
+<dd><p>Create a new instance with a subset of the rows.
+Different from loc since performs slicing with right-open interval.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.to_clipboard">
+<span class="sig-name descname"><span class="pre">to_clipboard</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">excel</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool_t</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#portfolyo.PfLine.to_clipboard" title="Link to this definition">¶</a></dt>
+<dd><p>Copy object to the system clipboard.</p>
+<p>Write a text representation of object to the system clipboard.
+This can be pasted into Excel, for example.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>excel</strong> (<em>bool</em><em>, </em><em>default True</em>) – <p>Produce output in a csv format for easy pasting into excel.</p>
+<ul>
+<li><p>True, use the provided separator for csv pasting.</p></li>
+<li><p>False, write a string representation of the object to the clipboard.</p></li>
+</ul>
+</p></li>
+<li><p><strong>sep</strong> (str, default <code class="docutils literal notranslate"><span class="pre">'\t'</span></code>) – Field delimiter.</p></li>
+<li><p><strong>**kwargs</strong> – These parameters will be passed to DataFrame.to_csv.</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataFrame.to_csv</span></code></dt><dd><p>Write a DataFrame to a comma-separated values (csv) file.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_clipboard</span></code></dt><dd><p>Read text from clipboard and pass to read_csv.</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Notes</p>
+<p>Requirements for your platform.</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>Linux : <cite>xclip</cite>, or <cite>xsel</cite> (with <cite>PyQt4</cite> modules)</p></li>
+<li><p>Windows : none</p></li>
+<li><p>macOS : none</p></li>
+</ul>
+</div></blockquote>
+<p>This method uses the processes developed for the package <cite>pyperclip</cite>. A
+solution to render any output string format is given in the examples.</p>
+<p class="rubric">Examples</p>
+<p>Copy the contents of a DataFrame to the clipboard.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">6</span><span class="p">]],</span> <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">,</span> <span class="s1">&#39;B&#39;</span><span class="p">,</span> <span class="s1">&#39;C&#39;</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">to_clipboard</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>  
+<span class="gp">... </span><span class="c1"># Wrote the following to the system clipboard:</span>
+<span class="gp">... </span><span class="c1"># ,A,B,C</span>
+<span class="gp">... </span><span class="c1"># 0,1,2,3</span>
+<span class="gp">... </span><span class="c1"># 1,4,5,6</span>
+</pre></div>
+</div>
+<p>We can omit the index by passing the keyword <cite>index</cite> and setting
+it to false.</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="o">.</span><span class="n">to_clipboard</span><span class="p">(</span><span class="n">sep</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  
+<span class="gp">... </span><span class="c1"># Wrote the following to the system clipboard:</span>
+<span class="gp">... </span><span class="c1"># A,B,C</span>
+<span class="gp">... </span><span class="c1"># 1,2,3</span>
+<span class="gp">... </span><span class="c1"># 4,5,6</span>
+</pre></div>
+</div>
+<p>Using the original <cite>pyperclip</cite> package for any string output format.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">pyperclip</span>
+<span class="n">html</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">style</span><span class="o">.</span><span class="n">to_html</span><span class="p">()</span>
+<span class="n">pyperclip</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">html</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="portfolyo.PfLine.to_excel">
+<span class="sig-name descname"><span class="pre">to_excel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">excel_writer</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sheet_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'Sheet1'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">na_rep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">''</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">float_format</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">columns</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">Hashable</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">bool_t</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool_t</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">index_label</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">IndexLabel</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">startrow</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">startcol</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">engine</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_cells</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool_t</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inf_rep</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">'inf'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">freeze_panes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">storage_options</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">StorageOptions</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#portfolyo.PfLine.to_excel" title="Link to this definition">¶</a></dt>
+<dd><p>Write object to an Excel sheet.</p>
+<p>To write a single object to an Excel .xlsx file it is only necessary to
+specify a target file name. To write to multiple sheets it is necessary to
+create an <cite>ExcelWriter</cite> object with a target file name, and specify a sheet
+in the file to write to.</p>
+<p>Multiple sheets may be written to by specifying unique <cite>sheet_name</cite>.
+With all data written to the file it is necessary to save the changes.
+Note that creating an <cite>ExcelWriter</cite> object with a file name that already
+exists will result in the contents of the existing file being erased.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>excel_writer</strong> (<em>path-like</em><em>, </em><em>file-like</em><em>, or </em><em>ExcelWriter object</em>) – File path or existing ExcelWriter.</p></li>
+<li><p><strong>sheet_name</strong> (<em>str</em><em>, </em><em>default 'Sheet1'</em>) – Name of sheet which will contain DataFrame.</p></li>
+<li><p><strong>na_rep</strong> (<em>str</em><em>, </em><em>default ''</em>) – Missing data representation.</p></li>
+<li><p><strong>float_format</strong> (<em>str</em><em>, </em><em>optional</em>) – Format string for floating point numbers. For example
+<code class="docutils literal notranslate"><span class="pre">float_format=&quot;%.2f&quot;</span></code> will format 0.1234 to 0.12.</p></li>
+<li><p><strong>columns</strong> (<em>sequence</em><em> or </em><em>list</em><em> of </em><em>str</em><em>, </em><em>optional</em>) – Columns to write.</p></li>
+<li><p><strong>header</strong> (<em>bool</em><em> or </em><em>list</em><em> of </em><em>str</em><em>, </em><em>default True</em>) – Write out the column names. If a list of string is given it is
+assumed to be aliases for the column names.</p></li>
+<li><p><strong>index</strong> (<em>bool</em><em>, </em><em>default True</em>) – Write row names (index).</p></li>
+<li><p><strong>index_label</strong> (<em>str</em><em> or </em><em>sequence</em><em>, </em><em>optional</em>) – Column label for index column(s) if desired. If not specified, and
+<cite>header</cite> and <cite>index</cite> are True, then the index names are used. A
+sequence should be given if the DataFrame uses MultiIndex.</p></li>
+<li><p><strong>startrow</strong> (<em>int</em><em>, </em><em>default 0</em>) – Upper left cell row to dump data frame.</p></li>
+<li><p><strong>startcol</strong> (<em>int</em><em>, </em><em>default 0</em>) – Upper left cell column to dump data frame.</p></li>
+<li><p><strong>engine</strong> (<em>str</em><em>, </em><em>optional</em>) – Write engine to use, ‘openpyxl’ or ‘xlsxwriter’. You can also set this
+via the options <code class="docutils literal notranslate"><span class="pre">io.excel.xlsx.writer</span></code> or
+<code class="docutils literal notranslate"><span class="pre">io.excel.xlsm.writer</span></code>.</p></li>
+<li><p><strong>merge_cells</strong> (<em>bool</em><em>, </em><em>default True</em>) – Write MultiIndex and Hierarchical Rows as merged cells.</p></li>
+<li><p><strong>inf_rep</strong> (<em>str</em><em>, </em><em>default 'inf'</em>) – Representation for infinity (there is no native representation for
+infinity in Excel).</p></li>
+<li><p><strong>freeze_panes</strong> (<em>tuple</em><em> of </em><em>int</em><em> (</em><em>length 2</em><em>)</em><em>, </em><em>optional</em>) – Specifies the one-based bottommost row and rightmost column that
+is to be frozen.</p></li>
+<li><p><strong>storage_options</strong> (<em>dict</em><em>, </em><em>optional</em>) – <p>Extra options that make sense for a particular storage connection, e.g.
+host, port, username, password, etc. For HTTP(S) URLs the key-value pairs
+are forwarded to <code class="docutils literal notranslate"><span class="pre">urllib.request.Request</span></code> as header options. For other
+URLs (e.g. starting with “s3://”, and “gcs://”) the key-value pairs are
+forwarded to <code class="docutils literal notranslate"><span class="pre">fsspec.open</span></code>. Please see <code class="docutils literal notranslate"><span class="pre">fsspec</span></code> and <code class="docutils literal notranslate"><span class="pre">urllib</span></code> for more
+details, and for more examples on storage options refer <a class="reference external" href="https://pandas.pydata.org/docs/user_guide/io.html?highlight=storage_options#reading-writing-remote-files">here</a>.</p>
+<div class="versionadded">
+<p><span class="versionmodified added">New in version 1.2.0.</span></p>
+</div>
+</p></li>
+</ul>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_csv</span></code></dt><dd><p>Write DataFrame to a comma-separated values (csv) file.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">ExcelWriter</span></code></dt><dd><p>Class for writing DataFrame objects into excel sheets.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_excel</span></code></dt><dd><p>Read an Excel file into a pandas DataFrame.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">read_csv</span></code></dt><dd><p>Read a comma-separated values (csv) file into DataFrame.</p>
+</dd>
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">io.formats.style.Styler.to_excel</span></code></dt><dd><p>Add styles to Excel sheet.</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Notes</p>
+<p>For compatibility with <code class="xref py py-meth docutils literal notranslate"><span class="pre">to_csv()</span></code>,
+to_excel serializes lists and dicts to strings before writing.</p>
+<p>Once a workbook has been saved it is not possible to write further
+data without rewriting the whole workbook.</p>
+<p class="rubric">Examples</p>
+<p>Create, write to and save a workbook:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df1</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">([[</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="s1">&#39;b&#39;</span><span class="p">],</span> <span class="p">[</span><span class="s1">&#39;c&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">]],</span>
+<span class="gp">... </span>                   <span class="n">index</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;row 1&#39;</span><span class="p">,</span> <span class="s1">&#39;row 2&#39;</span><span class="p">],</span>
+<span class="gp">... </span>                   <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;col 1&#39;</span><span class="p">,</span> <span class="s1">&#39;col 2&#39;</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df1</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="s2">&quot;output.xlsx&quot;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>To specify the sheet name:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df1</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="s2">&quot;output.xlsx&quot;</span><span class="p">,</span>
+<span class="gp">... </span>             <span class="n">sheet_name</span><span class="o">=</span><span class="s1">&#39;Sheet_name_1&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+<p>If you wish to write to more than one sheet in the workbook, it is
+necessary to specify an ExcelWriter object:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df2</span> <span class="o">=</span> <span class="n">df1</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">pd</span><span class="o">.</span><span class="n">ExcelWriter</span><span class="p">(</span><span class="s1">&#39;output.xlsx&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>  
+<span class="gp">... </span>    <span class="n">df1</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="s1">&#39;Sheet_name_1&#39;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="n">df2</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="s1">&#39;Sheet_name_2&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>ExcelWriter can also be used to append to an existing Excel file:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">pd</span><span class="o">.</span><span class="n">ExcelWriter</span><span class="p">(</span><span class="s1">&#39;output.xlsx&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                    <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">writer</span><span class="p">:</span>  
+<span class="gp">... </span>    <span class="n">df</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="n">writer</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="s1">&#39;Sheet_name_3&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To set the library that is used to write the Excel file,
+you can pass the <cite>engine</cite> keyword (the default engine is
+automatically chosen depending on the file extension):</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">df1</span><span class="o">.</span><span class="n">to_excel</span><span class="p">(</span><span class="s1">&#39;output1.xlsx&#39;</span><span class="p">,</span> <span class="n">engine</span><span class="o">=</span><span class="s1">&#39;xlsxwriter&#39;</span><span class="p">)</span>  
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="portfolyo.PfLine.volume">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">volume</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#portfolyo.PfLine" title="portfolyo.core.pfline.classes.PfLine"><span class="pre">PfLine</span></a></em><a class="headerlink" href="#portfolyo.PfLine.volume" title="Link to this definition">¶</a></dt>
+<dd><p>Return volume-only PfLine.</p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="portfolyo.PfLine.w">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">w</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Series</span></em><a class="headerlink" href="#portfolyo.PfLine.w" title="Link to this definition">¶</a></dt>
+<dd><p>Return (flat) volume timeseries in [MW].</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Core functionality</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="objects.html">Objects</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">PfLine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pfstate.html">PfState</a></li>
+<li class="toctree-l1"><a class="reference internal" href="interoperability.html">Interoperability</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part1.html">Tutorial part 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part2.html">Tutorial part 2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part3.html">Tutorial part 3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part4.html">Tutorial part 4</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Specialized topics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/dataprep.html">Preprocessing input data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/timezones.html">Timezones</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/dimensions.html">Dimensions and Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/indices.html">Indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/resampling.html">Resampling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Full reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../full_reference.html">Full reference</a></li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="../_sources/core/pfline.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; Ruud Wijtvliet
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

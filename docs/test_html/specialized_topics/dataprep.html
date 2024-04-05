@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>portfolyo :: Preprocessing input data</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="../_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="../genindex.html"/>
+
+  <link rel="stylesheet" href="../_static/css/insegel.css"/>
+  <link rel="stylesheet" href="../_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="../_static/sphinx_highlight.js"></script>
+      <script type="text/javascript" src="../https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>portfolyo</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="preprocessing-input-data">
+<h1>Preprocessing input data<a class="headerlink" href="#preprocessing-input-data" title="Link to this heading">¶</a></h1>
+<p>User-supplied input data should adhere to certain specifications, and depending on our data source, some cleanup or manipulation might be necessary.</p>
+<nav class="contents local" id="page-contents">
+<p class="topic-title">Page contents:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#datetimeindex" id="id2">DatetimeIndex</a></p></li>
+<li><p><a class="reference internal" href="#localize-input-data" id="id3">Localize input data</a></p></li>
+<li><p><a class="reference internal" href="#frequency" id="id4">Frequency</a></p></li>
+<li><p><a class="reference internal" href="#left-bound-datetimeindex" id="id5">Left-bound DatetimeIndex</a></p></li>
+<li><p><a class="reference internal" href="#target-timezone" id="id6">Target timezone</a></p></li>
+<li><p><a class="reference internal" href="#in-one-step" id="id7">In one step</a></p></li>
+</ul>
+</nav>
+<p><code class="docutils literal notranslate"><span class="pre">portfolyo</span></code> mainly works with <code class="docutils literal notranslate"><span class="pre">pandas</span> <span class="pre">Series</span></code> and <code class="docutils literal notranslate"><span class="pre">pandas</span> <span class="pre">DataFrame</span></code> objects as input data. Let’s say we have an object <code class="docutils literal notranslate"><span class="pre">fr</span></code> as input data, which may be either; it should:</p>
+<ul class="simple">
+<li><p>have a <code class="docutils literal notranslate"><span class="pre">DatetimeIndex</span></code>,</p></li>
+<li><p>with left-bound timestamps,</p></li>
+<li><p>which is either timezone-agnostic or localized to a certain geographic timezone,</p></li>
+<li><p>and gapless,</p></li>
+<li><p>and has a quarterhourly, hourly, daily, monthly, quarterly or yearly frequency.</p></li>
+</ul>
+<p>Below are some common operations to ensure these characteristics. The are best done in the order presented. For convenience there is also a <code class="docutils literal notranslate"><span class="pre">portfolyo.standardize()</span></code> function, which can be used to do all necessary preprocessing in the majority of cases.</p>
+<section id="datetimeindex">
+<h2><a class="toc-backref" href="#id2" role="doc-backlink">DatetimeIndex</a><a class="headerlink" href="#datetimeindex" title="Link to this heading">¶</a></h2>
+<p>The index of <code class="docutils literal notranslate"><span class="pre">fr</span></code> must be a <code class="docutils literal notranslate"><span class="pre">pandas.DatetimeIndex</span></code>. Each timestamp in the index describes a <em>period</em> in time. (The reason a <code class="docutils literal notranslate"><span class="pre">pandas.PeriodIndex</span></code> is not used for this, is that these cannot handle timezones that use daylight-savings time.)</p>
+<p>If we are dealing with a DataFrame whose timestamps are not in the index but in one of the columns, we can use the <code class="docutils literal notranslate"><span class="pre">fr.set_index()</span></code> method, like so:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">fr</span><span class="o">.</span><span class="n">set_index</span><span class="p">(</span><span class="s2">&quot;columname&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If the index contains the correct timestamps but e.g. as strings, we can create a <code class="docutils literal notranslate"><span class="pre">DatetimeIndex</span></code> like so:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DatetimeIndex</span><span class="p">(</span><span class="n">fr</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="localize-input-data">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">Localize input data</a><a class="headerlink" href="#localize-input-data" title="Link to this heading">¶</a></h2>
+<p>There are several thing to consider when working with timezones; the first is localization. Localization is necessary when the index (a) is not timezone-aware (meaning, that <code class="docutils literal notranslate"><span class="pre">fr.index.tz</span></code> is <code class="docutils literal notranslate"><span class="pre">None</span></code>; the timestamps show the local (“wall”) time), but (b) <em>does</em> assume a specific timezone.</p>
+<p>A common example is hourly (or shorter) data, in timezones with daylight-savings time, like “Europe/Berlin”. A non-localized timeseries will have a missing/repeated hour at the start/end of DST: it contains the timestamps <code class="docutils literal notranslate"><span class="pre">2020-03-29</span> <span class="pre">00:00</span></code>, <code class="docutils literal notranslate"><span class="pre">01:00</span></code>, <code class="docutils literal notranslate"><span class="pre">03:00</span></code>, <code class="docutils literal notranslate"><span class="pre">...</span></code>, as well as <code class="docutils literal notranslate"><span class="pre">2020-10-25</span> <span class="pre">00:00</span></code>, <code class="docutils literal notranslate"><span class="pre">01:00</span></code>, <code class="docutils literal notranslate"><span class="pre">02:00</span></code>, <code class="docutils literal notranslate"><span class="pre">02:00</span></code>, <code class="docutils literal notranslate"><span class="pre">03:00</span></code>, <code class="docutils literal notranslate"><span class="pre">...</span></code>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is often the case when reading data from Excel, as Excel cannot handle timezones or UTC-offsets.</p>
+</div>
+<p>The timezone can be added to the data with the <code class="docutils literal notranslate"><span class="pre">fr.tz_localize()</span></code> method:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">fr</span><span class="o">.</span><span class="n">tz_localize</span><span class="p">(</span><span class="s2">&quot;Europe/Berlin&quot;</span><span class="p">,</span> <span class="n">ambiguous</span><span class="o">=</span><span class="s2">&quot;infer&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This makes the index unambiguous, with a UTC-offset on each timestamp (e.g. the two <code class="docutils literal notranslate"><span class="pre">2020-10-25</span> <span class="pre">02:00:00</span></code> timestamps become <code class="docutils literal notranslate"><span class="pre">2020-10-25</span> <span class="pre">02:00:00+02:00</span></code> and <code class="docutils literal notranslate"><span class="pre">2020-10-25</span> <span class="pre">02:00:00+01:00</span></code>).</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Localization is only necessary in the situation mentioned above: if the input data has <strong>local (“wall”) timestamps</strong> for a <strong>specific geographic location</strong>.</p>
+</div>
+<p>Note that localization is not necessary in the following cases:</p>
+<ul class="simple">
+<li><p>The index is already localized (<code class="docutils literal notranslate"><span class="pre">fr.index.tz</span></code> is not <code class="docutils literal notranslate"><span class="pre">None</span></code>). In this case, <code class="docutils literal notranslate"><span class="pre">fr.tz_localize</span></code> raises a <code class="docutils literal notranslate"><span class="pre">TypeError</span></code>.</p></li>
+<li><p>The index is “standardized timezone-agnostic”, i.e., with 24h per calendar day and no DST-transitions. In this case, the data is not tied to a specific geographic location and therefore should not be localized. <a class="footnote-reference brackets" href="#f1" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p></li>
+</ul>
+<p>Don’t worry if our data does not yet have the timezone we want to use in our application, we will take care of that further below.</p>
+</section>
+<section id="frequency">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">Frequency</a><a class="headerlink" href="#frequency" title="Link to this heading">¶</a></h2>
+<p>The index must have a frequency (<code class="docutils literal notranslate"><span class="pre">fr.index.freq</span></code>); it must be one of the ones in <code class="docutils literal notranslate"><span class="pre">portfolyo.FREQUENCIES</span></code>. The following abbreviations are used by <code class="docutils literal notranslate"><span class="pre">pandas</span></code> and throughout this package:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">15T</span></code>: quarterhourly;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">H</span></code>: hourly;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">D</span></code>: daily;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">MS</span></code>: monthly;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">QS</span></code>: quarterly;</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">AS</span></code>: yearly.</p></li>
+</ul>
+<p>If the frequency is not set, we can try to make pandas infer it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">freq</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">infer_freq</span><span class="p">(</span><span class="n">fr</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>However, if <code class="docutils literal notranslate"><span class="pre">fr.index.freq</span></code> is still <code class="docutils literal notranslate"><span class="pre">None</span></code> after this, or if an error is raised, it is because of one of these reasons:</p>
+<section id="too-few-datapoints">
+<h3>Too few datapoints<a class="headerlink" href="#too-few-datapoints" title="Link to this heading">¶</a></h3>
+<p>If there is only one timestamp in the index, e.g., <code class="docutils literal notranslate"><span class="pre">2020-01-01</span> <span class="pre">0:00</span></code>, it is impossible for <code class="docutils literal notranslate"><span class="pre">pandas.infer_freq</span></code> to know if this represents an hour, a day, or the entire year. In this case, we can manually set the frequency with e.g.:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span><span class="o">.</span><span class="n">index</span><span class="o">.</span><span class="n">freq</span> <span class="o">=</span> <span class="s2">&quot;D&quot;</span>
+</pre></div>
+</div>
+</section>
+<section id="gaps-in-data">
+<h3>Gaps in data<a class="headerlink" href="#gaps-in-data" title="Link to this heading">¶</a></h3>
+<p>If the index has gaps - e.g., it has timestamps for Jan 5, Jan 6, Jan 7, and Jan 10, the frequency can also not be determined. In this case, if we are dealing with daily values, the Jan 8 and Jan 9 timestamps need to be inserted, e.g. with:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">fr</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="s2">&quot;D&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">asfreq</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Because their values are unknown, these timestamps get a <code class="docutils literal notranslate"><span class="pre">numpy.nan</span></code> value. (We could use the <code class="docutils literal notranslate"><span class="pre">portfolyo.fill_gaps()</span></code> function to do a linear interpolation and fill the gaps.)</p>
+</section>
+</section>
+<section id="left-bound-datetimeindex">
+<span id="righttoleft"></span><h2><a class="toc-backref" href="#id5" role="doc-backlink">Left-bound DatetimeIndex</a><a class="headerlink" href="#left-bound-datetimeindex" title="Link to this heading">¶</a></h2>
+<p>Another assumtion is that timestamps in the index must be at the <em>start</em> of their periods. E.g., if we have hourly values, the timestamp with time <code class="docutils literal notranslate"><span class="pre">04:00</span></code> must describe the hour starting at 04:00 (i.e., 04:00-05:00) and not the hour ending at 04:00 (i.e.,03:00-04:00).</p>
+<p>If the index has right-bound timestamps, we can convert it to the wanted left-bound format with <code class="docutils literal notranslate"><span class="pre">portfolyo.right_to_left()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">portfolyo</span><span class="o">.</span><span class="n">right_to_left</span><span class="p">(</span><span class="n">fr</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="target-timezone">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">Target timezone</a><a class="headerlink" href="#target-timezone" title="Link to this heading">¶</a></h2>
+<p>Finally, we can convert our input data into the timezone we want to use throughout our application. We choose either (a) to make all data timezone-aware and localized to the same geographic location, or (b) to make all data timezone-agnostic, with 24h for each day, without DST-transitions.</p>
+<p>We can use one of the timezone conversion functions to do this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">portfolyo</span><span class="o">.</span><span class="n">force_tzaware</span><span class="p">(</span><span class="n">fr</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s2">&quot;Europe/Berlin&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>or</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">portfolyo</span><span class="o">.</span><span class="n">force_tzagnostic</span><span class="p">(</span><span class="n">fr</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that these conversions are not always lossless, in which case assumptions are made abouth the data. For more details, see <a class="reference internal" href="timezones.html"><span class="doc">Timezones</span></a>.</p>
+</section>
+<section id="in-one-step">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">In one step</a><a class="headerlink" href="#in-one-step" title="Link to this heading">¶</a></h2>
+<p>If the input data has no gaps, and a frequency that is either set or can be inferred, then we can do all of the above operations with one call to the <code class="docutils literal notranslate"><span class="pre">portfolyo.standardize()</span></code> function, i.e.:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">fr</span> <span class="o">=</span> <span class="n">portfolyo</span><span class="o">.</span><span class="n">standardize</span><span class="p">(</span><span class="n">fr</span><span class="p">,</span> <span class="s1">&#39;aware&#39;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s1">&#39;Europe/Berlin&#39;</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="s1">&#39;right&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This function also tries to localize <code class="docutils literal notranslate"><span class="pre">fr</span></code> if it is not timezone-aware, and the frequency cannot be inferred.</p>
+<p class="rubric">Footnotes</p>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="f1" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>However, there is no harm in doing the localization to the target timezone if it is possible. In specific situations, localization is not possible (if we (a) have (quarter)hourly values that we (b) want to localize to a timezone with daylight-savings-time such as “Europe/Berlin” and (c) the moment of the DST-transition is included in the input data) and <code class="docutils literal notranslate"><span class="pre">fr.tz_localize()</span></code> raises a <code class="docutils literal notranslate"><span class="pre">NonExistentTimeError</span></code> or a <code class="docutils literal notranslate"><span class="pre">AmbiguousTimeError</span></code>.</p>
+</aside>
+</aside>
+</section>
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Core functionality</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/objects.html">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/pfline.html">PfLine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/pfstate.html">PfState</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/interoperability.html">Interoperability</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part1.html">Tutorial part 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part2.html">Tutorial part 2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part3.html">Tutorial part 3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part4.html">Tutorial part 4</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Specialized topics</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Preprocessing input data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="timezones.html">Timezones</a></li>
+<li class="toctree-l1"><a class="reference internal" href="dimensions.html">Dimensions and Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="indices.html">Indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="resampling.html">Resampling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Full reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../full_reference.html">Full reference</a></li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="../_sources/specialized_topics/dataprep.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; Ruud Wijtvliet
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

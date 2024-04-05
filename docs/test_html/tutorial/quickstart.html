@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>portfolyo :: Quickstart</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="../_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="../genindex.html"/>
+
+  <link rel="stylesheet" href="../_static/css/insegel.css"/>
+  <link rel="stylesheet" href="../_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="../_static/sphinx_highlight.js"></script>
+      <script type="text/javascript" src="../https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script type="text/javascript" src="../"></script>
+      <script type="text/javascript" src="../https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>portfolyo</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="Quickstart">
+<h1>Quickstart<a class="headerlink" href="#Quickstart" title="Link to this heading">¶</a></h1>
+<p>Showcase for how this package can be used.</p>
+<section id="Example-data">
+<h2>Example data<a class="headerlink" href="#Example-data" title="Link to this heading">¶</a></h2>
+<p>Let’s start by importing the package and getting some mock example timeseries in hourly resolution for a certain customer portfolio.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">portfolyo</span> <span class="k">as</span> <span class="nn">pf</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">&quot;2024&quot;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">8784</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s2">&quot;Europe/Berlin&quot;</span><span class="p">)</span>
+
+<span class="c1"># Creating market prices (here: forward price curve) timeseries.</span>
+<span class="n">ts_prices</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">p_marketprices</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">avg</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+
+<span class="c1"># Creating portfolio offtake timeseries.</span>
+<span class="n">ts_offtake</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">pf</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">w_offtake</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">avg</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="c1"># Creating portfolio sourced volume and prices timeseries (of quarter-products).</span>
+<span class="n">ts_sourced_power</span><span class="p">,</span> <span class="n">ts_sourced_price</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">wp_sourced</span><span class="p">(</span><span class="n">ts_offtake</span><span class="p">,</span> <span class="s2">&quot;QS&quot;</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">p_avg</span><span class="o">=</span><span class="mi">120</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Portfolio-lines">
+<h2>Portfolio lines<a class="headerlink" href="#Portfolio-lines" title="Link to this heading">¶</a></h2>
+<p>By turning the timeseries into 3 “portfolio lines”…</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">hpfc</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">({</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">ts_prices</span><span class="p">})</span>  <span class="c1"># price-only</span>
+<span class="n">offtake</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">({</span><span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="n">ts_offtake</span><span class="p">})</span>  <span class="c1"># volume-only</span>
+<span class="n">sourced</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">({</span><span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="n">ts_sourced_power</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">ts_sourced_price</span><span class="p">})</span>  <span class="c1"># price-and-volume</span>
+</pre></div>
+</div>
+</div>
+<p>…it becomes easier to do common operations like plotting:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sourced</span><span class="o">.</span><span class="n">plot</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorial_quickstart_5_0.png" src="../_images/tutorial_quickstart_5_0.png" />
+</div>
+</div>
+<p>…aggregating:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sourced</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s2">&quot;MS&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+PfLine object with price and volume information.
+. Start: 2024-01-01 00:00:00+01:00 (incl)    . Timezone    : Europe/Berlin
+. End  : 2025-01-01 00:00:00+01:00 (excl)    . Start-of-day: 00:00:00
+. Freq : &lt;MonthBegin&gt; (12 datapoints)
+                                     w           q           p             r
+                                    MW         MWh     Eur/MWh           Eur
+
+2024-01-01 00:00:00 +0100         14.9      11 053      131.46     1 453 063
+2024-02-01 00:00:00 +0100         14.9      10 398      131.69     1 369 327
+2024-03-01 00:00:00 +0100         15.2      11 259      132.27     1 489 298
+2024-04-01 00:00:00 +0200         11.5       8 306      115.69       960 908
+2024-05-01 00:00:00 +0200         11.6       8 628      115.52       996 763
+2024-06-01 00:00:00 +0200         11.1       7 967      117.02       932 229
+2024-07-01 00:00:00 +0200         10.4       7 756      111.58       865 442
+2024-08-01 00:00:00 +0200         10.4       7 765      110.89       861 142
+2024-09-01 00:00:00 +0200         10.4       7 518      110.69       832 114
+2024-10-01 00:00:00 +0200         17.0      12 685      124.97     1 585 180
+2024-11-01 00:00:00 +0100         16.7      12 015      124.08     1 490 818
+2024-12-01 00:00:00 +0100         16.8      12 475      124.29     1 550 568
+</pre></div></div>
+</div>
+<p>…or decomposing into peak- and offpeak values:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sourced</span><span class="o">.</span><span class="n">po</span><span class="p">(</span><span class="s2">&quot;QS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">pint</span><span class="o">.</span><span class="n">dequantify</span><span class="p">()</span>  <span class="c1"># .pint.dequantify() to show units in column header</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+c:\Users\ruud.wijtvliet\Anaconda3\envs\pf38\lib\site-packages\pint_pandas\pint_array.py:194: RuntimeWarning: pint-pandas does not support magnitudes of &lt;class &#39;int&#39;&gt;. Converting magnitudes to float.
+  warnings.warn(
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area rendered_html docutils container">
+<div>
+<style scoped>
+    .dataframe tbody tr th:only-of-type {
+        vertical-align: middle;
+    }
+
+    .dataframe tbody tr th {
+        vertical-align: top;
+    }
+
+    .dataframe thead tr th {
+        text-align: left;
+    }
+</style>
+<table border="1" class="dataframe">
+  <thead>
+    <tr>
+      <th></th>
+      <th colspan="5" halign="left">peak</th>
+      <th colspan="5" halign="left">offpeak</th>
+    </tr>
+    <tr>
+      <th></th>
+      <th>duration</th>
+      <th>w</th>
+      <th>q</th>
+      <th>p</th>
+      <th>r</th>
+      <th>duration</th>
+      <th>w</th>
+      <th>q</th>
+      <th>p</th>
+      <th>r</th>
+    </tr>
+    <tr>
+      <th>unit</th>
+      <th>h</th>
+      <th>MW</th>
+      <th>MW·h</th>
+      <th>Eur/MWh</th>
+      <th>Eur</th>
+      <th>h</th>
+      <th>MW</th>
+      <th>MW·h</th>
+      <th>Eur/MWh</th>
+      <th>Eur</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>2024-01-01 00:00:00+01:00</th>
+      <td>780.0</td>
+      <td>8.969180</td>
+      <td>6995.960351</td>
+      <td>104.407521</td>
+      <td>7.304309e+05</td>
+      <td>1403.0</td>
+      <td>18.327806</td>
+      <td>25713.911223</td>
+      <td>139.273118</td>
+      <td>3.581257e+06</td>
+    </tr>
+    <tr>
+      <th>2024-04-01 00:00:00+02:00</th>
+      <td>780.0</td>
+      <td>20.491010</td>
+      <td>15982.987566</td>
+      <td>102.065215</td>
+      <td>1.631307e+06</td>
+      <td>1404.0</td>
+      <td>6.351754</td>
+      <td>8917.862478</td>
+      <td>141.131612</td>
+      <td>1.258592e+06</td>
+    </tr>
+    <tr>
+      <th>2024-07-01 00:00:00+02:00</th>
+      <td>792.0</td>
+      <td>9.947104</td>
+      <td>7878.105974</td>
+      <td>139.604102</td>
+      <td>1.099816e+06</td>
+      <td>1416.0</td>
+      <td>10.707181</td>
+      <td>15161.368636</td>
+      <td>96.223647</td>
+      <td>1.458882e+06</td>
+    </tr>
+    <tr>
+      <th>2024-10-01 00:00:00+02:00</th>
+      <td>792.0</td>
+      <td>27.475675</td>
+      <td>21760.734601</td>
+      <td>141.442611</td>
+      <td>3.077895e+06</td>
+      <td>1417.0</td>
+      <td>10.877807</td>
+      <td>15413.852057</td>
+      <td>100.472664</td>
+      <td>1.548671e+06</td>
+    </tr>
+  </tbody>
+</table>
+</div></div>
+</div>
+</section>
+<section id="Portfolio-state">
+<h2>Portfolio state<a class="headerlink" href="#Portfolio-state" title="Link to this heading">¶</a></h2>
+<p>We can do even more useful analyses by combining the portfolio lines for offtake, sourced, and market prices into a single “portfolio state”:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pfs</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfState</span><span class="p">(</span><span class="n">offtake</span><span class="p">,</span> <span class="n">hpfc</span><span class="p">,</span> <span class="n">sourced</span><span class="p">)</span>
+
+<span class="n">pfs</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+PfState object.
+. Start: 2024-01-01 00:00:00+01:00 (incl)    . Timezone    : Europe/Berlin
+. End  : 2025-01-01 00:00:00+01:00 (excl)    . Start-of-day: 00:00:00
+. Freq : &lt;Hour&gt; (8784 datapoints)
+                                                w           q           p             r
+                                               MW         MWh     Eur/MWh           Eur
+──────── offtake
+           2024-01-01 00:00:00 +0100        -56.6         -57
+           2024-01-01 01:00:00 +0100        -52.8         -53
+           ..                                  ..          ..          ..            ..
+           2024-12-31 22:00:00 +0100        -67.7         -68
+           2024-12-31 23:00:00 +0100        -62.7         -63
+─●────── pnl_cost
+ │         2024-01-01 00:00:00 +0100         56.6          57      201.02        11 372
+ │         2024-01-01 01:00:00 +0100         52.8          53      190.18        10 033
+ │         ..                                  ..          ..          ..            ..
+ │         2024-12-31 22:00:00 +0100         67.7          68      194.22        13 144
+ │         2024-12-31 23:00:00 +0100         62.7          63      203.81        12 773
+ ├────── sourced
+ │         2024-01-01 00:00:00 +0100         18.3          18      139.27         2 553
+ │         2024-01-01 01:00:00 +0100         18.3          18      139.27         2 553
+ │         ..                                  ..          ..          ..            ..
+ │         2024-12-31 22:00:00 +0100         10.9          11      100.47         1 093
+ │         2024-12-31 23:00:00 +0100         10.9          11      100.47         1 093
+ └────── unsourced
+           2024-01-01 00:00:00 +0100         38.2          38      230.62         8 820
+           2024-01-01 01:00:00 +0100         34.4          34      217.28         7 481
+           ..                                  ..          ..          ..            ..
+           2024-12-31 22:00:00 +0100         56.8          57      212.18        12 051
+           2024-12-31 23:00:00 +0100         51.8          52      225.51        11 680
+</pre></div></div>
+</div>
+<p>This object can also be resampled to other frequencies:</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pfs_months</span> <span class="o">=</span> <span class="n">pfs</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s2">&quot;MS&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<p>We can see how much of the offtake volume is still unsourced, and how much we expect to pay for it, as a portfolio line. We can obtain it in the original frequency with <code class="docutils literal notranslate"><span class="pre">pfs.unsourced</span></code>, or in monthly frequency with <code class="docutils literal notranslate"><span class="pre">pfs_monthly.unsourced</span></code>. We can of course also chain the methods:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pfs</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s2">&quot;MS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">unsourced</span>  <span class="c1"># or: pfs.unsourced.asfreq(&#39;MS&#39;)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+PfLine object with price and volume information.
+. Start: 2024-01-01 00:00:00+01:00 (incl)    . Timezone    : Europe/Berlin
+. End  : 2025-01-01 00:00:00+01:00 (excl)    . Start-of-day: 00:00:00
+. Freq : &lt;MonthBegin&gt; (12 datapoints)
+                                     w           q           p             r
+                                    MW         MWh     Eur/MWh           Eur
+
+2024-01-01 00:00:00 +0100         49.7      36 990      255.70     9 458 395
+2024-02-01 00:00:00 +0100         48.2      33 567      240.85     8 084 500
+2024-03-01 00:00:00 +0100         44.2      32 848      213.46     7 011 828
+2024-04-01 00:00:00 +0200         43.3      31 147      174.37     5 431 217
+2024-05-01 00:00:00 +0200         38.3      28 484      145.33     4 139 700
+2024-06-01 00:00:00 +0200         34.6      24 882      123.65     3 076 521
+2024-07-01 00:00:00 +0200         34.4      25 583      136.56     3 493 569
+2024-08-01 00:00:00 +0200         35.5      26 390      145.96     3 851 887
+2024-09-01 00:00:00 +0200         39.0      28 057      170.99     4 797 520
+2024-10-01 00:00:00 +0200         37.7      28 062      193.33     5 425 100
+2024-11-01 00:00:00 +0100         42.6      30 699      218.76     6 715 852
+2024-12-01 00:00:00 +0100         46.3      34 422      238.51     8 209 875
+</pre></div></div>
+</div>
+<p>Plotting is also possible:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pfs</span><span class="o">.</span><span class="n">plot</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorial_quickstart_17_0.png" src="../_images/tutorial_quickstart_17_0.png" />
+</div>
+</div>
+<p>We can see how much it would cost to perfectly hedge the entire offtake volume, based on what has already been sourced (and its price) and what is still unsourced (valued at market prices). This is available at <code class="docutils literal notranslate"><span class="pre">pfl.pnl_cost</span></code>. Let’s look at this, graphically, in month values:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pfs</span><span class="o">.</span><span class="n">pnl_cost</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s2">&quot;MS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorial_quickstart_19_0.png" src="../_images/tutorial_quickstart_19_0.png" />
+</div>
+</div>
+<p>On average, only about 30% of the portfolio has currently been hedged. This can be seen from the <code class="docutils literal notranslate"><span class="pre">pfs.plot()</span></code> output, or we can calculate the fractions explicitly:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pfs</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s2">&quot;MS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">sourcedfraction</span>  <span class="c1"># not pfs.sourcedfraction.asfreq(&quot;MS&quot;) !</span>
+<span class="c1"># (.sourcedfraction is a pandas Series, which does not average when applying .asfreq(&quot;MS&quot;))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2024-01-01 00:00:00+01:00    0.23006370221556163
+2024-02-01 00:00:00+01:00    0.23650210243151373
+2024-03-01 00:00:00+01:00     0.2552667409134675
+2024-04-01 00:00:00+02:00     0.2105305001508305
+2024-05-01 00:00:00+02:00     0.2324871900458479
+2024-06-01 00:00:00+02:00     0.2425302180631649
+2024-07-01 00:00:00+02:00    0.23264967847113516
+2024-08-01 00:00:00+02:00    0.22735797840772143
+2024-09-01 00:00:00+02:00     0.2113212510546372
+2024-10-01 00:00:00+02:00    0.31131448354888985
+2024-11-01 00:00:00+01:00    0.28128161731884777
+2024-12-01 00:00:00+01:00    0.26600630185450264
+Freq: MS, Name: fraction, dtype: pint[]
+</pre></div></div>
+</div>
+<p>This means that an increase in the market prices will have a relatively large impact, especially in the months with a low sourced fraction. Let’s verify that.</p>
+<p>First, we create a new price curve, and then create a new portfolio state with it. Then, we again look at the <code class="docutils literal notranslate"><span class="pre">.pnl_cost</span></code> property, to see the new procurement prices:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">hpfc2</span> <span class="o">=</span> <span class="n">hpfc</span> <span class="o">+</span> <span class="n">pf</span><span class="o">.</span><span class="n">Q_</span><span class="p">(</span><span class="mf">100.0</span><span class="p">,</span> <span class="s2">&quot;Eur/MWh&quot;</span><span class="p">)</span>
+<span class="n">pfs2</span> <span class="o">=</span> <span class="n">pfs</span><span class="o">.</span><span class="n">set_unsourcedprice</span><span class="p">(</span><span class="n">hpfc2</span><span class="p">)</span>
+<span class="n">pfs2</span><span class="o">.</span><span class="n">pnl_cost</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s2">&quot;MS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">plot</span><span class="p">();</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/tutorial_quickstart_23_0.png" src="../_images/tutorial_quickstart_23_0.png" />
+</div>
+</div>
+<p>We could even explicitly calculate the monthly price increases:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pfs2</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s2">&quot;MS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">pnl_cost</span><span class="o">.</span><span class="n">p</span> <span class="o">-</span> <span class="n">pfs</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s2">&quot;MS&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">pnl_cost</span><span class="o">.</span><span class="n">p</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+2024-01-01 00:00:00+01:00    76.99362977844379
+2024-02-01 00:00:00+01:00     76.3497897568486
+2024-03-01 00:00:00+01:00    74.47332590865318
+2024-04-01 00:00:00+02:00    78.94694998491693
+2024-05-01 00:00:00+02:00    76.75128099541516
+2024-06-01 00:00:00+02:00    75.74697819368352
+2024-07-01 00:00:00+02:00    76.73503215288648
+2024-08-01 00:00:00+02:00    77.26420215922792
+2024-09-01 00:00:00+02:00    78.86787489453633
+2024-10-01 00:00:00+02:00    68.86855164511101
+2024-11-01 00:00:00+01:00     71.8718382681152
+2024-12-01 00:00:00+01:00    73.39936981454974
+Freq: MS, Name: p, dtype: pint[Eur/MWh]
+</pre></div></div>
+</div>
+<p>Indeed, the 100 Eur/MWh across-the-board market price increase has impacted the months exactly in proportion to the fraction that is still unsourced. So, a month that is 60% hedged sees a 40 Eur/MWh impact in its procurement price.</p>
+<p>That’s it for this quick introduction. Have a look at the more in-depth <a class="reference internal" href="part1.html"><span class="doc">tutorial</span></a> or the more systematic documentation of the <a class="reference internal" href="../core/pfline.html"><span class="doc">PfLine</span></a> or <a class="reference internal" href="../core/pfstate.html"><span class="doc">PfState</span></a> classes.</p>
+</section>
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Core functionality</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/objects.html">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/pfline.html">PfLine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/pfstate.html">PfState</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/interoperability.html">Interoperability</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="part1.html">Tutorial part 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="part2.html">Tutorial part 2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="part3.html">Tutorial part 3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="part4.html">Tutorial part 4</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Specialized topics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/dataprep.html">Preprocessing input data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/timezones.html">Timezones</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/dimensions.html">Dimensions and Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/indices.html">Indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/resampling.html">Resampling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Full reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../full_reference.html">Full reference</a></li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="../_sources/tutorial/quickstart.ipynb.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; Ruud Wijtvliet
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

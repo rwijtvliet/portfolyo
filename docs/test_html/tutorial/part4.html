@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>portfolyo :: Tutorial part 4</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="../_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="../genindex.html"/>
+
+  <link rel="stylesheet" href="../_static/css/insegel.css"/>
+  <link rel="stylesheet" href="../_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="../_static/sphinx_highlight.js"></script>
+      <script type="text/javascript" src="../https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script type="text/javascript" src="../"></script>
+      <script type="text/javascript" src="../https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>portfolyo</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="Tutorial-part-4">
+<h1>Tutorial part 4<a class="headerlink" href="#Tutorial-part-4" title="Link to this heading">¶</a></h1>
+<p>In <a class="reference internal" href="part3.html"><span class="doc">part 3</span></a> we have learnt about portfolio states and how to use them in scenario analyses. Here we learn how to export them and how to combine several ones.</p>
+<section id="Example-data">
+<h2>Example data<a class="headerlink" href="#Example-data" title="Link to this heading">¶</a></h2>
+<p>We start with a similar portfolio state as in the previous part:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">portfolyo</span> <span class="k">as</span> <span class="nn">pf</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="n">index</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span>
+    <span class="s2">&quot;2024-09-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-11-01&quot;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;15T&quot;</span><span class="p">,</span> <span class="n">inclusive</span><span class="o">=</span><span class="s2">&quot;left&quot;</span><span class="p">,</span> <span class="n">tz</span><span class="o">=</span><span class="s2">&quot;Europe/Berlin&quot;</span>
+<span class="p">)</span>
+<span class="c1"># Creating portfolio line with market prices (here: price-forward curve).</span>
+<span class="n">ts_prices</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">p_marketprices</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">avg</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+<span class="n">prices</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">({</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">ts_prices</span><span class="p">})</span>
+
+
+<span class="c1"># Creating offtake portfolio line.</span>
+<span class="n">ts_offtake</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="o">*</span> <span class="n">pf</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">w_offtake</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">avg</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">offtake</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">({</span><span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="n">ts_offtake</span><span class="p">})</span>
+
+<span class="c1"># Creating portfolio line with sourced volume.</span>
+<span class="n">ts_sourced_power1</span><span class="p">,</span> <span class="n">ts_sourced_price1</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">wp_sourced</span><span class="p">(</span>
+    <span class="n">ts_offtake</span><span class="p">,</span> <span class="s2">&quot;QS&quot;</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="n">p_avg</span><span class="o">=</span><span class="mi">120</span>
+<span class="p">)</span>
+<span class="n">sourced_quarters</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">({</span><span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="n">ts_sourced_power1</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">ts_sourced_price1</span><span class="p">})</span>
+<span class="n">ts_sourced_power2</span><span class="p">,</span> <span class="n">ts_sourced_price2</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">dev</span><span class="o">.</span><span class="n">wp_sourced</span><span class="p">(</span>
+    <span class="n">ts_offtake</span><span class="p">,</span> <span class="s2">&quot;MS&quot;</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="n">p_avg</span><span class="o">=</span><span class="mi">150</span>
+<span class="p">)</span>
+<span class="n">sourced_months</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">({</span><span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="n">ts_sourced_power2</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">ts_sourced_price2</span><span class="p">})</span>
+<span class="n">sourced</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span>
+    <span class="p">{</span><span class="s2">&quot;quarter_products&quot;</span><span class="p">:</span> <span class="n">sourced_quarters</span><span class="p">,</span> <span class="s2">&quot;month_products&quot;</span><span class="p">:</span> <span class="n">sourced_months</span><span class="p">}</span>
+<span class="p">)</span>
+
+<span class="c1"># Create the portfolio state.</span>
+<span class="n">pfs1</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfState</span><span class="p">(</span><span class="n">offtake</span><span class="p">,</span> <span class="n">prices</span><span class="p">,</span> <span class="n">sourced</span><span class="p">)</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s2">&quot;MS&quot;</span><span class="p">)</span>
+
+<span class="n">pfs1</span><span class="o">.</span><span class="n">print</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+PfState object.
+. Start: 2024-09-01 00:00:00+02:00 (incl)    . Timezone    : Europe/Berlin
+. End  : 2024-11-01 00:00:00+01:00 (excl)    . Start-of-day: 00:00:00
+. Freq : &lt;MonthBegin&gt; (2 datapoints)
+                                                w           q           p             r
+                                               MW         MWh     Eur/MWh           Eur
+<span class="ansi-white-intense-fg ansi-bold">──────── offtake
+  </span><span class="ansi-white-intense-fg ansi-bold">         </span>2024-09-01 00:00:00 +0200        -49.4     -35 593
+  <span class="ansi-white-intense-fg ansi-bold">         </span>2024-10-01 00:00:00 +0200        -54.7     -40 748
+<span class="ansi-white-intense-fg ansi-bold">─</span><span class="ansi-yellow-intense-fg ansi-bold">●</span><span class="ansi-white-intense-fg ansi-bold">────── pnl_cost
+ </span><span class="ansi-yellow-intense-fg ansi-bold">│</span><span class="ansi-white-intense-fg ansi-bold">         </span>2024-09-01 00:00:00 +0200         49.4      35 593      147.61     5 253 964
+ <span class="ansi-yellow-intense-fg ansi-bold">│</span><span class="ansi-white-intense-fg ansi-bold">         </span>2024-10-01 00:00:00 +0200         54.7      40 748      163.85     6 676 561
+ <span class="ansi-yellow-intense-fg ansi-bold">├</span><span class="ansi-cyan-intense-fg ansi-bold">●</span><span class="ansi-yellow-intense-fg ansi-bold">───── sourced
+ </span><span class="ansi-yellow-intense-fg ansi-bold">│</span><span class="ansi-cyan-intense-fg ansi-bold">│</span><span class="ansi-yellow-intense-fg ansi-bold">        </span>2024-09-01 00:00:00 +0200         28.9      20 844      123.03     2 564 413
+ <span class="ansi-yellow-intense-fg ansi-bold">│</span><span class="ansi-cyan-intense-fg ansi-bold">│</span><span class="ansi-yellow-intense-fg ansi-bold">        </span>2024-10-01 00:00:00 +0200         26.0      19 389      132.10     2 561 236
+ <span class="ansi-yellow-intense-fg ansi-bold">│</span><span class="ansi-cyan-intense-fg ansi-bold">├───── quarter_products
+ </span><span class="ansi-yellow-intense-fg ansi-bold">│</span><span class="ansi-cyan-intense-fg ansi-bold">│ </span><span class="ansi-cyan-intense-fg ansi-bold">       </span>2024-09-01 00:00:00 +0200         13.8       9 943      103.24     1 026 519
+ <span class="ansi-yellow-intense-fg ansi-bold">│</span><span class="ansi-cyan-intense-fg ansi-bold">│ </span><span class="ansi-cyan-intense-fg ansi-bold">       </span>2024-10-01 00:00:00 +0200         11.1       8 261      118.15       976 055
+ <span class="ansi-yellow-intense-fg ansi-bold">│</span><span class="ansi-cyan-intense-fg ansi-bold">└───── month_products
+ </span><span class="ansi-yellow-intense-fg ansi-bold">│  </span><span class="ansi-cyan-intense-fg ansi-bold">       </span>2024-09-01 00:00:00 +0200         15.1      10 901      141.07     1 537 894
+ <span class="ansi-yellow-intense-fg ansi-bold">│  </span><span class="ansi-cyan-intense-fg ansi-bold">       </span>2024-10-01 00:00:00 +0200         14.9      11 128      142.45     1 585 180
+ <span class="ansi-yellow-intense-fg ansi-bold">└────── unsourced
+   </span><span class="ansi-yellow-intense-fg ansi-bold">        </span>2024-09-01 00:00:00 +0200         20.5      14 749      182.36     2 689 551
+   <span class="ansi-yellow-intense-fg ansi-bold">        </span>2024-10-01 00:00:00 +0200         28.7      21 358      192.68     4 115 325
+</pre></div></div>
+</div>
+</section>
+<section id="Arithmatic">
+<h2>Arithmatic<a class="headerlink" href="#Arithmatic" title="Link to this heading">¶</a></h2>
+<p>The final part about portfolio lines is the arithmatic that can be done with them.</p>
+<p>Let’s create a second portfolio state:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">offtake2</span> <span class="o">=</span> <span class="n">offtake</span> <span class="o">*</span> <span class="mi">2</span>
+<span class="n">sourced2</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfLine</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="mi">80</span><span class="p">,</span> <span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">},</span> <span class="n">index</span><span class="p">))</span>
+<span class="n">pfs2</span> <span class="o">=</span> <span class="n">pf</span><span class="o">.</span><span class="n">PfState</span><span class="p">(</span><span class="n">offtake2</span><span class="p">,</span> <span class="n">prices</span><span class="p">,</span> <span class="n">sourced2</span><span class="p">)</span><span class="o">.</span><span class="n">asfreq</span><span class="p">(</span><span class="s2">&quot;MS&quot;</span><span class="p">)</span>
+<span class="n">pfs2</span><span class="o">.</span><span class="n">print</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+PfState object.
+. Start: 2024-09-01 00:00:00+02:00 (incl)    . Timezone    : Europe/Berlin
+. End  : 2024-11-01 00:00:00+01:00 (excl)    . Start-of-day: 00:00:00
+. Freq : &lt;MonthBegin&gt; (2 datapoints)
+                                                w           q           p             r
+                                               MW         MWh     Eur/MWh           Eur
+<span class="ansi-white-intense-fg ansi-bold">──────── offtake
+  </span><span class="ansi-white-intense-fg ansi-bold">         </span>2024-09-01 00:00:00 +0200        -98.9     -71 186
+  <span class="ansi-white-intense-fg ansi-bold">         </span>2024-10-01 00:00:00 +0200       -109.4     -81 495
+<span class="ansi-white-intense-fg ansi-bold">─</span><span class="ansi-yellow-intense-fg ansi-bold">●</span><span class="ansi-white-intense-fg ansi-bold">────── pnl_cost
+ </span><span class="ansi-yellow-intense-fg ansi-bold">│</span><span class="ansi-white-intense-fg ansi-bold">         </span>2024-09-01 00:00:00 +0200         98.9      71 186      118.77     8 454 414
+ <span class="ansi-yellow-intense-fg ansi-bold">│</span><span class="ansi-white-intense-fg ansi-bold">         </span>2024-10-01 00:00:00 +0200        109.4      81 495      131.98    10 755 857
+ <span class="ansi-yellow-intense-fg ansi-bold">├────── sourced
+ </span><span class="ansi-yellow-intense-fg ansi-bold">│ </span><span class="ansi-yellow-intense-fg ansi-bold">        </span>2024-09-01 00:00:00 +0200         80.0      57 600      100.00     5 760 000
+ <span class="ansi-yellow-intense-fg ansi-bold">│ </span><span class="ansi-yellow-intense-fg ansi-bold">        </span>2024-10-01 00:00:00 +0200         80.0      59 600      100.00     5 960 000
+ <span class="ansi-yellow-intense-fg ansi-bold">└────── unsourced
+   </span><span class="ansi-yellow-intense-fg ansi-bold">        </span>2024-09-01 00:00:00 +0200         18.9      13 586      198.33     2 694 414
+   <span class="ansi-yellow-intense-fg ansi-bold">        </span>2024-10-01 00:00:00 +0200         29.4      21 895      219.04     4 795 857
+</pre></div></div>
+</div>
+<p>Note that <code class="docutils literal notranslate"><span class="pre">pfs1</span></code> and <code class="docutils literal notranslate"><span class="pre">pfs2</span></code> have distinct unsourced prices at this month level, even though they were created using the same market prices on the quarter-hour level.</p>
+<section id="Addition-and-subtraction">
+<h3>Addition and subtraction<a class="headerlink" href="#Addition-and-subtraction" title="Link to this heading">¶</a></h3>
+<p>We can add these two portfolio states:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pfs1</span> <span class="o">+</span> <span class="n">pfs2</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+c:\users\ruud.wijtvliet\ruud\python\dev\portfolyo\portfolyo\core\pfline\enable_arithmatic.py:82: PfLineFlattenedWarning: When adding a FlatPfLine and NestedPfLine, the NestedPfLine is flattened.
+  warnings.warn(
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+PfState object.
+. Start: 2024-09-01 00:00:00+02:00 (incl)    . Timezone    : Europe/Berlin
+. End  : 2024-11-01 00:00:00+01:00 (excl)    . Start-of-day: 00:00:00
+. Freq : &lt;MonthBegin&gt; (2 datapoints)
+                                                w           q           p             r
+                                               MW         MWh     Eur/MWh           Eur
+──────── offtake
+           2024-09-01 00:00:00 +0200       -148.3    -106 778
+           2024-10-01 00:00:00 +0200       -164.1    -122 243
+─●────── pnl_cost
+ │         2024-09-01 00:00:00 +0200        148.3     106 778      128.38    13 708 378
+ │         2024-10-01 00:00:00 +0200        164.1     122 243      142.60    17 432 418
+ ├────── sourced
+ │         2024-09-01 00:00:00 +0200        108.9      78 444      106.12     8 324 413
+ │         2024-10-01 00:00:00 +0200        106.0      78 989      107.88     8 521 236
+ └────── unsourced
+           2024-09-01 00:00:00 +0200         39.4      28 334      190.02     5 383 965
+           2024-10-01 00:00:00 +0200         58.1      43 254      206.02     8 911 182
+</pre></div></div>
+</div>
+<p>Note that the individual components are added together. The volumes (offtake, sourced, unsourced) are summed; the prices (sourced and unsourced) are the energy-weighted averaged. (Or, put differently, the <em>revenues</em> are also summed, and the prices are calculated from the volume-total and renevue-total.)</p>
+<p>Note also that the sourced volume of <code class="docutils literal notranslate"><span class="pre">pfs1</span></code> has been flattened, i.e., the values of its children are lost. This is because <code class="docutils literal notranslate"><span class="pre">pfs2</span></code> does not have any children. This behaviour is described here.</p>
+<p>Likewise we can subtract them with <code class="docutils literal notranslate"><span class="pre">pfs1</span> <span class="pre">-</span> <span class="pre">pfs2</span></code>:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pfs1</span> <span class="o">-</span> <span class="n">pfs2</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area stderr docutils container">
+<div class="highlight"><pre>
+c:\users\ruud.wijtvliet\ruud\python\dev\portfolyo\portfolyo\core\pfline\enable_arithmatic.py:82: PfLineFlattenedWarning: When adding a FlatPfLine and NestedPfLine, the NestedPfLine is flattened.
+  warnings.warn(
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+PfState object.
+. Start: 2024-09-01 00:00:00+02:00 (incl)    . Timezone    : Europe/Berlin
+. End  : 2024-11-01 00:00:00+01:00 (excl)    . Start-of-day: 00:00:00
+. Freq : &lt;MonthBegin&gt; (2 datapoints)
+                                                w           q           p             r
+                                               MW         MWh     Eur/MWh           Eur
+──────── offtake
+           2024-09-01 00:00:00 +0200         49.4      35 593
+           2024-10-01 00:00:00 +0200         54.7      40 748
+─●────── pnl_cost
+ │         2024-09-01 00:00:00 +0200        -49.4     -35 593       89.92    -3 200 450
+ │         2024-10-01 00:00:00 +0200        -54.7     -40 748      100.11    -4 079 296
+ ├────── sourced
+ │         2024-09-01 00:00:00 +0200        -51.1     -36 756       86.94    -3 195 587
+ │         2024-10-01 00:00:00 +0200        -54.0     -40 211       84.52    -3 398 764
+ └────── unsourced
+           2024-09-01 00:00:00 +0200          1.6       1 163       -4.18        -4 863
+           2024-10-01 00:00:00 +0200         -0.7        -537    1 267.81      -680 532
+</pre></div></div>
+</div>
+<p>That was it for this tutorial!</p>
+</section>
+</section>
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Core functionality</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../core/objects.html">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/pfline.html">PfLine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/pfstate.html">PfState</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../core/interoperability.html">Interoperability</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="part1.html">Tutorial part 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="part2.html">Tutorial part 2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="part3.html">Tutorial part 3</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Tutorial part 4</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Specialized topics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/dataprep.html">Preprocessing input data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/timezones.html">Timezones</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/dimensions.html">Dimensions and Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/indices.html">Indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/resampling.html">Resampling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Full reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../full_reference.html">Full reference</a></li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="../_sources/tutorial/part4.ipynb.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; Ruud Wijtvliet
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>

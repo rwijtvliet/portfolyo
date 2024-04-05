@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2D2D2D" />
+  
+  <title>portfolyo :: Interoperability</title>
+  
+
+  <link rel="icon" type="image/png" sizes="32x32" href="../_static/img/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../_static/img/favicon-16x16.png">
+  <link rel="index" title="Index" href="../genindex.html"/>
+
+  <link rel="stylesheet" href="../_static/css/insegel.css"/>
+  <link rel="stylesheet" href="../_static/css/custom.css"/>
+
+  <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/documentation_options.js"></script>
+      <script type="text/javascript" src="../_static/doctools.js"></script>
+      <script type="text/javascript" src="../_static/sphinx_highlight.js"></script>
+      <script type="text/javascript" src="../https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+  
+
+  <script src="https://email.tl.fortawesome.com/c/eJxNjUEOgyAQAF8jR7Kw6wIHDh7sP1Cw2mgxgmn6-3JsMqc5zEQfE8dkxOY1KKMUOI3ACFKRJpSW2AAp7ontYIaxI6i7XPJVwyeVfCQ550Os3jLrGSNOLgbdAy6s0PBk2TFNjEbsfq31LB0OnX407pJa5v2faRadwSW63mn5KuLyR9j2tgx3zecanl-55R_-jjPs"></script> 
+</head>
+
+<body>
+  <div id="insegel-container">
+    <header>
+      <div id="logo-container">
+          
+          <h1>portfolyo</h1>
+          
+      </div>
+      <div id="project-container">
+        
+        <h1>Documentation</h1>
+        
+      </div>
+    </header>
+
+    <div id="content-container">
+
+      <div id="main-content-container">
+        <div id="main-content" role="main">
+          
+  <section id="interoperability">
+<h1>Interoperability<a class="headerlink" href="#interoperability" title="Link to this heading">¶</a></h1>
+<p>We try to maximize interoperability between the <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> and <code class="docutils literal notranslate"><span class="pre">PfState</span></code> classes and common Python classes. At the same time, we want the outcome of any operation to be unambiguous, without having to guess at or be surprised by its outcome.</p>
+<nav class="contents local" id="page-contents">
+<p class="topic-title">Page contents:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="#one-value" id="id3">One value</a></p></li>
+<li><p><a class="reference internal" href="#one-or-more-values" id="id4">One or more values</a></p></li>
+<li><p><a class="reference internal" href="#one-timeseries" id="id5">One timeseries</a></p></li>
+<li><p><a class="reference internal" href="#one-or-more-timeseries" id="id6">One or more timeseries</a></p></li>
+<li><p><a class="reference internal" href="#combinations" id="id7">Combinations</a></p></li>
+<li><p><a class="reference internal" href="#duck-typing-for-other-objects" id="id8">Duck typing for other objects</a></p></li>
+<li><p><a class="reference internal" href="#compatilibity-of-abbrevation-and-unit" id="id9">Compatilibity of abbrevation and unit</a></p></li>
+<li><p><a class="reference internal" href="#footnotes" id="id10">Footnotes</a></p></li>
+</ul>
+</nav>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This section assumes you are familiar with <a class="reference internal" href="../specialized_topics/dimensions.html"><span class="doc">Dimensions and Units</span></a></p>
+</div>
+<p>For our purposes, the most common data container is the timeseries, though on some occasions we are dealing with single values (e.g. a single, time-independent, price of 45 Eur/MWh). There are several ways for the user to provide this information.</p>
+<p>In the code examples below, the following imports are assumed and variables are assumed:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">portfolyo</span> <span class="k">as</span> <span class="nn">pf</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+<span class="n">idx</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">&quot;2023&quot;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;AS&quot;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<section id="one-value">
+<h2><a class="toc-backref" href="#id3" role="doc-backlink">One value</a><a class="headerlink" href="#one-value" title="Link to this heading">¶</a></h2>
+<p>To pass a single value, the following objects can be used:</p>
+<ul>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">int</span></code> value.</p></li>
+<li><p>A <code class="docutils literal notranslate"><span class="pre">pint.Quantity</span></code>, which is unit-aware. For convenience, the <code class="docutils literal notranslate"><span class="pre">Quantity</span></code> class (with the relevant unit registry) is available at <code class="docutils literal notranslate"><span class="pre">porfolyo.Q_()</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pf</span><span class="o">.</span><span class="n">Q_</span><span class="p">(</span><span class="mf">50.0</span><span class="p">,</span> <span class="s2">&quot;Eur/MWh&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>&lt;Quantity(50.0, &#39;euro / megawatthour&#39;)&gt;
+</pre></div>
+</div>
+<p>The unit is converted to the default unit for its dimension once it is used in any of the <code class="docutils literal notranslate"><span class="pre">portfolyo</span></code> objects, see also <a class="reference internal" href="#nameunitcompatibility"><span class="std std-ref">this section</span></a> further below.</p>
+<p>See <a class="reference external" href="https://pint.readthedocs.io">pint’s website</a> for more information about <code class="docutils literal notranslate"><span class="pre">pint</span></code>.</p>
+</li>
+</ul>
+<div class="admonition hint">
+<p class="admonition-title">Hint</p>
+<p>Using a <code class="docutils literal notranslate"><span class="pre">pint.Quantity</span></code> expresses a more deliberate intent, and therefore allows us to catch dimensionality errors more easily. For dimensionless values, such as fractions, we could even use a dimensionless <code class="docutils literal notranslate"><span class="pre">Quantity</span></code> (though this quickly becomes cumbersome).</p>
+</div>
+</section>
+<section id="one-or-more-values">
+<h2><a class="toc-backref" href="#id4" role="doc-backlink">One or more values</a><a class="headerlink" href="#one-or-more-values" title="Link to this heading">¶</a></h2>
+<p>If we have to specify several individual values, we can use:</p>
+<ul>
+<li><p>A dictionary with the one or more of the dimension abbrevations (<code class="docutils literal notranslate"><span class="pre">&quot;w&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;q&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;p&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;r&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;nodim&quot;</span></code>) as the keys, and <code class="docutils literal notranslate"><span class="pre">float</span></code>, <code class="docutils literal notranslate"><span class="pre">int</span></code> or <code class="docutils literal notranslate"><span class="pre">pint.Quantity</span></code> instances as the values. E.g.:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="mf">50.0</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="n">pf</span><span class="o">.</span><span class="n">Q_</span><span class="p">(</span><span class="mi">120</span><span class="p">,</span> <span class="s1">&#39;MW&#39;</span><span class="p">)}</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>{&#39;p&#39;: 50.0, &#39;w&#39;: &lt;Quantity(120.0, &#39;megawatt&#39;)&gt;}
+</pre></div>
+</div>
+</li>
+<li><p>Or we can use any other <code class="docutils literal notranslate"><span class="pre">Mapping</span></code> from string values to <code class="docutils literal notranslate"><span class="pre">float``s,</span> <span class="pre">``int``s,</span> <span class="pre">or</span> <span class="pre">``pint.Quantity</span></code> objects, e.g., a <code class="docutils literal notranslate"><span class="pre">pandas.Series</span></code> with a string index. It is recommended, however, to use <code class="docutils literal notranslate"><span class="pre">Series</span></code> only for timeseries information.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Because we have to explicitly state the dimension abbreviation, these objects help us avoid dimensionality errors. For this reason, we may want to use them, even for <em>single</em> values.</p>
+</div>
+</section>
+<section id="one-timeseries">
+<span id="singletimeseries"></span><h2><a class="toc-backref" href="#id5" role="doc-backlink">One timeseries</a><a class="headerlink" href="#one-timeseries" title="Link to this heading">¶</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>To avoid unexpected behavior, timeseries (<code class="docutils literal notranslate"><span class="pre">pandas.Series</span></code> and <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> objects) should be of a certain form. See <a class="reference internal" href="../specialized_topics/dataprep.html"><span class="doc">Preprocessing input data</span></a>.</p>
+</div>
+<p>For timeseries, <code class="docutils literal notranslate"><span class="pre">pandas.Series</span></code> are used. These can be “unit-agnostic” (i.e., of datatype <code class="docutils literal notranslate"><span class="pre">float</span></code> or <code class="docutils literal notranslate"><span class="pre">int</span></code>), or unit-aware as in the example below. <a class="footnote-reference brackets" href="#ts" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mf">56.0</span><span class="p">],</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;pint[Eur/MWh]&quot;</span><span class="p">)</span>  <span class="c1"># unit-aware</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>2023-01-01    50.0
+2024-01-01    56.0
+Freq: AS-JAN, dtype: pint[Eur/MWh]
+</pre></div>
+</div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">name</span></code> attribute of a <code class="docutils literal notranslate"><span class="pre">pandas.Series</span></code> is always ignored.</p>
+</div>
+</section>
+<section id="one-or-more-timeseries">
+<h2><a class="toc-backref" href="#id6" role="doc-backlink">One or more timeseries</a><a class="headerlink" href="#one-or-more-timeseries" title="Link to this heading">¶</a></h2>
+<p>To pass several timeseries, we can use:</p>
+<ul>
+<li><p>A dictionary with the one or more of the dimension abbrevations (<code class="docutils literal notranslate"><span class="pre">&quot;w&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;q&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;p&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;r&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;nodim&quot;</span></code>) as the keys, and timeseries as the values. E.g.:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mi">56</span><span class="p">],</span> <span class="n">idx</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">120</span><span class="p">,</span> <span class="mi">125</span><span class="p">],</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;pint[MW]&quot;</span><span class="p">)}</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>{&#39;p&#39;: 2023-01-01    50.0
+2024-01-01    56.0
+Freq: AS-JAN, dtype: float64, &#39;w&#39;: 2023-01-01    120.0
+2024-01-01    125.0
+Freq: AS-JAN, dtype: pint[MW]}
+</pre></div>
+</div>
+<p>Each of the timeseries can have a unit or be unit-agnostic.</p>
+</li>
+<li><p>Or we can use any other <code class="docutils literal notranslate"><span class="pre">Mapping</span></code> from string values to timeseries, e.g., a <code class="docutils literal notranslate"><span class="pre">pandas.DataFrame</span></code> with a datetime-index. In this case:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">56</span><span class="p">],</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">120</span><span class="p">,</span> <span class="mi">125</span><span class="p">]},</span> <span class="n">idx</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-none notranslate"><div class="highlight"><pre><span></span>               p      w
+2023-01-01  50.0  120.0
+2024-01-01  56.0  125.0
+</pre></div>
+</div>
+<p>Dataframes can also be made unit-aware. <a class="footnote-reference brackets" href="#df" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a></p>
+</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The same applied here: because we have to explicitly state the dimension abbreviation, these objects help us avoid dimensionality errors. For this reason, we may want to use them, even for <em>single</em> timeseries.</p>
+</div>
+</section>
+<section id="combinations">
+<h2><a class="toc-backref" href="#id7" role="doc-backlink">Combinations</a><a class="headerlink" href="#combinations" title="Link to this heading">¶</a></h2>
+<p>Dictionaries are the most versatily of these objects. They can be used to pass a single value, multiple values, a single timeseries, multiple timeseries, or a combination of these:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">d1</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="mi">50</span><span class="p">}</span>
+<span class="n">d2</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="mi">50</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="mi">120</span><span class="p">}</span>
+<span class="n">d3</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mi">56</span><span class="p">],</span> <span class="n">idx</span><span class="p">)}</span>
+<span class="n">d4</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mi">56</span><span class="p">],</span> <span class="n">idx</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">120</span><span class="p">,</span> <span class="mi">125</span><span class="p">],</span> <span class="n">idx</span><span class="p">)}</span>
+<span class="n">d5</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mi">56</span><span class="p">],</span> <span class="n">idx</span><span class="p">),</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="mi">120</span><span class="p">}</span>
+</pre></div>
+</div>
+</section>
+<section id="duck-typing-for-other-objects">
+<span id="ducktyping"></span><h2><a class="toc-backref" href="#id8" role="doc-backlink">Duck typing for other objects</a><a class="headerlink" href="#duck-typing-for-other-objects" title="Link to this heading">¶</a></h2>
+<p>Any object can be used, as long as it has an <code class="docutils literal notranslate"><span class="pre">.items()</span></code> method returning (key, value)-tuples (e.g. if it inherits from the <code class="docutils literal notranslate"><span class="pre">Mapping</span></code> <a class="reference external" href="https://docs.python.org/3/library/collections.abc.html#collections.abc.Mapping">abstract base class</a> and therefore implements <code class="docutils literal notranslate"><span class="pre">__getitem__</span></code>, <code class="docutils literal notranslate"><span class="pre">__iter__</span></code> and <code class="docutils literal notranslate"><span class="pre">__len__</span></code> methods), and all keys are valid dimension abbrevations.</p>
+</section>
+<section id="compatilibity-of-abbrevation-and-unit">
+<span id="nameunitcompatibility"></span><h2><a class="toc-backref" href="#id9" role="doc-backlink">Compatilibity of abbrevation and unit</a><a class="headerlink" href="#compatilibity-of-abbrevation-and-unit" title="Link to this heading">¶</a></h2>
+<p>Information can have a key (one of the dimension abbrevations: <code class="docutils literal notranslate"><span class="pre">&quot;w&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;q&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;p&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;r&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;nodim&quot;</span></code>) and/or a unit. In a DataFrame, a timeseries’ key is the corresponding column name. A timeseries ‘by itself’ has no key; its name is ignored.</p>
+<p>There is a one-to-one relationship between dimension abbrevation and unit; see <a class="reference internal" href="../specialized_topics/dimensions.html"><span class="doc">Dimensions and Units</span></a>.</p>
+<ul>
+<li><p>In some of the objects discussed above, we specify both a key <em>and</em> a unit. In that case, <code class="docutils literal notranslate"><span class="pre">portfolyo</span></code> checks if the unit has the correct dimensionality. If so, but it is not the default unit, a conversion to the default unit is done.</p>
+<p>E.g., the key <code class="docutils literal notranslate"><span class="pre">&quot;p&quot;</span></code> and unit <code class="docutils literal notranslate"><span class="pre">ctEur/kWh</span></code> of <code class="docutils literal notranslate"><span class="pre">{&quot;p&quot;:</span> <span class="pre">pd.Series([5.0,</span> <span class="pre">5.6],</span> <span class="pre">idx,</span> <span class="pre">dtype=&quot;pint[ctEur/kWh]&quot;)}</span></code> are consistent. The values will be changed to the default unit (=Eur/MWh) upon further processing. Using <code class="docutils literal notranslate"><span class="pre">&quot;q&quot;</span></code> instead of <code class="docutils literal notranslate"><span class="pre">&quot;p&quot;</span></code> results in a dimensionality error, and using <code class="docutils literal notranslate"><span class="pre">&quot;x&quot;</span></code> results in a KeyError.</p>
+</li>
+<li><p>In some objects, only the unit is specified. Here, the dimension is deduced from the unit, and the unit is converted into the default (if necessary).</p>
+<p>E.g., the timeseries <code class="docutils literal notranslate"><span class="pre">pd.Series([5.0,</span> <span class="pre">5.6],</span> <span class="pre">idx,</span> <span class="pre">dtype=&quot;pint[ctEur/kWh]&quot;)</span></code> (NB: without the dictionary key) is such an object.</p>
+</li>
+<li><p>In other objects, only the key is specified. In that case, the unit is deduced from the key - the default unit is assumed.</p>
+<p>E.g., the key <code class="docutils literal notranslate"><span class="pre">&quot;p&quot;</span></code> of <code class="docutils literal notranslate"><span class="pre">{&quot;p&quot;:</span> <span class="pre">pd.Series([50,</span> <span class="pre">56],</span> <span class="pre">idx)}</span></code> indicates that we are dealing with prices, and the default unit of Eur/MWh is assumed.</p>
+</li>
+<li><p>If both are not provided, the dimension must be inferrable from the context, and the unit is assumed to be the default for that dimension.</p>
+<p>E.g. when adding a <code class="docutils literal notranslate"><span class="pre">float</span></code> value to a <code class="docutils literal notranslate"><span class="pre">PfLine</span></code> containing prices, the value is assumed to also be a price, in the default unit (= Eur/MWh).</p>
+</li>
+</ul>
+</section>
+<section id="footnotes">
+<h2><a class="toc-backref" href="#id10" role="doc-backlink">Footnotes</a><a class="headerlink" href="#footnotes" title="Link to this heading">¶</a></h2>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="ts" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>If we want to add unit-awareness to such a series, we can use the <code class="docutils literal notranslate"><span class="pre">.astype()</span></code> method with a pint-unit (e.g. “pint[MW]”) as its argument (as in line 3). Alternatively, we can create it from scratch with the <code class="docutils literal notranslate"><span class="pre">dtype</span></code> parameter (as in line 5):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">idx</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">&quot;2023&quot;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;AS&quot;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s_agn</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mi">56</span><span class="p">],</span> <span class="n">idx</span><span class="p">)</span>  <span class="c1"># unit-agnostic</span>
+<span class="hll"><span class="gp">&gt;&gt;&gt; </span><span class="n">s1</span> <span class="o">=</span> <span class="n">s_agn</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;pint[Eur/MWh]&quot;</span><span class="p">)</span>  <span class="c1"># unit-aware</span>
+</span><span class="hll">
+</span><span class="gp">&gt;&gt;&gt; </span><span class="n">s2</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mi">56</span><span class="p">],</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;pint[Eur/MWh]&quot;</span><span class="p">)</span>  <span class="c1"># same as s1</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s1</span>
+<span class="go">2023-01-01    50.0</span>
+<span class="go">2024-01-01    56.0</span>
+<span class="go">Freq: AS-JAN, dtype: pint[Eur/MWh]</span>
+</pre></div>
+</div>
+</aside>
+<aside class="footnote brackets" id="df" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">2</a><span class="fn-bracket">]</span></span>
+<p>There are several ways to create a unit-aware dataframe; the easiest is to create it from unit-aware series (as in line 4). Alternatively, if we already have the unit-agnostic dataframe ready, we can also use the <code class="docutils literal notranslate"><span class="pre">.astype()</span></code> method here (line 7):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">idx</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">date_range</span><span class="p">(</span><span class="s2">&quot;2023&quot;</span><span class="p">,</span> <span class="n">freq</span><span class="o">=</span><span class="s2">&quot;AS&quot;</span><span class="p">,</span> <span class="n">periods</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s_price</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">50</span><span class="p">,</span> <span class="mi">56</span><span class="p">],</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;pint[Eur/MWh]&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s_volume</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">Series</span><span class="p">([</span><span class="mi">120</span><span class="p">,</span> <span class="mi">125</span><span class="p">],</span> <span class="n">idx</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s2">&quot;pint[MW]&quot;</span><span class="p">)</span>
+<span class="hll"><span class="gp">&gt;&gt;&gt; </span><span class="n">df1</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="n">s_price</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">:</span> <span class="n">s_volume</span><span class="p">})</span>
+</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df_agn</span> <span class="o">=</span> <span class="n">pandas</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;p&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">50</span><span class="p">,</span> <span class="mi">56</span><span class="p">],</span> <span class="s1">&#39;w&#39;</span><span class="p">:</span> <span class="p">[</span><span class="mi">120</span><span class="p">,</span> <span class="mi">125</span><span class="p">]},</span> <span class="n">idx</span><span class="p">)</span> <span class="c1"># unit-agnostic</span>
+<span class="hll"><span class="gp">&gt;&gt;&gt; </span><span class="n">df2</span> <span class="o">=</span> <span class="n">df_agn</span><span class="o">.</span><span class="n">astype</span><span class="p">({</span><span class="s1">&#39;p&#39;</span><span class="p">:</span> <span class="s1">&#39;pint[Eur/MWh]&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">:</span> <span class="s1">&#39;pint[MW]&#39;</span><span class="p">})</span> <span class="c1"># same as df1</span>
+</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df1</span><span class="o">.</span><span class="n">dtypes</span>
+<span class="go">p    pint[Eur/MWh]</span>
+<span class="go">w         pint[MW]</span>
+<span class="go">dtype: object</span>
+</pre></div>
+</div>
+</aside>
+</aside>
+</section>
+</section>
+
+
+        </div>
+      </div>
+
+      <div id="side-menu-container">
+
+        <div id="search" role="search">
+        <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+            <input type="text" name="q" placeholder="Search..." />
+            <input type="hidden" name="check_keywords" value="yes" />
+            <input type="hidden" name="area" value="default" />
+        </form>
+</div>
+
+        <div id="side-menu" role="navigation">
+
+          
+  
+    
+  
+  
+    <p class="caption" role="heading"><span class="caption-text">Core functionality</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="objects.html">Objects</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pfline.html">PfLine</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pfstate.html">PfState</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Interoperability</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/quickstart.html">Quickstart</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part1.html">Tutorial part 1</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part2.html">Tutorial part 2</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part3.html">Tutorial part 3</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../tutorial/part4.html">Tutorial part 4</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Specialized topics</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/dataprep.html">Preprocessing input data</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/timezones.html">Timezones</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/dimensions.html">Dimensions and Units</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/indices.html">Indices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../specialized_topics/resampling.html">Resampling</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Full reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../full_reference.html">Full reference</a></li>
+</ul>
+
+  
+
+
+        </div>
+
+        
+
+      </div>
+
+    </div>
+
+<footer>
+    <div id="footer-info">
+        <ul id="build-details">
+            
+                <li class="footer-element">
+                    
+                        <a href="../_sources/core/interoperability.rst.txt" rel="nofollow"> source</a>
+                    
+                </li>
+            
+
+            
+
+            
+        </ul>
+
+        
+            <div id="copyright">
+                &copy; Ruud Wijtvliet
+            </div>
+        
+
+        <div id="credit">
+            created with <a href="http://sphinx-doc.org/">Sphinx</a> and <a href="https://github.com/Autophagy/insegel">Insegel</a>
+
+        </div>
+    </div>
+
+    <a id="menu-toggle" class="fa fa-bars" aria-hidden="true"></a>
+
+    <script type="text/javascript">
+      $("#menu-toggle").click(function() {
+        $("#menu-toggle").toggleClass("toggled");
+        $("#side-menu-container").slideToggle(300);
+      });
+    </script>
+
+</footer> 
+
+</div>
+
+</body>
+</html>
