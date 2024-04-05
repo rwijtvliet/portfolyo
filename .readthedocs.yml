@@ -19,7 +19,7 @@ build:
       # https://python-poetry.org/docs/managing-dependencies/#dependency-groups
       #- poetry install --with docs
       - pip install -e .
-      - pip install sphinx-exec-code
+      - pip install sphinx-exec-code ipykernel 
       - pip list
       #- poetry shell
 
