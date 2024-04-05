@@ -10,12 +10,12 @@ build:
       # https://python-poetry.org/docs/#installing-manually
       - pip install poetry
       # Tell poetry to not use a virtual environment
-      #- poetry config virtualenvs.create false
+      - poetry config virtualenvs.in-project true
     post_install:
       # Install dependencies with 'docs' dependency group
       # https://python-poetry.org/docs/managing-dependencies/#dependency-groups
       - poetry install --with docs
-      #- poetry shell
+      - poetry shell
 
 sphinx:
   configuration: docs/conf.py
