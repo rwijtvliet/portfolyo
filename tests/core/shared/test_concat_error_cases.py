@@ -43,9 +43,11 @@ def test_diff_sod():
 def test_slice_not_sod():
     """Test if concatenating of two flat PfLines with different sod raises error."""
     index = pd.date_range("2020-01-01 00:00", "2020-03-01", freq="H", inclusive="left")
-    whole_pfl = dev.get_flatpfline(index)
-    pfl_a = whole_pfl.slice[:"2020-02-01 14:00"]
-    pfl_b = whole_pfl.slice["2020-02-01 14:00":]
+    index2 = pd.date_range(
+        "2020-02-01 06:00", "2020-04-01 06:00", freq="H", inclusive="left"
+    )
+    pfl_a = dev.get_flatpfline(index)
+    pfl_b = dev.get_flatpfline(index2)
     with pytest.raises(TypeError):
         _ = concat.concat_pflines(pfl_a, pfl_b)
 
