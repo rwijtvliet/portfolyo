@@ -14,6 +14,7 @@ from .tools.standardize import frame as standardize
 from .tools.tzone import force_agnostic, force_aware
 from .tools.unit import Q_, ureg, Unit
 from .tools.wavg import general as wavg
+from .core.shared.concat import general as concat
 
 # from .core.shared.concat import general as concat
 

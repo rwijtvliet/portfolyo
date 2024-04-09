@@ -52,20 +52,19 @@ def get_idx(
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize(("whole_idx", "freq", "where"), TESTCASES2)
+@pytest.mark.parametrize("test_fn", ["general", "concat_pflines"])
 def test_concat_flat_pflines(
-    whole_idx: str,
-    starttime: str,
-    tz: str,
-    freq: str,
-    where: str,
+    whole_idx: str, starttime: str, tz: str, freq: str, where: str, test_fn: str
 ):
-    """Test that two flat pflines with the same attributes ( aka kind, freq, sod, etc.) get concatenated properly."""
+    """Test that two flat pflines with the same attributes (i.e., same frequency,
+    timezone, start-of-day, and kind) get concatenated properly."""
     idx = get_idx(whole_idx[0], starttime, tz, freq, whole_idx[1])
     whole_pfl = dev.get_flatpfline(idx)
     pfl_a = whole_pfl.slice[:where]
     pfl_b = whole_pfl.slice[where:]
-    result = concat.concat_pflines(pfl_a, pfl_b)
-    result2 = concat.concat_pflines(pfl_b, pfl_a)
+    fn = concat.general if test_fn == "general" else concat.concat_pflines
+    result = fn([pfl_a, pfl_b])
+    result2 = fn([pfl_b, pfl_a])
     assert whole_pfl == result
     assert whole_pfl == result2
 
@@ -73,21 +72,25 @@ def test_concat_flat_pflines(
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize(("whole_idx", "freq", "where"), TESTCASES2)
+@pytest.mark.parametrize("test_fn", ["general", "concat_pflines"])
 def test_concat_nested_pflines(
     whole_idx: str,
     starttime: str,
     tz: str,
     freq: str,
     where: str,
+    test_fn: str,
 ):
-    """Test that two nested pflines with the same attributes ( aka kind, freq, sod, etc.)
-    and the same number of children and children names get concatenated properly."""
+    """Test that two nested pflines with the same attributes (i.e., same frequency,
+    timezone, start-of-day, and kind) and the same number of children and children names
+    get concatenated properly."""
     idx = get_idx(whole_idx[0], starttime, tz, freq, whole_idx[1])
     whole_pfl = dev.get_nestedpfline(idx)
     pfl_a = whole_pfl.slice[:where]
     pfl_b = whole_pfl.slice[where:]
-    result = concat.concat_pflines(pfl_a, pfl_b)
-    result2 = concat.concat_pflines(pfl_b, pfl_a)
+    fn = concat.general if test_fn == "general" else concat.concat_pflines
+    result = fn([pfl_a, pfl_b])
+    result2 = fn([pfl_b, pfl_a])
     assert whole_pfl == result
     assert whole_pfl == result2
 
@@ -95,14 +98,17 @@ def test_concat_nested_pflines(
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize(("whole_idx", "freq", "where"), TESTCASES3)
+@pytest.mark.parametrize("test_fn", ["general", "concat_pflines"])
 def test_concat_three_flatpflines(
     whole_idx: str,
     starttime: str,
     tz: str,
     freq: str,
     where: str,
+    test_fn: str,
 ):
-    """Test that three flat pflines with the same attributes ( aka kind, freq, sod, etc.) get concatenated properly."""
+    """Test that three flat pflines with the same attributes (i.e., same frequency,
+    timezone, start-of-day, and kind) get concatenated properly."""
     idx = get_idx(whole_idx[0], starttime, tz, freq, whole_idx[1])
     whole_pfl = dev.get_flatpfline(idx)
     split_one = where[0]
@@ -110,8 +116,9 @@ def test_concat_three_flatpflines(
     pfl_a = whole_pfl.slice[:split_one]
     pfl_b = whole_pfl.slice[split_one:split_two]
     pfl_c = whole_pfl.slice[split_two:]
-    result = concat.concat_pflines(pfl_a, pfl_b, pfl_c)
-    result2 = concat.concat_pflines(pfl_b, pfl_c, pfl_a)
+    fn = concat.general if test_fn == "general" else concat.concat_pflines
+    result = fn([pfl_a, pfl_b, pfl_c])
+    result2 = fn([pfl_b, pfl_c, pfl_a])
     assert whole_pfl == result
     assert whole_pfl == result2
 
@@ -119,12 +126,14 @@ def test_concat_three_flatpflines(
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize(("whole_idx", "freq", "where"), TESTCASES3)
+@pytest.mark.parametrize("test_fn", ["general", "concat_pflines"])
 def test_concat_three_nestedpflines(
     whole_idx: str,
     starttime: str,
     tz: str,
     freq: str,
     where: str,
+    test_fn: str,
 ):
     """Test that three nested pflines with the same attributes ( aka kind, freq, sod, etc.)
     and the same number of children and children names get concatenated properly."""
@@ -135,7 +144,8 @@ def test_concat_three_nestedpflines(
     pfl_a = whole_pfl.slice[:split_one]
     pfl_b = whole_pfl.slice[split_one:split_two]
     pfl_c = whole_pfl.slice[split_two:]
-    result = concat.concat_pflines(pfl_a, pfl_b, pfl_c)
-    result2 = concat.concat_pflines(pfl_b, pfl_c, pfl_a)
+    fn = concat.general if test_fn == "general" else concat.concat_pflines
+    result = fn([pfl_a, pfl_b, pfl_c])
+    result2 = fn([pfl_b, pfl_c, pfl_a])
     assert whole_pfl == result
     assert whole_pfl == result2

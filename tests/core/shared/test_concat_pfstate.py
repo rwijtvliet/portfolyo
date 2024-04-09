@@ -52,20 +52,23 @@ def get_idx(
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize(("whole_idx", "freq", "where"), TESTCASES2)
+@pytest.mark.parametrize("test_fn", ["general", "concat_pfstates"])
 def test_concat_pfstates(
     whole_idx: str,
     starttime: str,
     tz: str,
     freq: str,
     where: str,
+    test_fn: str,
 ):
     """Test that two PfStates get concatenated properly."""
     idx = get_idx(whole_idx[0], starttime, tz, freq, whole_idx[1])
     whole_pfs = dev.get_pfstate(idx)
     pfs_a = whole_pfs.slice[:where]
     pfs_b = whole_pfs.slice[where:]
-    result = concat.concat_pfstates(pfs_a, pfs_b)
-    result2 = concat.concat_pfstates(pfs_b, pfs_a)
+    fn = concat.general if test_fn == "general" else concat.concat_pfstates
+    result = fn([pfs_a, pfs_b])
+    result2 = fn([pfs_b, pfs_a])
     assert whole_pfs == result
     assert whole_pfs == result2
 
@@ -73,12 +76,14 @@ def test_concat_pfstates(
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize(("whole_idx", "freq", "where"), TESTCASES3)
+@pytest.mark.parametrize("test_fn", ["general", "concat_pfstates"])
 def test_concat_three_pfstates(
     whole_idx: str,
     starttime: str,
     tz: str,
     freq: str,
     where: str,
+    test_fn: str,
 ):
     """Test that three PfStates get concatenated properly."""
     idx = get_idx(whole_idx[0], starttime, tz, freq, whole_idx[1])
@@ -88,7 +93,8 @@ def test_concat_three_pfstates(
     pfs_a = whole_pfs.slice[:split_one]
     pfs_b = whole_pfs.slice[split_one:split_two]
     pfs_c = whole_pfs.slice[split_two:]
-    result = concat.concat_pfstates(pfs_a, pfs_b, pfs_c)
-    result2 = concat.concat_pfstates(pfs_b, pfs_c, pfs_a)
+    fn = concat.general if test_fn == "general" else concat.concat_pfstates
+    result = fn([pfs_a, pfs_b, pfs_c])
+    result2 = fn([pfs_b, pfs_c, pfs_a])
     assert whole_pfs == result
     assert whole_pfs == result2

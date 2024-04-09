@@ -17,7 +17,7 @@ def test_general():
     pfl = dev.get_flatpfline(index)
     pfs = dev.get_pfstate(index2)
     with pytest.raises(NotImplementedError):
-        _ = concat.general(pfl, pfs)
+        _ = concat.general([pfl, pfs])
 
 
 def test_diff_freq():
@@ -27,7 +27,7 @@ def test_diff_freq():
     pfl = dev.get_flatpfline(index)
     pfl2 = dev.get_flatpfline(index2)
     with pytest.raises(TypeError):
-        _ = concat.concat_pflines(pfl, pfl2)
+        _ = concat.concat_pflines([pfl, pfl2])
 
 
 def test_diff_sod():
@@ -37,7 +37,7 @@ def test_diff_sod():
     pfl = dev.get_flatpfline(index)
     pfl2 = dev.get_flatpfline(index2)
     with pytest.raises(TypeError):
-        _ = concat.concat_pflines(pfl, pfl2)
+        _ = concat.concat_pflines([pfl, pfl2])
 
 
 def test_slice_not_sod():
@@ -49,7 +49,7 @@ def test_slice_not_sod():
     pfl_a = dev.get_flatpfline(index)
     pfl_b = dev.get_flatpfline(index2)
     with pytest.raises(TypeError):
-        _ = concat.concat_pflines(pfl_a, pfl_b)
+        _ = concat.concat_pflines([pfl_a, pfl_b])
 
 
 def test_diff_tz():
@@ -61,7 +61,7 @@ def test_diff_tz():
     pfl = dev.get_flatpfline(index)
     pfl2 = dev.get_flatpfline(index2)
     with pytest.raises(TypeError):
-        _ = concat.concat_pflines(pfl, pfl2)
+        _ = concat.concat_pflines([pfl, pfl2])
 
 
 def test_diff_kind():
@@ -71,7 +71,7 @@ def test_diff_kind():
     pfl = dev.get_flatpfline(index, kind=Kind.COMPLETE)
     pfl2 = dev.get_flatpfline(index2, kind=Kind.VOLUME)
     with pytest.raises(TypeError):
-        _ = concat.concat_pflines(pfl, pfl2)
+        _ = concat.concat_pflines([pfl, pfl2])
 
 
 def test_app_lenght():
@@ -79,7 +79,7 @@ def test_app_lenght():
     index = pd.date_range("2020-01-01", "2024", freq="QS", inclusive="left")
     pfl = dev.get_flatpfline(index)
     with pytest.raises(NotImplementedError):
-        _ = concat.concat_pflines(pfl)
+        _ = concat.concat_pflines([pfl])
 
 
 def test_concat_with_overlap():
@@ -89,7 +89,7 @@ def test_concat_with_overlap():
     pfl = dev.get_flatpfline(index)
     pfl2 = dev.get_flatpfline(index2)
     with pytest.raises(ValueError):
-        _ = concat.concat_pflines(pfl, pfl2)
+        _ = concat.concat_pflines([pfl, pfl2])
 
 
 def test_concat_with_gaps():
@@ -99,7 +99,7 @@ def test_concat_with_gaps():
     pfl = dev.get_flatpfline(index)
     pfl2 = dev.get_flatpfline(index2)
     with pytest.raises(ValueError):
-        _ = concat.concat_pflines(pfl, pfl2)
+        _ = concat.concat_pflines([pfl, pfl2])
 
 
 def test_concat_children():
@@ -109,7 +109,7 @@ def test_concat_children():
     pfl = dev.get_flatpfline(index)
     pfl2 = dev.get_nestedpfline(index2)
     with pytest.raises(TypeError):
-        _ = concat.concat_pflines(pfl, pfl2)
+        _ = concat.concat_pflines([pfl, pfl2])
 
 
 def test_concat_diff_children():
@@ -119,12 +119,12 @@ def test_concat_diff_children():
     pfl = dev.get_nestedpfline(index)
     pfl2 = dev.get_nestedpfline(index2).drop_child(name="a")
     with pytest.raises(TypeError):
-        _ = concat.concat_pflines(pfl, pfl2)
+        _ = concat.concat_pflines([pfl, pfl2])
 
 
 def test_concat_pfss():
     """Test if concatenating of Pfstate with "nested" PfState
-    ( meaning that offtakevolume, sourced and unsourcedprice are nested Pflines) raises error.
+    (meaning that offtakevolume, sourced and unsourcedprice are nested Pflines) raises error.
     """
     index = pd.date_range("2020-01-01", "2024", freq="QS", inclusive="left")
     index2 = pd.date_range("2024-01-01", "2025", freq="QS", inclusive="left")
@@ -134,4 +134,4 @@ def test_concat_pfss():
     unsourcedprice = dev.get_nestedpfline(index2, kind=Kind.PRICE)
     pfs2 = PfState(offtakevolume, unsourcedprice, sourced)
     with pytest.raises(TypeError):
-        _ = concat.concat_pfstates(pfs1, pfs2)
+        _ = concat.concat_pfstates([pfs1, pfs2])
