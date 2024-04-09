@@ -9,8 +9,8 @@ import pandas as pd
 from . import ceil as tools_ceil
 from . import floor as tools_floor
 from . import freq as tools_freq
-from . import startofday as tools_startofday
 from . import right as tools_right
+from . import startofday as tools_startofday
 
 
 def index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
