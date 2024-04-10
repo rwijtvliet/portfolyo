@@ -2,9 +2,10 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from portfolyo import tools
+
 from ... import testing
 import pandas as pd
-from datetime import timedelta
 
 if TYPE_CHECKING:
     from .classes import FlatPfLine
@@ -46,6 +47,13 @@ class LocIndexer:
 
     def __getitem__(self, arg) -> FlatPfLine:
         newdf = self.pfl.df.loc[arg]
+        try:
+            tools.standardize.assert_frame_standardized(newdf)
+        except AssertionError as e:
+            raise ValueError(
+                "Timeseries not in expected form. See ``portfolyo.standardize()`` for more information."
+            ) from e
+
         return self.pfl.__class__(newdf)  # use same (leaf) class
 
 
@@ -57,11 +65,17 @@ class SliceIndexer:
         self.pfl = pfl
 
     def __getitem__(self, arg) -> FlatPfLine:
-        date_start = pd.to_datetime(arg.start)
-        date_end = pd.to_datetime(arg.stop)
-
+        mask = pd.Index([True] * len(self.pfl.df))
+        if arg.start is not None:
+            mask &= self.pfl.index >= arg.start
         if arg.stop is not None:
-            date_end = date_end - timedelta(seconds=1)
+            mask &= self.pfl.index < arg.stop
 
-        newdf = self.pfl.df.loc[date_start:date_end]
+        newdf = self.pfl.df.loc[mask]
+        try:
+            tools.standardize.assert_frame_standardized(newdf)
+        except AssertionError as e:
+            raise ValueError(
+                "Timeseries not in expected form. See ``portfolyo.standardize()`` for more information."
+            ) from e
         return self.pfl.__class__(newdf)  # use same (leaf) class

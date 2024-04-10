@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from ... import tools
-from ..mixins import ExcelClipboardOutput, PfLinePlot, PfLineText
+from ..shared import ExcelClipboardOutput, PfLinePlot, PfLineText
 from ..ndframelike import NDFrameLike
 from . import (
     create,
@@ -286,7 +286,7 @@ class FlatPfLine(PfLine):
     hedge_with = prices.Flat.hedge_with
     # map_to_year => on child classes
     loc = flat_methods.loc
-    slice = flat_methods.slice  # meh
+    slice = flat_methods.slice
     __getitem__ = flat_methods.__getitem__
     # __bool__ => on child classes
     __eq__ = flat_methods.__eq__

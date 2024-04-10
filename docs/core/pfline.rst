@@ -269,6 +269,7 @@ Another slicing method is implemented with the ``.slice[]`` property. The improv
    # --- hide: stop ---
 
 
+
 Concatenation
 =============
 
