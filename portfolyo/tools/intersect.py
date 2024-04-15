@@ -3,7 +3,8 @@ from typing import List, Union, Tuple
 import pandas as pd
 from portfolyo import tools
 
-from portfolyo.tools.freq import longest
+from portfolyo.tools.right import stamp
+from portfolyo.tools.freq import longest, longer_or_shorter
 from datetime import datetime
 
 
@@ -119,6 +120,11 @@ def indices_flex(
     distinct_sod = set([i[0].time() for i in idxs])
     if len(distinct_sod) != 1 and ignore_start_of_day is False:
         raise ValueError(f"Indices must have equal start-of-day; got {distinct_sod}.")
+    for i in range(len(idxs)):
+        if len(distinct_sod) != 1 and longer_or_shorter(idxs[i].freq, "D") == -1:
+            raise ValueError(
+                "Downsample all indices to daily-or-longer, or trim them so they have the same start-of-day, before attempting to calculate the intersection"
+            )
 
     freq, name, tz = [], [], []
     for i in range(len(idxs)):
@@ -126,16 +132,7 @@ def indices_flex(
         name.append(idxs[i].name)
         tz.append(idxs[i].tz)
 
-    # add one interval of the respective freq to each index (this way, a given date-range from A-B that was exclusive
-    # of B is now inclusive of B - this helps when we need to convert frequencies or times-of-day without loosing
-    # data. At the end, we exclude the end-date of the final result again.)
-    # idxs = [
-    #     idx.append(
-    #         pd.DatetimeIndex([idx[-1] + pd.tseries.frequencies.to_offset(idx.freq)])
-    #     )
-    #     for idx in idxs
-    # ]
-
+    longest_freq = freq[0]
     if ignore_freq is True and len(distinct_freqs) != 1:
         # Find the longest frequency
         longest_freq = longest(*freq)
@@ -169,8 +166,9 @@ def indices_flex(
     idxs_out = []
     for i in range(len(idxs)):
         start = min(values)
+        # end = stamp(start, longest_freq._prefix)
         end = max(values)
-        inclusive = "both"
+        end = stamp(end, longest_freq)
 
         if ignore_start_of_day is True:
             start = datetime.combine(pd.to_datetime(start).date(), start_of_day[i])
@@ -184,7 +182,7 @@ def indices_flex(
                 freq=freq[i],
                 name=name[i],
                 tz=tz[i],
-                inclusive=inclusive,
+                inclusive="left",
             )
         )
 

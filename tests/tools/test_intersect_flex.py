@@ -95,7 +95,7 @@ def test_intersect_flex_ignore_start_of_day(
     do_test_intersect(
         "idx",
         idxs,
-        expected_startdate,
+        ValueError if freq == "15T" or freq == "H" else expected_startdate,
         expected_tz=tz,
         expected_freq=freq,
         expected_starttime=starttime,
@@ -190,7 +190,11 @@ def test_ignore_all(  # indexorframe: str,
     do_test_intersect(
         "idx",
         idxs,
-        expected_startdate,
+        (
+            ValueError
+            if freq[0] == "15T" or freq[0] == "H" or freq[1] == "15T" or freq[1] == "H"
+            else expected_startdate
+        ),
         expected_tz=tz,
         expected_freq=freq[0],
         expected_starttime=starttime,
