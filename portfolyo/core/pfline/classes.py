@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 
 from ... import tools
-from ..mixins import ExcelClipboardOutput, PfLinePlot, PfLineText
+from ..shared import ExcelClipboardOutput, PfLinePlot, PfLineText
 from ..ndframelike import NDFrameLike
 from . import (
     create,

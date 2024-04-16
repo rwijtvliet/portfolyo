@@ -3,9 +3,10 @@
 from . import _version, dev, testing, tools
 from .core import extendpandas  # extend functionalty of pandas
 from .core import suppresswarnings
-from .core.mixins.plot import plot_pfstates
 from .core.pfline import Kind, PfLine, Structure, create
 from .core.pfstate import PfState
+from .core.shared.concat import general as concat
+from .core.shared.plot import plot_pfstates
 from .prices.hedge import hedge
 from .prices.utils import is_peak_hour
 from .tools.changefreq import averagable as asfreq_avg
@@ -16,6 +17,8 @@ from .tools.standardize import frame as standardize
 from .tools.tzone import force_agnostic, force_aware
 from .tools.unit import Q_, Unit, ureg
 from .tools.wavg import general as wavg
+
+# from .core.shared.concat import general as concat
 
 VOLUME = Kind.VOLUME
 PRICE = Kind.PRICE
