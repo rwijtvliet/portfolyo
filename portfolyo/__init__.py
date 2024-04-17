@@ -3,7 +3,7 @@
 from . import _version, dev, tools
 from .core import extendpandas  # extend functionalty of pandas
 from .core import suppresswarnings
-from .core.shared.plot import plot_pfstates
+from .utilities.plot import plot_pfstates
 from .core.pfline import Kind, PfLine, Structure, create
 from .core.pfstate import PfState
 from .prices.hedge import hedge
@@ -14,7 +14,8 @@ from .tools.standardize import frame as standardize
 from .tools.tzone import force_agnostic, force_aware
 from .tools.unit import Q_, ureg, Unit
 from .tools.wavg import general as wavg
-from .core.shared.concat import general as concat
+from .utilities.concat import general as concat
+from .utilities.intersect import indexable as intersection
 
 # from .core.shared.concat import general as concat
 
