@@ -49,6 +49,7 @@ coverage.xml
 *.py,cover
 .hypothesis/
 .pytest_cache/
+test-output.xml
 cover/
 
 # Translations
@@ -160,3 +161,4 @@ cython_debug/
 .issues/
 .DS_Store
 test.xlsx
+
