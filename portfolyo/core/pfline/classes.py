@@ -8,16 +8,16 @@ import numpy as np
 import pandas as pd
 
 from ... import tools
-from ..shared import ExcelClipboardOutput, PfLinePlot, PfLineText
 from ..ndframelike import NDFrameLike
+from ..shared import ExcelClipboardOutput, PfLinePlot, PfLineText
 from . import (
+    children,
     create,
     dataframeexport,
     decorators,
     flat_methods,
     nested_methods,
     prices,
-    children,
 )
 from .arithmatic import PfLineArithmatic
 from .enums import Kind, Structure

@@ -5,21 +5,23 @@ Module with mixins, to add 'plot-functionality' to PfLine and PfState classes.
 from __future__ import annotations
 
 import hashlib
-from typing import TYPE_CHECKING, Dict, List, Tuple
+from typing import TYPE_CHECKING, Dict, Tuple
 
 import matplotlib
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 
 from ... import tools
 from ... import visualize as vis
+from ..pfline import classes
+from ..pfline.enums import Kind
 
 if TYPE_CHECKING:  # needed to avoid circular imports
     from ..pfline import PfLine
     from ..pfstate import PfState
 
 
-DEFAULTHOW = {"r": "bar", "q": "bar", "p": "hline", "w": "area", "f": "area"}
 DEFAULTFMT = {
     "w": "{:,.1f}",
     "q": "{:,.0f}",
@@ -29,70 +31,119 @@ DEFAULTFMT = {
 }
 
 
-def defaultkwargs(col: str, is_cat: bool):
-    """Styling and type of graph, depending on column ``col`` and whether or not the x-axis
-    is a category axis (``is_cat``)."""
-    kwargs = {}
-    kwargs["alpha"] = 0.7
-    # Add defaults for each column.
-    kwargs["color"] = getattr(vis.Colors.Wqpr, col, "grey")
-    kwargs["labelfmt"] = DEFAULTFMT.get(col, "{:.2f}")
-    kwargs["how"] = DEFAULTHOW.get(col, "hline")
-    kwargs["cat"] = is_cat
-    # Override specific cases.
-    if not is_cat and col == "p":
-        kwargs["how"] = "step"
-    if is_cat and col == "f":
-        kwargs["how"] = "bar"
-    return kwargs
+def plotfn_and_kwargs(
+    col: str, freq: str, name: str
+) -> Tuple[vis.PlotTimeseriesToAxFunction, Dict]:
+    """Get correct function to plot as well as default kwargs. ``col``: one of 'qwprf',
+    ``freq``: frequency; ``name``: name of the child. If name is emptystring, it is the
+    parent of a plot which also has children. If it is None, there are no children."""
+    # Get plot function.
+    if tools.freq.shortest(freq, "MS") == "MS":  # categorical
+        if name == "" or name is None:  # parent
+            fn = vis.plot_timeseries_as_bar
+        else:  # child
+            fn = vis.plot_timeseries_as_hline
+    else:  # timeaxis
+        if col in ["w", "q"]:
+            if name == "" or name is None:  # parent
+                fn = vis.plot_timeseries_as_area
+            else:  # child
+                fn = vis.plot_timeseries_as_step
+        else:  # col in ['p', 'r']
+            if name == "" or name is None:  # parent
+                fn = vis.plot_timeseries_as_step
+            else:  # child
+                fn = vis.plot_timeseries_as_step
+
+    # Get plot default kwargs.
+    if name is None:  # no children
+        kwargs = {
+            "color": getattr(vis.Colors.Wqpr, col, "grey"),
+            "alpha": 0.7,
+            "labelfmt": DEFAULTFMT.get(col, "{:.2f}"),
+        }
+    elif name == "":  # parent with children
+        kwargs = {
+            "color": "grey",
+            "alpha": 0.7,
+            "labelfmt": DEFAULTFMT.get(col, "{:.2f}"),
+        }
+    else:  # child with name
+        hashed_value = hashlib.sha256(name.encode()).hexdigest()
+        hashed_int = int(hashed_value, 16)
+        index = hashed_int % len(vis.Colors.General)
+        kwargs = {
+            "color": list(vis.Colors.General)[index].value,
+            "alpha": 0.9,
+            "labelfmt": "",  # no labels on children
+            "label": name,
+            "linewidth": 0.5,
+        }
+
+    return fn, kwargs
 
 
 class PfLinePlot:
     def plot_to_ax(
-        self: PfLine,
-        ax: plt.Axes,
-        col: str,
-        how: str,
-        labelfmt: str = "",
-        children: bool = False,
-        **kwargs,
+        self, ax: plt.Axes, children: bool = False, kind: Kind = None, **kwargs
     ) -> None:
-        """Plot a timeseries of the PfLine to a specific axes.
+        """Plot a specific dimension (i.e., kind) of the PfLine to a specific axis.
 
         Parameters
         ----------
         ax : plt.Axes
             The axes object to which to plot the timeseries.
-        col : str
-            The column to plot. One of {'w', 'q', 'p', 'r'}.
-        how : str
-            How to plot the data. One of {'bar', 'area', 'step', 'hline'}.
-        labelfmt : str
-            Labels are added to each datapoint in the specified format. ('' to add no labels)
-        Any additional kwargs are passed to the pd.Series.plot function.
+        children : bool, optional (default: False)
+            If True, plot also the direct children of the PfLine.
+        kind : Kind, optional (default: None)
+            What dimension of the data to plot. Ignored unless PfLine.kind is COMPLETE.
+        **kwargs
+            Any additional kwargs are passed to the pd.Series.plot function when drawing
+            the parent.
+
+        Returns
+        -------
+        None
         """
-
-        if col not in self.kind.available:
+        # Ensure ``kind`` is volume, price, or revenue.
+        if self.kind is not Kind.COMPLETE:
+            kind = self.kind
+        elif kind not in [Kind.VOLUME, Kind.PRICE, Kind.REVENUE]:
             raise ValueError(
-                f"For this PfLine, parameter ``col`` must be one of {', '.join(self.kind.available)}; got {col}."
+                "To plot a complete portfolio line, the dimension to be plotted must be specified. "
+                f"Parameter ``kind`` must be one of {{Kind.VOLUME, Kind.PRICE, Kind.REVENUE}}; got {kind}."
             )
-        if children:
-            # Plot on category axis if freq monthly or longer, else on time axis.
-            is_category = tools.freq.shortest(self.index.freq, "MS") == "MS"
 
-            self.plot_children(col, ax, is_category)
-            ax.legend()
-        vis.plot_timeseries(ax, getattr(self, col), how, labelfmt, **kwargs)
+        # Create function to select correct series of the pfline.
+        def col_and_series(pfl: PfLine) -> Tuple[str, pd.Series]:
+            if kind is Kind.PRICE:
+                return "p", pfl.p
+            elif kind is Kind.REVENUE:
+                return "r", pfl.r
+            elif tools.freq.longest(pfl.index.freq, "D") == "D":  # timeaxis
+                return "w", pfl.w  # kind is Kind.VOLUME
+            else:
+                return "q", pfl.q  # kind is Kind.VOLUME
 
-    def plot(self: PfLine, cols: str = None, children: bool = False) -> plt.Figure:
-        """Plot one or more timeseries of the PfLine.
+        # Plot top-level data first.
+        col, s = col_and_series(self)
+        fn, d_kwargs = plotfn_and_kwargs(col, self.index.freq, "" if children else None)
+        fn(ax, s, **(d_kwargs | kwargs))
+
+        # Plot children if wanted and available.
+        if not children or not isinstance(self, classes.NestedPfLine):
+            return
+        for name, child in self.items():
+            col, s = col_and_series(child)
+            fn, d_kwargs = plotfn_and_kwargs(col, self.index.freq, name)
+            fn(ax, s, **d_kwargs)
+        ax.legend()
+
+    def plot(self, children: bool = False) -> plt.Figure:
+        """Plot the PfLine.
 
         Parameters
         ----------
-        cols : str, optional
-            The columns to plot. Default: plot volume (in [MW] for daily values and
-            shorter, [MWh] for monthly values and longer) and price `p` [Eur/MWh]
-            (if available).
         children : bool, optional (default: False)
             If True, plot also the direct children of the PfLine.
 
@@ -101,84 +152,25 @@ class PfLinePlot:
         plt.Figure
             The figure object to which the series was plotted.
         """
-        # Plot on category axis if freq monthly or longer, else on time axis.
-        is_category = tools.freq.shortest(self.index.freq, "MS") == "MS"
 
-        # If columns are specified, plot these. Else: take defaults, based on what's available
-        if cols is None:
-            cols = ""
-            if "q" in self.kind.available:
-                cols += "q" if is_category else "w"
-            if "p" in self.kind.available:
-                cols += "p"
+        if self.kind is not Kind.COMPLETE:
+            # one axes
+            fig, ax = plt.subplots(1, 1, squeeze=True, figsize=(10, 3))
+            self.plot_to_ax(ax, children)
+
         else:
-            cols = [col for col in cols if col in self.kind.available]
-            if not cols:
-                raise ValueError("No columns to plot.")
-
-        # Create the plots.
-        size = (10, len(cols) * 3)
-        fig, axes = plt.subplots(
-            len(cols), 1, sharex=True, sharey=False, squeeze=False, figsize=size
-        )
-
-        for col, ax in zip(cols, axes.flatten()):
-            kwargs = defaultkwargs(col, is_category)
-
-            if children:
-                self.plot_children(col, ax, is_category)
-                ax.legend()
-            s = getattr(self, col)
-            vis.plot_timeseries(ax, s, **kwargs)
+            fig, axes = plt.subplots(3, 1, sharex=True, squeeze=True, figsize=(10, 9))
+            for ax, kind in zip(axes, [Kind.VOLUME, Kind.PRICE, Kind.REVENUE]):
+                self.plot_to_ax(ax, children, kind)
 
         return fig
 
-    def get_children_with_colors(self: PfLine) -> List[Tuple[str, PfLine, vis.Color]]:
-        return [
-            (name, child, self.hash_and_map_to_color(name))
-            for (name, child) in self.items()
-        ]
 
-    def hash_and_map_to_color(self: PfLine, name: str) -> vis.Color:
-        # Use SHA-256 to hash the name
-        hashed_value = hashlib.sha256(name.encode()).hexdigest()
-        # Convert the hashed value to an integer
-        hashed_int = int(hashed_value, 16)
-        # Calculate the index in the General colors enum based on the hashed value
-        index = hashed_int % len(vis.Colors.General)
-        # Return the color associated with the index
-        return list(vis.Colors.General)[index].value
+# TODO: ----- below here must still be rewritten ---
 
-    def plot_children(self: PfLine, col: str, ax: plt.Axes, is_category: bool) -> None:
-        """Plot children of the PfLine to the same ax as parent.
 
-        Parameters
-        ----------
-        cols : str, optional
-            The columns to plot. Default: plot volume (in [MW] for daily values and
-            shorter, [MWh] for monthly values and longer) and price `p` [Eur/MWh]
-            (if available).
-        ax : plt.Axes
-            The axes object to which to plot the timeseries.
-
-        """
-        kwargs = defaultkwargs(col, is_category)
-        kwargs["labelfmt"] = ""
-        kwargs["alpha"] = 0.9
-        # is_stacked_type = kwargs["how"] == "bar" or kwargs["how"] == "area"
-
-        colors = []
-        for name, child, color in self.get_children_with_colors():
-            kwargs["color"] = color
-            kwargs["label"] = name
-            print("Color of child", name, "is:", color)
-            colors.append(color)
-            if kwargs["how"] == "bar":
-                kwargs["how"] = "hline"
-            elif kwargs["how"] == "area":
-                kwargs["how"] = "step"
-
-            vis.plot_timeseries(ax, getattr(child, col), **kwargs)
+def defaultkwargs(*args):
+    return {}
 
 
 class PfStatePlot:

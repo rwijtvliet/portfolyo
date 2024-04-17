@@ -2,10 +2,13 @@
 Visualize portfolio lines, etc.
 """
 
+from typing import Callable
+
 import matplotlib as mpl
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+from ..tools import freq as tools_freq
 from .categories import Categories, Category  # noqa
 
 mpl.style.use("seaborn-v0_8")
@@ -61,17 +64,13 @@ class CategoricalValuesNotSupported(Exception):
     pass
 
 
+PlotTimeseriesToAxFunction = Callable[[plt.Axes, pd.Series, ...], None]
+
 docstringliteral_plotparameters = """
 Other parameters
 ----------------
 labelfmt : str, optional (default: '')
     Labels are added to each datapoint in the specified format. ('' to add no labels)
-cat : bool, optional
-    If False, plots x-axis as timeline with timestamps spaced according to their
-    duration. If True, plots x-axis categorically, with timestamps spaced equally.
-    Disregarded if ``ax`` already has values (then: use whatever is already set).
-    Default: use True if ``s`` has a monthly frequency or longer, False if the frequency
-    is shorter than monthly.
 **kwargs : any formatting are passed to the Axes plot method being used."""
 
 
@@ -88,12 +87,11 @@ def plot_timeseries_as_bar(
     ax: plt.Axes,
     s: pd.Series,
     labelfmt: str = "",
-    cat: bool = None,  # don't need
     width: float = 0.8,
     **kwargs,
 ) -> None:
-    """Plot timeseries ``s`` to axis ``ax``, as bars. Ideally, only used for plots with
-    categorical (i.e, non-time) x-axis."""
+    """Plot timeseries ``s`` to axis ``ax``, as bars.
+    On plots with categorical (i.e, non-continuous) time axis."""
     if not is_categorical(s):
         raise ContinuousValuesNotSupported(
             "This plot is not compatible with continous values"
@@ -113,11 +111,10 @@ def plot_timeseries_as_area(
     ax: plt.Axes,
     s: pd.Series,
     labelfmt: str = "",
-    cat: bool = None,
     **kwargs,
 ) -> None:
-    """Plot timeseries ``s`` to axis ``ax``, as stepped area between 0 and value. Ideally,
-    only used for plots with time (i.e., non-categorical) axis."""
+    """Plot timeseries ``s`` to axis ``ax``, as stepped area between 0 and value.
+    On plots with continuous (i.e., non-categorical) time axis."""
     if is_categorical(s):
         raise CategoricalValuesNotSupported(
             "This plot is not compatible with categorical values"
@@ -146,10 +143,10 @@ def plot_timeseries_as_area(
 
 @append_to_doc(docstringliteral_plotparameters)
 def plot_timeseries_as_step(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
+    ax: plt.Axes, s: pd.Series, labelfmt: str = "", **kwargs
 ) -> None:
     """Plot timeseries ``s`` to axis ``ax``, as stepped line (horizontal and vertical lines).
-    Ideally, only used for plots with time (i.e., non-categorical) axis."""
+    On plots with continuous (i.e., non-categorical) time axis."""
     if is_categorical(s):
         raise CategoricalValuesNotSupported(
             "This plot is not compatible with categorical values"
@@ -168,13 +165,13 @@ def plot_timeseries_as_step(
 
 @append_to_doc(docstringliteral_plotparameters)
 def plot_timeseries_as_hline(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
+    ax: plt.Axes, s: pd.Series, labelfmt: str = "", **kwargs
 ) -> None:
-    """Plot timeseries ``s`` to axis ``ax``, as horizontal lines. Ideally, only used for
-    plots with time (i.e., non-categorical) axis."""
+    """Plot timeseries ``s`` to axis ``ax``, as horizontal lines.
+    On plots with categorical (i.e., non-continuous) time axis."""
     if not is_categorical(s):
         raise ContinuousValuesNotSupported(
-            "This plot is not compatible with continous values"
+            "This plot is not compatible with continous time axis"
         )
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
@@ -186,44 +183,6 @@ def plot_timeseries_as_hline(
     ax.autoscale()
     # Adjust the margins around the plot
     ax.margins(x=0.2, y=0.2)
-
-
-def plot_timeseries(
-    ax: plt.Axes,
-    s: pd.Series,
-    how: str = "bar",
-    labelfmt: str = None,
-    cat: bool = None,
-    **kwargs,
-) -> None:
-    """Plot timeseries to given axis.
-
-    Parameters
-    ----------
-    ax : plt.Axes
-        Axes to plot to.
-    s : pd.Series
-        Timeseries to plot
-    how : str, optional (default: 'bar')
-        How to plot the data; one of {'bar', 'area', 'step', 'hline'}.
-    labelfmt : str, optional (default: '')
-        Labels are added to each datapoint in the specified format. ('' to add no labels)
-    cat : bool, optional (default: True if frequency is monthly or larger)
-        Plot as categorical x-axis.
-    """
-
-    if how == "bar":
-        plot_timeseries_as_bar(ax, s, labelfmt, cat, **kwargs)
-    elif how == "area":
-        plot_timeseries_as_area(ax, s, labelfmt, cat, **kwargs)
-    elif how == "step":
-        plot_timeseries_as_step(ax, s, labelfmt, cat, **kwargs)
-    elif how == "hline":
-        plot_timeseries_as_hline(ax, s, labelfmt, cat, **kwargs)
-    else:
-        raise ValueError(
-            f"Parameter ``how`` must be one of 'bar', 'area', 'step', 'hline'; got {how}."
-        )
 
 
 def set_portfolyo_attr(ax, name, val):
@@ -246,7 +205,7 @@ def get_portfolyo_attr(ax, name, default_val=None):
 
 def is_categorical(s: pd.Series) -> bool:
     """The function checks whether frequency of panda Series falls into continous or categorical group"""
-    return s.index.freq in ["AS", "QS", "MS"]
+    return tools_freq.longest(s.index.freq, "MS") == "MS"
 
 
 def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
