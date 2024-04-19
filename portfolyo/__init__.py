@@ -3,7 +3,7 @@
 from . import _version, dev, testing, tools
 from .core import extendpandas  # extend functionalty of pandas
 from .core import suppresswarnings
-from .utilities.plot import plot_pfstates
+from .tools2.plot import plot_pfstates
 from .core.pfline import Kind, PfLine, Structure, create
 from .core.pfstate import PfState
 from .tools2.concat import general as concat

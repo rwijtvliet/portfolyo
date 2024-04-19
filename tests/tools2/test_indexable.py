@@ -139,3 +139,85 @@ def test_intersect_tz(
     for a, b, objtype in zip([output_1, output_2], intersect, [first_obj, second_obj]):
         fn = t_function(objtype)
         fn(a, b)
+
+
+@pytest.mark.parametrize("first_obj", ["pfstate", "pfline", "series", "dataframe"])
+@pytest.mark.parametrize("second_obj", ["pfstate", "pfline", "series", "dataframe"])
+def test_intersect_ignore_all(
+    first_obj: str,
+    second_obj: str,
+):
+    """Test that intersection works properly on PfLines and/or PfStates with ignore_all."""
+    idx1 = get_idx("2022-04-01", "00:00", "Europe/Berlin", "QS", "2024-07-01")
+    s1 = pd.Series(range(len(idx1)), idx1)
+
+    idx2 = get_idx("2021-01-01", "06:00", None, "MS", "2024-01-01")
+    s2 = pd.Series(range(len(idx2)), idx2)
+
+    first = create_obj(s1, first_obj) if first_obj != "series" else s1
+    second = create_obj(s2, second_obj) if second_obj != "series" else s2
+    # Do intersection
+    intersect = pf.intersection(
+        first, second, ignore_freq=True, ignore_tz=True, ignore_start_of_day=True
+    )
+
+    # Expected results
+    expected_s1 = s1.iloc[:7]
+    expected_s2 = s2.iloc[15:48]
+    output_1 = (
+        create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
+    )
+    output_2 = (
+        create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
+    )
+    for a, b, objtype in zip([output_1, output_2], intersect, [first_obj, second_obj]):
+        fn = t_function(objtype)
+        fn(a, b)
+
+
+@pytest.mark.parametrize("first_obj", ["pfstate", "pfline", "series", "dataframe"])
+@pytest.mark.parametrize("second_obj", ["pfstate", "pfline", "series", "dataframe"])
+@pytest.mark.parametrize("third_obj", ["pfstate", "pfline", "series", "dataframe"])
+def test_intersect_ignore_all_3obj(
+    first_obj: str,
+    second_obj: str,
+    third_obj: str,
+):
+    """Test that intersection works properly on PfLines and/or PfStates with ignore_all."""
+    idx1 = get_idx("2022-04-01", "00:00", "Europe/Berlin", "QS", "2024-07-01")
+    s1 = pd.Series(range(len(idx1)), idx1)
+
+    idx2 = get_idx("2021-01-01", "06:00", None, "MS", "2024-01-01")
+    s2 = pd.Series(range(len(idx2)), idx2)
+
+    idx3 = get_idx("2023-01-01", "00:00", "Asia/Kolkata", "AS", "2025-01-01")
+    s3 = pd.Series(range(len(idx3)), idx3)
+
+    first = create_obj(s1, first_obj) if first_obj != "series" else s1
+    second = create_obj(s2, second_obj) if second_obj != "series" else s2
+    third = create_obj(s3, third_obj) if third_obj != "series" else s3
+
+    # Do intersection
+    intersect = pf.intersection(
+        first, second, third, ignore_freq=True, ignore_tz=True, ignore_start_of_day=True
+    )
+
+    # Expected results
+    expected_s1 = s1.iloc[3:7]
+    expected_s2 = s2.iloc[24:36]
+    expected_s3 = s3.iloc[:1]
+    output_1 = (
+        create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
+    )
+    output_2 = (
+        create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
+    )
+    output_3 = (
+        create_obj(expected_s3, third_obj) if third_obj != "series" else expected_s3
+    )
+
+    for a, b, objtype in zip(
+        [output_1, output_2, output_3], intersect, [first_obj, second_obj, third_obj]
+    ):
+        fn = t_function(objtype)
+        fn(a, b)
