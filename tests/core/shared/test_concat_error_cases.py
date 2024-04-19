@@ -7,7 +7,7 @@ import pytest
 from portfolyo import dev
 from portfolyo.core.pfline.enums import Kind
 from portfolyo.core.pfstate.pfstate import PfState
-from portfolyo.core.shared import concat
+from portfolyo.tools2 import concat
 
 
 def test_general():
