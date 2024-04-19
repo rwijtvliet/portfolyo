@@ -1,3 +1,4 @@
+from typing import Union
 import pandas as pd
 import pytest
 
@@ -20,84 +21,121 @@ def get_idx(
     return pd.date_range(ts_start, ts_end, freq=freq, inclusive="left")
 
 
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("starttime", ["00:00", "06:00"])
+def create_obj(
+    series: pd.Series, name_obj: str
+) -> Union[pd.DataFrame, pf.PfLine, pf.PfState]:
+    if name_obj == "pfline":
+        return pf.PfLine({"w": series})
+    elif name_obj == "pfstate":
+        volume = pf.PfLine({"w": series})
+        prices = pf.PfLine({"p": series})
+        return pf.PfState(volume, prices)
+    else:
+        return pd.DataFrame({"col": series})
+
+
+def t_function(objtype: str):
+    if objtype == "series":
+        return pd.testing.assert_series_equal
+    elif objtype == "dataframe":
+        return pd.testing.assert_frame_equal
+    elif objtype == "pfline":
+        return pf.PfLine.__eq__
+    else:
+        return pf.PfState.__eq__
+
+
+@pytest.mark.parametrize("first_obj", ["pfstate", "pfline", "series", "dataframe"])
+@pytest.mark.parametrize("second_obj", ["pfstate", "pfline", "series", "dataframe"])
 def test_intersect_freq_ignore(
-    starttime: str,
-    tz: str,
+    first_obj: str,
+    second_obj: str,
 ):
     """Test that intersection works properly on PfLines and/or PfStates with ignore_freq."""
-    idx1 = get_idx("2022-04-01", starttime, tz, "QS", "2024-07-01")
+    idx1 = get_idx("2022-04-01", "00:00", "Europe/Berlin", "QS", "2024-07-01")
     s1 = pd.Series(range(len(idx1)), idx1)
 
-    idx2 = get_idx("2021-01-01", starttime, tz, "MS", "2024-01-01")
+    idx2 = get_idx("2021-01-01", "00:00", "Europe/Berlin", "MS", "2024-01-01")
     s2 = pd.Series(range(len(idx2)), idx2)
 
-    # fn = pf.PfState if test_fn == "get_pfstate" else pf.PfLine
-    pf_a = pf.PfLine({"w": s1})
-    pf_b = pf.PfLine({"w": s2})
+    first = create_obj(s1, first_obj) if first_obj != "series" else s1
+    second = create_obj(s2, second_obj) if second_obj != "series" else s2
     # Do intersection
-    intersect = pf.intersection(pf_a, pf_b, ignore_freq=True)
+    intersect = pf.intersection(first, second, ignore_freq=True)
+
     # Expected results
     expected_s1 = s1.iloc[:7]
     expected_s2 = s2.iloc[15:48]
-    output1 = pf.PfLine({"w": expected_s1})
-    output2 = pf.PfLine({"w": expected_s2})
-    assert output1 == intersect[0]
-    assert output2 == intersect[1]
+    output_1 = (
+        create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
+    )
+    output_2 = (
+        create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
+    )
+    for a, b, objtype in zip([output_1, output_2], intersect, [first_obj, second_obj]):
+        fn = t_function(objtype)
+        fn(a, b)
 
 
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("starttime", ["00:00", "06:00"])
+@pytest.mark.parametrize("first_obj", ["pfstate", "pfline", "series", "dataframe"])
+@pytest.mark.parametrize("second_obj", ["pfstate", "pfline", "series", "dataframe"])
 def test_intersect_sod(
-    starttime: str,
-    tz: str,
+    first_obj: str,
+    second_obj: str,
 ):
-    """Test that intersection works properly on PfLines and/or PfStates with ignore_freq."""
-    idx1 = get_idx("2022-04-01", starttime, tz, "QS", "2024-07-01")
+    """Test that intersection works properly on PfLines and/or PfStates with ignore_sod."""
+    idx1 = get_idx("2022-04-01", "00:00", "Europe/Berlin", "QS", "2024-07-01")
     s1 = pd.Series(range(len(idx1)), idx1)
 
-    otherstarttime = "00:00" if starttime == "06:00" else "06:00"
-    idx2 = get_idx("2021-01-01", otherstarttime, tz, "QS", "2024-01-01")
+    idx2 = get_idx("2021-01-01", "06:00", "Europe/Berlin", "QS", "2024-01-01")
     s2 = pd.Series(range(len(idx2)), idx2)
 
-    # fn = pf.PfState if test_fn == "get_pfstate" else pf.PfLine
-    pf_a = pf.PfLine({"w": s1})
-    pf_b = pf.PfLine({"w": s2})
+    first = create_obj(s1, first_obj) if first_obj != "series" else s1
+    second = create_obj(s2, second_obj) if second_obj != "series" else s2
     # Do intersection
-    intersect = pf.intersection(pf_a, pf_b, ignore_start_of_day=True)
+    intersect = pf.intersection(first, second, ignore_start_of_day=True)
+
     # Expected results
     expected_s1 = s1.iloc[:7]
     expected_s2 = s2.iloc[5:12]
-    output1 = pf.PfLine({"w": expected_s1})
-    output2 = pf.PfLine({"w": expected_s2})
-    assert output1 == intersect[0]
-    assert output2 == intersect[1]
+    output_1 = (
+        create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
+    )
+    output_2 = (
+        create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
+    )
+    for a, b, objtype in zip([output_1, output_2], intersect, [first_obj, second_obj]):
+        fn = t_function(objtype)
+        fn(a, b)
 
 
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("starttime", ["00:00", "06:00"])
+@pytest.mark.parametrize("first_obj", ["pfstate", "pfline", "series", "dataframe"])
+@pytest.mark.parametrize("second_obj", ["pfstate", "pfline", "series", "dataframe"])
 def test_intersect_tz(
-    starttime: str,
-    tz: str,
+    first_obj: str,
+    second_obj: str,
 ):
-    """Test that intersection works properly on PfLines and/or PfStates with ignore_freq."""
-    idx1 = get_idx("2022-04-01", starttime, tz, "QS", "2024-07-01")
+    """Test that intersection works properly on PfLines and/or PfStates with ignore_tz."""
+    idx1 = get_idx("2022-04-01", "00:00", "Europe/Berlin", "QS", "2024-07-01")
     s1 = pd.Series(range(len(idx1)), idx1)
 
-    othertz = None if tz == "Europe/Berlin" else "Europe/Berlin"
-    idx2 = get_idx("2021-01-01", starttime, othertz, "QS", "2024-01-01")
+    idx2 = get_idx("2021-01-01", "00:00", None, "QS", "2024-01-01")
     s2 = pd.Series(range(len(idx2)), idx2)
 
-    # fn = pf.PfState if test_fn == "get_pfstate" else pf.PfLine
-    pf_a = pf.PfLine({"w": s1})
-    pf_b = pf.PfLine({"w": s2})
+    first = create_obj(s1, first_obj) if first_obj != "series" else s1
+    second = create_obj(s2, second_obj) if second_obj != "series" else s2
     # Do intersection
-    intersect = pf.intersection(pf_a, pf_b, ignore_tz=True)
+    intersect = pf.intersection(first, second, ignore_tz=True)
+
     # Expected results
     expected_s1 = s1.iloc[:7]
     expected_s2 = s2.iloc[5:12]
-    output1 = pf.PfLine({"w": expected_s1})
-    output2 = pf.PfLine({"w": expected_s2})
-    assert output1 == intersect[0]
-    assert output2 == intersect[1]
+    output_1 = (
+        create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
+    )
+    output_2 = (
+        create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
+    )
+    for a, b, objtype in zip([output_1, output_2], intersect, [first_obj, second_obj]):
+        fn = t_function(objtype)
+        fn(a, b)
