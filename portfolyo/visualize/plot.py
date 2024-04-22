@@ -205,7 +205,7 @@ def get_portfolyo_attr(ax, name, default_val=None):
 
 def is_categorical(s: pd.Series) -> bool:
     """The function checks whether frequency of panda Series falls into continous or categorical group"""
-    return tools_freq.longest(s.index.freq, "MS") == "MS"
+    return tools_freq.longer_or_shorter(s.index.freq, "D") == 1
 
 
 def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
@@ -274,7 +274,7 @@ def check_ax_s_compatible(ax: plt.Axes, s: pd.Series):
 
 
 def set_data_labels(
-    ax: plt.Axes, xx, yy, labelfmt, outside: bool = False, maxcount: int = 24
+    ax: plt.Axes, xx, yy, labelfmt, outside: bool = False, maxcount: int = 12
 ):
     """Add labels to axis ``ax``, at locations (``xx``, ``yy``), formatted with
     ``labelfmt``. Don't add labels if more than ``maxcount`` datapoints. If ``outside``,
@@ -291,6 +291,14 @@ def set_data_labels(
         lbl = labelfmt.format(y.magnitude).replace(",", " ")
         xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
         ax.annotate(lbl, (x, y), textcoords="offset points", xytext=xytext, ha="center")
+
+    # # Add labels only to every third data point.
+    # for i in range(0, len(xx), 3):  # Iterate every third index
+    #     x = xx[i]
+    #     y = yy[i]
+    #     lbl = labelfmt.format(y.magnitude).replace(",", " ")
+    #     xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
+    #     ax.annotate(lbl, (x, y), textcoords="offset points", xytext=xytext, ha="center")
 
     # Increase axis range to give label space to stay inside box.
     ylim = list(ax.get_ylim())

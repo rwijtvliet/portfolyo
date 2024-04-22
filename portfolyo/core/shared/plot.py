@@ -30,30 +30,7 @@ DEFAULTFMT = {
 }
 
 
-def plotfn_and_kwargs(
-    col: str, freq: str, name: str
-) -> Tuple[vis.PlotTimeseriesToAxFunction, Dict]:
-    """Get correct function to plot as well as default kwargs. ``col``: one of 'qwprf',
-    ``freq``: frequency; ``name``: name of the child. If name is emptystring, it is the
-    parent of a plot which also has children. If it is None, there are no children."""
-    # Get plot function.
-    if tools.freq.shortest(freq, "MS") == "MS":  # categorical
-        if name == "" or name is None:  # parent
-            fn = vis.plot_timeseries_as_bar
-        else:  # child
-            fn = vis.plot_timeseries_as_hline
-    else:  # timeaxis
-        if col in ["w", "q"]:
-            if name == "" or name is None:  # parent
-                fn = vis.plot_timeseries_as_area
-            else:  # child
-                fn = vis.plot_timeseries_as_step
-        else:  # col in ['p', 'r']
-            if name == "" or name is None:  # parent
-                fn = vis.plot_timeseries_as_step
-            else:  # child
-                fn = vis.plot_timeseries_as_step
-
+def defaultkwargs(name: str, col: str):
     # Get plot default kwargs.
     if name is None:  # no children
         kwargs = {
@@ -78,6 +55,35 @@ def plotfn_and_kwargs(
             "label": name,
             "linewidth": 0.5,
         }
+
+    return kwargs
+
+
+def plotfn_and_kwargs(
+    col: str, freq: str, name: str
+) -> Tuple[vis.PlotTimeseriesToAxFunction, Dict]:
+    """Get correct function to plot as well as default kwargs. ``col``: one of 'qwprf',
+    ``freq``: frequency; ``name``: name of the child. If name is emptystring, it is the
+    parent of a plot which also has children. If it is None, there are no children."""
+    # Get plot function.
+    if tools.freq.shortest(freq, "MS") == "MS":  # categorical
+        if name == "" or name is None:  # parent
+            fn = vis.plot_timeseries_as_bar
+        else:  # child
+            fn = vis.plot_timeseries_as_hline
+    else:  # timeaxis
+        if col in ["w", "q"]:
+            if name == "" or name is None:  # parent
+                fn = vis.plot_timeseries_as_area
+            else:  # child
+                fn = vis.plot_timeseries_as_step
+        else:  # col in ['p', 'r']
+            if name == "" or name is None:  # parent
+                fn = vis.plot_timeseries_as_step
+            else:  # child
+                fn = vis.plot_timeseries_as_step
+
+    kwargs = defaultkwargs(name, col)
 
     return fn, kwargs
 
@@ -165,13 +171,6 @@ class PfLinePlot:
         return fig
 
 
-# TODO: ----- below here must still be rewritten ---
-
-
-def defaultkwargs(*args):
-    return {}
-
-
 class PfStatePlot:
     def plot(self: PfState, children: bool = False) -> plt.Figure:
         """Plot the portfolio state.
@@ -195,44 +194,21 @@ class PfStatePlot:
         axes[4].sharey(axes[3])
         axes[5].sharey(axes[3])
 
-        # If freq is MS or longer: use categorical axes. Plot volumes in MWh.
-        # If freq is D or shorter: use time axes. Plot volumes in MW.
-        is_category = tools.freq.shortest(self.index.freq, "MS") == "MS"
         so, ss, usv = (
             -1 * self.offtakevolume,
             self.sourced,
             self.unsourced,
         )
-        pr_kwargs = defaultkwargs("p", is_category)
-        # Volumes.
-        if is_category:
-            kwargs = defaultkwargs("q", is_category)
-            value = "q"
-        else:
-            kwargs = defaultkwargs("w", is_category)
-            value = "w"
-        so.plot_to_ax(axes[0], value, children=children, **kwargs)
-        ss.plot_to_ax(axes[1], value, children=children, **kwargs)
+
+        so.plot_to_ax(axes[0], children=children, kind=so.kind)
+        ss.plot_to_ax(axes[1], children=children, kind=Kind.VOLUME)
         # Unsourced volume.
-        usv.plot_to_ax(axes[2], value, **kwargs)
+        usv.plot_to_ax(axes[2], kind=Kind.VOLUME)
         # Procurement Price.
-        self.pnl_cost.plot_to_ax(
-            axes[3],
-            "p",
-            **pr_kwargs,
-        )
-        self.sourced.plot_to_ax(
-            axes[4],
-            "p",
-            children=children,
-            **pr_kwargs,
-        )
+        self.pnl_cost.plot_to_ax(axes[3], kind=Kind.PRICE)
+        self.sourced.plot_to_ax(axes[4], children=children, kind=Kind.PRICE)
         # Unsourced price
-        self.unsourced.plot_to_ax(
-            axes[5],
-            "p",
-            **pr_kwargs,
-        )
+        self.unsourced.plot_to_ax(axes[5], kind=Kind.PRICE)
         # Set titles.
         axes[0].set_title("Offtake volume")
         axes[1].set_title("Sourced volume")
