@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 from portfolyo import dev
-from portfolyo.core.shared import concat
+from portfolyo.tools2 import concat
 
 
 TESTCASES2 = [  # whole idx, freq, where

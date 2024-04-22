@@ -5,11 +5,11 @@ from typing import Iterable
 import pandas as pd
 from portfolyo import tools
 
-from ..pfstate import PfState
-from ..pfline.enums import Structure
+from ..core.pfstate import PfState
+from ..core.pfline.enums import Structure
 
-from ..pfline import PfLine, create
-from .. import pfstate
+from ..core.pfline import PfLine, create
+from ..core import pfstate
 
 
 def general(pfl_or_pfs: Iterable[PfLine | PfState]) -> None:
