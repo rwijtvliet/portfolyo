@@ -8,6 +8,9 @@ import matplotlib as mpl
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
+
+from portfolyo.tools.unit import to_name
+from portfolyo.visualize.colors import Colors
 from ..tools import freq as tools_freq
 from .categories import Categories, Category  # noqa
 
@@ -53,7 +56,7 @@ mpl.style.use("seaborn-v0_8")
 # pick the correct graph type.
 #
 
-MAX_XLABELS = 20
+MAX_XLABELS = 15
 
 
 class ContinuousValuesNotSupported(Exception):
@@ -249,8 +252,21 @@ def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
         # No custom unit provided. Convert series to base units.
         s = s.pint.to_base_units()
         set_portfolyo_attr(ax, "unit", s.pint.units)
-
-    ax.set_ylabel(f"{get_portfolyo_attr(ax, 'unit'):~P}")
+    # Get unit attribute
+    unit = get_portfolyo_attr(ax, "unit")
+    name_unit = to_name(unit)
+    # Define color mapping based on 'Wqpr' class attributes
+    unit_colors = {
+        "w": Colors.Wqpr.w,
+        "q": Colors.Wqpr.q,
+        "r": Colors.Wqpr.r,
+        "p": Colors.Wqpr.p,
+    }
+    # Set default color if name_unit not found
+    default_color = "white"
+    # Get background color based on name_unit
+    background_color = unit_colors.get(name_unit, default_color)
+    ax.set_ylabel(f"{unit:~P}", backgroundcolor=background_color.lighten(0.2))
     return s
 
 
@@ -274,7 +290,7 @@ def check_ax_s_compatible(ax: plt.Axes, s: pd.Series):
 
 
 def set_data_labels(
-    ax: plt.Axes, xx, yy, labelfmt, outside: bool = False, maxcount: int = 12
+    ax: plt.Axes, xx, yy, labelfmt, outside: bool = False, maxcount: int = 24
 ):
     """Add labels to axis ``ax``, at locations (``xx``, ``yy``), formatted with
     ``labelfmt``. Don't add labels if more than ``maxcount`` datapoints. If ``outside``,
@@ -286,19 +302,33 @@ def set_data_labels(
     if len(xx) > maxcount:
         return
 
-    # Add labels.
-    for x, y in zip(xx, yy):
-        lbl = labelfmt.format(y.magnitude).replace(",", " ")
-        xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
-        ax.annotate(lbl, (x, y), textcoords="offset points", xytext=xytext, ha="center")
-
-    # # Add labels only to every third data point.
-    # for i in range(0, len(xx), 3):  # Iterate every third index
-    #     x = xx[i]
-    #     y = yy[i]
+    # # Add labels.
+    # for x, y in zip(xx, yy):
     #     lbl = labelfmt.format(y.magnitude).replace(",", " ")
     #     xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
-    #     ax.annotate(lbl, (x, y), textcoords="offset points", xytext=xytext, ha="center")
+    #     ax.annotate(
+    #         lbl,
+    #         (x, y),
+    #         textcoords="offset points",
+    #         xytext=xytext,
+    #         ha="center",
+    #         rotation=45,
+    #     )
+
+    # Add labels only to every third data point.
+    for i in range(0, len(xx), 3):  # Iterate every third index
+        x = xx[i]
+        y = yy[i]
+        lbl = labelfmt.format(y.magnitude).replace(",", " ")
+        xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
+        ax.annotate(
+            lbl,
+            (x, y),
+            textcoords="offset points",
+            xytext=xytext,
+            ha="center",
+            rotation=90,
+        )
 
     # Increase axis range to give label space to stay inside box.
     ylim = list(ax.get_ylim())

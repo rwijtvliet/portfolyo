@@ -53,7 +53,7 @@ def defaultkwargs(name: str, col: str):
             "alpha": 0.9,
             "labelfmt": "",  # no labels on children
             "label": name,
-            "linewidth": 0.5,
+            "linewidth": 0.9,
         }
 
     return kwargs
@@ -90,7 +90,7 @@ def plotfn_and_kwargs(
 
 class PfLinePlot:
     def plot_to_ax(
-        self, ax: plt.Axes, children: bool = False, kind: Kind = None, **kwargs
+        self: PfLine, ax: plt.Axes, children: bool = False, kind: Kind = None, **kwargs
     ) -> None:
         """Plot a specific dimension (i.e., kind) of the PfLine to a specific axis.
 
@@ -132,6 +132,7 @@ class PfLinePlot:
 
         # Plot top-level data first.
         col, s = col_and_series(self)
+        # s = s.pint.m
         fn, d_kwargs = plotfn_and_kwargs(col, self.index.freq, "" if children else None)
         fn(ax, s, **(d_kwargs | kwargs))
 
@@ -140,6 +141,7 @@ class PfLinePlot:
             return
         for name, child in self.items():
             col, s = col_and_series(child)
+            # s = s.pint.m
             fn, d_kwargs = plotfn_and_kwargs(col, self.index.freq, name)
             fn(ax, s, **d_kwargs)
         ax.legend()
@@ -185,14 +187,13 @@ class PfStatePlot:
             The figure object to which the series was plotted.
         """
         gridspec = {"width_ratios": [1, 1, 1], "height_ratios": [4, 1]}
-        fig, axes = plt.subplots(
-            2, 3, sharex=True, gridspec_kw=gridspec, figsize=(10, 6)
+        fig, (volumeaxes, priceaxes) = plt.subplots(
+            2, 3, sharex=True, sharey="row", gridspec_kw=gridspec, figsize=(10, 6)
         )
-        axes = axes.flatten()
-        axes[1].sharey(axes[0])
-        axes[2].sharey(axes[0])
-        axes[4].sharey(axes[3])
-        axes[5].sharey(axes[3])
+        # axes[1].sharey(axes[0])
+        # axes[2].sharey(axes[0])
+        # axes[4].sharey(axes[3])
+        # axes[5].sharey(axes[3])
 
         so, ss, usv = (
             -1 * self.offtakevolume,
@@ -200,38 +201,36 @@ class PfStatePlot:
             self.unsourced,
         )
 
-        so.plot_to_ax(axes[0], children=children, kind=so.kind)
-        ss.plot_to_ax(axes[1], children=children, kind=Kind.VOLUME)
+        so.plot_to_ax(volumeaxes[0], children=children, kind=so.kind)
+        ss.plot_to_ax(volumeaxes[1], children=children, kind=Kind.VOLUME)
         # Unsourced volume.
-        usv.plot_to_ax(axes[2], kind=Kind.VOLUME)
+        usv.plot_to_ax(volumeaxes[2], kind=Kind.VOLUME)
         # Procurement Price.
-        self.pnl_cost.plot_to_ax(axes[3], kind=Kind.PRICE)
-        self.sourced.plot_to_ax(axes[4], children=children, kind=Kind.PRICE)
+        self.pnl_cost.plot_to_ax(priceaxes[0], kind=Kind.PRICE)
+        self.sourced.plot_to_ax(priceaxes[1], children=children, kind=Kind.PRICE)
         # Unsourced price
-        self.unsourced.plot_to_ax(axes[5], kind=Kind.PRICE)
+        self.unsourced.plot_to_ax(priceaxes[2], kind=Kind.PRICE)
         # Set titles.
-        axes[0].set_title("Offtake volume")
-        axes[1].set_title("Sourced volume")
-        axes[2].set_title("Unsourced volume")
-        axes[3].set_title("Procurement price")
-        axes[4].set_title("Sourced price")
-        axes[5].set_title("Unsourced price")
+        volumeaxes[0].set_title("Offtake volume")
+        volumeaxes[1].set_title("Sourced volume")
+        volumeaxes[2].set_title("Unsourced volume")
+        priceaxes[0].set_title("Procurement price")
+        priceaxes[1].set_title("Sourced price")
+        priceaxes[2].set_title("Unsourced price")
 
         # Format tick labels.
         formatter = matplotlib.ticker.FuncFormatter(
             lambda x, p: "{:,.0f}".format(x).replace(",", " ")
         )
-        axes[0].yaxis.set_major_formatter(formatter)
-        axes[1].yaxis.set_major_formatter(formatter)
+        volumeaxes[0].yaxis.set_major_formatter(formatter)
+        priceaxes[0].yaxis.set_major_formatter(formatter)
         # axes[3].yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
 
         # Set ticks.
-        axes[0].xaxis.set_tick_params(labeltop=False, labelbottom=True)
-        axes[1].xaxis.set_tick_params(labeltop=False, labelbottom=True)
-        axes[2].xaxis.set_tick_params(labeltop=False, labelbottom=True)
-        axes[3].xaxis.set_tick_params(labeltop=False, labelbottom=False)
-        axes[4].xaxis.set_tick_params(labeltop=False, labelbottom=False)
-        axes[5].xaxis.set_tick_params(labeltop=False, labelbottom=False)
+        for ax in volumeaxes:
+            ax.xaxis.set_tick_params(labeltop=False, labelbottom=True)
+        for ax in priceaxes:
+            ax.xaxis.set_tick_params(labeltop=False, labelbottom=False)
 
         fig.tight_layout()
         return fig
