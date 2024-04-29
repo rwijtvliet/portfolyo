@@ -5,7 +5,6 @@ Visualize portfolio lines, etc.
 from typing import Callable
 
 import matplotlib as mpl
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
@@ -105,7 +104,9 @@ def plot_timeseries_as_bar(
     categories = Categories(s)
     ax.bar(categories.x(), categories.y(), width=width, **kwargs)
     ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-    set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
+    set_data_labels(
+        ax, categories.x(MAX_XLABELS), categories.y(MAX_XLABELS), labelfmt, True
+    )
     ax.autoscale()
 
 
@@ -266,7 +267,7 @@ def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
     default_color = "white"
     # Get background color based on name_unit
     background_color = unit_colors.get(name_unit, default_color)
-    ax.set_ylabel(f"{unit:~P}", backgroundcolor=background_color.lighten(0.2))
+    ax.set_ylabel(f"{unit:~P}", backgroundcolor=background_color.lighten(0.3))
     return s
 
 
@@ -302,23 +303,8 @@ def set_data_labels(
     if len(xx) > maxcount:
         return
 
-    # # Add labels.
-    # for x, y in zip(xx, yy):
-    #     lbl = labelfmt.format(y.magnitude).replace(",", " ")
-    #     xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
-    #     ax.annotate(
-    #         lbl,
-    #         (x, y),
-    #         textcoords="offset points",
-    #         xytext=xytext,
-    #         ha="center",
-    #         rotation=45,
-    #     )
-
-    # Add labels only to every third data point.
-    for i in range(0, len(xx), 3):  # Iterate every third index
-        x = xx[i]
-        y = yy[i]
+    # Add labels.
+    for x, y in zip(xx, yy):
         lbl = labelfmt.format(y.magnitude).replace(",", " ")
         xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
         ax.annotate(
@@ -327,13 +313,32 @@ def set_data_labels(
             textcoords="offset points",
             xytext=xytext,
             ha="center",
+            va="top" if y.magnitude < 0 else "bottom",
             rotation=90,
         )
 
+    # # Add labels only to every third data point.
+    # for i in range(0, len(xx), 3):  # Iterate every third index
+    #     x = xx[i]
+    #     y = yy[i]
+    #     lbl = labelfmt.format(y.magnitude).replace(",", " ")
+    #     xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
+    #     ax.annotate(
+    #         lbl,
+    #         (x, y),
+    #         textcoords="offset points",
+    #         xytext=xytext,
+    #         ha="center",
+    #         rotation=90,
+    #     )
+
     # Increase axis range to give label space to stay inside box.
-    ylim = list(ax.get_ylim())
-    if not np.isclose(ylim[0], 0) and ylim[0] < 0:
-        ylim[0] *= 1.1
-    if not np.isclose(ylim[1], 0) and ylim[1] > 0:
-        ylim[1] *= 1.1
-    ax.set_ylim(*ylim)
+    # ylim = list(ax.get_ylim())
+    miny, maxy = ax.get_ylim()
+    delta = 0.5
+    miny2, maxy2 = (1 + delta) * miny - delta * maxy, (1 + delta) * maxy - delta * miny
+    # if not np.isclose(ylim[0], 0) and ylim[0] < 0:
+    #     ylim[0] *= 1.1
+    # if not np.isclose(ylim[1], 0) and ylim[1] > 0:
+    #     ylim[1] *= 1.1
+    ax.set_ylim(miny2, maxy2)
