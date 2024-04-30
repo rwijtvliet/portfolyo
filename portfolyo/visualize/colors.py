@@ -1,6 +1,7 @@
 """Creating colors for use in plotting."""
 
 import colorsys
+from enum import Enum
 from collections import namedtuple
 
 import matplotlib as mpl
@@ -18,7 +19,7 @@ class Color(namedtuple("RGB", ["r", "g", "b"])):
 
     def darken(self, value):
         """Darken the color by fraction ``value`` (between 0 and 1)."""
-        return self.lighten(self, -value)
+        return self.lighten(-value)
 
     light = property(lambda self: self.lighten(0.3))
     xlight = property(lambda self: self.lighten(0.6))
@@ -27,20 +28,22 @@ class Color(namedtuple("RGB", ["r", "g", "b"])):
 
 
 class Colors:
-    class General:
-        PURPLE = Color(0.549, 0.110, 0.706)
-        GREEN = Color(0.188, 0.463, 0.165)
-        BLUE = Color(0.125, 0.247, 0.600)
-        ORANGE = Color(0.961, 0.533, 0.114)
-        RED = Color(0.820, 0.098, 0.114)
-        YELLOW = Color(0.945, 0.855, 0.090)
-        LBLUE = Color(0.067, 0.580, 0.812)
-        LGREEN = Color(0.325, 0.773, 0.082)
-        BLACK = Color(0, 0, 0)
-        WHITE = Color(1, 1, 1)
+    class General(Enum):
+        DARK_BURGUNDY = Color(0.2667, 0.0000, 0.0745)
+        BROWN_SUGAR = Color(0.3765, 0.2902, 0.1804)
+        DUSTY_GRAY = Color(0.5529, 0.5176, 0.3765)
+        MOONSTONE = Color(0.7647, 0.7569, 0.6118)
+        CORAL = Color(0.9608, 0.3412, 0.4980)
+        ORANGE = Color(0.9608, 0.5098, 0.1140)
+        RED = Color(0.8196, 0.0980, 0.1137)
+        YELLOW = Color(0.9451, 0.8549, 0.0902)
+        LBLUE = Color(0.0667, 0.5804, 0.8118)
+        LGREEN = Color(0.3255, 0.7725, 0.0824)
+        BLACK = Color(0.0000, 0.0000, 0.0000)
+        WHITE = Color(1.0000, 1.0000, 1.0000)
 
     class Wqpr:  # Standard colors when plotting a portfolio
         w = Color(*mpl.colors.to_rgb("#0E524F")).lighten(0.15)
         q = Color(*mpl.colors.to_rgb("#0E524F"))
         r = Color(*mpl.colors.to_rgb("#8B7557"))
-        p = Color(*mpl.colors.to_rgb("#E53454"))
+        p = Color(*mpl.colors.to_rgb("#cd3759"))

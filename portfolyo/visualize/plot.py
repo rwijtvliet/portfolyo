@@ -2,12 +2,15 @@
 Visualize portfolio lines, etc.
 """
 
+from typing import Callable
+
 import matplotlib as mpl
-import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from .. import tools
+from portfolyo.tools.unit import to_name
+from portfolyo.visualize.colors import Colors
+from ..tools import freq as tools_freq
 from .categories import Categories, Category  # noqa
 
 mpl.style.use("seaborn-v0_8")
@@ -52,32 +55,24 @@ mpl.style.use("seaborn-v0_8")
 # pick the correct graph type.
 #
 
-MAX_XLABELS = 20
+MAX_XLABELS = 15
 
 
-def use_categories(ax: plt.Axes, s: pd.Series, cat: bool = None) -> bool:
-    """Determine if plot should be made with category axis (True) or datetime axis (False)."""
-    # We use categorical data if...
-    if (ax.lines or ax.collections or ax.containers) and ax.xaxis.have_units():
-        return True  # ...ax already has category axis; or
-    elif cat is None and tools.freq.shortest(s.index.freq, "MS") == "MS":
-        return True  # ...it's the default for the given frequency; or
-    elif cat is True:
-        return True  # ...user wants it.
-    return False
+class ContinuousValuesNotSupported(Exception):
+    pass
 
+
+class CategoricalValuesNotSupported(Exception):
+    pass
+
+
+PlotTimeseriesToAxFunction = Callable[[plt.Axes, pd.Series, ...], None]
 
 docstringliteral_plotparameters = """
 Other parameters
 ----------------
 labelfmt : str, optional (default: '')
     Labels are added to each datapoint in the specified format. ('' to add no labels)
-cat : bool, optional
-    If False, plots x-axis as timeline with timestamps spaced according to their
-    duration. If True, plots x-axis categorically, with timestamps spaced equally.
-    Disregarded if ``ax`` already has values (then: use whatever is already set).
-    Default: use True if ``s`` has a monthly frequency or longer, False if the frequency
-    is shorter than monthly.
 **kwargs : any formatting are passed to the Axes plot method being used."""
 
 
@@ -90,171 +85,131 @@ def append_to_doc(text):
 
 
 @append_to_doc(docstringliteral_plotparameters)
-def plot_timeseries_as_jagged(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
-) -> None:
-    """Plot timeseries ``s`` to axis ``ax``, as jagged line and/or as markers. Use kwargs
-    ``linestyle`` and ``marker`` to specify line style and/or marker style. (Default: line only).
-    """
-    s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
-
-    if use_categories(ax, s, cat):
-        categories = Categories(s)
-        ax.plot(categories.x(), categories.y(), **kwargs)
-        ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-        set_data_labels(ax, categories.x(), categories.y(), labelfmt, False)
-
-    else:
-        ax.plot(s.index, s.values, **kwargs)
-        set_data_labels(ax, s.index, s.values, labelfmt, False)
-
-
-@append_to_doc(docstringliteral_plotparameters)
 def plot_timeseries_as_bar(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
+    ax: plt.Axes,
+    s: pd.Series,
+    labelfmt: str = "",
+    width: float = 0.8,
+    **kwargs,
 ) -> None:
-    """Plot timeseries ``s`` to axis ``ax``, as bars. Ideally, only used for plots with
-    categorical (i.e, non-time) x-axis."""
+    """Plot timeseries ``s`` to axis ``ax``, as bars.
+    On plots with categorical (i.e, non-continuous) time axis."""
+    if not is_categorical(s):
+        raise ContinuousValuesNotSupported(
+            "This plot is not compatible with continous values"
+        )
+    check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
-    if use_categories(ax, s, cat):
-        categories = Categories(s)
-        ax.bar(categories.x(), categories.y(), 0.8, **kwargs)
-        ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-        set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
-
-    else:
-        # Bad combination: bar graph on time-axis. But allow anyway.
-
-        # This is slow if there are many elements.
-        # x = s.index + 0.5 * (s.index.right - s.index)
-        # width = pd.Timedelta(hours=s.index.duration.median().to("h").magnitude * 0.8)
-        # ax.bar(x.values, s.values, width, **kwargs)
-
-        # This is faster.
-        delta = s.index.right - s.index
-        x = np.array(list(zip(s.index + 0.1 * delta, s.index + 0.9 * delta))).flatten()
-        magnitudes = np.array([[v, 0] for v in s.values.quantity.magnitude]).flatten()
-        values = tools.unit.PA_(magnitudes, s.values.quantity.units)
-        ax.fill_between(x, 0, values, step="post", **kwargs)
-
-        set_data_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
+    categories = Categories(s)
+    ax.bar(categories.x(), categories.y(), width=width, **kwargs)
+    ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
+    set_data_labels(
+        ax, categories.x(MAX_XLABELS), categories.y(MAX_XLABELS), labelfmt, True
+    )
+    ax.autoscale()
 
 
 @append_to_doc(docstringliteral_plotparameters)
 def plot_timeseries_as_area(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
+    ax: plt.Axes,
+    s: pd.Series,
+    labelfmt: str = "",
+    **kwargs,
 ) -> None:
-    """Plot timeseries ``s`` to axis ``ax``, as stepped area between 0 and value. Ideally,
-    only used for plots with time (i.e., non-categorical) axis."""
+    """Plot timeseries ``s`` to axis ``ax``, as stepped area between 0 and value.
+    On plots with continuous (i.e., non-categorical) time axis."""
+    if is_categorical(s):
+        raise CategoricalValuesNotSupported(
+            "This plot is not compatible with categorical values"
+        )
+    check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     splot = s.copy()  # modified with additional (repeated) datapoint
     splot[splot.index.right[-1]] = splot.values[-1]
 
-    if use_categories(ax, s, cat):
-        # Bad combination: area graph on categorical axis. But allow anyway.
+    bottom = [0.0 for i in range(0, splot.size)]
+    # make bottom into pintarray
+    bottom = bottom * splot.values[0].units
 
-        categories = Categories(s)
-        ctgr_extra = Categories(splot)
-        # Center around x-tick:
-        ax.fill_between(ctgr_extra.x() - 0.5, 0, ctgr_extra.y(), step="post", **kwargs)
-        ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-        set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
-
-    else:
-        ax.fill_between(splot.index, 0, splot.values, step="post", **kwargs)
-        delta = s.index.right - s.index
-        set_data_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
+    ax.fill_between(
+        splot.index,
+        bottom,
+        [sum(x) for x in zip(bottom, splot.values)],
+        step="post",
+        **kwargs,
+    )
+    delta = s.index.right - s.index
+    set_data_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
+    ax.autoscale()
 
 
 @append_to_doc(docstringliteral_plotparameters)
 def plot_timeseries_as_step(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
+    ax: plt.Axes, s: pd.Series, labelfmt: str = "", **kwargs
 ) -> None:
     """Plot timeseries ``s`` to axis ``ax``, as stepped line (horizontal and vertical lines).
-    Ideally, only used for plots with time (i.e., non-categorical) axis."""
+    On plots with continuous (i.e., non-categorical) time axis."""
+    if is_categorical(s):
+        raise CategoricalValuesNotSupported(
+            "This plot is not compatible with categorical values"
+        )
+    check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     splot = s.copy()  # modified with additional (repeated) datapoint
     splot[splot.index.right[-1]] = splot.values[-1]
 
-    if use_categories(ax, s, cat):
-        # Bad combination: step graph on categorical axis. But allow anyway.
-
-        categories = Categories(s)
-        ctgr_extra = Categories(splot)
-        # Center around x-tick:
-        ax.step(ctgr_extra.x() - 0.5, ctgr_extra.y(), where="post", **kwargs)
-        ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-        set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
-
-    else:
-        ax.step(splot.index, splot.values, where="post", **kwargs)
-        delta = s.index.right - s.index
-        set_data_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
+    ax.step(splot.index, splot.values, where="mid", **kwargs)
+    delta = s.index.right - s.index
+    set_data_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, True)
+    ax.autoscale()
 
 
 @append_to_doc(docstringliteral_plotparameters)
 def plot_timeseries_as_hline(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", cat: bool = None, **kwargs
+    ax: plt.Axes, s: pd.Series, labelfmt: str = "", **kwargs
 ) -> None:
-    """Plot timeseries ``s`` to axis ``ax``, as horizontal lines. Ideally, only used for
-    plots with time (i.e., non-categorical) axis."""
-    s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
-
-    if use_categories(ax, s, cat):
-        # Bad combination: hline graph on categorical axis. But allow anyway.
-
-        categories = Categories(s)
-        # Center around x-tick:
-        ax.hlines(categories.y(), categories.x() - 0.5, categories.x() + 0.5, **kwargs)
-        ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-        set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
-
-    else:
-        delta = s.index.right - s.index
-        ax.hlines(s.values, s.index, s.index.right, **kwargs)
-        set_data_labels(ax, s.index + 0.5 * delta, s.values, labelfmt, False)
-
-
-def plot_timeseries(
-    ax: plt.Axes,
-    s: pd.Series,
-    how: str = "jagged",
-    labelfmt: str = None,
-    cat: bool = None,
-    **kwargs,
-) -> None:
-    """Plot timeseries to given axis.
-
-    Parameters
-    ----------
-    ax : plt.Axes
-        Axes to plot to.
-    s : pd.Series
-        Timeseries to plot
-    how : str, optional (default: 'jagged')
-        How to plot the data; one of {'jagged', 'bar', 'area', 'step', 'hline'}.
-    labelfmt : str, optional (default: '')
-        Labels are added to each datapoint in the specified format. ('' to add no labels)
-    cat : bool, optional (default: True if frequency is monthly or larger)
-        Plot as categorical x-axis.
-    """
-    if how == "jagged":
-        plot_timeseries_as_jagged(ax, s, labelfmt, cat, **kwargs)
-    elif how == "bar":
-        plot_timeseries_as_bar(ax, s, labelfmt, cat, **kwargs)
-    elif how == "area":
-        plot_timeseries_as_area(ax, s, labelfmt, cat, **kwargs)
-    elif how == "step":
-        plot_timeseries_as_step(ax, s, labelfmt, cat, **kwargs)
-    elif how == "hline":
-        plot_timeseries_as_hline(ax, s, labelfmt, cat, **kwargs)
-    else:
-        raise ValueError(
-            f"Parameter ``how`` must be one of 'jagged', 'bar', 'area', 'step', 'hline'; got {how}."
+    """Plot timeseries ``s`` to axis ``ax``, as horizontal lines.
+    On plots with categorical (i.e., non-continuous) time axis."""
+    if not is_categorical(s):
+        raise ContinuousValuesNotSupported(
+            "This plot is not compatible with continous time axis"
         )
+    check_ax_s_compatible(ax, s)
+    s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
+    categories = Categories(s)
+    # Center around x-tick:
+    ax.hlines(categories.y(), categories.x() - 0.4, categories.x() + 0.4, **kwargs)
+    ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
+    set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
+    ax.autoscale()
+    # Adjust the margins around the plot
+    ax.margins(x=0.2, y=0.2)
+
+
+def set_portfolyo_attr(ax, name, val):
+    """
+    Sets attribute ax._portfolyo which is a dictionary: ._portfolyo = {'unit': ..., 'freq': ..., ...}
+    If dictionary doesn't exist yet, creates an empty dictionary
+    """
+    pattr = getattr(ax, "_portfolyo", {})
+    pattr[name] = val
+    setattr(ax, "_portfolyo", pattr)
+
+
+def get_portfolyo_attr(ax, name, default_val=None):
+    """
+    Gets values from dictionary ax._portfolyo, if it doesn't exist returns None.
+    """
+    pattr = getattr(ax, "_portfolyo", {})
+    return pattr.get(name, default_val)
+
+
+def is_categorical(s: pd.Series) -> bool:
+    """The function checks whether frequency of panda Series falls into continous or categorical group"""
+    return tools_freq.longer_or_shorter(s.index.freq, "D") == 1
 
 
 def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
@@ -275,7 +230,7 @@ def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
     if s.dtype == float or s.dtype == int:
         s = s.astype("pint[1]")
     # Find preexisting unit.
-    axunit = getattr(ax, "_unit", None)
+    axunit = get_portfolyo_attr(ax, "unit", None)
 
     # Axes already has unit. Convert series to that unit; ignore any supplied custom unit.
     if axunit is not None:
@@ -283,7 +238,7 @@ def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
             raise ValueError(
                 f"Cannot plot series with units {s.pint.units} on axes with units {axunit}."
             )
-        return s.astype(axunit)
+        return s.astype(f"pint[{axunit}]")
 
     # Axes does not have unit.
     if unit is not None:
@@ -293,14 +248,46 @@ def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
                 f"Cannot convert series with units {s.pint.units} to units {unit}."
             )
         s = s.astype(unit)
-        setattr(ax, "_unit", unit)
+        set_portfolyo_attr(ax, "unit", unit)
     else:
         # No custom unit provided. Convert series to base units.
         s = s.pint.to_base_units()
-        setattr(ax, "_unit", s.pint.units)
-
-    ax.set_ylabel(f"{ax._unit:~P}")
+        set_portfolyo_attr(ax, "unit", s.pint.units)
+    # Get unit attribute
+    unit = get_portfolyo_attr(ax, "unit")
+    name_unit = to_name(unit)
+    # Define color mapping based on 'Wqpr' class attributes
+    unit_colors = {
+        "w": Colors.Wqpr.w,
+        "q": Colors.Wqpr.q,
+        "r": Colors.Wqpr.r,
+        "p": Colors.Wqpr.p,
+    }
+    # Set default color if name_unit not found
+    default_color = "white"
+    # Get background color based on name_unit
+    background_color = unit_colors.get(name_unit, default_color)
+    ax.set_ylabel(f"{unit:~P}", backgroundcolor=background_color.lighten(0.3))
     return s
+
+
+def check_ax_s_compatible(ax: plt.Axes, s: pd.Series):
+    """Ensure axes ``ax`` has frequency associated with it and checks compatibility with series
+    ``s``.
+    If axes `ax`` has frequency, compare to pd.Series frequency. If they are equal, return s, if not equal, return error.
+    If axes `ax`` doesn't have frequency, assign frequency of s to it.
+    """
+    # Find preexisting frequency.
+    axfreq = get_portfolyo_attr(ax, "freq", None)
+    series_freq = s.index.freq
+    # Axes does not have frequency.
+    if axfreq is None:
+        set_portfolyo_attr(ax, "freq", series_freq)
+    else:
+        if get_portfolyo_attr(ax, "freq") != series_freq:
+            raise AttributeError(
+                "The frequency of PFLine is not compatible with current axes"
+            )
 
 
 def set_data_labels(
@@ -320,12 +307,38 @@ def set_data_labels(
     for x, y in zip(xx, yy):
         lbl = labelfmt.format(y.magnitude).replace(",", " ")
         xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
-        ax.annotate(lbl, (x, y), textcoords="offset points", xytext=xytext, ha="center")
+        ax.annotate(
+            lbl,
+            (x, y),
+            textcoords="offset points",
+            xytext=xytext,
+            ha="center",
+            va="top" if y.magnitude < 0 else "bottom",
+            rotation=90,
+        )
+
+    # # Add labels only to every third data point.
+    # for i in range(0, len(xx), 3):  # Iterate every third index
+    #     x = xx[i]
+    #     y = yy[i]
+    #     lbl = labelfmt.format(y.magnitude).replace(",", " ")
+    #     xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
+    #     ax.annotate(
+    #         lbl,
+    #         (x, y),
+    #         textcoords="offset points",
+    #         xytext=xytext,
+    #         ha="center",
+    #         rotation=90,
+    #     )
 
     # Increase axis range to give label space to stay inside box.
-    ylim = list(ax.get_ylim())
-    if not np.isclose(ylim[0], 0) and ylim[0] < 0:
-        ylim[0] *= 1.1
-    if not np.isclose(ylim[1], 0) and ylim[1] > 0:
-        ylim[1] *= 1.1
-    ax.set_ylim(*ylim)
+    # ylim = list(ax.get_ylim())
+    miny, maxy = ax.get_ylim()
+    delta = 0.5
+    miny2, maxy2 = (1 + delta) * miny - delta * maxy, (1 + delta) * maxy - delta * miny
+    # if not np.isclose(ylim[0], 0) and ylim[0] < 0:
+    #     ylim[0] *= 1.1
+    # if not np.isclose(ylim[1], 0) and ylim[1] > 0:
+    #     ylim[1] *= 1.1
+    ax.set_ylim(miny2, maxy2)

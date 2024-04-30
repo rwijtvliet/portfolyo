@@ -23,6 +23,7 @@ from .tools2.intersect import indexable as intersection
 
 # from .core.shared.concat import general as concat
 
+
 VOLUME = Kind.VOLUME
 PRICE = Kind.PRICE
 REVENUE = Kind.REVENUE
