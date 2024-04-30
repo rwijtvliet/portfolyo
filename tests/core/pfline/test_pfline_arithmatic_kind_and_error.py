@@ -1,4 +1,5 @@
 """Test if arithmatic returns correct type/kind of object and/or correctly raises error."""
+
 from dataclasses import dataclass
 from enum import Enum
 from functools import lru_cache
@@ -17,7 +18,14 @@ from portfolyo.core.pfline import Kind, Structure, arithmatic, create
 # TODO: use/change STRICT setting
 
 
-arithmatic.STRICT = True
+@pytest.fixture
+def strict_arithmetic():
+    arithmatic.STRICT = True
+    yield
+    arithmatic.STRICT = False
+
+
+# arithmatic.STRICT = True
 
 
 class Kind2(Enum):  # Kind of value for other operand
@@ -319,7 +327,9 @@ class Cases:  # Testcases
     ),
     ids=id_fn,
 )
-def test_pfl_arithmatic_kind_addraddsubrsub(testcase: Case, operation: str):
+def test_pfl_arithmatic_kind_addraddsubrsub(
+    testcase: Case, operation: str, strict_arithmetic
+):
     """Test if arithmatic expectedly raises Error or returns expected type/kind."""
     do_kind_test(testcase, operation)
 
@@ -383,7 +393,7 @@ def test_pfl_arithmatic_kind_addraddsubrsub(testcase: Case, operation: str):
     ),
     ids=id_fn,
 )
-def test_pfl_arithmatic_kind_mulrmul(testcase: Case, operation: str):
+def test_pfl_arithmatic_kind_mulrmul(testcase: Case, operation: str, strict_arithmetic):
     """Test if arithmatic expectedly raises Error or returns expected type/kind."""
     do_kind_test(testcase, operation)
 
@@ -456,7 +466,7 @@ def test_pfl_arithmatic_kind_mulrmul(testcase: Case, operation: str):
     ),
     ids=id_fn,
 )
-def test_pfl_arithmatic_kind_div(testcase: Case, operation: str):
+def test_pfl_arithmatic_kind_div(testcase: Case, operation: str, strict_arithmetic):
     """Test if arithmatic expectedly raises Error or returns expected type/kind."""
     do_kind_test(testcase, operation)
 
@@ -505,7 +515,7 @@ def test_pfl_arithmatic_kind_div(testcase: Case, operation: str):
     ),
     ids=id_fn,
 )
-def test_pfl_arithmatic_kind_rdiv(testcase: Case, operation: str):
+def test_pfl_arithmatic_kind_rdiv(testcase: Case, operation: str, strict_arithmetic):
     """Test if arithmatic expectedly raises Error or returns expected type/kind."""
     do_kind_test(testcase, operation)
 
@@ -581,7 +591,9 @@ def test_pfl_arithmatic_kind_rdiv(testcase: Case, operation: str):
     ),
     ids=id_fn,
 )
-def test_pfl_arithmatic_kind_unionrunion(testcase: Case, operation: str):
+def test_pfl_arithmatic_kind_unionrunion(
+    testcase: Case, operation: str, strict_arithmetic
+):
     """Test if arithmatic expectedly raises Error or returns expected type/kind."""
     do_kind_test(testcase, operation)
 

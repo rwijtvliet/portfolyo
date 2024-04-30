@@ -190,10 +190,6 @@ class PfStatePlot:
         fig, (volumeaxes, priceaxes) = plt.subplots(
             2, 3, sharex=True, sharey="row", gridspec_kw=gridspec, figsize=(10, 6)
         )
-        # axes[1].sharey(axes[0])
-        # axes[2].sharey(axes[0])
-        # axes[4].sharey(axes[3])
-        # axes[5].sharey(axes[3])
 
         so, ss, usv = (
             -1 * self.offtakevolume,
@@ -201,15 +197,17 @@ class PfStatePlot:
             self.unsourced,
         )
 
-        so.plot_to_ax(volumeaxes[0], children=children, kind=so.kind)
-        ss.plot_to_ax(volumeaxes[1], children=children, kind=Kind.VOLUME)
+        so.plot_to_ax(volumeaxes[0], children=children, kind=so.kind, labelfmt="")
+        ss.plot_to_ax(volumeaxes[1], children=children, kind=Kind.VOLUME, labelfmt="")
         # Unsourced volume.
-        usv.plot_to_ax(volumeaxes[2], kind=Kind.VOLUME)
+        usv.plot_to_ax(volumeaxes[2], kind=Kind.VOLUME, labelfmt="")
         # Procurement Price.
-        self.pnl_cost.plot_to_ax(priceaxes[0], kind=Kind.PRICE)
-        self.sourced.plot_to_ax(priceaxes[1], children=children, kind=Kind.PRICE)
+        self.pnl_cost.plot_to_ax(priceaxes[0], kind=Kind.PRICE, labelfmt="")
+        self.sourced.plot_to_ax(
+            priceaxes[1], children=children, kind=Kind.PRICE, labelfmt=""
+        )
         # Unsourced price
-        self.unsourced.plot_to_ax(priceaxes[2], kind=Kind.PRICE)
+        self.unsourced.plot_to_ax(priceaxes[2], kind=Kind.PRICE, labelfmt="")
         # Set titles.
         volumeaxes[0].set_title("Offtake volume")
         volumeaxes[1].set_title("Sourced volume")
@@ -217,6 +215,11 @@ class PfStatePlot:
         priceaxes[0].set_title("Procurement price")
         priceaxes[1].set_title("Sourced price")
         priceaxes[2].set_title("Unsourced price")
+
+        limits_vol = [ax.get_ylim() for ax in volumeaxes]
+        limits_pr = [ax.get_ylim() for ax in priceaxes]
+        PfStatePlot.set_max_min_limits(volumeaxes, limits_vol)
+        PfStatePlot.set_max_min_limits(priceaxes, limits_pr)
 
         # Format tick labels.
         formatter = matplotlib.ticker.FuncFormatter(
@@ -234,3 +237,10 @@ class PfStatePlot:
 
         fig.tight_layout()
         return fig
+
+    def set_max_min_limits(axes: plt.Axes, limit: int):
+        mins_vol, maxs_vol = zip(*limit)
+
+        themin, themax = min(mins_vol), max(maxs_vol)
+        for ax in axes:
+            ax.set_ylim(themin * 1.1, themax * 1.1)
