@@ -188,7 +188,7 @@ class PfStatePlot:
         """
         gridspec = {"width_ratios": [1, 1, 1], "height_ratios": [4, 1]}
         fig, (volumeaxes, priceaxes) = plt.subplots(
-            2, 3, sharex=True, gridspec_kw=gridspec, figsize=(10, 6)
+            2, 3, sharex=True, sharey="row", gridspec_kw=gridspec, figsize=(10, 6)
         )
 
         so, ss, usv = (
