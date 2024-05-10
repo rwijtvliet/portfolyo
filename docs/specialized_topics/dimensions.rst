@@ -12,19 +12,19 @@ We are usually dealing with data that has a certain physical dimension, which de
 Abbreviations
 -------------
 
-In ``portfolyo``, a convention is used for the abbreviation the most relevant dimensions, as well as their default units.
+In ``portfolyo``, a convention is used for the abbreviation the most relevant dimensions.
 
-============  ==============================================  ============
-Abbreviation  Dimension                                       Default unit
-============  ==============================================  ============
-``w``         Power (energy per duration)                     Megawatt [MW]
-``q``         Energy (power times duration)                   Megawatt-hour [MWh]
-``p``         Price (revenue per energy)                      Euro per Megawatt-hour [Eur/MWh]
-``r``         Revenue  (or any other                          Euro [Eur]
-              absolute monetary value)   
-``duration``  Duration (of a delivery period)                 hours [h]                   
-``nodim``     dimensionless                                   none
-============  ==============================================  ============
+============  ==============================================
+Abbreviation  Dimension                                     
+============  ==============================================
+``w``         Power (energy per duration)
+``q``         Energy (power times duration)
+``p``         Price (revenue per energy)
+``r``         Revenue  (or any other
+              absolute monetary value)
+``duration``  Duration (of a delivery period)
+``nodim``     dimensionless
+============  ==============================================
 
 Remarks:
 
@@ -40,17 +40,17 @@ Using ``pint``, a user can specify not only the magnitude of a value (or Series 
 
 In short: 
 
-* If both an abbreviation and a unit are specified, they should be compatible.
-
-* If a unit is specified, the values are automatically converted to the default unit.
+* A unit must be specified.
 
 * If no abbreviation is specified, the unit is used to deduce it (using the table above).
+
+* If both an abbreviation and a unit are specified, they should be compatible.
 
 ------------------------
 Other naming conventions
 ------------------------
 
-"volume" and "quantity" are often used to indicate either power or energy without having to specify, which one. In most situations, it is clear from context which delivery period is meant, so knowing one, we can calculate the other. E.g. 100 MW in January means 74 400 MWh.
+"volume" and "quantity" are often used to indicate either power or energy without having to specify, which one. In most situations, it is clear from context which delivery period is meant, so knowing one, we can calculate the other. E.g. 100 MW for the duration of January equals 74 400 MWh.
 
 
 
