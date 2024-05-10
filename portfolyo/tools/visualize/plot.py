@@ -8,9 +8,9 @@ import matplotlib as mpl
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from portfolyo.tools.unit import to_name
-from portfolyo.visualize.colors import Colors
-from ..tools import freq as tools_freq
+from .. import unit as tools_unit
+from .colors import Colors
+from .. import freq as tools_freq
 from .categories import Categories, Category  # noqa
 
 mpl.style.use("seaborn-v0_8")
@@ -255,7 +255,7 @@ def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
         set_portfolyo_attr(ax, "unit", s.pint.units)
     # Get unit attribute
     unit = get_portfolyo_attr(ax, "unit")
-    name_unit = to_name(unit)
+    name_unit = tools_unit.to_name(unit)
     # Define color mapping based on 'Wqpr' class attributes
     unit_colors = {
         "w": Colors.Wqpr.w,
@@ -303,23 +303,8 @@ def set_data_labels(
     if len(xx) > maxcount:
         return
 
-    # # Add labels.
-    # for x, y in zip(xx, yy):
-    #     lbl = labelfmt.format(y.magnitude).replace(",", " ")
-    #     xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
-    #     ax.annotate(
-    #         lbl,
-    #         (x, y),
-    #         textcoords="offset points",
-    #         xytext=xytext,
-    #         ha="center",
-    #         rotation=45,
-    #     )
-
-    # Add labels only to every third data point.
-    for i in range(0, len(xx), 3):  # Iterate every third index
-        x = xx[i]
-        y = yy[i]
+    # Add labels.
+    for x, y in zip(xx, yy):
         lbl = labelfmt.format(y.magnitude).replace(",", " ")
         xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
         ax.annotate(
@@ -332,28 +317,8 @@ def set_data_labels(
             rotation=90,
         )
 
-    # # Add labels only to every third data point.
-    # for i in range(0, len(xx), 3):  # Iterate every third index
-    #     x = xx[i]
-    #     y = yy[i]
-    #     lbl = labelfmt.format(y.magnitude).replace(",", " ")
-    #     xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
-    #     ax.annotate(
-    #         lbl,
-    #         (x, y),
-    #         textcoords="offset points",
-    #         xytext=xytext,
-    #         ha="center",
-    #         rotation=90,
-    #     )
-
     # Increase axis range to give label space to stay inside box.
-    # ylim = list(ax.get_ylim())
     miny, maxy = ax.get_ylim()
     delta = 0.5
     miny2, maxy2 = (1 + delta) * miny - delta * maxy, (1 + delta) * maxy - delta * miny
-    # if not np.isclose(ylim[0], 0) and ylim[0] < 0:
-    #     ylim[0] *= 1.1
-    # if not np.isclose(ylim[1], 0) and ylim[1] > 0:
-    #     ylim[1] *= 1.1
     ax.set_ylim(miny2, maxy2)

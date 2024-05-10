@@ -8,8 +8,10 @@ import numpy as np
 import pandas as pd
 
 from ... import tools
-from ..ndframelike import NDFrameLike
-from ..shared import ExcelClipboardOutput, PfLinePlot, PfLineText
+from ..shared.ndframelike import NDFrameLike
+from .text import PfLineText
+from .plot import PfLinePlot
+from ..shared.excelclipboard import ExcelClipboardOutput
 from . import (
     children,
     create,

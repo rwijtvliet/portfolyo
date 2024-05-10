@@ -1,4 +1,4 @@
-from portfolyo.tools.intersect import indices_flex
+from ..tools.intersect import indices_flex
 from ..core.pfline import PfLine
 from ..core.pfstate import PfState
 from typing import List, Union

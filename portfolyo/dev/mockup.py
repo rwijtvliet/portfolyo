@@ -1,10 +1,11 @@
 """Create somewhat realistic curves."""
+
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
 
-from ..prices.utils import is_peak_hour
+from ..tools.prices.utils import is_peak_hour
 from ..tools import unit  # noqa # ensure we use current ureg
 
 

@@ -1,10 +1,9 @@
 from typing import List, Union, Tuple
 import pandas as pd
-from portfolyo import tools
-
-from portfolyo.tools.right import stamp
-from portfolyo.tools.freq import longest, longer_or_shorter
+from .right import stamp
+from .freq import longest, longer_or_shorter
 from datetime import datetime
+from . import trim as tools_trim
 
 
 def indices(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:
@@ -139,7 +138,7 @@ def indices_flex(
         for i in range(len(idxs)):
             # if idxs[i].freq is not the same as longest freq, we trim idxs[i]
             if idxs[i].freq != longest_freq:
-                idxs[i] = tools.trim.index(idxs[i], longest_freq)
+                idxs[i] = tools_trim.index(idxs[i], longest_freq)
 
     if ignore_tz is True and len(distinct_tzs) != 1:
         # set timezone to none for all values

@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any, Union
 import numpy as np
 import pandas as pd
 
-from ... import testing, tools
+from ... import tools
 from . import classes, create, interop
 from .enums import Kind, Structure
 
@@ -23,7 +23,7 @@ class Prep:
 
         def wrapper(o1, o2, *args, **kwargs):
             try:
-                testing.assert_indices_compatible(o1.index, o2.index)
+                tools.testing.assert_indices_compatible(o1.index, o2.index)
             except AssertionError as e:
                 raise NotImplementedError from e
             return fn(o1, o2, *args, **kwargs)

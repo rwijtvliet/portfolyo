@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 import pandas as pd
 
 from ... import tools
-from ...prices import convert, hedge
-from ...prices.utils import duration_bpo
+from ...tools.prices import convert, hedge
+from ...tools.prices.utils import duration_bpo
 from . import classes
 from .enums import Kind, Structure
 

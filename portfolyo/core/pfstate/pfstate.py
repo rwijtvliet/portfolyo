@@ -12,11 +12,13 @@ from typing import Iterable, Optional
 import pandas as pd
 
 from ... import tools
-from ..shared import ExcelClipboardOutput, PfStatePlot, PfStateText
-from ..ndframelike import NDFrameLike
+from ..shared.excelclipboard import ExcelClipboardOutput
+from ..shared.ndframelike import NDFrameLike
 from ..pfline import PfLine, create
 from . import pfstate_helper
 from .arithmatic import PfStateArithmatic
+from .plot import PfStatePlot
+from .text import PfStateText
 
 
 @dataclasses.dataclass(frozen=True, repr=False)

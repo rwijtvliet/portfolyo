@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 
 from portfolyo import tools
-from portfolyo.prices import utils
+from portfolyo.tools.prices import utils
 
 # TODO: where are the hedge and conversion tests?? --> check git history
 

@@ -17,11 +17,14 @@ from typing import Iterable, Union
 import numpy as np
 import pandas as pd
 
-from .. import tools
+from .. import unit as tools_unit
+from .. import trim as tools_trim
+from .. import freq as tools_freq
+from .. import changefreq as tools_changefreq
 from . import utils
 
 Stamp = Union[dt.datetime, pd.Timestamp]
-Value = Union[float, int, tools.unit.Q_]
+Value = Union[float, int, tools_unit.Q_]
 
 BPO = ("base", "peak", "offpeak")
 
@@ -300,7 +303,7 @@ def tseries2bpoframe(s: pd.Series, freq: str = "MS", prefix: str = "") -> pd.Dat
         )
 
     # Remove partial data
-    s = tools.trim.frame(s, freq)
+    s = tools_trim.frame(s, freq)
 
     # Handle possible units.
     sin, units = (s.pint.magnitude, s.pint.units) if hasattr(s, "pint") else (s, None)
@@ -371,7 +374,7 @@ def bpoframe2tseries(
 
     df = bpoframe.rename({f"{prefix}{bpo}": bpo for bpo in BPO}, axis=1)  # remove prefx
     df = complete_bpoframe(df)  # make sure we have peak and offpeak columns
-    df = tools.changefreq.averagable(df[["peak", "offpeak"]], freq)
+    df = tools_changefreq.averagable(df[["peak", "offpeak"]], freq)
     df["ispeak"] = utils.is_peak_hour(df.index)
 
     return df["offpeak"].where(df["ispeak"], df["peak"])
@@ -494,7 +497,7 @@ def bpoframe2bpoframe(
         raise ValueError(
             f"Parameter ``freq`` must be one of 'MS', 'QS', 'AS'; got {freq}."
         )
-    if tools.freq.up_or_down(bpoframe.index.freq, freq) == 1:
+    if tools_freq.up_or_down(bpoframe.index.freq, freq) == 1:
         warnings.warn(
             "This conversion includes upsampling, e.g. from yearly to monthly values."
         )

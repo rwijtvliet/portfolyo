@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from typing import TYPE_CHECKING, Any, Mapping, Union
 
-from ... import testing, tools
+from ... import tools
 from . import create
 
 if TYPE_CHECKING:
@@ -28,7 +28,7 @@ class ChildFunctionality(Mapping):
                 f"Incompatible kinds; the portfolio line has {self.kind} but the child has {child.kind}."
             )
         try:
-            testing.assert_indices_compatible(self.index, child.index)
+            tools.testing.assert_indices_compatible(self.index, child.index)
         except AssertionError as e:
             raise ValueError(
                 "Index of new child is not compatible with the existing data."

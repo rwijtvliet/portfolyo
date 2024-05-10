@@ -13,8 +13,6 @@ from . import pfstate
 if TYPE_CHECKING:  # needed to avoid circular imports
     from . import PfState
 
-from ... import testing
-
 
 class Prep:
     def assert_objects_indexcompatibility(fn):
@@ -22,7 +20,7 @@ class Prep:
 
         def wrapper(o1, o2, *args, **kwargs):
             try:
-                testing.assert_indices_compatible(o1.index, o2.index)
+                tools.testing.assert_indices_compatible(o1.index, o2.index)
             except AssertionError as e:
                 raise NotImplementedError from e
             return fn(o1, o2, *args, **kwargs)

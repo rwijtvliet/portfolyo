@@ -6,8 +6,8 @@ from typing import Tuple, Union
 
 import pandas as pd
 
-from .. import tools
-from ..tools.unit import Q_
+from ... import tools
+from ...tools.unit import Q_
 
 german_peakperiod = tools.peakperiod.factory(dt.time(8), dt.time(20), [1, 2, 3, 4, 5])
 

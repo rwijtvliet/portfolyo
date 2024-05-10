@@ -6,10 +6,10 @@ import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
-from portfolyo.core.shared.plot import defaultkwargs
+from ..core.pfline.plot import defaultkwargs
 
 from .. import tools
-from .. import visualize as vis
+from ..tools import visualize as vis
 
 from ..core.pfstate import PfState
 

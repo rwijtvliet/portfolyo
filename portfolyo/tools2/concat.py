@@ -3,7 +3,7 @@
 from __future__ import annotations
 from typing import Iterable
 import pandas as pd
-from portfolyo import tools
+from .. import tools
 
 from ..core.pfstate import PfState
 from ..core.pfline.enums import Structure

@@ -3,8 +3,7 @@ from typing import Any, Iterable, Union
 
 import numpy as np
 import pandas as pd
-
-from .. import tools
+from .. import unit as tools_unit
 
 
 @dataclass
@@ -35,16 +34,16 @@ class Categories:
 
     def _get_subset(self, attr: str, max_count: int = None) -> Iterable:
         values = [getattr(cat, attr) for cat in self.categories(max_count)]
-        if not isinstance(values[0], tools.unit.Q_):
+        if not isinstance(values[0], tools_unit.Q_):
             return np.array(values)
         unit = values[0].units
         magnitudes = [value.to(unit).m for value in values]
-        return tools.unit.PA_(magnitudes, unit)
+        return tools_unit.PA_(magnitudes, unit)
 
     def x(self, max_count: int = None) -> Iterable[int]:
         return self._get_subset("x", max_count)
 
-    def y(self, max_count: int = None) -> Iterable[Union[float, tools.unit.Q_]]:
+    def y(self, max_count: int = None) -> Iterable[Union[float, tools_unit.Q_]]:
         return self._get_subset("y", max_count)
 
     def ts(self, max_count: int = None) -> Iterable[pd.Timestamp]:

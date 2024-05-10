@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping, Union
 import numpy as np
 import pandas as pd
 
-from ... import testing, tools
+from ... import tools
 from . import classes, create
 
 if TYPE_CHECKING:  # needed to avoid circular imports
@@ -116,7 +116,9 @@ class InOp:
         # Volumes.
         if w is not None and q is not None:
             try:
-                testing.assert_series_equal(w, q / q.index.duration, check_names=False)
+                tools.testing.assert_series_equal(
+                    w, q / q.index.duration, check_names=False
+                )
             except AssertionError as e:
                 raise ValueError("Values for w and q are not consistent.") from e
         elif w is not None and q is None:
@@ -157,7 +159,7 @@ class InOp:
             ign2 = np.isclose(p.pint.m, 0) & (q.isna() | np.isinf(q.pint.m))
             ignore = ign1 | ign2
             try:
-                testing.assert_series_equal(
+                tools.testing.assert_series_equal(
                     r[~ignore], p[~ignore] * q[~ignore], check_names=False
                 )
             except AssertionError as e:
@@ -399,7 +401,7 @@ def _equal(inop1: InOp, inop2: InOp) -> InOp:
             return False
         if isinstance(val1, pd.Series):
             try:
-                testing.assert_series_equal(val1, val2, check_names=False)
+                tools.testing.assert_series_equal(val1, val2, check_names=False)
             except AssertionError:
                 return False
         elif val1 != val2:

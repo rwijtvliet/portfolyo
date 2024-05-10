@@ -7,7 +7,7 @@ from __future__ import annotations
 import functools
 import pandas as pd
 
-from ..ndframelike import NDFrameLike
+from .ndframelike import NDFrameLike
 
 
 def prepare_df(ndframelike: NDFrameLike) -> pd.DataFrame:
