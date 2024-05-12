@@ -8,10 +8,10 @@ import matplotlib as mpl
 import pandas as pd
 from matplotlib import pyplot as plt
 
-from .. import unit as tools_unit
-from .colors import Colors
 from .. import freq as tools_freq
-from .categories import Categories, Category  # noqa
+from .. import unit as tools_unit
+from .categories import Categories
+from .colors import Colors
 
 mpl.style.use("seaborn-v0_8")
 

@@ -1,7 +1,8 @@
 """Test if slice attributes works properly with portfolio state."""
 
-import pytest
 import pandas as pd
+import pytest
+
 from portfolyo import dev
 
 

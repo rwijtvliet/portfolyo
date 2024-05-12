@@ -6,12 +6,10 @@ import matplotlib
 import numpy as np
 from matplotlib import pyplot as plt
 
-from ..core.pfline.plot import defaultkwargs
-
 from .. import tools
-from ..tools import visualize as vis
-
+from ..core.pfline.plot import defaultkwargs
 from ..core.pfstate import PfState
+from ..tools import visualize as vis
 
 
 def plot_pfstates(dic: Dict[str, PfState], freq: str = "MS") -> plt.Figure:

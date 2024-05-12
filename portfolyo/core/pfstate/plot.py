@@ -1,11 +1,11 @@
 from __future__ import annotations
+
 from typing import TYPE_CHECKING
 
 import matplotlib
 from matplotlib import pyplot as plt
 
 from ..pfline import Kind
-
 
 if TYPE_CHECKING:
     from .pfstate import PfState

@@ -31,7 +31,7 @@ def defaultkwargs(name: str, col: str):
     # Get plot default kwargs.
     if name is None:  # no children
         kwargs = {
-            "color": getattr(tools.visualise.Colors.Wqpr, col, "grey"),
+            "color": getattr(tools.visualize.Colors.Wqpr, col, "grey"),
             "alpha": 0.7,
             "labelfmt": DEFAULTFMT.get(col, "{:.2f}"),
         }
@@ -44,9 +44,9 @@ def defaultkwargs(name: str, col: str):
     else:  # child with name
         hashed_value = hashlib.sha256(name.encode()).hexdigest()
         hashed_int = int(hashed_value, 16)
-        index = hashed_int % len(tools.visualise.Colors.General)
+        index = hashed_int % len(tools.visualize.Colors.General)
         kwargs = {
-            "color": list(tools.visualise.Colors.General)[index].value,
+            "color": list(tools.visualize.Colors.General)[index].value,
             "alpha": 0.9,
             "labelfmt": "",  # no labels on children
             "label": name,
@@ -58,27 +58,27 @@ def defaultkwargs(name: str, col: str):
 
 def plotfn_and_kwargs(
     col: str, freq: str, name: str
-) -> Tuple[tools.visualise.PlotTimeseriesToAxFunction, Dict]:
+) -> Tuple[tools.visualize.PlotTimeseriesToAxFunction, Dict]:
     """Get correct function to plot as well as default kwargs. ``col``: one of 'qwprf',
     ``freq``: frequency; ``name``: name of the child. If name is emptystring, it is the
     parent of a plot which also has children. If it is None, there are no children."""
     # Get plot function.
     if tools.freq.shortest(freq, "MS") == "MS":  # categorical
         if name == "" or name is None:  # parent
-            fn = tools.visualise.plot_timeseries_as_bar
+            fn = tools.visualize.plot_timeseries_as_bar
         else:  # child
-            fn = tools.visualise.plot_timeseries_as_hline
+            fn = tools.visualize.plot_timeseries_as_hline
     else:  # timeaxis
         if col in ["w", "q"]:
             if name == "" or name is None:  # parent
-                fn = tools.visualise.plot_timeseries_as_area
+                fn = tools.visualize.plot_timeseries_as_area
             else:  # child
-                fn = tools.visualise.plot_timeseries_as_step
+                fn = tools.visualize.plot_timeseries_as_step
         else:  # col in ['p', 'r']
             if name == "" or name is None:  # parent
-                fn = tools.visualise.plot_timeseries_as_step
+                fn = tools.visualize.plot_timeseries_as_step
             else:  # child
-                fn = tools.visualise.plot_timeseries_as_step
+                fn = tools.visualize.plot_timeseries_as_step
 
     kwargs = defaultkwargs(name, col)
 

@@ -1,8 +1,9 @@
-import portfolyo as pf
+import matplotlib.pyplot as plt
 import pandas as pd
+
+import portfolyo as pf
 from portfolyo.core.pfline.enums import Kind
 from portfolyo.core.pfstate.pfstate import PfState
-import matplotlib.pyplot as plt
 
 index = pd.date_range(
     "2022-06-01", "2024-02-01", freq="MS", tz="Europe/Berlin", inclusive="left"

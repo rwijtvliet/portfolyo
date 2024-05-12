@@ -2,9 +2,9 @@
 
 import pandas as pd
 import pytest
+
 from portfolyo import dev
 from portfolyo.tools2 import concat
-
 
 TESTCASES2 = [  # whole idx, freq, where
     (

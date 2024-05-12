@@ -1,9 +1,10 @@
-from ..tools.intersect import indices_flex
-from ..core.pfline import PfLine
-from ..core.pfstate import PfState
 from typing import List, Union
 
 import pandas as pd
+
+from ..core.pfline import PfLine
+from ..core.pfstate import PfState
+from ..tools.intersect import indices_flex
 
 
 def indexable(

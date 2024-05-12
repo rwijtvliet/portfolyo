@@ -1,10 +1,13 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Iterable
 
 import colorama
 import pandas as pd
-from ..shared import text
-from .enums import Kind
+
+from ..shared import text as shared_text
 from . import classes
+from .enums import Kind
 
 if TYPE_CHECKING:
     from .classes import PfLine
@@ -25,33 +28,6 @@ def _children_info(pfl: PfLine) -> Iterable[str]:
     return [". Children: " + ("none" if not childtxt else ", ".join(childtxt))]
 
 
-def _nestedtree(
-    name: str,
-    pfl: PfLine,
-    cols: Iterable[str],
-    num_of_ts: int,
-    depth: int = 0,
-    is_last: bool = True,
-    is_only: bool = False,
-) -> Iterable[str]:
-    """Treeview of the portfolio line."""
-    out = []
-    tree = text.treedict(depth, is_last, isinstance(pfl, classes.NestedPfLine))
-    # Name.
-    out.append(tree["00"] + tree["01"] + name)
-    # Top-level body block.
-    if is_only and depth > 0:
-        txtlines = ["(only contributor to parent data; has same values)"]
-    else:
-        txtlines = _flatdatablock(pfl, cols, num_of_ts)
-    for txtline in txtlines:
-        out.append(tree["10"] + tree["11"] + colorama.Style.RESET_ALL + txtline)
-    # Add children if any.
-    for txtline in _childrenlines(pfl, cols, num_of_ts, depth):
-        out.append(tree["10"] + txtline)
-    return out
-
-
 def _flatdatablock(pfl: PfLine, cols: Iterable[str], num_of_ts: int) -> Iterable[str]:
     """The timestamps and data to be shown in a block, next to the tree."""
     # Obtain dataframe with index = timestamp as string and columns = one or more of 'qwpr'.
@@ -60,11 +36,11 @@ def _flatdatablock(pfl: PfLine, cols: Iterable[str], num_of_ts: int) -> Iterable
     if len(df.index) > num_of_ts * 2:
         df = pd.concat([df.iloc[:num_of_ts, :], df.iloc[-num_of_ts:, :]], axis=0)
     # . turn values into strings.
-    df = text.df_with_strvalues(df)
+    df = shared_text.df_with_strvalues(df)
     # . turn index into strings and reduce to wanted number of datapoints
-    df = text.df_with_strindex(df, num_of_ts)
+    df = shared_text.df_with_strindex(df, num_of_ts)
     # . column withs
-    col_space = {k: v for k, v in text.COLWIDTHS.items() if k in df}
+    col_space = {k: v for k, v in shared_text.COLWIDTHS.items() if k in df}
     # Turn into list of strings.
     df_str = df.to_string(col_space=col_space, index_names=False, header=False)
     return df_str.split("\n")
@@ -80,7 +56,7 @@ def _childrenlines(
     for c, (name, child) in enumerate(pfl.items()):
         is_last, is_only = (c == len(pfl) - 1), (len(pfl) == 1)
         out.extend(
-            _nestedtree(name, child, cols, num_of_ts, depth + 1, is_last, is_only)
+            nestedtree(name, child, cols, num_of_ts, depth + 1, is_last, is_only)
         )
     return out
 
@@ -88,22 +64,49 @@ def _childrenlines(
 # Highest-level functions.
 
 
+def nestedtree(
+    name: str,
+    pfl: PfLine,
+    cols: Iterable[str],
+    num_of_ts: int,
+    depth: int = 0,
+    is_last: bool = True,
+    is_only: bool = False,
+) -> Iterable[str]:
+    """Treeview of the portfolio line."""
+    out = []
+    tree = shared_text.treedict(depth, is_last, isinstance(pfl, classes.NestedPfLine))
+    # Name.
+    out.append(tree["00"] + tree["01"] + name)
+    # Top-level body block.
+    if is_only and depth > 0:
+        txtlines = ["(only contributor to parent data; has same values)"]
+    else:
+        txtlines = _flatdatablock(pfl, cols, num_of_ts)
+    for txtline in txtlines:
+        out.append(tree["10"] + tree["11"] + colorama.Style.RESET_ALL + txtline)
+    # Add children if any.
+    for txtline in _childrenlines(pfl, cols, num_of_ts, depth):
+        out.append(tree["10"] + txtline)
+    return out
+
+
 def pfl_as_string(pfl: PfLine, flatten: bool, num_of_ts: int, color: bool) -> str:
     lines = [f"PfLine object with {_what(pfl)} information."]
-    lines.extend(text.index_info(pfl.index))
+    lines.extend(shared_text.index_info(pfl.index))
     if isinstance(pfl, classes.NestedPfLine):
         lines.extend(_children_info(pfl))
     cols = pfl.kind.available
     if flatten:
-        lines.extend(text.dataheader(cols))
+        lines.extend(shared_text.dataheader(cols))
         lines.extend([""])
         lines.extend(_flatdatablock(pfl, cols, num_of_ts))
     else:
-        spaces = " " * (text.MAX_DEPTH + 5)
-        lines.extend([spaces + txtline for txtline in text.dataheader(cols)])
-        lines.extend(_nestedtree("(this pfline)", pfl, cols, num_of_ts))
+        spaces = " " * (shared_text.MAX_DEPTH + 5)
+        lines.extend([spaces + txtline for txtline in shared_text.dataheader(cols)])
+        lines.extend(nestedtree("(this pfline)", pfl, cols, num_of_ts))
     txt = "\n".join(lines)
-    return txt if color else text.remove_color(txt)
+    return txt if color else shared_text.remove_color(txt)
 
 
 class PfLineText:

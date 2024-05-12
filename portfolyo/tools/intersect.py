@@ -1,9 +1,11 @@
-from typing import List, Union, Tuple
-import pandas as pd
-from .right import stamp
-from .freq import longest, longer_or_shorter
 from datetime import datetime
+from typing import List, Tuple, Union
+
+import pandas as pd
+
 from . import trim as tools_trim
+from .freq import longer_or_shorter, longest
+from .right import stamp
 
 
 def indices(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:

@@ -1,14 +1,11 @@
 """String representation of PfLine and PfState objects."""
 
-from __future__ import annotations
-
 from typing import Dict, Iterable
 
 import colorama
 import pandas as pd
 
 from ... import tools
-
 
 COLORS = ["WHITE", "YELLOW", "CYAN", "GREEN", "RED", "BLUE", "MAGENTA", "BLACK"]
 TREECOLORS = [colorama.Style.BRIGHT + getattr(colorama.Fore, f) for f in COLORS]

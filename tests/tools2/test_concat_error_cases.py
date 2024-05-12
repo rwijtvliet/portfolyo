@@ -3,7 +3,6 @@
 import pandas as pd
 import pytest
 
-
 from portfolyo import dev
 from portfolyo.core.pfline.enums import Kind
 from portfolyo.core.pfstate.pfstate import PfState

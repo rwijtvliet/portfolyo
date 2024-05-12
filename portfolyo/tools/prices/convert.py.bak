@@ -12,15 +12,15 @@ Convert volume [MW] and price [Eur/MWh] timeseries using base, peak, offpeak tim
 
 import datetime as dt
 import warnings
-from typing import Iterable, Union
+from typing import Union
 
 import numpy as np
 import pandas as pd
 
-from .. import unit as tools_unit
-from .. import trim as tools_trim
-from .. import freq as tools_freq
 from .. import changefreq as tools_changefreq
+from .. import freq as tools_freq
+from .. import trim as tools_trim
+from .. import unit as tools_unit
 from . import utils
 
 Stamp = Union[dt.datetime, pd.Timestamp]
@@ -50,76 +50,6 @@ def group_function(freq: str, po: bool = False):
     raise ValueError(
         f"Parameter ``freq`` must be one of 'MS', 'QS', 'AS'; got '{freq}'."
     )
-
-
-def offpeak(
-    base: Union[Value, Iterable[Value]],
-    peak: Union[Value, Iterable[Value]],
-    ts_left: Union[Stamp, Iterable[Stamp]],
-    freq: str = None,
-) -> Union[Value, pd.Series]:
-    """Offpeak value, given base and peak value and time interval they apply to.
-
-    Parameters
-    ----------
-    base : Union[Value, Iterable[Value]]
-        Base value
-    peak : Union[Value, Iterable[Value]]
-        Peak value
-    ts_left : Union[Stamp, Iterable[Stamp]]
-        (Left-bound) timestamp of period.
-    freq : {'MS' (month), 'QS' (quarter), 'AS' (year)}, optional
-        Length of delivery period. If none specified, use ``.freq`` attribute of
-        ``ts_left``.
-
-    Returns
-    -------
-    offpeak value(s)
-    """
-    fr = utils.duration_bpo(ts_left, freq)  # Series or DataFrame
-    b, p, o = fr["base"], fr["peak"], fr["offpeak"]
-    if isinstance(fr, pd.DataFrame):
-        b, p, o = b.values, p.values, o.values
-    return (base * b - peak * p) / o
-
-
-def peak(
-    base: Union[Value, Iterable[Value]],
-    offpeak: Union[Value, Iterable[Value]],
-    ts_left: Union[Stamp, Iterable[Stamp]],
-    freq: str = None,
-) -> Union[Value, pd.Series]:
-    """Peak value, given base and offpeak value and time interval they apply to.
-
-    See also
-    --------
-    .offpeak
-    """
-    fr = utils.duration_bpo(ts_left, freq)  # Series or DataFrame
-    b, p, o = fr["base"], fr["peak"], fr["offpeak"]
-    if isinstance(fr, pd.DataFrame):
-        b, p, o = b.values, p.values, o.values
-
-    return (base * b - offpeak * o) / p
-
-
-def base(
-    peak: Union[Value, Iterable[Value]],
-    offpeak: Union[Value, Iterable[Value]],
-    ts_left: Union[Stamp, Iterable[Stamp]],
-    freq: str = None,
-) -> Union[Value, pd.Series]:
-    """Base value, given peak and offpeak value and time interval they apply to.
-
-    See also
-    --------
-    .offpeak
-    """
-    fr = utils.duration_bpo(ts_left, freq)  # Series or DataFrame
-    b, p, o = fr["base"], fr["peak"], fr["offpeak"]
-    if isinstance(fr, pd.DataFrame):
-        b, p, o = b.values, p.values, o.values
-    return (peak * p + offpeak * o) / b
 
 
 def complete_bpoframe(partial_bpoframe: pd.DataFrame, prefix: str = "") -> pd.DataFrame:
@@ -308,7 +238,7 @@ def tseries2bpoframe(s: pd.Series, freq: str = "MS", prefix: str = "") -> pd.Dat
     # Handle possible units.
     sin, units = (s.pint.magnitude, s.pint.units) if hasattr(s, "pint") else (s, None)
 
-    # Do calculations. Use normal mean, because all rows have same duration.
+    # Do calculations.
     sout = sin.resample(freq, group_keys=True).apply(
         lambda s: tseries2singlebpo(s, prefix)
     )

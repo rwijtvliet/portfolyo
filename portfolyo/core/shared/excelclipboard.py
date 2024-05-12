@@ -5,6 +5,7 @@ Module with mixins, to add other output-methods to PfLine and PfState classes.
 from __future__ import annotations
 
 import functools
+
 import pandas as pd
 
 from .ndframelike import NDFrameLike

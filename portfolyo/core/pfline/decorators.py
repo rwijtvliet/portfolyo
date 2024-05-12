@@ -1,8 +1,5 @@
 """Module with decorators to catch (and possibly correct) common situations."""
 
-
-import warnings
-
 from ... import tools
 
 
@@ -34,15 +31,3 @@ def assert_shortest_allowed_freq(freq):
         return wrapped
 
     return decorator
-
-
-def map_to_year_warning(map_to_year):
-    def wrapped(self, *args, **kwargs):
-        if tools.freq.shortest(self.index.freq, "MS") == "MS":
-            warnings.warn(
-                "This PfLine has a monthly frequency or longer; changing the year is inaccurate, as"
-                " details (number of holidays, weekends, offpeak hours, etc) cannot be taken into account."
-            )
-        return map_to_year(self, *args, **kwargs)
-
-    return wrapped

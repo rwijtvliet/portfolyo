@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 from typing import TYPE_CHECKING
-from ..pfline.text import _nestedtree
 
-
-from ..shared import text
+from ..pfline import text as pfline_text
+from ..shared import text as shared_text
 
 if TYPE_CHECKING:
     from .pfstate import PfState
@@ -10,13 +11,13 @@ if TYPE_CHECKING:
 
 def pfs_as_string(pfs: PfState, num_of_ts: int, color: bool) -> str:
     lines = ["PfState object."]
-    lines.extend(text.index_info(pfs.index))
-    spaces = " " * (text.MAX_DEPTH + 5)
-    lines.extend([spaces + txtline for txtline in text.dataheader("wqpr")])
-    lines.extend(_nestedtree("offtake", pfs.offtakevolume, "wq", num_of_ts))
-    lines.extend(_nestedtree("pnl_cost", pfs.pnl_cost, "wqpr", num_of_ts))
+    lines.extend(shared_text.index_info(pfs.index))
+    spaces = " " * (shared_text.MAX_DEPTH + 5)
+    lines.extend([spaces + txtline for txtline in shared_text.dataheader("wqpr")])
+    lines.extend(pfline_text.nestedtree("offtake", pfs.offtakevolume, "wq", num_of_ts))
+    lines.extend(pfline_text.nestedtree("pnl_cost", pfs.pnl_cost, "wqpr", num_of_ts))
     txt = "\n".join(lines)
-    return txt if color else text.remove_color(txt)
+    return txt if color else shared_text.remove_color(txt)
 
 
 class PfStateText:
