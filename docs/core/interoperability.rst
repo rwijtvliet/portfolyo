@@ -108,7 +108,7 @@ To pass several timeseries, we can use:
      # --- hide: start ---
      print(repr(dict_of_tseries))
     
-  Each of the timeseries must a unit unless it's dimensionless.
+  Each of the timeseries must have a unit unless it's dimensionless.
 
 * Or we can use any other ``Mapping`` from string values to timeseries, e.g., a ``pandas.DataFrame`` with a datetime-index. In this case:
 
@@ -134,7 +134,7 @@ To pass several timeseries, we can use:
 Combinations
 ------------
 
-Dictionaries are the most versatily of these objects. They can be used to pass a single value, multiple values, a single timeseries, multiple timeseries, or a combination of these:
+Dictionaries are the most versatile of these objects. They can be used to pass a single value, multiple values, a single timeseries, multiple timeseries, or a combination of these:
 
 .. exec_code::
     
