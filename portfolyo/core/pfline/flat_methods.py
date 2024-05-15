@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 
 from ... import tools
+from ...tools.peakconvert import tseries2poframe
 from . import classes
 from .enums import Kind, Structure
 
@@ -19,43 +20,29 @@ def flatten(self: FlatPfLine) -> FlatPfLine:
 def po(
     self: PfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS"
 ) -> pd.DataFrame:
-    if self.index.freq not in ["15T", "H"]:
-        raise ValueError(
-            "Only PfLines with (quarter)hourly values can be turned into peak and offpeak values."
-        )
-    if freq not in ["MS", "QS", "AS"]:
-        raise ValueError(
-            f"Value of paramater ``freq`` must be one of {'MS', 'QS', 'AS'} (got: {freq})."
-        )
-
     df_dict = {}
-    prods = ("peak", "offpeak")
 
-    # Get values.
-    for col in ("w", "p"):
-        if col in self.kind.available:
-            vals = tools.peakconvert.tseries2bpoframe(self.df[col], peak_fn, freq)[
-                prods
-            ]
-            df_dict[col] = vals
+    # Always include duration.
+    duration = tools.duration.index(self.df.index)
+    df_dict["duration"] = tseries2poframe(duration, peak_fn, freq, True)
 
-    # Add duration.
-    i = next(iter(df_dict.values())).index  # index of any of the dataframes
-    b = tools.duration.index(i)  # pint-series
-    p = tools.peakfn.peak_duration(i, peak_fn)  # pint-series
-    df_dict["duration"] = pd.DataFrame({"peak": p, "offpeak": b - p})
+    # Add volume.
+    if self.kind in [Kind.VOLUME, Kind.COMPLETE]:
+        df_dict["q"] = tseries2poframe(self.q, peak_fn, freq, True)
+        df_dict["w"] = df_dict["q"] / df_dict["duration"]
 
-    # Turn into dataframe.
-    df = pd.DataFrame(df_dict).swaplevel(axis=1)  # 'peak', 'offpeak' on top
+    # Add revenue.
+    if self.kind in [Kind.REVENUE, Kind.COMPLETE]:
+        df_dict["r"] = tseries2poframe(self.r, peak_fn, freq, True)
 
-    # Add additional values and sort.
-    for prod in prods:
-        if "q" in self.kind.available:
-            df[(prod, "q")] = df[(prod, "w")] * df[(prod, "duration")]
-        if "r" in self.kind.available:
-            df[(prod, "r")] = (df[(prod, "q")] * df[(prod, "p")]).pint.to_base_units()
-    # colidx = pd.MultiIndex.from_product([prods, ("duration", *self.kind.available)])
-    return df.sort_index(axis=1)  # [colidx]
+    # Add price.
+    if self.kind is Kind.PRICE:
+        df_dict["p"] = tseries2poframe(self.p, peak_fn, freq, False)
+    elif self.kind is Kind.COMPLETE:
+        df_dict["p"] = df_dict["r"] / df_dict["q"]
+
+    # Turn into dataframe and put 'peak' and 'offpeak' on top.
+    return pd.DataFrame(df_dict).swaplevel(axis=1).sort_index(axis=1)
 
 
 def hedge_with(

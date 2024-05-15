@@ -117,6 +117,11 @@ def series(
         s = s.loc[weights.index]
     except KeyError as e:  # more weights than values
         raise ValueError("No values found for one or more weights.") from e
+
+    # Unweighted average if all weights the same.
+    if weights.nunique() == 1:
+        return s.mean()
+
     # Replace NaN with 0 in locations where it doesn't change the result.
     replaceable = s.isna() & (weights == 0.0)
     s[replaceable] = 0.0
