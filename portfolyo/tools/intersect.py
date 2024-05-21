@@ -3,9 +3,9 @@ from typing import List, Tuple, Union
 
 import pandas as pd
 
+from . import freq as tools_freq
+from . import right as tools_right
 from . import trim as tools_trim
-from .freq import longer_or_shorter, longest
-from .right import stamp
 
 
 def indices(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:
@@ -121,7 +121,7 @@ def indices_flex(
     if len(distinct_sod) != 1 and ignore_start_of_day is False:
         raise ValueError(f"Indices must have equal start-of-day; got {distinct_sod}.")
     for i in range(len(idxs)):
-        if len(distinct_sod) != 1 and longer_or_shorter(idxs[i].freq, "D") == -1:
+        if len(distinct_sod) != 1 and tools_freq.up_or_down(idxs[i].freq, "D") == -1:
             raise ValueError(
                 "Downsample all indices to daily-or-longer, or trim them so they have the same start-of-day, before attempting to calculate the intersection"
             )
@@ -135,7 +135,7 @@ def indices_flex(
     longest_freq = freq[0]
     if ignore_freq is True and len(distinct_freqs) != 1:
         # Find the longest frequency
-        longest_freq = longest(*freq)
+        longest_freq = tools_freq.longest(*freq)
         # trim datetimeindex
         for i in range(len(idxs)):
             # if idxs[i].freq is not the same as longest freq, we trim idxs[i]
@@ -161,14 +161,14 @@ def indices_flex(
     values = sorted(values)
 
     if len(values) == 0:
-        return tuple([pd.DatetimeIndex([]) for _i in idxs])
+        return tuple([pd.DatetimeIndex([]) for _ in idxs])
 
     idxs_out = []
     for i in range(len(idxs)):
         start = min(values)
         # end = stamp(start, longest_freq._prefix)
         end = max(values)
-        end = stamp(end, longest_freq)
+        end = tools_right.stamp(end, longest_freq)
 
         if ignore_start_of_day is True:
             start = datetime.combine(pd.to_datetime(start).date(), start_of_day[i])

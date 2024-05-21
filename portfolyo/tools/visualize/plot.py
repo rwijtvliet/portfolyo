@@ -209,7 +209,7 @@ def get_portfolyo_attr(ax, name, default_val=None):
 
 def is_categorical(s: pd.Series) -> bool:
     """The function checks whether frequency of panda Series falls into continous or categorical group"""
-    return tools_freq.longer_or_shorter(s.index.freq, "D") == 1
+    return tools_freq.up_or_down(s.index.freq, "D") == 1
 
 
 def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:

@@ -13,35 +13,35 @@ from . import unit as tools_unit
 # Developer notes:
 # The following behaviour is wanted in calculating the weighted average:
 
-# weights            values              rule | result
+# weights            values              rule                           result
 
 # sum of weights != 0
-# 1, -1, 2           10, 20, 30          normal | (10*1 + 20*-1 + 30*2 ) / (1 + -1 + 2)
-# 1, -1, 2           10, NaN, 30         NaN if values include NaN | NaN
-# 1, 0, 2            10, NaN, 30         ignore NaN if weight = 0 | (10*1 + 30*2) / (1 + 2)
+# 1, -1, 2           10, 20, 30          "normal"                       (10*1 + 20*-1 + 30*2 ) / (1 + -1 + 2)
+# 1, -1, 2           10, NaN, 30         NaN if values include NaN      NaN
+# 1, 0, 2            10, NaN, 30         ignore NaN if weight = 0       (10*1 + 30*2) / (1 + 2)
 # --> Remove all values for which weight == 0.
 # --> If remaining values conain NaN --> result is NaN.
 # --> Otherwise, calculate the result normally.
 
 # sum of weights == 0 but not all 0
-# 1, 1, -2           10, 20, 30          Inf if values distinct | Inf
-# 1, 1, -2           10, 10, 10          value if values identical | 10
-# 1, -1, 0           10, 10, 30          ignore value if weight = 0 | 10
-# 1, 1, -2           10, 10, NaN         NaN if values include NaN | NaN (done)
-# 1, -1, 0           10, 10, NaN         ignore NaN if weight = 0 | 10
-# 1, -1, 0           NaN, NaN, NaN       NaN if values are all NaN | NaN
+# 1, 1, -2           10, 20, 30          NaN if values distinct         NaN
+# 1, 1, -2           10, 10, 10          value if values identical      10
+# 1, -1, 0           10, 10, 30          ignore value if weight = 0     10
+# 1, 1, -2           10, 10, NaN         NaN if values include NaN      NaN
+# 1, -1, 0           10, 10, NaN         ignore NaN if weight = 0       10
+# 1, -1, 0           NaN, NaN, NaN       NaN if values are all NaN      NaN
 # --> Remove all values for which weight == 0.
 # --> If remaining values contain NaN --> result is NaN
 # --> Otherwise, if remaining values are identical --> result is that value
 # --> Otherwise, result is Inf.
 
 # all weights are 0
-# 0, 0, 0            10, 20, 30          Inf if values distinct | Inf
-# 0, 0, 0            10, 10, 10          value if values identical | 10
-# 0, 0, 0            10, 10, NaN         NaN if values include NaN | NaN
+# 0, 0, 0            10, 20, 30          NaN if values distinct         NaN
+# 0, 0, 0            10, 10, 10          Value if values identical      10
+# 0, 0, 0            10, 10, NaN         NaN if values include NaN      NaN
 # --> If values contain NaN --> result is NaN
 # --> Otherwise, if values are identical --> result is that value
-# --> Otherwise, result is Inf.
+# --> Otherwise, result is NaN.
 
 RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM = np.nan
 
@@ -118,8 +118,8 @@ def series(
     except KeyError as e:  # more weights than values
         raise ValueError("No values found for one or more weights.") from e
 
-    # Unweighted average if all weights the same.
-    if weights.nunique() == 1:
+    # Unweighted average if all weights the same but not all 0.
+    if weights.nunique() == 1 and not np.isclose(weights.iloc[0], 0):
         return s.mean()
 
     # Replace NaN with 0 in locations where it doesn't change the result.
@@ -404,7 +404,7 @@ def rowvalue_uniformity(df: pd.DataFrame) -> pd.Series:
     # or uniform NaN, this value/NaN is found in buffer.
     uniform = pd.Series(True, df.index)
     buffer = pd.Series(np.nan, df.index)  # define to ensure exists even if df empty
-    for i, (c, s) in enumerate(df.items()):
+    for i, (_, s) in enumerate(df.items()):
         if i == 0:
             # define here to ensure ``values`` has pint dtype if df does too
             to_type = float if pd.api.types.is_integer_dtype(s.dtype) else s.dtype
