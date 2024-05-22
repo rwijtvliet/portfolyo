@@ -16,6 +16,7 @@ from .tools.changeyear import characterize_index, map_frame_to_year
 from .tools.freq import FREQUENCIES
 from .tools.hedge import hedge
 from .tools.peakfn import PeakFunction
+from .tools.peakfn import factory as create_peakfn
 from .tools.product import germanpower_peakfn, is_peak_hour
 from .tools.standardize import frame as standardize
 from .tools.tzone import force_agnostic, force_aware
