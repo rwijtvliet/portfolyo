@@ -231,7 +231,7 @@ def test_peakduration_longfreqs(
     expected_p = pd.Series([float(p)], i, dtype="pint[h]", name="duration")
     expected_o = expected_b - expected_p
 
-    result_b = tools.peakfn.base_duration(i)
+    result_b = tools.duration.index(i)
     result_p = tools.peakfn.peak_duration(i, f_germanpower)
     result_o = tools.peakfn.offpeak_duration(i, f_germanpower)
 
