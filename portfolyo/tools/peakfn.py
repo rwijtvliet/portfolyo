@@ -121,23 +121,6 @@ def factory(
     return peak_fn
 
 
-def base_duration(i: pd.DatetimeIndex) -> pd.Series:
-    """
-    Duration of base periods in each element of a datetimeindex.
-
-    Parameters
-    ----------
-    i : pd.DatetimeIndex
-        Index for which to calculate the duration of the base product (= total duration)
-
-    Returns
-    -------
-    Series
-        with ``i`` as index, and duration of base hours during each timeperiod in ``i``.
-    """
-    return tools_duration.index(i)
-
-
 def peak_duration(i: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
     """
     Duration of peak periods in each element of a datetimeindex.
@@ -145,7 +128,7 @@ def peak_duration(i: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
     Parameters
     ----------
     i : pd.DatetimeIndex
-        Index for which to calculate the durations.
+        Index for which to calculate the durations. May be in any frequency.
     peak_fn : PeakFunction
         Function that returns boolean Series indicating if timestamps in index lie in peak period.
 
@@ -157,7 +140,8 @@ def peak_duration(i: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
     Notes
     -----
     ``peak_fn`` might only work on indices with daily-or-shorter, hourly-or-shorter, or
-    quarterhourly-or-shorter frequency. ``i`` is resampled to account for this.
+    quarterhourly-or-shorter frequency. ``i`` is resampled to account for this; the returned
+    Series has the original index.
     """
     eval_i = i  # index to evaluate if peak or offpeak
     for eval_freq in ("D", "H", "15T"):
@@ -199,30 +183,3 @@ def offpeak_duration(i: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
     quarterhourly-or-shorter frequency. ``i`` is resampled to account for this.
     """
     return tools_duration.index(i) - peak_duration(i, peak_fn)
-
-
-# def bpo_duration(i: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.DataFrame:
-#     """
-#     Duration of base, peak, and offpeak periods in each element of a datetimeindex.
-#
-#     Parameters
-#     ----------
-#     i : pd.DatetimeIndex
-#         Index for which to calculate the durations.
-#     peak_fn : PeakFunction
-#         Function that returns boolean Series indicating if timestamps in index lie in peak period.
-#
-#     Returns
-#     -------
-#     DataFrame
-#         with ``i`` as index, and columns 'base', 'peak', 'offpeak', with resp. durations
-#         in each timeperiod in ``i``.
-#
-#     Notes
-#     -----
-#     ``peak_fn`` might only work on indices with daily-or-shorter, hourly-or-shorter, or
-#     quarterhourly-or-shorter frequency. ``i`` is resampled to account for this.
-#     """
-#     b = tools_duration.index(i)  # pint-series
-#     p = peak_duration(i, peak_fn)  # pint-series
-#     return pd.DataFrame({"base": b, "peak": p, "offpeak": b - p}, dtype="pint[h]")

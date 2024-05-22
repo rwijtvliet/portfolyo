@@ -1,88 +1,13 @@
 import functools
-from portfolyo.prices import convert
-from portfolyo.tools import nits
-from portfolyo import testing
 from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
 
-
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("withunit", [True, False])
-@pytest.mark.parametrize(
-    ("b", "p", "o", "o_EuropeBerlin", "ts_left", "freq"),
-    [
-        (100, 100, 100, None, "2020-01-01", "MS"),  # 31 days, 23 working days
-        (100, 200, 41.02564103, None, "2020-01-01", "MS"),
-        (100, 300, -17.94871795, None, "2020-01-01", "MS"),
-        (100, 100, 100, None, "2020-01-01", "QS"),  # 91 days, 65 working days
-        (100, 200, 44.44444444, 44.40484676, "2020-01-01", "QS"),
-        (100, 300, -11.11111111, -11.19030649, "2020-01-01", "QS"),
-        (100, 100, 100, None, "2020-01-01", "D"),  # weekday
-        (100, 200, 0, None, "2020-01-01", "D"),  # weekday
-        (100, 300, -100, None, "2020-01-01", "D"),  # weekday
-        (100, np.nan, 100, None, "2020-01-04", "D"),  # weekend only
-    ],
-)
-def test_pbaseppeakpoffpeak_explicit(
-    b: float,
-    p: float,
-    o: float,
-    ts_left: str,
-    freq: str,
-    withunit: bool,
-    tz: str,
-    o_EuropeBerlin: float,
-):
-    """Test if base, peak and offpeak values can be calculated from single values."""
-    # Handle timezone.
-    ts_left = pd.Timestamp(ts_left, tz=tz)
-    if tz is not None and o_EuropeBerlin is not None:
-        o = o_EuropeBerlin
-
-    # Handle units.
-    if withunit:  # add a (random) unit to see if conversion still works.
-        b, p, o = nits.Q_(b, "MW"), nits.Q_(p, "MW"), nits.Q_(o, "MW")
-
-    # Do testing.
-    assert np.isclose(convert.peak(b, o, ts_left, freq), p, equal_nan=True)
-    if np.isnan(p):
-        p = 0 if not withunit else nits.Q_(0, "MW")
-    assert np.isclose(convert.offpeak(b, p, ts_left, freq), o)
-    assert np.isclose(convert.base(p, o, ts_left, freq), b)
-
-
-@pytest.mark.parametrize("withunits", [True, False])
-@pytest.mark.parametrize("testcol", ["base", "peak", "offpeak"])
-@pytest.mark.parametrize(
-    "bpoframe",
-    [
-        pd.DataFrame(
-            {
-                "peak": [100.0, 100, 100, 100],
-                "base": [80.0, 80, 80, 80],
-                "offpeak": [68.2051282, 69.4736842, 68.9770355, 68.421053],
-            },
-            pd.date_range("2020", periods=4, freq="MS", tz="Europe/Berlin"),
-        ),
-        pd.DataFrame(
-            {
-                "peak": [100.0, 100, 100, 100],
-                "base": [80.0, 80, 80, 80],
-                "offpeak": [68.8510638, 68.8699360, 68.9361702, 68.9361702],
-            },
-            pd.date_range("2020", periods=4, freq="AS", tz="Europe/Berlin"),
-        ),
-    ],
-)
-def test_completebpoframe_explicit(bpoframe, testcol: str, withunits: bool):
-    """Test if missing column can be reconstructed."""
-    if withunits:
-        bpoframe = bpoframe.astype("pint[Eur/MWh]")
-    df = bpoframe.drop(columns=testcol)
-    result = convert.complete_bpoframe(df)
-    testing.assert_frame_equal(bpoframe, result)
+from portfolyo import testing
+from portfolyo.prices import convert
+from portfolyo.tools import nits
 
 
 @functools.lru_cache()

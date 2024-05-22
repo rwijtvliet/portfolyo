@@ -12,7 +12,7 @@ from . import peakfn as tools_peakfn
 from . import trim as tools_trim
 from . import wavg as tools_wavg
 
-BPO = ("base", "peak", "offpeak")
+BPO = ["base", "peak", "offpeak"]
 
 
 def group_arrays(
@@ -104,8 +104,8 @@ def complete_bpoframe(
     else:
         # Solve: peak * duration_peak + offpeak * duration_offpeak = base * duration_base
         # (with: duration_offpeak = duration_base - duration_peak)
-        b = tools_duration.index(df.index)
-        p = tools_peakfn.peak_duration(df.index, peak_fn)
+        b = tools_duration.index(df.index).pint.m  # as float
+        p = tools_peakfn.peak_duration(df.index, peak_fn).pint.m  # as float
         if "peak" not in df:
             # df["peak"] = (df["base"] * b - df["offpeak"] * (b - p)) / p
             df["peak"] = (df["base"] - df["offpeak"]) * b / p + df["offpeak"]

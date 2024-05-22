@@ -193,7 +193,7 @@ def do_test(
         (2022, (365, 260), False, 21, 20, 23),
     ],
 )
-def test_duration(
+def test_peakduration_longfreqs(
     year, bp, jan_1_weekday, jan_p, feb_p, mar_p, tz, mar_b_corr, freq, month
 ):
     """Test if the correct number of base, peak and offpeak hours are calculated.
@@ -201,11 +201,8 @@ def test_duration(
     number of days with peak hours in each month; mar_b_corr = correction to number of
     base HOURS."""
 
-    if tz is None:
-        return  # TODO: make sure the duration_base, duration_peak etc functions accept timezone-agnostic data
-
     if month > 1 and freq != "MS":
-        return
+        pytest.skip("Feb and Mar are only checked on month-level here.")
 
     start = pd.Timestamp(f"{year}-{month}", tz=tz)
     i = pd.date_range(start, freq=freq, periods=1)
@@ -242,3 +239,89 @@ def test_duration(
     tools.testing.assert_series_equal(expected_b, result_b)
     tools.testing.assert_series_equal(expected_p, result_p)
     tools.testing.assert_series_equal(expected_o, result_o)
+
+
+@pytest.mark.parametrize(
+    "i,duration,peakduration",
+    [
+        # Quarters
+        (
+            pd.date_range("2020", freq="QS", periods=2, tz=None),
+            [(31 + 29 + 31) * 24, (30 + 31 + 30) * 24],
+            [(23 + 20 + 22) * 12, (22 + 21 + 22) * 12],
+        ),
+        (
+            pd.date_range("2020", freq="QS", periods=2, tz="Europe/Berlin"),
+            [(31 + 29 + 31) * 24 - 1, (30 + 31 + 30) * 24],
+            [(23 + 20 + 22) * 12, (22 + 21 + 22) * 12],
+        ),
+        # Months
+        (
+            pd.date_range("2020", freq="MS", periods=3, tz=None),
+            [31 * 24, 29 * 24, 31 * 24],
+            [23 * 12, 20 * 12, 22 * 12],
+        ),
+        (
+            pd.date_range("2020", freq="MS", periods=3, tz="Europe/Berlin"),
+            [31 * 24, 29 * 24, 31 * 24 - 1],
+            [23 * 12, 20 * 12, 22 * 12],
+        ),
+        # Days
+        (
+            pd.date_range("2020", freq="D", periods=7, tz=None),
+            [24] * 7,
+            [12, 12, 12, 0, 0, 12, 12],
+        ),
+        # . End-of-March: DST (if observed in tz)
+        (
+            pd.date_range("2020-03-25", freq="D", periods=7, tz=None),
+            [24, 24, 24, 24, 24, 24, 24],
+            [12, 12, 12, 0, 0, 12, 12],
+        ),
+        (
+            pd.date_range("2020-03-25", freq="D", periods=7, tz="Europe/Berlin"),
+            [24, 24, 24, 24, 23, 24, 24],
+            [12, 12, 12, 0, 0, 12, 12],
+        ),
+        # Hours
+        (
+            pd.date_range("2020", freq="H", periods=48, tz=None),
+            [1] * 48,
+            [*[0] * 8, *[1] * 12, *[0] * 12, *[1] * 12, *[0] * 4],
+        ),
+        # . End-of-March: DST (if observed in tz)
+        (
+            pd.date_range("2020-03-29", freq="H", periods=48, tz=None),
+            [1] * 48,
+            [*[0] * 32, *[1] * 12, *[0] * 4],
+        ),
+        (
+            pd.date_range("2020-03-29", freq="H", periods=47, tz="Europe/Berlin"),
+            [1] * 47,
+            [*[0] * 31, *[1] * 12, *[0] * 4],
+        ),
+        # Quarterhours
+        (
+            pd.date_range("2020", freq="15T", periods=192, tz=None),
+            [0.25] * 192,
+            [*[0] * 32, *[0.25] * 48, *[0] * 48, *[0.25] * 48, *[0] * 16],
+        ),
+    ],
+)
+@pytest.mark.parametrize("what", ["base", "peak", "offpeak"])
+def test_peakduration_allfreqs(
+    i: pd.DatetimeIndex, duration: Iterable, peakduration: Iterable, what: str
+):
+    """Test if peak duration is correctly calculated for all frequencies."""
+    if what == "duration":
+        values = duration
+        result = tools.duration.index(i)
+    elif what == "peak":
+        values = peakduration
+        result = tools.peakfn.peak_duration(i, f_germanpower)
+    else:  # 'offpeak'
+        values = (b - p for b, p in zip(duration, peakduration))
+        result = tools.peakfn.offpeak_duration(i, f_germanpower)
+
+    expected = pd.Series(values, i, dtype=float).astype("pint[h]").rename("duration")
+    tools.testing.assert_series_equal(result, expected)
