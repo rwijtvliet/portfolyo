@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -147,7 +145,7 @@ def test_setfreq(
     num: int,
     wanted: str,
     strict: bool,
-    expected: Union[str, Exception],
+    expected: str | Exception,
     indexorframe: str,
 ):
     i = pd.date_range("2020", periods=num, freq=freq)

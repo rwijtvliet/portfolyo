@@ -1,11 +1,12 @@
 from datetime import datetime
-from typing import List, Tuple, Union
+from typing import List, Tuple
 
 import pandas as pd
 
 from . import freq as tools_freq
 from . import right as tools_right
 from . import trim as tools_trim
+from .types import Series_or_DataFrame
 
 
 def indices(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:
@@ -190,11 +191,11 @@ def indices_flex(
 
 
 def frames(
-    *frames: Union[pd.Series, pd.DataFrame],
+    *frames: Series_or_DataFrame,
     ignore_freq: bool = False,
     ignore_tz: bool = False,
     ignore_start_of_day: bool = False,
-) -> List[Union[pd.Series, pd.DataFrame]]:
+) -> List[Series_or_DataFrame]:
     """Intersect several dataframes and/or series.
 
     Parameters

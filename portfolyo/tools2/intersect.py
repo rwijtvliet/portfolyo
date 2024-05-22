@@ -1,18 +1,15 @@
-from typing import List, Union
+from typing import List
 
-import pandas as pd
-
-from ..core.pfline import PfLine
-from ..core.pfstate import PfState
 from ..tools.intersect import indices_flex
+from .types import NDFrameLike
 
 
 def indexable(
-    *frames: Union[pd.Series, pd.DataFrame, PfLine, PfState],
+    *frames: NDFrameLike,
     ignore_freq: bool = False,
     ignore_tz: bool = False,
     ignore_start_of_day: bool = False,
-) -> List[Union[pd.Series, pd.DataFrame, PfLine, PfState]]:
+) -> List[NDFrameLike]:
     """Intersect several dataframes and/or series.
 
     Parameters

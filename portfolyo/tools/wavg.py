@@ -1,4 +1,4 @@
-from typing import Iterable, Mapping, Union
+from typing import Iterable, Mapping, overload
 
 import numpy as np
 import pandas as pd
@@ -46,31 +46,47 @@ from . import unit as tools_unit
 RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM = np.nan
 
 
+@overload
 def general(
-    fr: Union[pd.Series, pd.DataFrame],
-    weights: Union[Iterable, pd.Series, pd.DataFrame] = None,
+    fr: pd.Series, weights: Iterable | Mapping | pd.Series = None, axis: int = 0
+) -> float:
+    ...
+
+
+@overload
+def general(
+    fr: pd.DataFrame,
+    weights: Iterable | Mapping | pd.Series | pd.DataFrame = None,
     axis: int = 0,
-) -> Union[pd.Series, float]:
+) -> pd.Series:
+    ...
+
+
+def general(
+    fr: pd.Series | pd.DataFrame,
+    weights: Iterable | Mapping | pd.Series | pd.DataFrame = None,
+    axis: int = 0,
+) -> float | tools_unit.Q_ | pd.Series:
     """
     Weighted average of series or dataframe.
 
     Parameters
     ----------
-    fr : Union[pd.Series, pd.DataFrame]
+    fr : pd.Series | pd.DataFrame
         The input values.
-    weights : Union[Iterable, pd.Series, pd.DataFrame], optional
-        The weights. If provided as a Series, the weights and values are aligned along
-        its index. If no weights are provided, the normal (unweighted) average is returned
-        instead.
+    weights : Iterable | Mapping | pd.Series | pd.DataFrame, optional
+        The weights. If provided as a Mapping or Series, the weights and values
+        are aligned along its index. If no weights are provided, the normal
+        (unweighted) average is returned instead.
     axis : int, optional
         Calculate each column's average over all rows (if axis==0, default) or
         each row's average over all columns (if axis==1). Ignored for Series.
 
     Returns
     -------
-    Union[pd.Series, float]
-        The weighted average. A single float if `fr` is a Series; a Series if
-        `fr` is a Dataframe.
+    float | Q_ | pd.Series
+        The weighted average. A single float or single Quantitiy if ``fr`` is a Series;
+        a Series if ``fr`` is a Dataframe.
     """
     if isinstance(fr, pd.DataFrame):
         return dataframe(fr, weights, axis)
@@ -83,8 +99,8 @@ def general(
 
 
 def series(
-    s: pd.Series, weights: Union[Iterable, Mapping, pd.Series] = None
-) -> Union[float, tools_unit.Q_]:
+    s: pd.Series, weights: Iterable | Mapping | pd.Series = None
+) -> float | tools_unit.Q_:
     """
     Weighted average of series.
 
@@ -92,14 +108,14 @@ def series(
     ----------
     s : pd.Series
         The input values.
-    weights : Union[Iterable, Mapping, pd.Series], optional
+    weights : Iterable | Mapping | pd.Series, optional
         The weights. If provided as a Mapping or Series, the weights and values are
         aligned along their indices/keys. If no weights are provided, the normal
         (unweighted) average is returned instead.
 
     Returns
     -------
-    Union[float, Quantity]
+    float | Quantity
         The weighted average.
 
     Notes
@@ -158,7 +174,7 @@ def series(
 
 def dataframe(
     df: pd.DataFrame,
-    weights: Union[Iterable, Mapping, pd.Series, pd.DataFrame] = None,
+    weights: Iterable | Mapping | pd.Series | pd.DataFrame = None,
     axis: int = 0,
 ) -> pd.Series:
     """
@@ -168,7 +184,7 @@ def dataframe(
     ----------
     df : pd.DataFrame
         The input values.
-    weights : Union[Iterable, Mapping, pd.Series, pd.DataFrame], optional
+    weights : Iterable | Mapping | pd.Series | pd.DataFrame, optional
         The weights. If provided as a Series or Mapping, its index are is used for
         alignment (with ``df``'s index if axis==0, or its columns if axis==1). If no
         weights are provided, the normal (unweighted) average is returned instead.
@@ -311,8 +327,8 @@ def dataframe_columnwavg_with_weightsseries(
 
 def _dataframe_columnwavg_with_weightssumnot0(
     df: pd.DataFrame,
-    weights: Union[pd.Series, pd.DataFrame],
-    weightssum: Union[float, tools_unit.Q_, pd.Series],
+    weights: pd.Series | pd.DataFrame,
+    weightssum: float | tools_unit.Q_ | pd.Series,
 ) -> Iterable[pd.Series]:
     # Calculate the weighted average if sum of weights != 0.
     weight_is0 = weights == 0.0
@@ -325,7 +341,7 @@ def _dataframe_columnwavg_with_weightssumnot0(
 
 
 def _dataframe_columnwavg_with_weightssum0notall0(
-    df: pd.DataFrame, weights: Union[pd.Series, pd.DataFrame]
+    df: pd.DataFrame, weights: pd.Series | pd.DataFrame
 ) -> Iterable[pd.Series]:
     # Calculate the weighted average if sum of weights == 0, but not all weights are 0.
 
@@ -421,9 +437,7 @@ def rowvalue_uniformity(df: pd.DataFrame) -> pd.Series:
     return buffer
 
 
-def weights_as_series(
-    weights: Union[Iterable, Mapping], refindex: Iterable
-) -> pd.Series:
+def weights_as_series(weights: Iterable | Mapping, refindex: Iterable) -> pd.Series:
     if isinstance(weights, pd.Series):
         return weights
     if isinstance(weights, Mapping):

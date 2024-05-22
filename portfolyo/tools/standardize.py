@@ -2,8 +2,6 @@
 Standardizing series and dataframes to use as input for PfLine.
 """
 
-from typing import Union
-
 import pandas as pd
 from pytz import AmbiguousTimeError, NonExistentTimeError
 
@@ -11,16 +9,17 @@ from . import freq as tools_freq
 from . import right as tools_right
 from . import righttoleft as tools_righttoleft
 from . import tzone as tools_tzone
+from .types import Series_or_DataFrame
 
 
 def frame(
-    fr: Union[pd.Series, pd.DataFrame],
+    fr: Series_or_DataFrame,
     force: str = None,
     bound: str = "left",
     *,
     tz: str = None,
     floating: bool = True,
-) -> Union[pd.Series, pd.DataFrame]:
+) -> Series_or_DataFrame:
     """Standardize a series or dataframe.
 
     Parameters
@@ -53,7 +52,7 @@ def frame(
 
     Returns
     -------
-    Union[pd.Series, pd.DataFrame]
+    pd.Series | pd.DataFrame
         Same type as ``fr``, with a left-bound DatetimeIndex, a valid frequency, and
         wanted timezone.
 
@@ -151,11 +150,11 @@ def _fix_timezone(fr, force, tz, floating):
     )
 
 
-def _standardize_index_name(fr: Union[pd.Series, pd.DataFrame]):
+def _standardize_index_name(fr: Series_or_DataFrame) -> Series_or_DataFrame:
     return fr.rename_axis(index="ts_left")
 
 
-def assert_frame_standardized(fr: Union[pd.Series, pd.DataFrame]):
+def assert_frame_standardized(fr: Series_or_DataFrame) -> None:
     """Assert that series or dataframe is standardized."""
     assert_index_standardized(fr.index)
 

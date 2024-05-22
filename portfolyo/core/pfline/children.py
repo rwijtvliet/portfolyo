@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Any, Mapping, Union
+from typing import TYPE_CHECKING, Any, Mapping
 
 from ... import tools
 from . import create
@@ -11,9 +11,7 @@ if TYPE_CHECKING:
 
 
 class ChildFunctionality(Mapping):
-    def set_child(
-        self: NestedPfLine, name: str, child: Union[PfLine, Any]
-    ) -> NestedPfLine:
+    def set_child(self: NestedPfLine, name: str, child: PfLine | Any) -> NestedPfLine:
         """Set/add/update child; returns new pfline instance without changing current instance."""
         if name in ["w", "q", "p", "r"]:
             raise ValueError("Name cannot be one of 'w', 'q', 'p', 'r'.")

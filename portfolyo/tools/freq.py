@@ -2,10 +2,10 @@
 Tools for dealing with frequencies.
 """
 
-from typing import Union
-
 import numpy as np
 import pandas as pd
+
+from .types import Series_or_DataFrame
 
 # Allowed frequencies.
 # Perfect containment; a short-frequency time period always entirely falls within a single high-frequency time period.
@@ -114,7 +114,7 @@ def longest(*freqs: str) -> str:
     return _longestshortest(False, *freqs)
 
 
-def to_offset(freq: str) -> Union[pd.Timedelta, pd.DateOffset]:
+def to_offset(freq: str) -> pd.Timedelta | pd.DateOffset:
     """Object that can be added to a left-bound timestamp to find corresponding right-bound timestamp.
 
     Parameters
@@ -237,8 +237,8 @@ def set_to_index(
 
 
 def set_to_frame(
-    fr: Union[pd.Series, pd.DataFrame], wanted: str = None, strict: bool = False
-) -> Union[pd.Series, pd.DataFrame]:
+    fr: Series_or_DataFrame, wanted: str = None, strict: bool = False
+) -> Series_or_DataFrame:
     """Try to read, infer, or force frequency of frame's index.
 
     Parameters
@@ -251,7 +251,7 @@ def set_to_frame(
 
     Returns
     -------
-    Union[pd.Series, pd.DataFrame]
+    pd.Series | pd.DataFrame
         Same type as ``fr``, with, if possible, a valid value for ``fr.index.freq``.
     """
     # Handle non-datetime-indices.

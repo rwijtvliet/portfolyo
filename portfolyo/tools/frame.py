@@ -3,15 +3,15 @@ Tools for working with pandas series and dataframes.
 """
 
 import functools
-from typing import Any, Iterable, Union
+from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
 
+from .types import Series_or_DataFrame
 
-def fill_gaps(
-    fr: Union[pd.Series, pd.DataFrame], maxgap: int = 2
-) -> Union[pd.Series, pd.DataFrame]:
+
+def fill_gaps(fr: Series_or_DataFrame, maxgap: int = 2) -> Series_or_DataFrame:
     """Fill gaps in series by linear interpolation.
 
     Parameters

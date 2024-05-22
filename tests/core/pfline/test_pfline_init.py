@@ -3,7 +3,7 @@
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Iterable, Union
+from typing import Any, Callable, Iterable
 
 import pandas as pd
 import pytest
@@ -187,7 +187,7 @@ def test_init_A(
     columns: Iterable[str],
     inputtype: InputTypeA,
     has_unit: bool,
-    constructor: Union[Callable, type],
+    constructor: Callable | type,
 ):
     """Test if pfline can be initialized correctly from a flat testcase."""
 

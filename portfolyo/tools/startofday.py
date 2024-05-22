@@ -3,7 +3,6 @@ Tools to get/set start-of-day.
 """
 
 import datetime as dt
-from typing import Union
 
 import pandas as pd
 
@@ -11,9 +10,7 @@ from . import freq as tools_freq
 from . import right as tools_right
 
 
-def get(
-    i: pd.DatetimeIndex, returntype: str = "time"
-) -> Union[dt.time, str, dt.timedelta]:
+def get(i: pd.DatetimeIndex, returntype: str = "time") -> dt.time | str | dt.timedelta:
     """Get start-of-day of an index.
 
     Parameters
@@ -27,7 +24,7 @@ def get(
 
     Returns
     -------
-    Union[dt.time, str, dt.timedelta]
+    dt.time | str | dt.timedelta
     """
     start_of_day = i[0].time()
     if returntype == "time":

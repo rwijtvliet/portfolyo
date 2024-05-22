@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Iterable, Union
+from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
@@ -44,7 +44,7 @@ class Categories:
     def x(self, max_count: int = None) -> Iterable[int]:
         return self._get_subset("x", max_count)
 
-    def y(self, max_count: int = None) -> Iterable[Union[float, tools_unit.Q_]]:
+    def y(self, max_count: int = None) -> Iterable[float | tools_unit.Q_]:
         return self._get_subset("y", max_count)
 
     def ts(self, max_count: int = None) -> Iterable[pd.Timestamp]:

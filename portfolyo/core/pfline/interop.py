@@ -4,7 +4,7 @@ dimensionless values/timeseries from data."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -44,12 +44,12 @@ class InOp:
         inop = inop.to_df()
     """
 
-    w: Union[tools.unit.Q_, pd.Series] = None
-    q: Union[tools.unit.Q_, pd.Series] = None
-    p: Union[tools.unit.Q_, pd.Series] = None
-    r: Union[tools.unit.Q_, pd.Series] = None
-    nodim: Union[tools.unit.Q_, pd.Series] = None  # explicitly dimensionless
-    agn: Union[float, pd.Series] = None  # agnostic
+    w: tools.unit.Q_ | pd.Series = None
+    q: tools.unit.Q_ | pd.Series = None
+    p: tools.unit.Q_ | pd.Series = None
+    r: tools.unit.Q_ | pd.Series = None
+    nodim: tools.unit.Q_ | pd.Series = None  # explicitly dimensionless
+    agn: float | pd.Series = None  # agnostic
 
     def __post_init__(self):
         # Add correct units and check type.
@@ -219,8 +219,8 @@ class InOp:
 
 
 def _set_unit(
-    v: Union[float, int, tools.unit.Q_, pd.Series], attr: str
-) -> Union[float, tools.unit.Q, pd.Series]:
+    v: float | int | tools.unit.Q_ | pd.Series, attr: str
+) -> float | tools.unit.Q | pd.Series:
     """Set unit (if none set yet) or convert to unit."""
     if v is None:
         return None
@@ -305,7 +305,7 @@ def _unit2attr(unit) -> str:
 
 
 def _from_data(
-    data: Union[float, tools.unit.Q_, pd.Series, Dict, pd.DataFrame, Iterable, Mapping]
+    data: float | tools.unit.Q_ | pd.Series | Dict | pd.DataFrame | Iterable | Mapping,
 ) -> InOp:
     """Turn ``data`` into a InterOp object."""
 
@@ -411,7 +411,7 @@ def _equal(inop1: InOp, inop2: InOp) -> InOp:
 
 def pfline_or_nodimseries(
     data: Any, ref_index: pd.DatetimeIndex, agn_default: str = None
-) -> Union[None, pd.Series, FlatPfLine]:
+) -> None | pd.Series | FlatPfLine:
     """Turn ``data`` into PfLine if dimension-aware. If not, turn into Series."""
 
     # Already a PfLine.

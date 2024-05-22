@@ -1,4 +1,4 @@
-from typing import Iterable, Union
+from typing import Iterable
 
 import pandas as pd
 import pytest
@@ -211,7 +211,7 @@ def test_ignore_all(  # indexorframe: str,
 def do_test_intersect(
     indexorframe: str,
     idxs: Iterable[pd.DatetimeIndex],
-    expected_startdate: Union[str, Exception],
+    expected_startdate: str | Exception,
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,
@@ -242,7 +242,7 @@ def do_test_intersect(
 
 def do_test_intersect_index(
     idxs: Iterable[pd.DatetimeIndex],
-    expected_startdate: Union[str, Exception],
+    expected_startdate: str | Exception,
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,

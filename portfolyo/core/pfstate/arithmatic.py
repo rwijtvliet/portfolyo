@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -36,9 +36,7 @@ class Prep:
 
         return wrapper
 
-    def _prep_data(
-        value, refindex: pd.DatetimeIndex
-    ) -> Union[pd.Series, PfLine, PfState]:
+    def _prep_data(value, refindex: pd.DatetimeIndex) -> pd.Series | PfLine | PfState:
         """Turn ``value`` into PfLine or PfState if possible. If not, turn into (normal or unit-aware) Series."""
 
         # None.
