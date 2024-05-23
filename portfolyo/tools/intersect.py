@@ -214,8 +214,7 @@ def frames(
 
     Returns
     -------
-    list of series and/or dataframes
-        As input, but trimmed to their intersection.
+    As input, but trimmed to their intersection.
 
     Notes
     -----
@@ -228,4 +227,4 @@ def frames(
         ignore_tz=ignore_tz,
         ignore_start_of_day=ignore_start_of_day,
     )
-    return [fr.loc[idx] for idx, fr in zip(new_idxs, frames)]
+    return [fr.loc[i] for i, fr in zip(new_idxs, frames)]

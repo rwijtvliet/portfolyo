@@ -1,21 +1,21 @@
 from typing import List
 
-from ..tools.intersect import indices_flex
-from .types import NDFrameLike
+from ..tools import intersect as tools_intersect
+from .types import Indexable
 
 
 def indexable(
-    *frames: NDFrameLike,
+    *objs: Indexable,
     ignore_freq: bool = False,
     ignore_tz: bool = False,
     ignore_start_of_day: bool = False,
-) -> List[NDFrameLike]:
+) -> List[Indexable]:
     """Intersect several dataframes and/or series.
 
     Parameters
     ----------
-    *frames : pd.Series and/or pd.DataFrame and/or PfLines and/or PfStates
-        The frames to intersect.
+    *objs : pd.Series and/or pd.DataFrame and/or PfLines and/or PfStates
+        The indexable objects to intersect.
     ignore_freq: bool, optional (default: False)
         If True, do the intersection even if the frequencies do not match; drop the
         time periods that do not (fully) exist in either of the frames.
@@ -28,18 +28,17 @@ def indexable(
 
     Returns
     -------
-    list of series and/or dataframes
-        As input, but trimmed to their intersection.
+    As input, but trimmed to their intersection.
 
     Notes
     -----
     The indices must have equal frequency, timezone, start-of-day. Otherwise, an error
     is raised. If there is no overlap, empty frames are returned.
     """
-    new_idxs = indices_flex(
-        *[fr.index for fr in frames],
+    new_idxs = tools_intersect.indices_flex(
+        *[o.index for o in objs],
         ignore_freq=ignore_freq,
         ignore_tz=ignore_tz,
         ignore_start_of_day=ignore_start_of_day,
     )
-    return [fr.loc[idx] for idx, fr in zip(new_idxs, frames)]
+    return [o.loc[i] for i, o in zip(new_idxs, objs)]

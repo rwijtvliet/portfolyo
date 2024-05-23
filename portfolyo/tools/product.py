@@ -1,7 +1,6 @@
 """Utilities for calculating / manipulating price data."""
 
 import datetime as dt
-import warnings
 from typing import Tuple
 
 import pandas as pd
@@ -14,31 +13,11 @@ germanpower_peakfn = tools_peakfn.factory(dt.time(8), dt.time(20), [1, 2, 3, 4, 
 
 
 def is_peak_hour(i: pd.DatetimeIndex) -> pd.Series:
-    """
-    Calculate if a timestamp is in a peak period or not.
-
-    Parameters
-    ----------
-    i : pd.DatetimeIndex
-        Timestamps for which to calculate if it falls in a peak period.
-
-    More precisely: if timestamp lies in one of the (left-closed) time intervals that
-    define the peak hour periods.
-
-    Returns
-    -------
-    Series
-        with boolean values and same index.
-    """
-    if isinstance(i, pd.Timestamp):
-        raise TypeError("no longer supported")
-        warnings.warn(
-            "Calling this function with a single timestamp is deprecated and will be removed in a future version",
-            FutureWarning,
-        )
-        return is_peak_hour(pd.DatetimeIndex([i], freq="15T"))[0]
-
-    return germanpower_peakfn(i)
+    raise DeprecationWarning(
+        "``pf.is_peak_hour`` has been deprecated and will be removed in a future version."
+        " Use ``pf.germanpower_peakfn`` instead, or create your own peak function with"
+        " ``pf.create_peakfn()``."
+    )
 
 
 def delivery_period(
@@ -59,7 +38,7 @@ def delivery_period(
     front_count : int, optional (default: 1)
         1 = next/coming (full) period, 2 = period after that, etc.
     start_of_day : dt.time, optional (default: midnight)
-        Start of day for delivery periods with a longer-than-daily frequency.
+        Start of day for delivery periods with a daily-or-longer frequency.
 
     Returns
     -------
