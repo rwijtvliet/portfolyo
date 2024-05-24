@@ -7,7 +7,7 @@ import pandas as pd
 from ... import tools
 from ...tools.peakconvert import tseries2poframe
 from . import classes
-from .enums import Kind, Structure
+from .enums import Kind
 
 if TYPE_CHECKING:
     from .classes import FlatPfLine, PfLine, PricePfLine
@@ -41,13 +41,13 @@ def po(
     elif self.kind is Kind.COMPLETE:
         df_dict["p"] = df_dict["r"] / df_dict["q"]
 
-    # Turn into dataframe and put 'peak' and 'offpeak' on top.
-    return pd.DataFrame(df_dict).swaplevel(axis=1).sort_index(axis=1)
+    # Turn into dataframe.
+    return pd.DataFrame({k: df.stack() for k, df in df_dict.items()})
 
 
 def hedge_with(
     self: PfLine,
-    p: PricePfLine,
+    prices: PricePfLine,
     how: str = "val",
     peak_fn: tools.peakfn.PeakFunction = None,
     freq: str = "MS",
@@ -61,9 +61,11 @@ def hedge_with(
             "Can only hedge a PfLine with daily or (quarter)hourly information."
         )
 
-    wout, pout = tools.hedge.hedge(self.w, p.p, how, peak_fn, freq)
-    constructor = classes.constructor(Structure.FLAT, Kind.COMPLETE)
-    return constructor({"w": wout, "p": pout})
+    wout, pout = tools.hedge.hedge(self.w, prices.p, how, peak_fn, freq)
+    df = pd.DataFrame({"w": wout, "p": pout})
+    df["q"] = df["w"] * tools.duration.index(df.index)
+    df["r"] = df["p"] * df["q"]
+    return classes.FlatCompletePfLine(df)
 
 
 def __eq__(self: FlatPfLine, other: Any) -> bool:

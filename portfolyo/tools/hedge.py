@@ -12,64 +12,23 @@ from . import trim as tools_trim
 from . import wavg as tools_wavg
 
 
-def _hedge(
-    df: pd.DataFrame,
-    how: str,
-    peak_fn: tools_peakfn.PeakFunction = None,
-    freq: str = "MS",
-) -> pd.Series:
-    """
-    Hedge a power timeseries, for given price timeseries.
-
-    Parameters
-    ----------
-    df : pd.DataFrame
-        with 'w' [MW] and 'p' [Eur/MWh] columns.
-    how : str. One of {'vol', 'val'}
-        Hedge-constraint. 'vol' for volumetric hedge, 'val' for value hedge.
-    peak_fn : PeakFunction, optional (default: None)
-        Function that returns boolean Series indicating if timestamps in index lie in peak period.
-        If None, hedge with base products.
-    freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'AS' (years)}
-        Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
-
-    Returns
-    -------
-    pd.Series
-        With float values or quantities.
-        If peak_fn is None, Series with index with 2 values (['w', 'p']; power and
-        price in entire period).
-        If peak_fn is not None, Series with multiindex (['peak', 'offpeak'] x ['w', 'p'];
-        power and price, split between peak and offpeak intervals in the period).
-    """
-    df = df.copy()
-
-    # Use magnitude of duration only, so that, if w and p are float series, their
-    # return series are also floats (instead of dimensionless Quantities).
-    df["duration"] = tools_duration.frame(df).pint.m
-
+def one_hedge(df: pd.DataFrame, how: str) -> pd.Series:
+    """Hedge over all timestamps in dataframe. Dataframe must have columns
+    'w', 'p', 'duration'. Returns Series with index 'w', 'p', with hedge values.
+    for the entire period."""
     # Prepare weights.
-    if how == "vol":  # volume hedge
-        # solve for w_hedge: sum(w * duration) == w_hedge * sum(duration)
-        # so: w_hedge = sum(w * duration) / sum(duration)
-        df["weights"] = df["duration"]
-    elif how == "val":  # value hedge
+    if how == "val":  # value hedge
         # solve for w_hedge: sum(w * duration * p) == w_hedge * sum(duration * p)
         # so: w_hedge = sum(w * duration * p) / sum(duration * p)
-        df["weights"] = df["p"] * df["duration"]
-    else:
-        raise ValueError(f"Parameter `how` must be 'val' or 'vol'; got {how}.")
+        weights = df["p"] * df["duration"]
+    else:  # how == "vol":  # volume hedge
+        # solve for w_hedge: sum(w * duration) == w_hedge * sum(duration)
+        # so: w_hedge = sum(w * duration) / sum(duration)
+        weights = df["duration"]
 
-    # Grouping.
-    grouping = tools_peakconvert.group_arrays(df.index, freq, peak_fn)
-
-    # Do hedge.
-    def do_hedge(sub_df):
-        p_hedge = tools_wavg.series(sub_df["p"], sub_df["duration"])
-        w_hedge = tools_wavg.series(sub_df["w"], sub_df["weights"])
-        return pd.Series({"w": w_hedge, "p": p_hedge})
-
-    return df.groupby(grouping).transform(do_hedge)
+    p_hedge = tools_wavg.series(df["p"], df["duration"])
+    w_hedge = tools_wavg.series(df["w"], weights)
+    return pd.Series({"w": w_hedge, "p": p_hedge})
 
 
 def hedge(
@@ -85,7 +44,7 @@ def hedge(
     Parameters
     ----------
     w : Series
-        Power timeseries with hourly or quarterhourly frequency.
+        Power timeseries with spot market frequency.
     p: Series
         Price timeseries with same frequency.
     how : str, optional (Default: 'val')
@@ -93,7 +52,7 @@ def hedge(
     peak_fn : PeakFunction, optional (default: None)
         Function that returns boolean Series indicating if timestamps in index lie in peak period.
         If None, hedge with base products.
-    freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'AS' (years)}
+    freq : {'D' (days), 'MS' (months), 'QS' (quarters), 'AS' (years)}, optional (default: 'MS')
         Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
 
     Returns
@@ -120,6 +79,8 @@ def hedge(
             "Split into peak and offpeak only possible when (a) hedging with monthly (or "
             "longer) products, and (b) if timeseries have hourly (or shorter) values."
         )
+    if how not in ["vol", "val"]:
+        raise ValueError(f"Parameter `how` must be 'val' or 'vol'; got {how}.")
 
     # Handle possible units.
     win, wunits = (w.pint.magnitude, w.pint.units) if hasattr(w, "pint") else (w, None)
@@ -128,15 +89,26 @@ def hedge(
     # Only keep full periods of overlapping timestamps.
 
     win, pin = tools_intersect.frames(win, pin)
-    df = tools_trim.frame(pd.DataFrame({"w": win, "p": pin}), freq)
-    if len(df) == 0:
-        return df["w"], df["p"]  # No full periods; don't do hedge; return empty series
+    dfin = tools_trim.frame(pd.DataFrame({"w": win, "p": pin}), freq)
+    if len(dfin) == 0:
+        return (
+            dfin["w"],
+            dfin["p"],
+        )  # No full periods; don't do hedge; return empty series
 
     # Do actual hedge.
-    df2 = _hedge(df, how, freq, peak_fn)
+    # . helper values
+    dfin["duration"] = tools_duration.index(dfin.index)
+    grouping = tools_peakconvert.group_index(dfin.index, peak_fn, freq)
+    # . calculation
+    vals = dfin.groupby(grouping).apply(lambda subdf: one_hedge(subdf, how))
+    vals.index = pd.MultiIndex.from_tuples(vals.index)
+    # . broadcast to original timeseries
+    dfout = vals.loc[grouping, :].set_axis(dfin.index)
+    wout, pout = dfout["w"], dfout["p"]
 
     # Handle possible units.
     if wunits or punits:
-        df2 = df2.astype({"w": f"pint[{wunits}]", "p": f"pint[{punits}]"})
+        wout, pout = wout.astype(f"pint[{wunits}]"), pout.astype(f"pint[{punits}]")
 
-    return df2["w"], df2["p"]
+    return wout, pout

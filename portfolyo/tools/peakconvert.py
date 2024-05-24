@@ -1,7 +1,6 @@
 """Module to convert between timeseries and base/peak/offpeak-values."""
 
 import warnings
-from typing import List
 
 import pandas as pd
 
@@ -15,10 +14,10 @@ from . import wavg as tools_wavg
 BPO = ["base", "peak", "offpeak"]
 
 
-def group_arrays(
-    i: pd.DatetimeIndex, freq: str, peak_fn: tools_peakfn.PeakFunction = None
-) -> List:
-    """Function to group all rows that belong to same delivery period."""
+def group_index(
+    i: pd.DatetimeIndex, peak_fn: tools_peakfn.PeakFunction, freq: str
+) -> pd.MultiIndex:
+    """Multiindex, that is the same for all rows that belong to same delivery period."""
     # Grouping due to delivery period.
     groups = [i.year]
     if freq == "MS":
@@ -36,7 +35,7 @@ def group_arrays(
     if peak_fn is not None:
         groups.append(peak_fn(i))
 
-    return groups
+    return pd.MultiIndex.from_arrays(groups)
 
 
 def complete_bpoframe(

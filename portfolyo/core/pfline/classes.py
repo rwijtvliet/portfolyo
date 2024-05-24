@@ -184,10 +184,16 @@ class PfLine(
         how : str, optional (Default: 'val')
             Hedge-constraint. 'vol' for volumetric hedge, 'val' for value hedge.
         peak_fn : PeakFunction, optional (default: None)
-            Function that returns boolean Series indicating if timestamps in index lie in peak period.
+            To hedge with peak and offpeak products: function that returns boolean
+            Series indicating if timestamps in index lie in peak period.
             If None, hedge with base products.
         freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'AS' (years)}
             Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
+
+        See also
+        --------
+        portfolyo.create_peakfn
+        portfolyo.germanpower_peakfn
 
         Returns
         -------
@@ -198,7 +204,7 @@ class PfLine(
 
         Notes
         -----
-        - If the PfLine contains prices, these are ignored.
+        If the PfLine contains prices, these are ignored.
         """
         ...
 
