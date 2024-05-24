@@ -1,10 +1,12 @@
-from typing import List, Union, Tuple
-import pandas as pd
-from portfolyo import tools
-
-from portfolyo.tools.right import stamp
-from portfolyo.tools.freq import longest, longer_or_shorter
 from datetime import datetime
+from typing import List, Tuple
+
+import pandas as pd
+
+from . import freq as tools_freq
+from . import right as tools_right
+from . import trim as tools_trim
+from .types import Series_or_DataFrame
 
 
 def indices(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:
@@ -120,7 +122,7 @@ def indices_flex(
     if len(distinct_sod) != 1 and ignore_start_of_day is False:
         raise ValueError(f"Indices must have equal start-of-day; got {distinct_sod}.")
     for i in range(len(idxs)):
-        if len(distinct_sod) != 1 and longer_or_shorter(idxs[i].freq, "D") == -1:
+        if len(distinct_sod) != 1 and tools_freq.up_or_down(idxs[i].freq, "D") == -1:
             raise ValueError(
                 "Downsample all indices to daily-or-longer, or trim them so they have the same start-of-day, before attempting to calculate the intersection"
             )
@@ -134,12 +136,12 @@ def indices_flex(
     longest_freq = freq[0]
     if ignore_freq is True and len(distinct_freqs) != 1:
         # Find the longest frequency
-        longest_freq = longest(*freq)
+        longest_freq = tools_freq.longest(*freq)
         # trim datetimeindex
         for i in range(len(idxs)):
             # if idxs[i].freq is not the same as longest freq, we trim idxs[i]
             if idxs[i].freq != longest_freq:
-                idxs[i] = tools.trim.index(idxs[i], longest_freq)
+                idxs[i] = tools_trim.index(idxs[i], longest_freq)
 
     if ignore_tz is True and len(distinct_tzs) != 1:
         # set timezone to none for all values
@@ -160,14 +162,14 @@ def indices_flex(
     values = sorted(values)
 
     if len(values) == 0:
-        return tuple([pd.DatetimeIndex([]) for _i in idxs])
+        return tuple([pd.DatetimeIndex([]) for _ in idxs])
 
     idxs_out = []
     for i in range(len(idxs)):
         start = min(values)
         # end = stamp(start, longest_freq._prefix)
         end = max(values)
-        end = stamp(end, longest_freq)
+        end = tools_right.stamp(end, longest_freq)
 
         if ignore_start_of_day is True:
             start = datetime.combine(pd.to_datetime(start).date(), start_of_day[i])
@@ -189,11 +191,11 @@ def indices_flex(
 
 
 def frames(
-    *frames: Union[pd.Series, pd.DataFrame],
+    *frames: Series_or_DataFrame,
     ignore_freq: bool = False,
     ignore_tz: bool = False,
     ignore_start_of_day: bool = False,
-) -> List[Union[pd.Series, pd.DataFrame]]:
+) -> List[Series_or_DataFrame]:
     """Intersect several dataframes and/or series.
 
     Parameters
@@ -212,8 +214,7 @@ def frames(
 
     Returns
     -------
-    list of series and/or dataframes
-        As input, but trimmed to their intersection.
+    As input, but trimmed to their intersection.
 
     Notes
     -----
@@ -226,4 +227,4 @@ def frames(
         ignore_tz=ignore_tz,
         ignore_start_of_day=ignore_start_of_day,
     )
-    return [fr.loc[idx] for idx, fr in zip(new_idxs, frames)]
+    return [fr.loc[i] for i, fr in zip(new_idxs, frames)]

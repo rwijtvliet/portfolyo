@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import warnings
-from typing import TYPE_CHECKING, Any, Mapping, Union
+from typing import TYPE_CHECKING, Any, Mapping
 
-from ... import testing, tools
+from ... import tools
 from . import create
 
 if TYPE_CHECKING:
@@ -11,9 +11,7 @@ if TYPE_CHECKING:
 
 
 class ChildFunctionality(Mapping):
-    def set_child(
-        self: NestedPfLine, name: str, child: Union[PfLine, Any]
-    ) -> NestedPfLine:
+    def set_child(self: NestedPfLine, name: str, child: PfLine | Any) -> NestedPfLine:
         """Set/add/update child; returns new pfline instance without changing current instance."""
         if name in ["w", "q", "p", "r"]:
             raise ValueError("Name cannot be one of 'w', 'q', 'p', 'r'.")
@@ -28,7 +26,7 @@ class ChildFunctionality(Mapping):
                 f"Incompatible kinds; the portfolio line has {self.kind} but the child has {child.kind}."
             )
         try:
-            testing.assert_indices_compatible(self.index, child.index)
+            tools.testing.assert_indices_compatible(self.index, child.index)
         except AssertionError as e:
             raise ValueError(
                 "Index of new child is not compatible with the existing data."

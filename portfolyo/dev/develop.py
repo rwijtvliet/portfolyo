@@ -3,7 +3,7 @@ Code to quickly get objects for testing.
 """
 
 import datetime as dt
-from typing import Callable, Dict, Tuple, Union
+from typing import Callable, Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -68,7 +68,7 @@ def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:
 
 def get_value(
     name: str = None, has_unit: bool = True, magn: float = None, *, _seed: int = None
-) -> Union[float, tools.unit.Q_]:
+) -> float | tools.unit.Q_:
     """Get a single value."""
     if _seed:
         np.random.seed(_seed)

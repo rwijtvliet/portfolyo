@@ -1,8 +1,8 @@
 """Creating colors for use in plotting."""
 
 import colorsys
-from enum import Enum
 from collections import namedtuple
+from enum import Enum
 
 import matplotlib as mpl
 import numpy as np

@@ -1,4 +1,3 @@
-from typing import Union
 import pandas as pd
 import pytest
 
@@ -23,7 +22,7 @@ def get_idx(
 
 def create_obj(
     series: pd.Series, name_obj: str
-) -> Union[pd.DataFrame, pf.PfLine, pf.PfState]:
+) -> pd.DataFrame | pf.PfLine | pf.PfState:
     if name_obj == "pfline":
         return pf.PfLine({"w": series})
     elif name_obj == "pfstate":

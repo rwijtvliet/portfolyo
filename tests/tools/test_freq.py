@@ -1,5 +1,3 @@
-from typing import Union
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -19,12 +17,11 @@ def test_longestshortestfreq(count):
 
 @pytest.mark.parametrize("freq1", freqs_small_to_large)
 @pytest.mark.parametrize("freq2", freqs_small_to_large)
-def test_frequpordown_freqlongerorshorter(freq1, freq2):
+def test_frequpordown(freq1, freq2):
     i1 = freqs_small_to_large.index(freq1)
     i2 = freqs_small_to_large.index(freq2)
     outcome = np.sign(i1 - i2)
     assert tools.freq.up_or_down(freq1, freq2) == outcome
-    assert tools.freq.longer_or_shorter(freq1, freq2) == outcome
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
@@ -148,7 +145,7 @@ def test_setfreq(
     num: int,
     wanted: str,
     strict: bool,
-    expected: Union[str, Exception],
+    expected: str | Exception,
     indexorframe: str,
 ):
     i = pd.date_range("2020", periods=num, freq=freq)

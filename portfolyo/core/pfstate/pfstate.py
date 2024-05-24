@@ -12,11 +12,13 @@ from typing import Iterable, Optional
 import pandas as pd
 
 from ... import tools
-from ..shared import ExcelClipboardOutput, PfStatePlot, PfStateText
-from ..ndframelike import NDFrameLike
 from ..pfline import PfLine, create
+from ..shared.excelclipboard import ExcelClipboardOutput
+from ..shared.ndframelike import NDFrameLike
 from . import pfstate_helper
 from .arithmatic import PfStateArithmatic
+from .plot import PfStatePlot
+from .text import PfStateText
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
@@ -222,25 +224,55 @@ class PfState(
         return PfState(offtakevolume, unsourcedprice, sourced)
 
     def hedge_of_unsourced(
-        self: PfState, how: str = "val", freq: str = "MS", po: bool = None
+        self: PfState,
+        how: str = "val",
+        peak_fn: tools.peakfn.PeakFunction = None,
+        freq: str = "MS",
     ) -> PfLine:
         """Hedge the unsourced volume, at unsourced prices in the portfolio.
 
+        Parameters
+        ----------
+        how : str, optional (Default: 'val')
+            Hedge-constraint. 'vol' for volumetric hedge, 'val' for value hedge.
+        peak_fn : PeakFunction, optional (default: None)
+            To hedge with peak and offpeak products: function that returns boolean
+            Series indicating if timestamps in index lie in peak period.
+            If None, hedge with base products.
+        freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'AS' (years)}
+            Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
+
         See also
         --------
-        PfLine.hedge
+        PfLine.hedge_with
+        portfolyo.create_peakfn
+        portfolyo.germanpower_peakfn
 
         Returns
         -------
         PfLine
             Hedge (volumes and prices) of unsourced volume.
         """
-        return self.unsourced.volume.hedge_with(self.unsourcedprice, how, freq, po)
+        return self.unsourced.volume.hedge_with(self.unsourcedprice, how, peak_fn, freq)
 
     def source_unsourced(
-        self: PfState, how: str = "val", freq: str = "MS", po: bool = None
+        self: PfState,
+        how: str = "val",
+        peak_fn: tools.peakfn.PeakFunction = None,
+        freq: str = "MS",
     ) -> PfState:
         """Simulate PfState if unsourced volume is hedged and sourced at market prices.
+
+        Parameters
+        ----------
+        how : str, optional (Default: 'val')
+            Hedge-constraint. 'vol' for volumetric hedge, 'val' for value hedge.
+        peak_fn : PeakFunction, optional (default: None)
+            To hedge with peak and offpeak products: function that returns boolean
+            Series indicating if timestamps in index lie in peak period.
+            If None, hedge with base products.
+        freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'AS' (years)}
+            Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
 
         See also
         --------
@@ -249,9 +281,9 @@ class PfState(
         Returns
         -------
         PfState
-            which is fully hedged at time scales of `freq` or longer.
+            which is fully hedged at time scales of ``freq`` or longer.
         """
-        tosource = self.hedge_of_unsourced(how, freq, po)
+        tosource = self.hedge_of_unsourced(how, peak_fn, freq)
         return self.__class__(
             self.offtakevolume, self.unsourcedprice, self.sourced + tosource
         )

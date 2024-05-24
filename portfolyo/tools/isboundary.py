@@ -3,7 +3,7 @@ Check if timestamp is delivery period start (or end).
 """
 
 import datetime as dt
-from typing import Union
+from typing import overload
 
 import numpy as np
 import pandas as pd
@@ -17,23 +17,59 @@ from . import startofday as tools_startofday
 # i = pd.date_range('2020-01-01', freq='MS', periods=12)
 # i.is_year_start
 # array([False, False, False, False, False, False, False, False, False, False, False, True])
-def is_year_start(i: Union[pd.Timestamp, pd.DatetimeIndex]) -> Union[bool, np.ndarray]:
+@overload
+def is_year_start(i: pd.Timestamp) -> bool:
+    ...
+
+
+@overload
+def is_year_start(i: pd.DatetimeIndex) -> np.ndarray:
+    ...
+
+
+def is_year_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
     return (i.day == 1) & (i.month == 1)
 
 
-def is_quarter_start(
-    i: Union[pd.Timestamp, pd.DatetimeIndex]
-) -> Union[bool, np.ndarray]:
+@overload
+def is_quarter_start(i: pd.Timestamp) -> bool:
+    ...
+
+
+@overload
+def is_quarter_start(i: pd.DatetimeIndex) -> np.ndarray:
+    ...
+
+
+def is_quarter_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
     return (i.day == 1) & ((i.month - 1) % 3 == 0)
 
 
-def is_month_start(i: Union[pd.Timestamp, pd.DatetimeIndex]) -> Union[bool, np.ndarray]:
+@overload
+def is_month_start(i: pd.Timestamp) -> bool:
+    ...
+
+
+@overload
+def is_month_start(i: pd.DatetimeIndex) -> np.ndarray:
+    ...
+
+
+def is_month_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
     return i.day == 1
 
 
-def is_X_start(
-    i: Union[pd.Timestamp, pd.DatetimeIndex], freq: str
-) -> Union[bool, np.ndarray]:
+@overload
+def is_X_start(i: pd.Timestamp) -> bool:
+    ...
+
+
+@overload
+def is_X_start(i: pd.DatetimeIndex) -> np.ndarray:
+    ...
+
+
+def is_X_start(i: pd.Timestamp | pd.DatetimeIndex, freq: str) -> bool | np.ndarray:
     if freq == "MS":
         return is_month_start(i)
     elif freq == "QS":

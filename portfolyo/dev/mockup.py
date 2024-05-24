@@ -1,11 +1,12 @@
 """Create somewhat realistic curves."""
+
 from typing import Tuple
 
 import numpy as np
 import pandas as pd
 
-from ..prices.utils import is_peak_hour
 from ..tools import unit  # noqa # ensure we use current ureg
+from ..tools.product import germanpower_peakfn
 
 
 def w_offtake(
@@ -106,7 +107,7 @@ def p_marketprices(
         if i.freq == "15T":  # repeat every value 4 times
             b = np.array([[bb, bb, bb, bb] for bb in b]).flatten()
         b = b[: len(i)]  # slice in case i is very short
-        pa = np.convolve(-1 + 2 * is_peak_hour(i), b / sum(b), mode="same")
+        pa = np.convolve(-1 + 2 * germanpower_peakfn(i), b / sum(b), mode="same")
     else:
         pa = np.zeros(len(i))
     # Values
@@ -167,7 +168,7 @@ def wp_sourced(
         return s.resample(freq, group_keys=False).apply(calc_wp)
 
     if sin.index.freq in ["15T", "H"]:
-        is_peak = is_peak_hour(sin.index)  # avoid running on each ts individually
+        is_peak = germanpower_peakfn(sin.index)  # avoid running on each ts individually
         df = sin.groupby(is_peak, group_keys=False).apply(group_and_calc)
     else:
         df = group_and_calc(sin)

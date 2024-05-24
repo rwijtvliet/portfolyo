@@ -7,18 +7,15 @@ from __future__ import annotations
 import hashlib
 from typing import TYPE_CHECKING, Dict, Tuple
 
-import matplotlib
 import pandas as pd
 from matplotlib import pyplot as plt
 
 from ... import tools
-from ... import visualize as vis
-from ..pfline import classes
-from ..pfline.enums import Kind
+from . import classes
+from .enums import Kind
 
-if TYPE_CHECKING:  # needed to avoid circular imports
-    from ..pfline import PfLine
-    from ..pfstate import PfState
+if TYPE_CHECKING:
+    from .classes import PfLine
 
 
 DEFAULTFMT = {
@@ -34,7 +31,7 @@ def defaultkwargs(name: str, col: str):
     # Get plot default kwargs.
     if name is None:  # no children
         kwargs = {
-            "color": getattr(vis.Colors.Wqpr, col, "grey"),
+            "color": getattr(tools.visualize.Colors.Wqpr, col, "grey"),
             "alpha": 0.7,
             "labelfmt": DEFAULTFMT.get(col, "{:.2f}"),
         }
@@ -47,9 +44,9 @@ def defaultkwargs(name: str, col: str):
     else:  # child with name
         hashed_value = hashlib.sha256(name.encode()).hexdigest()
         hashed_int = int(hashed_value, 16)
-        index = hashed_int % len(vis.Colors.General)
+        index = hashed_int % len(tools.visualize.Colors.General)
         kwargs = {
-            "color": list(vis.Colors.General)[index].value,
+            "color": list(tools.visualize.Colors.General)[index].value,
             "alpha": 0.9,
             "labelfmt": "",  # no labels on children
             "label": name,
@@ -61,27 +58,27 @@ def defaultkwargs(name: str, col: str):
 
 def plotfn_and_kwargs(
     col: str, freq: str, name: str
-) -> Tuple[vis.PlotTimeseriesToAxFunction, Dict]:
+) -> Tuple[tools.visualize.PlotTimeseriesToAxFunction, Dict]:
     """Get correct function to plot as well as default kwargs. ``col``: one of 'qwprf',
     ``freq``: frequency; ``name``: name of the child. If name is emptystring, it is the
     parent of a plot which also has children. If it is None, there are no children."""
     # Get plot function.
     if tools.freq.shortest(freq, "MS") == "MS":  # categorical
         if name == "" or name is None:  # parent
-            fn = vis.plot_timeseries_as_bar
+            fn = tools.visualize.plot_timeseries_as_bar
         else:  # child
-            fn = vis.plot_timeseries_as_hline
+            fn = tools.visualize.plot_timeseries_as_hline
     else:  # timeaxis
         if col in ["w", "q"]:
             if name == "" or name is None:  # parent
-                fn = vis.plot_timeseries_as_area
+                fn = tools.visualize.plot_timeseries_as_area
             else:  # child
-                fn = vis.plot_timeseries_as_step
+                fn = tools.visualize.plot_timeseries_as_step
         else:  # col in ['p', 'r']
             if name == "" or name is None:  # parent
-                fn = vis.plot_timeseries_as_step
+                fn = tools.visualize.plot_timeseries_as_step
             else:  # child
-                fn = vis.plot_timeseries_as_step
+                fn = tools.visualize.plot_timeseries_as_step
 
     kwargs = defaultkwargs(name, col)
 
@@ -90,7 +87,11 @@ def plotfn_and_kwargs(
 
 class PfLinePlot:
     def plot_to_ax(
-        self: PfLine, ax: plt.Axes, children: bool = False, kind: Kind = None, **kwargs
+        self: PfLine,
+        ax: plt.Axes,
+        children: bool = False,
+        kind: Kind = None,
+        **kwargs,
     ) -> None:
         """Plot a specific dimension (i.e., kind) of the PfLine to a specific axis.
 
@@ -120,7 +121,7 @@ class PfLinePlot:
             )
 
         # Create function to select correct series of the pfline.
-        def col_and_series(pfl: PfLine) -> Tuple[str, pd.Series]:
+        def col_and_series(pfl: classes.PfLine) -> Tuple[str, pd.Series]:
             if kind is Kind.PRICE:
                 return "p", pfl.p
             elif kind is Kind.REVENUE:
@@ -171,76 +172,3 @@ class PfLinePlot:
                 self.plot_to_ax(ax, children, kind)
 
         return fig
-
-
-class PfStatePlot:
-    def plot(self: PfState, children: bool = False) -> plt.Figure:
-        """Plot the portfolio state.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        plt.Figure
-            The figure object to which the series was plotted.
-        """
-        gridspec = {"width_ratios": [1, 1, 1], "height_ratios": [4, 1]}
-        fig, (volumeaxes, priceaxes) = plt.subplots(
-            2, 3, sharex=True, sharey="row", gridspec_kw=gridspec, figsize=(10, 6)
-        )
-
-        so, ss, usv = (
-            -1 * self.offtakevolume,
-            self.sourced,
-            self.unsourced,
-        )
-
-        so.plot_to_ax(volumeaxes[0], children=children, kind=so.kind, labelfmt="")
-        ss.plot_to_ax(volumeaxes[1], children=children, kind=Kind.VOLUME, labelfmt="")
-        # Unsourced volume.
-        usv.plot_to_ax(volumeaxes[2], kind=Kind.VOLUME, labelfmt="")
-        # Procurement Price.
-        self.pnl_cost.plot_to_ax(priceaxes[0], kind=Kind.PRICE, labelfmt="")
-        self.sourced.plot_to_ax(
-            priceaxes[1], children=children, kind=Kind.PRICE, labelfmt=""
-        )
-        # Unsourced price
-        self.unsourced.plot_to_ax(priceaxes[2], kind=Kind.PRICE, labelfmt="")
-        # Set titles.
-        volumeaxes[0].set_title("Offtake volume")
-        volumeaxes[1].set_title("Sourced volume")
-        volumeaxes[2].set_title("Unsourced volume")
-        priceaxes[0].set_title("Procurement price")
-        priceaxes[1].set_title("Sourced price")
-        priceaxes[2].set_title("Unsourced price")
-
-        limits_vol = [ax.get_ylim() for ax in volumeaxes]
-        limits_pr = [ax.get_ylim() for ax in priceaxes]
-        PfStatePlot.set_max_min_limits(volumeaxes, limits_vol)
-        PfStatePlot.set_max_min_limits(priceaxes, limits_pr)
-
-        # Format tick labels.
-        formatter = matplotlib.ticker.FuncFormatter(
-            lambda x, p: "{:,.0f}".format(x).replace(",", " ")
-        )
-        volumeaxes[0].yaxis.set_major_formatter(formatter)
-        priceaxes[0].yaxis.set_major_formatter(formatter)
-        # axes[3].yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
-
-        # Set ticks.
-        for ax in volumeaxes:
-            ax.xaxis.set_tick_params(labeltop=False, labelbottom=True)
-        for ax in priceaxes:
-            ax.xaxis.set_tick_params(labeltop=False, labelbottom=False)
-
-        fig.tight_layout()
-        return fig
-
-    def set_max_min_limits(axes: plt.Axes, limit: int):
-        mins_vol, maxs_vol = zip(*limit)
-
-        themin, themax = min(mins_vol), max(maxs_vol)
-        for ax in axes:
-            ax.set_ylim(themin * 1.1, themax * 1.1)

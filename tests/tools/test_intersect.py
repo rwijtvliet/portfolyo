@@ -1,4 +1,4 @@
-from typing import Iterable, List, Union
+from typing import Iterable, List
 
 import pandas as pd
 import pytest
@@ -45,7 +45,7 @@ def get_idx(
 
 def get_frames(
     idxs: Iterable[pd.DatetimeIndex], ref_idx: pd.DatetimeIndex = None
-) -> List[Union[pd.Series, pd.DataFrame]]:
+) -> List[pd.Series | pd.DataFrame]:
     frames = []
     for i, idx in enumerate(idxs):
         # Get data.
@@ -160,7 +160,7 @@ def test_intersect_nooverlap(indexorframe: str, tz: str, freq: str, starttime: s
 def do_test_intersect(
     indexorframe: str,
     idxs: Iterable[pd.DatetimeIndex],
-    expected_startdate: Union[str, Exception],
+    expected_startdate: str | Exception,
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,
@@ -183,7 +183,7 @@ def do_test_intersect(
 
 def do_test_intersect_index(
     idxs: Iterable[pd.DatetimeIndex],
-    expected_startdate: Union[str, Exception],
+    expected_startdate: str | Exception,
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,
@@ -205,7 +205,7 @@ def do_test_intersect_index(
 
 def do_test_intersect_frame(
     idxs: Iterable[pd.DatetimeIndex],
-    expected_startdate: Union[str, Exception],
+    expected_startdate: str | Exception,
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,

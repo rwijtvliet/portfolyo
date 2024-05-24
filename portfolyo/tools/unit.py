@@ -3,7 +3,7 @@ Working with pint units.
 """
 
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Tuple, overload
 
 import pandas as pd
 import pint
@@ -53,9 +53,29 @@ def from_name(name: str) -> pint.Unit:
     raise ValueError(f"No standard unit found for name '{name}'.")
 
 
+@overload
+def defaultunit(val: int | float) -> float:
+    ...
+
+
+@overload
+def defaultunit(val: pint.Quantity) -> pint.Quantity:
+    ...
+
+
+@overload
+def defaultunit(val: pd.Series) -> pd.Series:
+    ...
+
+
+@overload
+def defaultunit(val: pd.DataFrame) -> pd.DataFrame:
+    ...
+
+
 def defaultunit(
-    val: Union[int, float, pint.Quantity, pd.Series, pd.DataFrame],
-) -> Union[float, pint.Quantity, pd.Series, pd.DataFrame]:
+    val: int | float | pint.Quantity | pd.Series | pd.DataFrame,
+) -> float | pint.Quantity | pd.Series | pd.DataFrame:
     """Convert ``val`` to base units. Also turns dimensionless values into floats.
 
     Parameters
@@ -101,15 +121,26 @@ def defaultunit(
     raise TypeError("``val`` must be an int, float, Quantity, Series, or DataFrame.")
 
 
+@overload
+def split_magn_unit(val: int | float) -> Tuple[float, None]:
+    ...
+
+
+@overload
+def split_magn_unit(val: pint.Quantity) -> Tuple[float, None | pint.Unit]:
+    ...
+
+
+@overload
 def split_magn_unit(
-    val: Union[int, float, pint.Quantity, pd.Series]
-) -> Union[
-    Tuple[float, None],
-    Tuple[float, pint.Unit],
-    Tuple[pd.Series, None],
-    Tuple[pd.Series, pint.Unit],
-    Tuple[pd.Series, pd.Series],
-]:
+    val: pd.Series,
+) -> Tuple[pd.Series, None | pint.Unit | pd.Series]:
+    ...
+
+
+def split_magn_unit(
+    val: int | float | pint.Quantity | pd.Series,
+) -> Tuple[float, None | pint.Unit] | Tuple[pd.Series, None | pint.Unit | pd.Series]:
     """Split ``val`` into magnitude and units. If ``val`` is a Series with uniform
     dimension, the unit is returned as a pint Unit. If not, it is returned as a Series.
     """

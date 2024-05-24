@@ -14,7 +14,8 @@ class NDFrameLike(abc.ABC):
 
     # Abstract methods to be implemented by descendents.
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def index(self) -> pd.DatetimeIndex:
         """Left timestamp of time period corresponding to each data row."""
         ...
@@ -36,13 +37,15 @@ class NDFrameLike(abc.ABC):
         """
         ...
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def loc(self):
         """Create a new instance with a subset of the rows (selection by row label(s) or
         a boolean array.)"""
         ...
 
-    @abc.abstractproperty
+    @property
+    @abc.abstractmethod
     def slice(self):
         """Create a new instance with a subset of the rows.
         Different from loc since performs slicing with right-open interval."""

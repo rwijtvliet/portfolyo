@@ -758,7 +758,7 @@ Using the ``.hedge_with()`` method, the volume timeseries in a portfolio line is
 Peak and offpeak
 ----------------
 
-For portfolio lines with (quarter)hourly data, the ``.po()`` method splits the values in peak and offpeak. We can again specify if we want monthly, quarterly, or yearly values.
+For markets that have a concept of "peak" and "offpeak" periods, the ``.po()`` method splits the values in peak and offpeak. We need to specifiy a ``PeakFunction`` to determine which periods are peak - we can create one with ``portfolyo.create_peakfn()``, or we use the one for the German power market which is provided under ``portfolyo.germanpower_peakfn``. We can again specify if we want monthly, quarterly, or yearly values.
 
 .. exec_code::
    
@@ -768,9 +768,9 @@ For portfolio lines with (quarter)hourly data, the ``.po()`` method splits the v
    offtake = pf.PfLine(pf.dev.w_offtake(index))  # mock offtake volumes
    # --- hide: stop ---
    # continuation of previous code example
-   offtake.po()
+   offtake.po(pf.germanpower_peakfn)
    # --- hide: start ---
-   print(repr(offtake.po()))
+   print(repr(offtake.po(pf.germanpower_peakfn)))
 
 NB: be cautious in using the output of this method. The values in the "sub-dataframes" do not apply to the entire time period, so the usual relations (e.g. energy = power * duration) do not hold if the duration of the entire time period is used. For convenience, the relevant duration (of only the peak or only the offpeak hours) is included in the dataframe.
 

@@ -1,5 +1,5 @@
 import datetime as dt
-from typing import Iterable, Union
+from typing import Iterable
 
 import pandas as pd
 import pytest
@@ -257,7 +257,7 @@ def test_isboundary_index(
     periods: int,
     tz: str,
     freq: str,
-    expected_repeat: Union[int, Iterable[int]],
+    expected_repeat: int | Iterable[int],
 ):
     """Test if boundary timestamps are correctly identified in index."""
     ts = f"{date} {start_time}"
@@ -272,7 +272,7 @@ def test_isboundary_index_dst(
     i_freq: str,
     periods: int,
     freq: str,
-    expected_repeat: Union[int, Iterable[int]],
+    expected_repeat: int | Iterable[int],
 ):
     """Test if boundary timestamps are correctly identified in index during dst-transition."""
     do_test_index(ts, i_freq, periods, "Europe/Berlin", freq, expected_repeat, 0)
@@ -288,7 +288,7 @@ def test_isboundary_index_midyear(
     i_freq: str,
     periods: int,
     freq: str,
-    expected_repeat: Union[int, Iterable[int]],
+    expected_repeat: int | Iterable[int],
 ):
     """Test if boundary timestamps are correctly identified in index when we don't start at beginning of year."""
     ts = f"{date} {start_time}"
@@ -308,7 +308,7 @@ def test_isboundary_index_leadingzero(
     periods: int,
     tz: str,
     freq: str,
-    expected_repeat: Union[int, Iterable[int]],
+    expected_repeat: int | Iterable[int],
     leading_zeros: int,
 ):
     """Test if boundary timestamps are correctly identified in index when we first have some zeros."""
