@@ -50,7 +50,7 @@ def test_onehedge_uniformprices(w_vals, start, w_expected, how, tz):
 
 
 @pytest.mark.parametrize("how", ["vol", "val"])
-@pytest.mark.parmetrize(
+@pytest.mark.parametrize(
     "w_vals,p_vals,start,p_expected,w_expected_vol,w_expected_val,tz",
     [
         (
@@ -59,6 +59,7 @@ def test_onehedge_uniformprices(w_vals, start, w_expected, how, tz):
             "2020-01-01",
             148.333333333,
             1.4833333,
+            1.651685393,
             None,
         ),  # 29 days in Feb
         (
@@ -67,10 +68,11 @@ def test_onehedge_uniformprices(w_vals, start, w_expected, how, tz):
             "2021-01-01",
             147.4576271,
             1.474576271,
+            1.643678161,
             None,
         ),  # 28 days in Feb
         (
-            range(12),
+            np.arange(12),
             np.arange(12) * 100,
             "2020-01-01",
             551.366120,
@@ -79,7 +81,7 @@ def test_onehedge_uniformprices(w_vals, start, w_expected, how, tz):
             None,
         ),  # no DST
         (
-            range(12),
+            np.arange(12),
             np.arange(12) * 100,
             "2020-01-01",
             551.4458106,
@@ -89,7 +91,7 @@ def test_onehedge_uniformprices(w_vals, start, w_expected, how, tz):
         ),  # DST
     ],
 )
-def test_onehedge_val(
+def test_onehedge(
     w_vals, p_vals, start, w_expected_val, w_expected_vol, p_expected, how, tz
 ):
     """Test value hedge."""
