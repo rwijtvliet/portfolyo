@@ -2,7 +2,7 @@
 Trim objects to only contain 'full' delivery periods.
 """
 
-from typing import Union
+from typing import overload
 
 import pandas as pd
 
@@ -47,21 +47,29 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
     return i[mask_start & mask_end]
 
 
-def frame(
-    fr: Union[pd.Series, pd.DataFrame], freq: str
-) -> Union[pd.Series, pd.DataFrame]:
+@overload
+def frame(fr: pd.Series, freq: str) -> pd.Series:
+    ...
+
+
+@overload
+def frame(fr: pd.DataFrame, freq: str) -> pd.DataFrame:
+    ...
+
+
+def frame(fr: pd.Series | pd.DataFrame, freq: str) -> pd.Series | pd.DataFrame:
     f"""Trim index of series or dataframe to only keep full periods of certain frequency.
 
     Parameters
     ----------
-    fr : Union[pd.Series, pd.DataFrame]
+    fr : Series or DataFrame
         The (untrimmed) pandas series or dataframe.
     freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
         Frequency to trim to. E.g. 'MS' to only keep full months.
 
     Returns
     -------
-    Union[pd.Series, pd.DataFrame]
+    Series or DataFrame
         Subset of ``fr``, with same frequency.
 
     Notes

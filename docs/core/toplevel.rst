@@ -23,8 +23,11 @@ Work on pandas objects
 Work on portfolyo objects
 -------------------------
 
-* ``portfolyo.concat()`` Concatenates PfLines into one PfLine.
+* ``portfolyo.concat()`` Concatenates PfLines (or PfStates) into one PfLine (or PfState).
   
 * ``portfolyo.plot_pfstates()`` Plots several PfStates in one figure.
+
+* ``portfolyo.intersection()`` Intersect several dataframes and/or series and/or Pflines and/or PfStates.
+
 
 

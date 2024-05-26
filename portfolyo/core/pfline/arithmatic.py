@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
 
-from ... import testing, tools
+from ... import tools
 from . import classes, create, interop
 from .enums import Kind, Structure
 
@@ -23,7 +23,7 @@ class Prep:
 
         def wrapper(o1, o2, *args, **kwargs):
             try:
-                testing.assert_indices_compatible(o1.index, o2.index)
+                tools.testing.assert_indices_compatible(o1.index, o2.index)
             except AssertionError as e:
                 raise NotImplementedError from e
             return fn(o1, o2, *args, **kwargs)
@@ -185,7 +185,7 @@ class PfLineArithmatic:
     @Prep.standardize_other  # other converted to None, a PfLine, or dimless Series
     @Prep.raiseerror_if_otherNone  # other is now a PfLine or dimless Series...
     @Prep.assert_objects_indexcompatibility  # ... with a compatible index
-    def __truediv__(self: PfLine, other: Any) -> Union[PfLine, pd.Series]:
+    def __truediv__(self: PfLine, other: Any) -> PfLine | pd.Series:
         if isinstance(other, pd.Series):
             return Multiply.pfline_and_series(self, 1 / other)
         else:
@@ -195,7 +195,7 @@ class PfLineArithmatic:
     @Prep.raiseerror_if_otherNone  # other is now a PfLine or dimless Series
     @Prep.raiseerror_if_otherdimlessseries  # other is now a PfLine...
     @Prep.assert_objects_indexcompatibility  # ... with a compatible index
-    def __rtruediv__(self: PfLine, other: Any) -> Union[PfLine, pd.Series]:
+    def __rtruediv__(self: PfLine, other: Any) -> PfLine | pd.Series:
         return Divide.two_pflines(other, self)  # NB order!
 
     @Prep.standardize_other  # other converted to None, a PfLine, or dimless Series
@@ -285,12 +285,10 @@ class Multiply:
 
 class Divide:
     @Prep.ensure_pflines_flat  # pfl1 and pfl2 are now both flat
-    def two_pflines(pfl1: PfLine, pfl2: PfLine) -> Union[pd.Series, PfLine]:
+    def two_pflines(pfl1: PfLine, pfl2: PfLine) -> pd.Series | PfLine:
         return Divide.two_flatpflines(pfl1, pfl2)
 
-    def two_flatpflines(
-        pfl1: FlatPfLine, pfl2: FlatPfLine
-    ) -> Union[pd.Series, FlatPfLine]:
+    def two_flatpflines(pfl1: FlatPfLine, pfl2: FlatPfLine) -> pd.Series | FlatPfLine:
         if pfl1.kind is pfl2.kind:
             if pfl1.kind is Kind.COMPLETE:
                 raise NotImplementedError(

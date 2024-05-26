@@ -1,6 +1,7 @@
 """Test if portfolio line can be printed."""
 
 import pytest
+
 import portfolyo as pf
 
 

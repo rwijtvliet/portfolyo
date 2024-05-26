@@ -2,10 +2,10 @@
 Tools for dealing with frequencies.
 """
 
-from typing import Union
-
 import numpy as np
 import pandas as pd
+
+from .types import Series_or_DataFrame
 
 # Allowed frequencies.
 # Perfect containment; a short-frequency time period always entirely falls within a single high-frequency time period.
@@ -53,6 +53,7 @@ def up_or_down(
     backup_common_ts = pd.Timestamp("2020-02-03 04:05:06")
     if common_ts is None:
         common_ts = standard_common_ts
+
     ts1 = common_ts + pd.tseries.frequencies.to_offset(freq_source)
     ts2 = common_ts + pd.tseries.frequencies.to_offset(freq_target)
     if ts1 > ts2:
@@ -63,40 +64,6 @@ def up_or_down(
         # If they are the same, try with another timestamp.
         return up_or_down(freq_source, freq_target, backup_common_ts)
     return 0  # only if both give the same answer.
-
-
-def longer_or_shorter(freq: str, freq_ref: str, common_ts: pd.Timedelta = None) -> int:
-    """
-    Compare frequency with reference frequency to see if it is longer or shorter.
-
-    Parameters
-    ----------
-    freq, freq_ref : frequencies to compare.
-    common_ts : timestamp, optional
-        Timestamp to use as anchor from which to compare the two.
-
-    Returns
-    -------
-    * 1 if frequency ``freq`` is longer than the reference frequency ``freq_ref``.
-    * 0 if frequencies are the same.
-    * -1 if frequency ``freq`` is shorter than the reference frequency ``freq_ref``.
-
-    Notes
-    -----
-    Arbitrarily using a time point as anchor to calculate the length of the time period
-    from. May have influence on the ratio (duration of a month, quarter, year etc are
-    influenced by this), but, for most common frequencies, not on which is longer.
-
-    Examples
-    --------
-    >>> freq.longer_or_shorter('D', 'MS')
-    -1
-    >>> freq.longer_or_shorter('MS', 'D')
-    1
-    >>> freq.longer_or_shorter('MS', 'MS')
-    0
-    """
-    return up_or_down(freq, freq_ref, common_ts)
 
 
 def _longestshortest(shortest: bool, *freqs: str):
@@ -147,7 +114,7 @@ def longest(*freqs: str) -> str:
     return _longestshortest(False, *freqs)
 
 
-def to_offset(freq: str) -> Union[pd.Timedelta, pd.DateOffset]:
+def to_offset(freq: str) -> pd.Timedelta | pd.DateOffset:
     """Object that can be added to a left-bound timestamp to find corresponding right-bound timestamp.
 
     Parameters
@@ -270,8 +237,8 @@ def set_to_index(
 
 
 def set_to_frame(
-    fr: Union[pd.Series, pd.DataFrame], wanted: str = None, strict: bool = False
-) -> Union[pd.Series, pd.DataFrame]:
+    fr: Series_or_DataFrame, wanted: str = None, strict: bool = False
+) -> Series_or_DataFrame:
     """Try to read, infer, or force frequency of frame's index.
 
     Parameters
@@ -284,7 +251,7 @@ def set_to_frame(
 
     Returns
     -------
-    Union[pd.Series, pd.DataFrame]
+    pd.Series | pd.DataFrame
         Same type as ``fr``, with, if possible, a valid value for ``fr.index.freq``.
     """
     # Handle non-datetime-indices.

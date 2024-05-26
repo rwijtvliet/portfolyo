@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:
-    from .classes import NestedPfLine, FlatPfLine
+import pandas as pd
 
+from ... import tools
 from . import classes
 from .enums import Structure
+
+if TYPE_CHECKING:
+    from .classes import FlatPfLine, NestedPfLine, PricePfLine
 
 
 def flatten(self: NestedPfLine) -> FlatPfLine:
@@ -14,11 +17,20 @@ def flatten(self: NestedPfLine) -> FlatPfLine:
     return constructor(self.df)  # use flattened toplevel dataframe for initialisation
 
 
-def map_to_year(self: NestedPfLine, year: int, holiday_country: str) -> NestedPfLine:
-    newchildren = {
-        name: child.map_to_year(year, holiday_country) for name, child in self.items()
-    }
-    return self.__class__(newchildren)
+def po(
+    self: NestedPfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS"
+) -> pd.DataFrame:
+    return self.flatten().po(peak_fn, freq)
+
+
+def hedge_with(
+    self: NestedPfLine,
+    p: PricePfLine,
+    how: str = "val",
+    peak_fn: tools.peakfn.PeakFunction = None,
+    freq: str = "MS",
+) -> FlatPfLine:
+    return self.flatten().hedge_with(p, how, peak_fn, freq)
 
 
 def __bool__(self: NestedPfLine) -> bool:

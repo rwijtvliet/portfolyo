@@ -2,24 +2,77 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from portfolyo import tools
-
-from ... import testing
 import pandas as pd
 
+from ... import tools
+from ...tools.peakconvert import tseries2poframe
+from . import classes
+from .enums import Kind
+
 if TYPE_CHECKING:
-    from .classes import FlatPfLine
+    from .classes import FlatPfLine, PfLine, PricePfLine
 
 
 def flatten(self: FlatPfLine) -> FlatPfLine:
     return self
 
 
+def po(
+    self: PfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS"
+) -> pd.DataFrame:
+    df_dict = {}
+
+    # Always include duration.
+    duration = tools.duration.index(self.df.index)
+    df_dict["duration"] = tseries2poframe(duration, peak_fn, freq, True)
+
+    # Add volume.
+    if self.kind in [Kind.VOLUME, Kind.COMPLETE]:
+        df_dict["q"] = tseries2poframe(self.q, peak_fn, freq, True)
+        df_dict["w"] = df_dict["q"] / df_dict["duration"]
+
+    # Add revenue.
+    if self.kind in [Kind.REVENUE, Kind.COMPLETE]:
+        df_dict["r"] = tseries2poframe(self.r, peak_fn, freq, True)
+
+    # Add price.
+    if self.kind is Kind.PRICE:
+        df_dict["p"] = tseries2poframe(self.p, peak_fn, freq, False)
+    elif self.kind is Kind.COMPLETE:
+        df_dict["p"] = df_dict["r"] / df_dict["q"]
+
+    # Turn into dataframe.
+    return pd.DataFrame({k: df.stack() for k, df in df_dict.items()})
+
+
+def hedge_with(
+    self: PfLine,
+    prices: PricePfLine,
+    how: str = "val",
+    peak_fn: tools.peakfn.PeakFunction = None,
+    freq: str = "MS",
+) -> FlatPfLine:
+    if self.kind not in [Kind.VOLUME, Kind.COMPLETE]:
+        raise ValueError(
+            "Cannot hedge a PfLine that does not contain volume information."
+        )
+    if self.index.freq not in ["15T", "H", "D"]:
+        raise ValueError(
+            "Can only hedge a PfLine with daily or (quarter)hourly information."
+        )
+
+    wout, pout = tools.hedge.hedge(self.w, prices.p, how, peak_fn, freq)
+    df = pd.DataFrame({"w": wout, "p": pout})
+    df["q"] = df["w"] * tools.duration.index(df.index)
+    df["r"] = df["p"] * df["q"]
+    return classes.FlatCompletePfLine(df)
+
+
 def __eq__(self: FlatPfLine, other: Any) -> bool:
     if not isinstance(other, self.__class__):
         return False
     try:
-        testing.assert_frame_equal(self.df, other.df, rtol=1e-7)
+        tools.testing.assert_frame_equal(self.df, other.df, rtol=1e-7)
         return True
     except AssertionError:
         return False

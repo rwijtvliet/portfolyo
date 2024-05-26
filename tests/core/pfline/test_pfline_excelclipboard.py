@@ -1,9 +1,9 @@
 """Test if portfolio line can be exported."""
 
+import pandas as pd
 import pytest
 
 import portfolyo as pf
-import pandas as pd
 
 
 @pytest.mark.parametrize("levels", [1, 2, 3])
