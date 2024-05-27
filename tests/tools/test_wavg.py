@@ -1,4 +1,4 @@
-from typing import Any, Iterable, Union
+from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
@@ -57,7 +57,7 @@ def get_index(number: int, indextype: str) -> Iterable:
 
 
 def do_test_series(
-    values: Union[pd.Series, pd.DataFrame], weights: Any, expected: Any, **kwargs
+    values: pd.Series | pd.DataFrame, weights: Any, expected: Any, **kwargs
 ):
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):

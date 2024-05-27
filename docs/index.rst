@@ -68,6 +68,7 @@ Contents
    core/pfline
    core/pfstate
    core/interoperability
+   core/toplevel
 
 .. toctree::
    :maxdepth: 1

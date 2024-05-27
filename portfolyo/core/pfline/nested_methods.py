@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:
-    from .classes import NestedPfLine, FlatPfLine
+import pandas as pd
 
+from ... import tools
 from . import classes
 from .enums import Structure
+
+if TYPE_CHECKING:
+    from .classes import FlatPfLine, NestedPfLine, PricePfLine
 
 
 def flatten(self: NestedPfLine) -> FlatPfLine:
@@ -14,11 +17,20 @@ def flatten(self: NestedPfLine) -> FlatPfLine:
     return constructor(self.df)  # use flattened toplevel dataframe for initialisation
 
 
-def map_to_year(self: NestedPfLine, year: int, holiday_country: str) -> NestedPfLine:
-    newchildren = {
-        name: child.map_to_year(year, holiday_country) for name, child in self.items()
-    }
-    return self.__class__(newchildren)
+def po(
+    self: NestedPfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS"
+) -> pd.DataFrame:
+    return self.flatten().po(peak_fn, freq)
+
+
+def hedge_with(
+    self: NestedPfLine,
+    p: PricePfLine,
+    how: str = "val",
+    peak_fn: tools.peakfn.PeakFunction = None,
+    freq: str = "MS",
+) -> FlatPfLine:
+    return self.flatten().hedge_with(p, how, peak_fn, freq)
 
 
 def __bool__(self: NestedPfLine) -> bool:
@@ -37,6 +49,11 @@ def loc(self: NestedPfLine) -> LocIndexer:
     return LocIndexer(self)
 
 
+@property
+def slice(self: NestedPfLine) -> SliceIndexer:
+    return SliceIndexer(self)
+
+
 class LocIndexer:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index."""
 
@@ -45,4 +62,16 @@ class LocIndexer:
 
     def __getitem__(self, arg) -> NestedPfLine:
         newchildren = {name: child.loc[arg] for name, child in self.pfl.items()}
+        return self.pfl.__class__(newchildren)
+
+
+class SliceIndexer:
+    """Helper class to obtain NestedPfLine instance, whose index is subset of original index.
+    Exclude end point from the slice."""
+
+    def __init__(self, pfl: NestedPfLine):
+        self.pfl = pfl
+
+    def __getitem__(self, arg) -> NestedPfLine:
+        newchildren = {name: child.slice[arg] for name, child in self.pfl.items()}
         return self.pfl.__class__(newchildren)

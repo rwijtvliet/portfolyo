@@ -7,7 +7,7 @@ same calender month (but different year)."""
 # . Daylight-savings time will likely start and end at a different day.
 # . Weekdays and holidays are not at the same date.
 
-from typing import Callable, Union
+from typing import Callable
 
 import holidays
 import pandas as pd
@@ -16,6 +16,7 @@ from . import changefreq as tools_changefreq
 from . import freq as tools_freq
 from . import right as tools_right
 from . import unit as tools_unit
+from .types import Series_or_DataFrame
 
 docstringliteral_notes = """
 * Function is meant for data that spans full months. Using partial months may lead
@@ -364,10 +365,10 @@ def map_index_to_year(
 
 @additional_notes
 def map_frame_to_index(
-    source: Union[pd.Series, pd.DataFrame],
+    source: Series_or_DataFrame,
     idx_target: pd.DatetimeIndex,
     holiday_country: str = None,
-) -> Union[pd.Series, pd.DataFrame]:
+) -> Series_or_DataFrame:
     """Transfer the data in a Series or DataFrame to a hypothetical other index
     according to certain rules (see Notes). What would the data have looked like if it
     had occured in a different year?
@@ -406,10 +407,10 @@ def map_frame_to_index(
 
 @additional_notes
 def map_frame_to_year(
-    source: Union[pd.Series, pd.DataFrame],
+    source: Series_or_DataFrame,
     target_year: int,
     holiday_country: str = None,
-) -> Union[pd.Series, pd.DataFrame]:
+) -> Series_or_DataFrame:
     """Transfer the data in a Series or DataFrame to a hypothetical other year
     according to certain rules (see Notes). What would the data have looked like if it
     had occured in a different year?

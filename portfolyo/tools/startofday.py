@@ -2,16 +2,15 @@
 Tools to get/set start-of-day.
 """
 
+import datetime as dt
 
 import pandas as pd
+
 from . import freq as tools_freq
-import datetime as dt
-from typing import Union
+from . import right as tools_right
 
 
-def get(
-    i: pd.DatetimeIndex, returntype: str = "time"
-) -> Union[dt.time, str, dt.timedelta]:
+def get(i: pd.DatetimeIndex, returntype: str = "time") -> dt.time | str | dt.timedelta:
     """Get start-of-day of an index.
 
     Parameters
@@ -25,7 +24,7 @@ def get(
 
     Returns
     -------
-    Union[dt.time, str]
+    dt.time | str | dt.timedelta
     """
     start_of_day = i[0].time()
     if returntype == "time":
@@ -39,31 +38,51 @@ def get(
     )
 
 
-def set(i: pd.DatetimeIndex, start_of_day: dt.time = None) -> pd.DatetimeIndex:
-    """Set the start-of-day of an index by changing the time-part of the index elements.
+def set(i: pd.DatetimeIndex, start_of_day: dt.time) -> pd.DatetimeIndex:
+    """Set the start-of-day of an index. Done by changing the time-part of the index
+    elements (if index has daily-or-longer frequency) or by trimming the index (if index
+    has hourly-or-shorter frequency).
 
     Parameters
     ----------
     i : pd.DatetimeIndex
-        Index; must have a daily (or longer) frequency.
-    start_of_day : dt.time, optional (default: midnight)
-        The new time that replaces the time-part of index elements.
+    start_of_day : dt.time
 
     Returns
     -------
     pd.DatetimeIndex
-        With adjusted time-part. Date-part is unchanged, so new timestamps are on same
-        calendar day as original timestamps.
+        With wanted start-of-day.
     """
-    if tools_freq.up_or_down(i.freq, "D") < 0:
-        raise ValueError(
-            "Can only set the start-of-day of an index with daily (or longer) frequency."
-        )
-
-    if start_of_day is None:
-        start_of_day = dt.time(hour=0, minute=0, second=0)
-    elif start_of_day.second != 0 or start_of_day.minute % 15 != 0:
+    if start_of_day.second != 0 or start_of_day.minute % 15 != 0:
         raise ValueError("Start of day must coincide with a full quarterhour.")
 
+    if tools_freq.up_or_down(i.freq, "D") >= 0:
+        return _set_to_longfreq(i, start_of_day)
+    else:
+        return _set_to_shortfreq(i, start_of_day)
+
+
+def _set_to_longfreq(i: pd.DatetimeIndex, start_of_day: dt.time) -> pd.DatetimeIndex:
+    """Set start-of-day of index with daily-or-longer frequency."""
     tss = (ts.replace(hour=start_of_day.hour, minute=start_of_day.minute) for ts in i)
     return pd.DatetimeIndex(tss, freq=i.freq, tz=i.tz)
+
+
+def _set_to_shortfreq(i: pd.DatetimeIndex, start_of_day: dt.time) -> pd.DatetimeIndex:
+    """Set start-of-day of index with hourly-or-shorter frequency. Destructive; values
+    at start and/or end of index are removed to get wanted start_of_day."""
+    # Remove from start if necessary.
+    for _ in range(0, 100):  # max 100 quarterhours in a day (@ end of DST)
+        if i[0].time() == start_of_day:
+            break
+        i = i[1:]
+    else:
+        raise ValueError("Did not find any timestamp with correct time at index start.")
+    # Remove from end if necessary.
+    for _ in range(0, 100):  # max 100 quarterhours in a day (@ end of DST)
+        if tools_right.stamp(i[-1], i.freq).time() == start_of_day:
+            break
+        i = i[:-1]
+    else:
+        raise ValueError("Did not find any timestamp with correct time at index end.")
+    return i

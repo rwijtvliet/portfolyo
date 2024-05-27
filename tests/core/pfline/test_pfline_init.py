@@ -3,7 +3,7 @@
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Iterable, Union
+from typing import Any, Callable, Iterable
 
 import pandas as pd
 import pytest
@@ -187,7 +187,7 @@ def test_init_A(
     columns: Iterable[str],
     inputtype: InputTypeA,
     has_unit: bool,
-    constructor: Union[Callable, type],
+    constructor: Callable | type,
 ):
     """Test if pfline can be initialized correctly from a flat testcase."""
 
@@ -253,3 +253,33 @@ def test_init_with_integers(col: str):
     pfl = pf.PfLine(s)
     for dtype in pfl.df.pint.dequantify().dtypes.values:
         assert not pd.api.types.is_integer_dtype(dtype)
+
+
+@pytest.mark.parametrize("inclusive", ["left", "both"])
+@pytest.mark.parametrize("freq", ["15T", "H"])
+def test_contain_whole_day(inclusive: str, freq: str):
+    """An index must contain full days.
+    For hourly-or-shorter values, this means that the start time of the first period () must equal the end time of the
+    last period (), which is not the case."""
+    index = pd.date_range(
+        "2020-01-01", "2020-02-01", freq=freq, tz="Europe/Berlin", inclusive=inclusive
+    )
+    if inclusive == "left":
+        # This should work without any error
+        pfl = dev.get_flatpfline(index)
+        assert isinstance(pfl, PfLine)
+    else:
+        # For "both" inclusive, it should raise an error
+        with pytest.raises(ValueError):
+            pfl = dev.get_flatpfline(index)
+
+
+@pytest.mark.parametrize("freq", ["D", "MS", "QS", "AS"])
+def test_equal_sod(freq: str):
+    """In an index with daily-or-longer values, all timestamps (all periods) should start at the same time ."""
+    i = pd.date_range("2024-03-28", freq=freq, periods=10, tz="Europe/Berlin")
+    s = pd.Series(range(len(i)), i)
+    s = s.tz_convert(None)
+    s_pint = s.astype("pint[MW]")
+    with pytest.raises(ValueError):
+        pf.PfLine(s_pint)

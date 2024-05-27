@@ -1,3 +1,4 @@
+=========
 portfolyo
 =========
 
@@ -28,6 +29,8 @@ portfolyo
 Portfolyo is a Python package to analyse and manipulate timeseries related to power 
 and gas offtake portfolios.
 
+
+------------
 Installation
 ------------
 
@@ -45,6 +48,7 @@ NB: this package is under active development and the API will change without pri
    portfolyo = "x.y.z"
 
 
+-------------
 Documentation
 -------------
 
@@ -52,6 +56,8 @@ Documentation is hosted on readthedocs:
 
 https://portfolyo.readthedocs.io/
 
+
+----------
 Repository
 ----------
 
@@ -60,6 +66,7 @@ The git repository is hosted on github:
 http://www.github.com/rwijtvliet/portfolyo
 
 
+----------
 Developing
 ----------
 
@@ -74,6 +81,16 @@ the commit hooks.
 
 Feature branches are merged into the ``develop`` branch via pull request.
 
+
+Internal dependencies
+---------------------
+
+Inside the package, modules depend on each other in the following chain. A module may depend on another module if it is further to the left:
+
+tools >> pfline >> pfstate >> tools2
+
+
+----------
 Publishing
 ----------
 

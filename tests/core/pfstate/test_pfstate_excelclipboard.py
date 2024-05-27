@@ -1,8 +1,9 @@
 """Test if portfolio line can be exported."""
 
-import pytest
-import portfolyo as pf
 import pandas as pd
+import pytest
+
+import portfolyo as pf
 
 
 def test_pfstate_toexcel():
