@@ -1,4 +1,4 @@
-from pathlib import Path
+"""Testing hedge functions using hard-coded hedge values."""
 
 import numpy as np
 import pandas as pd
@@ -103,46 +103,3 @@ def test_onehedge(
     w_expected = w_expected_val if how == "val" else w_expected_vol
     expected = pd.Series({"w": w_expected, "p": p_expected})
     testing.assert_series_equal(result, expected)
-
-
-@pytest.mark.parametrize("withunits", ["units", "nounits"])
-@pytest.mark.parametrize("how", ["vol", "val"])
-@pytest.mark.parametrize("bpo", ["b", "po"])
-@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
-@pytest.mark.parametrize("freq", ["H", "D"])
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-def test_hedge_fromexcel(tz, freq, aggfreq, bpo, how, withunits):
-    """Test if hedge results are correctly calculated, by comparing against previously calculated results."""
-    if freq == "D" and bpo == "po":
-        pytest.skip("Don't decompose in peak and offpeak if daily values")
-
-    path = Path(__file__).parent / "test_hedge_data.xlsx"
-    sheetname = f'{freq}_{"None" if tz is None else tz.replace("/", "")}'
-    peak_fn = tools.product.germanpower_peakfn if bpo == "po" else None
-
-    # Input data.
-    dfin = pd.read_excel(path, sheetname, header=6, index_col=0, usecols="A,B:C")
-    if tz:
-        dfin = dfin.tz_localize(tz, ambiguous="infer")
-    dfin.index.freq = pd.infer_freq(dfin.index)
-    win, pin = dfin.w, dfin.p
-    if withunits == "units":
-        win = win.astype("pint[MW]")
-        pin = pin.astype("pint[Eur/MWh]")
-
-    # Expected output data.
-    dfout = pd.read_excel(path, f"{sheetname}_out", header=[3, 4, 5, 6], index_col=0)
-    if tz:
-        dfout = dfout.tz_localize(tz, ambiguous="infer")
-    dfout.index.freq = pd.infer_freq(dfout.index)
-    w_expected = dfout[aggfreq][bpo == "po"][how]["w"]
-    p_expected = dfout[aggfreq][bpo == "po"].iloc[:, 0]  # price is first column
-    if withunits == "units":
-        w_expected = w_expected.astype("pint[MW]")
-        p_expected = p_expected.astype("pint[Eur/MWh]")
-
-    # Test output data.
-    w_result, p_result = tools.hedge.hedge(win, pin, how, peak_fn, aggfreq)
-
-    testing.assert_series_equal(p_result, p_expected, check_names=False)
-    testing.assert_series_equal(w_result, w_expected, check_names=False)
