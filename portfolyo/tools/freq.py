@@ -2,15 +2,48 @@
 Tools for dealing with frequencies.
 """
 
+from typing import List, Tuple, Type
 import numpy as np
 import pandas as pd
 
 from .types import Series_or_DataFrame
 
+
+def get_allowed_classes(frequencies: List[str]) -> List[Tuple[Type, ...]]:
+    """
+    Given a list of frequency strings, return a list of unique Method Resolution Orders (MROs)
+    associated with their corresponding pandas offset objects.
+
+    Parameters:
+    frequencies (List[str]): A list of frequency strings (e.g., ["AS", "QS", "MS", "D", "H", "15T"])
+
+    Returns:
+    List[Tuple[Type, ...]]: A list of unique MROs, where each MRO is a tuple of classes representing
+                            the inheritance hierarchy of the corresponding offset object.
+    """
+    unique_classes = []
+
+    for freq in frequencies:
+        offset_obj = pd.tseries.frequencies.to_offset(freq)
+        mro = offset_obj.__class__.__mro__
+
+        # Add the first class from the MRO to the list of unique classes
+        if mro[0] not in unique_classes:
+            unique_classes.append(mro[0])
+
+    return unique_classes
+
+
 # Allowed frequencies.
 # Perfect containment; a short-frequency time period always entirely falls within a single high-frequency time period.
 # AS -> 4 QS; QS -> 3 MS; MS -> 28-31 D; D -> 23-25 H; H -> 4 15T
 FREQUENCIES = ["AS", "QS", "MS", "D", "H", "15T"]
+DIFF_CASES = get_allowed_classes(["MS", "D", "H", "15T"])
+ALLOWED_CLASSES = get_allowed_classes(FREQUENCIES)
+
+
+STANDARD_COMMON_TS = pd.Timestamp("2020-01-01 0:00")
+BACKUP_COMMON_TS = pd.Timestamp("2020-02-03 04:05:06")
 
 
 def up_or_down(
@@ -49,21 +82,81 @@ def up_or_down(
     >>> freq.up_or_down('MS', 'MS')
     0
     """
-    standard_common_ts = pd.Timestamp("2020-01-01 0:00")
-    backup_common_ts = pd.Timestamp("2020-02-03 04:05:06")
     if common_ts is None:
-        common_ts = standard_common_ts
+        common_ts = STANDARD_COMMON_TS
+    freq_source_as_offset = pd.tseries.frequencies.to_offset(freq_source)
+    freq_target_as_offset = pd.tseries.frequencies.to_offset(freq_target)
+    # Check if they are of the same base frequency but different subtypes
+    if (
+        type(freq_source_as_offset) is type(freq_target_as_offset)
+        and freq_source_as_offset != freq_target_as_offset
+        and freq_source_as_offset.n == 1
+        and freq_target_as_offset.n == 1
+    ):  # catch AS and AS-APR case
+        raise ValueError(
+            "No 1:1, 1:n, or n:1 mapping exists between source and target frequency."
+        )
 
-    ts1 = common_ts + pd.tseries.frequencies.to_offset(freq_source)
-    ts2 = common_ts + pd.tseries.frequencies.to_offset(freq_target)
+    ts1 = common_ts + freq_source_as_offset
+    ts2 = common_ts + freq_target_as_offset
     if ts1 > ts2:
         return 1
     elif ts1 < ts2:
         return -1
-    if common_ts == standard_common_ts:
+    if common_ts == STANDARD_COMMON_TS:
         # If they are the same, try with another timestamp.
-        return up_or_down(freq_source, freq_target, backup_common_ts)
+        return up_or_down(freq_source, freq_target, BACKUP_COMMON_TS)
     return 0  # only if both give the same answer.
+
+
+def assert_freq_valid(freq: str) -> None:
+    """
+    Validate if the given frequency string is allowed based on pandas offset objects.
+
+    Parameters:
+    freq (str): A string representing a frequency alias (e.g., "AS", "QS", "MS").
+
+    Raises:
+    ValueError: If the frequency is not allowed.
+    """
+
+    freq_offset = pd.tseries.frequencies.to_offset(freq)
+    mro_class = freq_offset.__class__.__mro__[0]
+
+    # Check if the MRO is in the list of allowed MROs
+    # have to make sure it's only the first class on the list
+    if mro_class not in ALLOWED_CLASSES:
+        raise ValueError(f"The passed frequency '{freq}' is not allowed.")
+
+    # Define restricted classes that should have n == 1
+    restricted_classes = (
+        pd._libs.tslibs.offsets.MonthBegin,
+        pd._libs.tslibs.offsets.Day,
+        pd._libs.tslibs.offsets.Hour,
+    )
+
+    if isinstance(freq_offset, restricted_classes) and freq_offset.n != 1:
+        raise ValueError(f"The passed frequency '{freq}' is not allowed.")
+    # Check if the offset is an instance of Minute and if n is not 15 or 30
+    elif isinstance(
+        freq_offset, pd._libs.tslibs.offsets.Minute
+    ) and freq_offset.n not in (15, 30):
+        raise ValueError(f"The passed frequency {freq} is not allowed.")
+
+
+def assert_freq_sufficiently_long(freq, freq_ref, strict: bool = False) -> None:
+    """Compares ``freq`` and ``freq_ref``, raising an AssertionError if ``freq`` is not long enough.
+    If ``strict`` is True, ``freq`` must be strictly longer than ``freq_long``. If False, it may be
+    equally long."""
+    # freq should start from the same month-> 1.01
+    raise AssertionError(
+        f"The passed frequency is not sufficiently long; passed {freq}, but should be {freq_ref} or longer."
+    )
+
+
+def assert_freq_sufficiently_short(freq, freq_ref, strict: bool = False) -> None:
+    """Same but different."""
+    ...
 
 
 def _longestshortest(shortest: bool, *freqs: str):
@@ -137,14 +230,8 @@ def to_offset(freq: str) -> pd.Timedelta | pd.DateOffset:
         return pd.Timedelta(hours=0.25)
     elif freq == "H":
         return pd.Timedelta(hours=1)
-    elif freq == "D":
-        return pd.DateOffset(days=1)
-    elif freq == "MS":
-        return pd.DateOffset(months=1)
-    elif freq == "QS":
-        return pd.DateOffset(months=3)
-    elif freq == "AS":
-        return pd.DateOffset(years=1)
+    elif freq in FREQUENCIES:
+        return pd.tseries.frequencies.to_offset(freq)
     else:
         for freq2 in ["MS", "QS"]:  # Edge case: month-/quarterly but starting != Jan.
             try:
