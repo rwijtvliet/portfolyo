@@ -149,14 +149,32 @@ def assert_freq_sufficiently_long(freq, freq_ref, strict: bool = False) -> None:
     If ``strict`` is True, ``freq`` must be strictly longer than ``freq_long``. If False, it may be
     equally long."""
     # freq should start from the same month-> 1.01
-    raise AssertionError(
-        f"The passed frequency is not sufficiently long; passed {freq}, but should be {freq_ref} or longer."
-    )
+    to = pd.tseries.frequencies.to_offset
+    shortest_to_longest = [
+        type(to("15T")),
+        type(to("H")),
+        type(to("D")),
+        type(to("MS")),
+        type(to("QS")),
+        type(to("AS")),
+    ]
+    index_freq = shortest_to_longest.index(type(to(freq)))
+    index_ref = shortest_to_longest.index(type(to(freq_ref)))
+    if strict is True:
+        if not (index_freq > index_ref):
+            raise AssertionError(
+                f"The passed frequency is not sufficiently long; passed {freq}, but should be {freq_ref} or longer."
+            )
+    else:
+        if not (index_freq >= index_ref):
+            raise AssertionError(
+                f"The passed frequency is not sufficiently long; passed {freq}, but should be {freq_ref} or longer."
+            )
 
 
 def assert_freq_sufficiently_short(freq, freq_ref, strict: bool = False) -> None:
     """Same but different."""
-    ...
+    assert_freq_sufficiently_long(freq_ref, freq, strict)
 
 
 def _longestshortest(shortest: bool, *freqs: str):
