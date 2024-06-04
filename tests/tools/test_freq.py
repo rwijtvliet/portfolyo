@@ -5,6 +5,18 @@ import pytest
 from portfolyo import tools
 
 freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
+freqs_small_to_large_valid = [
+    "15T",
+    "30T",
+    "H",
+    "D",
+    "MS",
+    "QS",
+    "QS-FEB",
+    "AS",
+    "AS-APR",
+]
+invalid_freq = ["T", "5T", "2H", "5D", "3MS"]
 
 
 @pytest.mark.parametrize("count", range(1, 30))
@@ -169,3 +181,55 @@ def test_setfreq(
     else:
         outputfreq = result.index.freq
     assert outputfreq == expected
+
+
+# Define your frequencies and their validity
+freqs_with_validity = [
+    ("15T", True),
+    ("30T", True),
+    ("D", True),
+    ("H", True),
+    ("MS", True),
+    ("QS", True),
+    ("AS", True),
+    ("AS-APR", True),
+    ("QS-FEB", True),
+    ("T", False),
+    ("5T", False),
+    ("2H", False),
+    ("5D", False),
+    ("3MS", False),
+]
+
+
+@pytest.mark.parametrize("freq, is_valid", freqs_with_validity)
+def test_freq_validity(freq: str, is_valid: bool):
+    if is_valid:
+        # No exception should be raised for valid frequencies
+        tools.freq.assert_freq_valid(freq)
+    else:
+        # ValueError should be raised for invalid frequencies
+        with pytest.raises(ValueError):
+            tools.freq.assert_freq_valid(freq)
+
+
+@pytest.mark.parametrize(
+    ("freq1", "freq2", "strict", "isSupposedToFail"),
+    [
+        ("15T", "15T", False, False),
+        ("15T", "15T", True, True),
+        ("30T", "15T", True, False),
+        ("30T", "30T", True, True),
+        ("QS", "AS", True, True),
+        ("QS", "QS-APR", False, False),
+        ("AS", "QS", False, False),
+    ],
+)
+def test_freq_sufficiently_long(
+    freq1: str, freq2: str, strict: bool, isSupposedToFail: bool
+):
+    if isSupposedToFail:
+        with pytest.raises(AssertionError):
+            _ = tools.freq.assert_freq_sufficiently_long(freq1, freq2, strict)
+    else:
+        tools.freq.assert_freq_sufficiently_long(freq1, freq2, strict)
