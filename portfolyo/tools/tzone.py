@@ -114,7 +114,7 @@ def force_aware(
         )
 
     # Copy, try to set freq, and store original attributes.
-    fr = tools_freq.set_to_frame(fr)
+    fr = tools_freq.guess_to_frame(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
     if not freq_input:
@@ -171,7 +171,7 @@ def force_agnostic(fr: Series_or_DataFrame) -> Series_or_DataFrame:
       this conversion is probably what we want, regardless of the unit.
     """
     # Copy, try to set freq, and store original attributes.
-    fr = tools_freq.set_to_frame(fr)
+    fr = tools_freq.guess_to_frame(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
     if not freq_input:
@@ -219,7 +219,7 @@ def _B_to_A(fr: Series_or_DataFrame, *, tz) -> Series_or_DataFrame:
 
 
 def _idx_after_conversion(fr: Series_or_DataFrame, tz) -> pd.DatetimeIndex:
-    fr = tools_freq.set_to_frame(fr)
+    fr = tools_freq.guess_to_frame(fr)
     freq_input = fr.index.freq
     if not freq_input:
         raise ValueError("Cannot recalculate values if frequency is not known.")

@@ -77,7 +77,7 @@ def frame(
 
     # Make sure it has a frequency, i.e., make sure it is tz-aware or tz-agnostic.
     # Pipeline if frequency not yet found: right -> left -> localize -> tz-aware -> freq
-    fr = tools_freq.set_to_frame(fr)
+    fr = tools_freq.guess_to_frame(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
     # The data may be right-bound.
@@ -124,7 +124,9 @@ def frame(
     # Standardize index name.
     fr = _standardize_index_name(fr)
     # After standardizing timezone, the frequency should have been set.
-    return tools_freq.set_to_frame(fr, freq_input, strict=True)
+    fr = tools_freq.set_to_frame(fr, freq_input)
+    tools_freq.assert_freq_valid(fr.index.freq)
+    return fr
 
 
 def _fix_rightbound(fr, force, tz, floating):

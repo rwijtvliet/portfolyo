@@ -147,9 +147,9 @@ def assert_freq_valid(freq: str) -> None:
     if isinstance(freq_offset, restricted_classes) and freq_offset.n != 1:
         raise ValueError(f"The passed frequency '{freq}' is not allowed.")
     # Check if the offset is an instance of Minute and if n is not 15 or 30
-    elif isinstance(
-        freq_offset, pd._libs.tslibs.offsets.Minute
-    ) and freq_offset.n not in (15, 30):
+    elif (
+        isinstance(freq_offset, pd._libs.tslibs.offsets.Minute) and freq_offset.n != 15
+    ):
         raise ValueError(f"The passed frequency {freq} is not allowed.")
 
 
@@ -297,65 +297,42 @@ def from_tdelta(tdelta: pd.Timedelta) -> str:
         )
 
 
-def set_to_index(
-    i: pd.DatetimeIndex, wanted: str = None, strict: bool = False
-) -> pd.DatetimeIndex:
-    """Try to read, infer, or force frequency of index.
-
-    Parameters
-    ----------
-    i : pd.DatetimeIndex
-    wanted : str, optional (default: None)
-        Frequency to set. If none provided, try to infer.
-    strict : bool, optional (default: False)
-        If True, raise ValueError if a valid frequency is not found.
-
-    Returns
-    -------
-    pd.DatetimeIndex
-        with same values as ``i``, but, if possible, a valid value for ``i.freq``.
-    """
-    # Find frequency.
-    i = i.copy(deep=True)
-    if i.freq:
-        pass
-    elif wanted:
-        i.freq = wanted
-    else:
-        try:
-            i.freq = pd.infer_freq(i)
-        except ValueError:
-            pass  # couldn't find one, e.g. because not enough values
-
-    # Correct if necessary.
-    freq = i.freq
-    if not freq and strict:  # No frequency found.
-        raise ValueError("The index does not seem to have a regular frequency.")
-    elif freq and freq not in FREQUENCIES:
-        # Edge case: year-/quarterly but starting != Jan.
-        if up_or_down(freq, "AS") == 0:
-            i.freq = "AS"  # will likely fail
-        elif up_or_down(freq, "QS") == 0:
-            i.freq = "QS"  # will only succeed if QS-APR, QS-JUL or QS-OCT
-        elif strict:
-            raise ValueError(
-                f"The data has a non-allowed frequency. Must be one of {', '.join(FREQUENCIES)}; found '{freq}'."
-            )
-    return i
-
-
-def set_to_frame(
-    fr: Series_or_DataFrame, wanted: str = None, strict: bool = False
-) -> Series_or_DataFrame:
-    """Try to read, infer, or force frequency of frame's index.
+def guess_to_frame(fr: Series_or_DataFrame) -> Series_or_DataFrame:
+    """Try to infer the frequency of the frame's index and set it if possible.
 
     Parameters
     ----------
     fr : pd.Series or pd.DataFrame
-    wanted : str, optional
+
+    Returns
+    -------
+    pd.Series | pd.DataFrame
+        Same type as ``fr``, with the inferred frequency if possible.
+    """
+    # Handle non-datetime-indices.
+    if not isinstance(fr.index, pd.DatetimeIndex):
+        raise ValueError(
+            "The data does not have a datetime index and can therefore not have a frequency."
+        )
+    i = fr.index.copy(deep=True)
+    if i.freq:
+        pass
+    if not i.freq:
+        try:
+            i.freq = pd.infer_freq(i)
+        except ValueError:
+            pass  # Couldn't find a frequency, e.g., because there are not enough values
+    return fr.set_axis(i, axis=0)
+
+
+def set_to_frame(fr: Series_or_DataFrame, wanted: str) -> Series_or_DataFrame:
+    """Try to force frequency of frame's index.
+
+    Parameters
+    ----------
+    fr : pd.Series or pd.DataFrame
+    wanted : str
         Frequency to set. If none provided, try to infer.
-    strict : bool, optional (default: False)
-        If True, raise ValueError if a valid frequency is not found.
 
     Returns
     -------
@@ -368,5 +345,8 @@ def set_to_frame(
             "The data does not have a datetime index and can therefore not have a frequency."
         )
 
-    i = set_to_index(fr.index, wanted, strict)
+    # Find frequency.
+    i = fr.index.copy(deep=True)
+    i.freq = wanted
+
     return fr.set_axis(i, axis=0)

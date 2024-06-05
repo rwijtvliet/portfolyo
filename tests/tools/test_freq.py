@@ -186,7 +186,7 @@ def test_setfreq(
 # Define your frequencies and their validity
 freqs_with_validity = [
     ("15T", True),
-    ("30T", True),
+    ("30T", False),
     ("D", True),
     ("H", True),
     ("MS", True),
@@ -214,21 +214,28 @@ def test_freq_validity(freq: str, is_valid: bool):
 
 
 @pytest.mark.parametrize(
-    ("freq1", "freq2", "strict", "isSupposedToFail"),
+    ("freq1", "freq2", "strict", "is_supposed_to_fail"),
     [
         ("15T", "15T", False, False),
         ("15T", "15T", True, True),
-        ("30T", "15T", True, False),
-        ("30T", "30T", True, True),
+        ("H", "15T", True, False),
+        ("15T", "H", True, True),
+        ("15T", "H", False, True),
+        ("MS", "MS", True, True),
+        ("MS", "MS", False, False),
+        ("MS", "QS-APR", False, True),
         ("QS", "AS", True, True),
         ("QS", "QS-APR", False, False),
+        ("QS-FEB", "QS-APR", True, True),
+        ("QS-FEB", "QS-APR", False, False),
         ("AS", "QS", False, False),
+        ("QS-APR", "AS-APR", False, True),
     ],
 )
 def test_freq_sufficiently_long(
-    freq1: str, freq2: str, strict: bool, isSupposedToFail: bool
+    freq1: str, freq2: str, strict: bool, is_supposed_to_fail: bool
 ):
-    if isSupposedToFail:
+    if is_supposed_to_fail:
         with pytest.raises(AssertionError):
             _ = tools.freq.assert_freq_sufficiently_long(freq1, freq2, strict)
     else:
