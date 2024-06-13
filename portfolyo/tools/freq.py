@@ -50,6 +50,11 @@ SHORTEST_TO_LONGEST = [
     type(TO_OFFSET("AS")),
 ]
 
+quarter_matrix = [
+    ["QS", "QS-APR", "QS-JUL", "QS-OCT"],
+    ["QS-FEB", "QS-MAY", "QS-AUG", "QS-NOV"],
+    ["QS-MAR", "QS-JUN", "QS-SEP", "QS-DEC"],
+]
 
 STANDARD_COMMON_TS = pd.Timestamp("2020-01-01 0:00")
 BACKUP_COMMON_TS = pd.Timestamp("2020-02-03 04:05:06")
@@ -138,28 +143,31 @@ def assert_freq_valid(freq: str) -> None:
         raise ValueError(f"The passed frequency '{freq}' is not allowed.")
 
     # Define restricted classes that should have n == 1
-    restricted_classes = (
-        pd._libs.tslibs.offsets.MonthBegin,
-        pd._libs.tslibs.offsets.Day,
-        pd._libs.tslibs.offsets.Hour,
-    )
-
-    if isinstance(freq_offset, restricted_classes) and freq_offset.n != 1:
-        raise ValueError(f"The passed frequency '{freq}' is not allowed.")
-    # Check if the offset is an instance of Minute and if n is not 15 or 30
-    elif (
-        isinstance(freq_offset, pd._libs.tslibs.offsets.Minute) and freq_offset.n != 15
-    ):
-        raise ValueError(f"The passed frequency {freq} is not allowed.")
+    restricted_classes = {
+        pd._libs.tslibs.offsets.MonthBegin: 1,
+        pd._libs.tslibs.offsets.Day: 1,
+        pd._libs.tslibs.offsets.Hour: 1,
+        pd._libs.tslibs.offsets.Minute: 15,
+    }
+    allowed_n = restricted_classes.get(type(freq_offset))
+    if allowed_n is not None:  # case where freq is not in restricted class
+        # Check if freq_offset.n is not None and if it doesn't match allowed_n
+        if freq_offset.n is None or freq_offset.n != allowed_n:
+            raise ValueError(f"The passed frequency {freq} is not allowed.")
 
 
 def assert_freq_sufficiently_long(freq, freq_ref, strict: bool = False) -> None:
-    """Compares ``freq`` and ``freq_ref``, raising an AssertionError if ``freq`` is not long enough.
-    If ``strict`` is True, ``freq`` must be strictly longer than ``freq_long``. If False, it may be
-    equally long."""
-    # check if passed freuenices are valid
-    assert_freq_valid(freq)
-    assert_freq_valid(freq_ref)
+    """
+    Compares ``freq`` and ``freq_ref``, raising an AssertionError if ``freq`` is not long enough.
+
+    Parameters
+    ----------
+    freq_source, freq_ref : frequencies to compare.
+    strict : bool, optional (default: False)
+        - If ``strict`` is True, ``freq`` must be strictly longer than ``freq_long``.
+        - If False, it may be equally long.
+
+    """
     # freq should start from the beginning of the year
     index_freq = SHORTEST_TO_LONGEST.index(type(TO_OFFSET(freq)))
     index_ref = SHORTEST_TO_LONGEST.index(type(TO_OFFSET(freq_ref)))
@@ -175,8 +183,101 @@ def assert_freq_sufficiently_long(freq, freq_ref, strict: bool = False) -> None:
             )
 
 
+def up_or_down2(freq_source: str, freq_target: str) -> int:
+    """
+    Compare source frequency with target frequency to see if it needs up- or downsampling.
+
+    Upsampling means that the number of values increases - one value in the source
+    corresponds to multiple values in the target.
+
+    Parameters
+    ----------
+    freq_source, freq_target : frequencies to compare.
+
+    Returns
+    -------
+    * 1 if source frequency must be upsampled to obtain (i.e, is longer than) target frequency.
+    * 0 if source frequency is same as target frequency.
+    * -1 if source frequency must be downsampled to obtain (i.e, is shorter than) target frequency.
+
+    Notes
+    -----
+    If the freq can't be down- or upsampled, throws ValueError.
+
+    Examples
+    --------
+    >>> freq.up_or_down('D', 'MS')
+    -1
+    >>> freq.up_or_down('MS', 'D')
+    1
+    >>> freq.up_or_down('MS', 'MS')
+    0
+    >>> freq.up_or_down('QS', 'QS-APR')
+    ValueError
+
+    """
+    # check if passed freuenices are valid
+    assert_freq_valid(freq_source)
+    assert_freq_valid(freq_target)
+    # Compare if the freq are the same
+    if freq_source == freq_target:
+        return 0
+    restricted_classes = [
+        pd._libs.tslibs.offsets.QuarterBegin,
+        pd._libs.tslibs.offsets.YearBegin,
+    ]
+    freq_source_as_offset = pd.tseries.frequencies.to_offset(freq_source)
+    freq_target_as_offset = pd.tseries.frequencies.to_offset(freq_target)
+    # One of the freq can be in restircted class, but not both
+    if not (
+        type(freq_source_as_offset) in restricted_classes
+        and type(freq_target_as_offset) in restricted_classes
+    ):
+        try:
+            assert_freq_sufficiently_long(freq_source, freq_target, strict=True)
+            return 1
+        except AssertionError:
+            return -1
+    # If both in restricted class
+    else:
+        source_index = restricted_classes.index(type(freq_source_as_offset))
+        target_index = restricted_classes.index(type(freq_target_as_offset))
+        group_by_month_beginn = (
+            freq_source_as_offset.startingMonth
+            if source_index == 0
+            else freq_source_as_offset.month
+        ) % 3 == (
+            freq_target_as_offset.startingMonth
+            if target_index == 0
+            else freq_target_as_offset.month
+        ) % 3
+
+        if group_by_month_beginn:
+            if source_index > target_index:
+                # we are in case AS and QS
+                return 1
+            elif source_index < target_index:
+                # we are in the case QS and AS
+                return -1
+            elif source_index == 0:
+                # we are in the case QS and QS
+                return 0
+
+        raise ValueError
+
+
 def assert_freq_sufficiently_short(freq, freq_ref, strict: bool = False) -> None:
-    """Same but different."""
+    """
+    Compares ``freq`` and ``freq_ref``, raising an AssertionError if ``freq`` is not short enough.
+
+    Parameters
+    ----------
+    freq_source, freq_ref : frequencies to compare.
+    strict : bool, optional (default: False)
+        - If ``strict`` is True, ``freq`` must be strictly shorter than ``freq_long``.
+        - If False, it may be equally long, or rather, short.
+
+    """
     assert_freq_sufficiently_long(freq_ref, freq, strict)
 
 
@@ -251,8 +352,16 @@ def to_offset(freq: str) -> pd.Timedelta | pd.DateOffset:
         return pd.Timedelta(hours=0.25)
     elif freq == "H":
         return pd.Timedelta(hours=1)
-    elif freq in FREQUENCIES:
-        return pd.tseries.frequencies.to_offset(freq)
+    # elif freq in FREQUENCIES:
+    #     return pd.tseries.frequencies.to_offset(freq)
+    elif freq == "D":
+        return pd.DateOffset(days=1)
+    elif freq == "MS":
+        return pd.DateOffset(months=1)
+    elif freq == "QS":
+        return pd.DateOffset(months=3)
+    elif freq == "AS":
+        return pd.DateOffset(years=1)
     else:
         for freq2 in ["MS", "QS"]:  # Edge case: month-/quarterly but starting != Jan.
             try:
@@ -316,12 +425,23 @@ def guess_to_frame(fr: Series_or_DataFrame) -> Series_or_DataFrame:
         )
     i = fr.index.copy(deep=True)
     if i.freq:
-        pass
-    if not i.freq:
-        try:
-            i.freq = pd.infer_freq(i)
-        except ValueError:
-            pass  # Couldn't find a frequency, e.g., because there are not enough values
+        return fr
+
+    # Freq not set.
+    try:
+
+        inferred_freq = pd.infer_freq(i)
+        for row_index in range(len(quarter_matrix)):  # Loop through the rows
+            if (
+                inferred_freq in quarter_matrix[row_index]
+            ):  # check if inferred_freq is somewhere in this row
+                inferred_freq = quarter_matrix[row_index][
+                    0
+                ]  # set inferred_freq to the first value in the row
+        i.freq = inferred_freq
+
+    except ValueError:
+        pass  # Couldn't find a frequency, e.g., because there are not enough values
     return fr.set_axis(i, axis=0)
 
 
@@ -332,7 +452,7 @@ def set_to_frame(fr: Series_or_DataFrame, wanted: str) -> Series_or_DataFrame:
     ----------
     fr : pd.Series or pd.DataFrame
     wanted : str
-        Frequency to set. If none provided, try to infer.
+        Frequency to set.
 
     Returns
     -------
@@ -345,7 +465,7 @@ def set_to_frame(fr: Series_or_DataFrame, wanted: str) -> Series_or_DataFrame:
             "The data does not have a datetime index and can therefore not have a frequency."
         )
 
-    # Find frequency.
+    # Set frequency.
     i = fr.index.copy(deep=True)
     i.freq = wanted
 
