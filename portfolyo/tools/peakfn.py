@@ -107,7 +107,7 @@ def factory(
 
     def peak_fn(i: pd.DatetimeIndex) -> pd.Series:
         # Check if function works for this frequency.
-        if tools_freq.up_or_down(i.freq, longest_freq) > 0:
+        if tools_freq.up_or_down2(i.freq, longest_freq) > 0:
             raise ValueError(
                 f"Peak periods can only be calculated for indices with frequency of {longest_freq} or shorter."
             )
@@ -145,7 +145,7 @@ def peak_duration(i: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
     """
     eval_i = i  # index to evaluate if peak or offpeak
     for eval_freq in ("D", "H", "15T"):
-        if tools_freq.up_or_down(eval_i.freq, eval_freq) > 0:  # upsampling necessary
+        if tools_freq.up_or_down2(eval_i.freq, eval_freq) > 0:  # upsampling necessary
             eval_i = tools_changefreq.index(eval_i, eval_freq)
         try:
             eval_bool = peak_fn(eval_i)  # boolean series

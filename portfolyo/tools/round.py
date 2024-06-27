@@ -67,7 +67,7 @@ def stamp_current(
     # If we land here, the timestamp is not on a boundary.
 
     # Fixed-duration frequency (= (quarter)hour): simply floor/ceil.
-    if tools_freq.up_or_down(freq, "D") < 0:
+    if tools_freq.up_or_down2(freq, "D") < 0:
         if fn == "floor":
             return ts.floor(freq, nonexistent="shift_backward")
         else:

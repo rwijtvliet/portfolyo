@@ -73,6 +73,7 @@ def test_standardize_DST(
         result = tools.standardize.frame(expected, force, **kw)
         pd.testing.assert_series_equal(result, expected)
         # 2: Series.
+        # series = pd.Series(in_vals, iin)
         result = tools.standardize.frame(
             pd.Series(in_vals, iin), force, bound=bound, **kw
         )
@@ -132,13 +133,19 @@ def test_standardize_convert(freq, in_tz, floating, series_or_df, bound, out_tz)
     result = tools.standardize.frame(fr, force, bound, tz=out_tz, floating=floating)
     assert result.index.freq == freq
 
+    # # Normalize the frequencies before comparison
+    # result_freq_normalized = normalize_freq(result.index.freqstr)
+    # expected_freq_normalized = normalize_freq(freq)
+
+    # assert result_freq_normalized == expected_freq_normalized
+
 
 @pytest.mark.only_on_pr
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("in_tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("floating", [True, False])
 @pytest.mark.parametrize("force", ["agnostic", "aware"])
-@pytest.mark.parametrize("freq", [*tools.freq.FREQUENCIES, "Q", "M", "AS-FEB"])
+@pytest.mark.parametrize("freq", [*tools.freq.FREQUENCIES, "AS-FEB"])
 def test_standardize_freq(freq, in_tz, floating, series_or_df, force):
     """Test raising errors when passing invalid frequencies."""
     out_tz = "Europe/Berlin"
@@ -150,10 +157,13 @@ def test_standardize_freq(freq, in_tz, floating, series_or_df, force):
     fr = dev.get_series(i) if series_or_df == "series" else dev.get_dataframe(i)
 
     # See if error is raised.
-    if freq not in tools.freq.FREQUENCIES:
+    try:
+        tools.freq.assert_freq_valid(freq)
+    except ValueError:
+        # freq isn't valid, check that standardize will also raise ValueError
         with pytest.raises(ValueError):
             _ = tools.standardize.frame(fr, force, tz=out_tz, floating=floating)
-        return
+        return  # freq was invalid, and standardize correctly raised ValueError
 
     result = tools.standardize.frame(fr, force, tz=out_tz, floating=floating)
     assert result.index.freq == freq

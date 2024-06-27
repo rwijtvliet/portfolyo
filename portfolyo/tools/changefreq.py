@@ -48,8 +48,8 @@ def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
         return _emptyseries(s, freq)
 
     offset = tools_startofday.get(s.index, "timedelta")
-    source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
-    target_vs_daily = tools_freq.up_or_down(freq, "D")
+    source_vs_daily = tools_freq.up_or_down2(s.index.freq, "D")
+    target_vs_daily = tools_freq.up_or_down2(freq, "D")
 
     # We cannot simply `.resample()`, e.g. from hourly to monthly, because in that
     # case the start-of-day is lost. We need to do it in two steps.
@@ -89,8 +89,8 @@ def _upsample_avgable(s: pd.Series, freq: str) -> pd.Series:
         return _emptyseries(s, freq)
 
     offset = tools_startofday.get(s.index, "timedelta")
-    source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
-    target_vs_daily = tools_freq.up_or_down(freq, "D")
+    source_vs_daily = tools_freq.up_or_down2(s.index.freq, "D")
+    target_vs_daily = tools_freq.up_or_down2(freq, "D")
 
     # Several isuses with pandas resampling:
 
@@ -144,7 +144,7 @@ def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
 
     # s is now a Series with a 'float' or 'pint' dtype.
 
-    up_or_down = tools_freq.up_or_down(s.index.freq, freq)
+    up_or_down = tools_freq.up_or_down2(s.index.freq, freq)
 
     # Nothing more needed; portfolio already in desired frequency.
     if up_or_down == 0:
@@ -179,7 +179,7 @@ def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
     -------
     pd.DatetimeIndex
     """
-    up_or_down = tools_freq.up_or_down(i.freq, freq)
+    up_or_down = tools_freq.up_or_down2(i.freq, freq)
 
     # Nothing more needed; index already in desired frequency.
     if up_or_down == 0:

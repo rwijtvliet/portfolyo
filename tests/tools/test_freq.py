@@ -26,15 +26,6 @@ def test_longestshortestfreq(count):
     assert tools.freq.shortest(*freqs) == freqs_small_to_large[min(indices)]
 
 
-@pytest.mark.parametrize("freq1", freqs_small_to_large)
-@pytest.mark.parametrize("freq2", freqs_small_to_large)
-def test_frequpordown(freq1, freq2):
-    i1 = freqs_small_to_large.index(freq1)
-    i2 = freqs_small_to_large.index(freq2)
-    outcome = np.sign(i1 - i2)
-    assert tools.freq.up_or_down(freq1, freq2) == outcome
-
-
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(
     ("start", "end", "expected"),
@@ -258,6 +249,30 @@ def test_freq_sufficiently_long(
 
 
 @pytest.mark.parametrize(
+    ("freq1", "freq2", "is_supposed_to_fail"),
+    [
+        ("15T", "15T", False),
+        ("H", "15T", True),
+        ("15T", "H", True),
+        ("MS", "MS", False),
+        ("MS", "QS-APR", True),
+        ("QS", "AS", True),
+        ("QS", "QS-APR", False),
+        ("QS-FEB", "QS-APR", False),
+        ("AS", "QS", True),
+        ("QS-APR", "AS-APR", True),
+        ("AS-APR", "AS-FEB", False),
+    ],
+)
+def test_freq_equally_long(freq1: str, freq2: str, is_supposed_to_fail: bool):
+    if is_supposed_to_fail:
+        with pytest.raises(AssertionError):
+            _ = tools.freq.assert_freq_equally_long(freq1, freq2)
+    else:
+        tools.freq.assert_freq_equally_long(freq1, freq2)
+
+
+@pytest.mark.parametrize(
     ("freq1", "freq2", "strict", "is_supposed_to_fail"),
     [
         ("15T", "15T", False, False),
@@ -294,9 +309,10 @@ def test_freq_sufficiently_short(
         ("MS", "QS", -1),
         ("MS", "QS-APR", -1),
         ("QS", "AS-APR", -1),
+        ("QS", "AS", -1),
         # upsampling
         ("QS", "D", 1),
-        ("QS", "AS", -1),
+        ("AS-APR", "QS", 1),
         # the same
         ("MS", "MS", 0),
         ("QS", "QS", 0),
@@ -305,6 +321,7 @@ def test_freq_sufficiently_short(
         ("QS", "QS-FEB", ValueError),
         ("QS", "AS-FEB", ValueError),
         ("AS-APR", "AS", ValueError),
+        ("AS-FEB", "QS", ValueError),
     ],
 )
 def test_up_pr_down2(source_freq: str, ref_freq: str, expected: int | Exception):

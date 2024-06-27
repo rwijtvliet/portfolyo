@@ -17,7 +17,7 @@ C: tz-naive indices for a location with DST. There is a problem if an index incl
 DST-transition:
 - When representing hourly values, there are (correctly) skipped or doubled timestamps.
 However, the freq cannot be inferred.
-- When represinging daily values, all timestamps are present and a freq can be inferred.
+- When representing daily values, all timestamps are present and a freq can be inferred.
 However, not all timestamps have the correct duration (e.g., 24h when day actually has
 23h or 25h).
 

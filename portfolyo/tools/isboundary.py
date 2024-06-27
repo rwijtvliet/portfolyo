@@ -139,17 +139,17 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.Series:
     until 06:00:00 (excl).)
     """
     # When comparing index to shorter (or same) frequency, all timestamps are on boundary.
-    if tools_freq.up_or_down(i.freq, freq) >= 0:
+    if tools_freq.up_or_down2(i.freq, freq) >= 0:
         values = True
 
     # When comparing daily-or-longer index to other daily-or-longer frequency X,
     # we only need check only if the stamps are on first day of X.
-    elif tools_freq.up_or_down(i.freq, "D") >= 0:
+    elif tools_freq.up_or_down2(i.freq, "D") >= 0:
         values = is_X_start(i, freq)
 
     # Comparing shorter-than-daily index to other shorter-than-daily frequency X,
     # (i.e., '15T' with 'H')
-    elif tools_freq.up_or_down(freq, "H") <= 0:
+    elif tools_freq.up_or_down2(freq, "H") <= 0:
         if i.freq == "15T" and freq == "H":
             values = i.minute == 0
         else:
@@ -163,7 +163,7 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.Series:
         # . Check time of day.
         values = i.time == tools_startofday.get(i)
         # . Check day of X.
-        if tools_freq.up_or_down(freq, "D") > 0:
+        if tools_freq.up_or_down2(freq, "D") > 0:
             values &= is_X_start(i, freq)
 
     return pd.Series(values, i, name="isboundary")

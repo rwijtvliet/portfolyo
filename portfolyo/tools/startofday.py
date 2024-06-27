@@ -56,7 +56,7 @@ def set(i: pd.DatetimeIndex, start_of_day: dt.time) -> pd.DatetimeIndex:
     if start_of_day.second != 0 or start_of_day.minute % 15 != 0:
         raise ValueError("Start of day must coincide with a full quarterhour.")
 
-    if tools_freq.up_or_down(i.freq, "D") >= 0:
+    if tools_freq.up_or_down2(i.freq, "D") >= 0:
         return _set_to_longfreq(i, start_of_day)
     else:
         return _set_to_shortfreq(i, start_of_day)
