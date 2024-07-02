@@ -9,20 +9,7 @@ from .types import Series_or_DataFrame
 
 
 # Allowed frequencies.
-# Perfect containment; a short-frequency time period always entirely falls within a single high-frequency time period.
-# AS -> 4 QS; QS -> 3 MS; MS -> 28-31 D; D -> 23-25 H; H -> 4 15T
-FREQUENCIES = [
-    "AS",
-    "AS-FEB",
-    "AS-APR",
-    "QS",
-    "QS-FEB",
-    "QS-APR",
-    "MS",
-    "D",
-    "H",
-    "15T",
-]
+ALLOWED_FREQUENCIES_DOCS = "'15T' (=quarterhour), 'H', 'D', 'MS', 'QS' (or 'QS-FEB', 'QS-MAR', etc.), or 'AS' (or 'AS-FEB', 'AS-MAR', etc.)"
 ALLOWED_CLASSES = [
     pd.tseries.offsets.YearBegin,
     pd.tseries.offsets.QuarterBegin,
@@ -33,12 +20,7 @@ ALLOWED_CLASSES = [
 ]
 TO_OFFSET = pd.tseries.frequencies.to_offset
 SHORTEST_TO_LONGEST = [
-    type(TO_OFFSET("15T")),
-    type(TO_OFFSET("H")),
-    type(TO_OFFSET("D")),
-    type(TO_OFFSET("MS")),
-    type(TO_OFFSET("QS")),
-    type(TO_OFFSET("AS")),
+    type(TO_OFFSET(freq)) for freq in ["15T", "H", "D", "MS", "QS", "AS"]
 ]
 
 quarter_matrix = [
@@ -311,7 +293,7 @@ def to_offset(freq: str) -> pd.Timedelta | pd.DateOffset:
         return pd.DateOffset(years=1)
     else:
         raise ValueError(
-            f"Parameter ``freq`` must be one of {', '.join(FREQUENCIES)}; got '{freq}'."
+            f"Parameter ``freq`` must be one of {ALLOWED_FREQUENCIES_DOCS}; got '{freq}'."
         )
 
 
@@ -326,7 +308,7 @@ def from_tdelta(tdelta: pd.Timedelta) -> str:
     Returns
     -------
     str
-        One of {', '.join(FREQUENCIES)}.
+        One of {ALLOWED_FREQUENCIES_DOCS}.
     """
     if tdelta == pd.Timedelta(minutes=15):
         return "15T"
@@ -343,7 +325,7 @@ def from_tdelta(tdelta: pd.Timedelta) -> str:
     else:
         raise ValueError(
             f"The timedelta ({tdelta}) doesn't seem to be fit to any of the allowed "
-            f"frequencies ({', '.join(FREQUENCIES)})."
+            f"frequencies ({ALLOWED_FREQUENCIES_DOCS})."
         )
 
 

@@ -3,12 +3,25 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from portfolyo import dev, testing, tools
+from portfolyo import dev, testing
 from portfolyo.core.pfline import flat_helper
+
+TEST_FREQUENCIES = [
+    "AS",
+    "AS-FEB",
+    "AS-APR",
+    "QS",
+    "QS-FEB",
+    "QS-APR",
+    "MS",
+    "D",
+    "H",
+    "15T",
+]
 
 
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
-@pytest.mark.parametrize("freq", tools.freq.FREQUENCIES)
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES)
 def test_makedataframe_freqtz(freq, tz):
     """Test if dataframe can made from data with various timezones and frequencies."""
 

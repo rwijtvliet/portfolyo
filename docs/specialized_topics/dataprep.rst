@@ -69,14 +69,14 @@ Don't worry if our data does not yet have the timezone we want to use in our app
 Frequency
 ---------
 
-The index must have a frequency (``fr.index.freq``); it must be one of the ones in ``portfolyo.FREQUENCIES``. The following abbreviations are used by ``pandas`` and throughout this package:
+The index must have a frequency (``fr.index.freq``); it must be one of the valid frequencies. To check validity of the frequency, one may use ``portfolyo.assert_freq_valid()``. The following abbreviations are used by ``pandas`` and throughout this package:
 
 * ``15T``: quarterhourly; 
 * ``H``: hourly;
 * ``D``: daily;
 * ``MS``: monthly;
-* ``QS``: quarterly;
-* ``AS``: yearly.
+* ``QS``: quarterly. Also allowed ``QS-FEB``, ``QS-MAR``, etc.;
+* ``AS``: yearly.Also allowed ``AS-FEB``, ``AS-MAR``, etc.
 
 If the frequency is not set, we can try to make pandas infer it:
 

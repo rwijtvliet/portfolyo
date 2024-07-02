@@ -12,6 +12,19 @@ import portfolyo as pf
 from portfolyo import Kind, PfLine, create, dev
 from portfolyo.core.pfline import classes
 
+TEST_FREQUENCIES = [
+    "15T",
+    "H",
+    "D",
+    "MS",
+    "QS",
+    "QS-FEB",
+    "QS-APR",
+    "AS",
+    "AS-FEB",
+    "AS-APR",
+]
+
 
 @dataclass
 class InitTestcase:
@@ -173,7 +186,7 @@ def anyerror(*args):
 
 
 @pytest.mark.only_on_pr
-@pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES[::2])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
 @pytest.mark.parametrize("inputtype", InputTypeA)
@@ -213,7 +226,7 @@ def test_init_A(
 
 
 @pytest.mark.only_on_pr
-@pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES[::2])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("kind", Kind)
 @pytest.mark.parametrize("inputtype", InputTypeB)

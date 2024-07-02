@@ -4,6 +4,19 @@ import pytest
 
 from portfolyo import dev, tools
 
+TEST_FREQUENCIES = [
+    "AS",
+    "AS-FEB",
+    "AS-APR",
+    "QS",
+    "QS-FEB",
+    "QS-APR",
+    "MS",
+    "D",
+    "H",
+    "15T",
+]
+
 
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("bound", ["right", "left"])
@@ -95,7 +108,7 @@ def test_standardize_DST(
 @pytest.mark.parametrize("out_tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("floating", [True, False])
 @pytest.mark.parametrize("bound", ["left", "right"])
-@pytest.mark.parametrize("freq", tools.freq.FREQUENCIES)
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES)
 def test_standardize_convert(freq, in_tz, floating, series_or_df, bound, out_tz):
     """Test raising errors when conversing timezones."""
     force = "aware" if out_tz else "agnostic"
@@ -133,19 +146,13 @@ def test_standardize_convert(freq, in_tz, floating, series_or_df, bound, out_tz)
     result = tools.standardize.frame(fr, force, bound, tz=out_tz, floating=floating)
     assert result.index.freq == freq
 
-    # # Normalize the frequencies before comparison
-    # result_freq_normalized = normalize_freq(result.index.freqstr)
-    # expected_freq_normalized = normalize_freq(freq)
-
-    # assert result_freq_normalized == expected_freq_normalized
-
 
 @pytest.mark.only_on_pr
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("in_tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("floating", [True, False])
 @pytest.mark.parametrize("force", ["agnostic", "aware"])
-@pytest.mark.parametrize("freq", [*tools.freq.FREQUENCIES, "AS-FEB"])
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES)
 def test_standardize_freq(freq, in_tz, floating, series_or_df, force):
     """Test raising errors when passing invalid frequencies."""
     out_tz = "Europe/Berlin"
@@ -172,7 +179,7 @@ def test_standardize_freq(freq, in_tz, floating, series_or_df, force):
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
 @pytest.mark.parametrize("remove", ["remove_some", "remove_none"])
 @pytest.mark.parametrize("in_tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("freq", tools.freq.FREQUENCIES)
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES)
 def test_standardize_gaps(freq, in_tz, remove, series_or_df):
     """Test raising errors on index with gaps. Don't test timezone-conversion."""
     force = "agnostic" if in_tz is None else "aware"
@@ -191,7 +198,7 @@ def test_standardize_gaps(freq, in_tz, remove, series_or_df):
     # See if error is raised.
     if (
         # fr has frequency, but it's a forbidden frequency
-        (remove == "remove_none" and freq not in tools.freq.FREQUENCIES)
+        (remove == "remove_none" and freq not in TEST_FREQUENCIES)
         # fr does not have frequency
         or (remove == "remove_some")
     ):

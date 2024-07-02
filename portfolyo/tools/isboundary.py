@@ -88,7 +88,7 @@ def stamp(ts: pd.Timestamp, freq: str, start_of_day: dt.time = None) -> bool:
     ----------
     ts : pd.Timestamp
         Timestamp for which to do the assertion.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}
         Frequency for which to check if the timestamp is a valid start (or end) timestamp.
     start_of_day : dt.time, optional (default: midnight)
         Time of day at which daily-or-longer delivery periods start. E.g. if
@@ -122,7 +122,7 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.Series:
     ----------
     ts : pd.Timestamp
         Timestamp for which to do the assertion.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}
         Frequency for which to check if the timestamp is a valid start (or end) timestamp.
 
     Returns

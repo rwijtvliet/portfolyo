@@ -22,7 +22,7 @@ def stamp_general(
     fn : {'floor', 'ceil'}
     ts : pd.Timestamp
         Timestamp for which to do the rounding.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}
         Frequency for which to round the timestamp.
     future : int, optional (default: 0)
         0 to round to current period. 1 (-1) to round to period after (before) that, etc.
@@ -48,7 +48,7 @@ def stamp_current(
     fn : {'floor', 'ceil'}
     ts : pd.Timestamp
         Timestamp for which to do the rounding.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}
         Frequency for which to round the timestamp.
     start_of_day : dt.time, optional (default: midnight)
         Time of day at which daily-or-longer delivery periods start. E.g. if
@@ -169,5 +169,5 @@ def _offset(freq: str, future: int):
         return pd.offsets.YearBegin(future)
     else:
         raise ValueError(
-            f"Parameter ``freq`` must be one of {', '.join(tools_freq.FREQUENCIES)}; got {freq}."
+            f"Parameter ``freq`` must be one of {tools_freq.ALLOWED_FREQUENCIES_DOCS}; got {freq}."
         )
