@@ -5,6 +5,19 @@ import pytest
 
 from portfolyo import testing, tools
 
+TEST_FREQUENCIES = [
+    "AS",
+    "AS-FEB",
+    "AS-APR",
+    "QS",
+    "QS-FEB",
+    "QS-APR",
+    "MS",
+    "D",
+    "H",
+    "15T",
+]
+
 COMMON_END = "2022-02-02"
 
 TESTCASES = [  # startdates, freq, expected_startdate
@@ -146,7 +159,7 @@ def test_intersect_distinctstartofday(
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("indexorframe", ["idx", "fr"])
-@pytest.mark.parametrize("freq", tools.freq.FREQUENCIES)
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES)
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 def test_intersect_nooverlap(indexorframe: str, tz: str, freq: str, starttime: str):
     """Test if intersection of non-overlapping indices gives correct result."""

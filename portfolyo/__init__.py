@@ -13,7 +13,7 @@ from .tools2.plot import plot_pfstates
 from .tools.changefreq import averagable as asfreq_avg
 from .tools.changefreq import summable as asfreq_sum
 from .tools.changeyear import characterize_index, map_frame_to_year
-from .tools.freq import FREQUENCIES
+from .tools.freq import assert_freq_valid
 from .tools.hedge import hedge
 from .tools.peakfn import PeakFunction
 from .tools.peakfn import factory as create_peakfn

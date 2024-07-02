@@ -21,7 +21,7 @@ def stamp(
     ----------
     ts : pd.Timestamp
         Timestamp to ceil.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}
         Frequency for which to ceil the timestamp.
     future : int, optional (default: 0)
         0 to ceil to current period. 1 (-1) to round to period after (before) that, etc.

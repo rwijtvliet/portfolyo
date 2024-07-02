@@ -14,7 +14,7 @@ def stamp(ts: pd.Timestamp, freq: str = None) -> pd.Timestamp:
     ----------
     ts : pd.Timestamp
         Timestamp for which to calculate the right-bound timestamp.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}
         Frequency to use in determining the right-bound timestamp.
 
     Returns

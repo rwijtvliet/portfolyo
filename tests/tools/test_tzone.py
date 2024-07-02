@@ -122,7 +122,7 @@ def test_conversionAtoA_fromexcel(aggfreq, tzt_in, tzt_out, seriesordf):
     def conversion_fn(fr):
         floating = tzt_in.floating or tzt_out.floating
         fr_out = tools.tzone._A_to_A(fr, tz=tzt_out.explicit, floating=floating)
-        return tools.freq.set_to_frame(fr_out, aggfreq)
+        return fr_out
 
     do_test_conversion(aggfreq, tzt_in, tzt_out, seriesordf, conversion_fn)
 
