@@ -317,6 +317,7 @@ def test_freq_sufficiently_short(
         ("MS", "MS", 0),
         ("QS", "QS", 0),
         ("QS", "QS-APR", 0),
+        ("QS", "QS-JAN", 0),
         # ValueError
         ("QS", "QS-FEB", ValueError),
         ("QS", "AS-FEB", ValueError),
@@ -327,7 +328,7 @@ def test_freq_sufficiently_short(
 def test_up_pr_down2(source_freq: str, ref_freq: str, expected: int | Exception):
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
-            tools.freq.up_or_down2(source_freq, ref_freq)
+            tools.freq.up_or_down(source_freq, ref_freq)
     else:
-        result = tools.freq.up_or_down2(source_freq, ref_freq)
+        result = tools.freq.up_or_down(source_freq, ref_freq)
         assert result == expected

@@ -48,8 +48,8 @@ def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
         return _emptyseries(s, freq)
 
     offset = tools_startofday.get(s.index, "timedelta")
-    source_vs_daily = tools_freq.up_or_down2(s.index.freq, "D")
-    target_vs_daily = tools_freq.up_or_down2(freq, "D")
+    source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
+    target_vs_daily = tools_freq.up_or_down(freq, "D")
 
     # We cannot simply `.resample()`, e.g. from hourly to monthly, because in that
     # case the start-of-day is lost. We need to do it in two steps.
@@ -89,8 +89,8 @@ def _upsample_avgable(s: pd.Series, freq: str) -> pd.Series:
         return _emptyseries(s, freq)
 
     offset = tools_startofday.get(s.index, "timedelta")
-    source_vs_daily = tools_freq.up_or_down2(s.index.freq, "D")
-    target_vs_daily = tools_freq.up_or_down2(freq, "D")
+    source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
+    target_vs_daily = tools_freq.up_or_down(freq, "D")
 
     # Several isuses with pandas resampling:
 
@@ -127,7 +127,7 @@ def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
         True if data is summable, False if it is averagable.
     s : pd.Series
         Series that needs to be resampled.
-    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}, optional (default: 'MS')
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
         Target frequency.
 
     Returns
@@ -144,7 +144,7 @@ def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
 
     # s is now a Series with a 'float' or 'pint' dtype.
 
-    up_or_down = tools_freq.up_or_down2(s.index.freq, freq)
+    up_or_down = tools_freq.up_or_down(s.index.freq, freq)
 
     # Nothing more needed; portfolio already in desired frequency.
     if up_or_down == 0:
@@ -172,14 +172,14 @@ def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
     ----------
     i : pd.DatetimeIndex
         Index to resample.
-    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Target frequency.
 
     Returns
     -------
     pd.DatetimeIndex
     """
-    up_or_down = tools_freq.up_or_down2(i.freq, freq)
+    up_or_down = tools_freq.up_or_down(i.freq, freq)
 
     # Nothing more needed; index already in desired frequency.
     if up_or_down == 0:
@@ -203,7 +203,7 @@ def summable(fr: Series_or_DataFrame, freq: str = "MS") -> Series_or_DataFrame:
     ----------
     fr : Series or DataFrame
         Pandas Series or DataFrame to be resampled.
-    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}, optional (default: 'MS')
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
         Target frequency.
 
     Returns
@@ -239,7 +239,7 @@ def averagable(fr: Series_or_DataFrame, freq: str = "MS") -> Series_or_DataFrame
     ----------
     fr : Series or DataFrame
         Pandas Series or DataFrame to be resampled.
-    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}, optional (default: 'MS')
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
         Target frequency.
 
     Returns

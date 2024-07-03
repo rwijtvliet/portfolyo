@@ -122,7 +122,7 @@ def indices_flex(
     if len(distinct_sod) != 1 and ignore_start_of_day is False:
         raise ValueError(f"Indices must have equal start-of-day; got {distinct_sod}.")
     for i in range(len(idxs)):
-        if len(distinct_sod) != 1 and tools_freq.up_or_down2(idxs[i].freq, "D") == -1:
+        if len(distinct_sod) != 1 and tools_freq.up_or_down(idxs[i].freq, "D") == -1:
             raise ValueError(
                 "Downsample all indices to daily-or-longer, or trim them so they have the same start-of-day, before attempting to calculate the intersection"
             )

@@ -90,7 +90,7 @@ def assert_freq_sufficiently_long(freq, freq_ref, strict: bool = False) -> None:
             )
 
 
-def up_or_down2(freq_source: str, freq_target: str) -> int:
+def up_or_down(freq_source: str, freq_target: str) -> int:
     """
     Compare source frequency with target frequency to see if it needs up- or downsampling.
 
@@ -123,18 +123,17 @@ def up_or_down2(freq_source: str, freq_target: str) -> int:
     ValueError
 
     """
-    # check if passed freuenices are valid
-    # assert_freq_valid(freq_source)
-    # assert_freq_valid(freq_target)
-    # Compare if the freq are the same
-    if freq_source == freq_target:
-        return 0
     restricted_classes = [
         pd._libs.tslibs.offsets.QuarterBegin,
         pd._libs.tslibs.offsets.YearBegin,
     ]
+    # Convert freq from str to offset
     freq_source_as_offset = pd.tseries.frequencies.to_offset(freq_source)
     freq_target_as_offset = pd.tseries.frequencies.to_offset(freq_target)
+
+    # Compare if the freq are the same
+    if freq_source_as_offset == freq_target_as_offset:
+        return 0
     # One of the freq can be in restricted class, but not both
     if not (
         type(freq_source_as_offset) in restricted_classes
@@ -170,7 +169,9 @@ def up_or_down2(freq_source: str, freq_target: str) -> int:
                 # we are in the case QS and QS
                 return 0
 
-        raise ValueError
+        raise ValueError(
+            f"The passed frequency {freq_source} can't be aggregated to {freq_target}."
+        )
 
 
 def assert_freq_equally_long(freq, freq_ref) -> None:

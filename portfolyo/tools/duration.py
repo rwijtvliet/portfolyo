@@ -14,7 +14,7 @@ def stamp(ts: pd.Timestamp, freq: str) -> tools_unit.Q_:
     ----------
     ts : pd.Timestamp
         Timestamp for which to calculate the duration.
-    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency to use in determining the duration.
 
     Returns

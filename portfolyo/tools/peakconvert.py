@@ -210,7 +210,7 @@ def tseries2poframe(
     2020-12-01 00:00:00+01:00   57.872246   35.055449
     12 rows × 3 columns
     """
-    if tools_freq.up_or_down2(freq, "MS") < 0:
+    if tools_freq.up_or_down(freq, "MS") < 0:
         raise ValueError(f"Parameter ``freq`` be monthly-or-longer; got '{freq}'.")
 
     # Remove partial data.
@@ -412,10 +412,10 @@ def poframe2poframe(
     2020-07-01 00:00:00+02:00   44.033511   26.371498
     2020-10-01 00:00:00+02:00   54.468722   31.063728
     """
-    if tools_freq.up_or_down2(freq, "MS") < 0:
+    if tools_freq.up_or_down(freq, "MS") < 0:
         raise ValueError(f"Parameter ``freq`` be monthly-or-longer; got '{freq}'.")
 
-    if tools_freq.up_or_down2(df.index.freq, freq) == 1:
+    if tools_freq.up_or_down(df.index.freq, freq) == 1:
         warnings.warn(
             "This conversion includes upsampling, e.g. from yearly to monthly values."
             " The result will be uniform at the frequency of the original frame ``df``."

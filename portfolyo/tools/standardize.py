@@ -182,7 +182,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
         raise AssertionError("Index must have values; got empty index.")
 
     # Check hour and minute.
-    if tools_freq.up_or_down2(freq, "15T") <= 0:  # quarterhour
+    if tools_freq.up_or_down(freq, "15T") <= 0:  # quarterhour
         startminute = 15 if __right else 0
         if i[0].minute != startminute:
             err = ("right-bound", "15 min past the") if __right else ("", "at a full")
@@ -203,7 +203,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
             )
 
     # Check time-of-day.
-    if tools_freq.up_or_down2(freq, "H") <= 0:  # hour or shorter
+    if tools_freq.up_or_down(freq, "H") <= 0:  # hour or shorter
         if not __right:
             start = i[0]
             end = tools_right.stamp(i[-1], i.freq)
@@ -224,7 +224,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
             )
 
     # Check day-of-X.
-    if tools_freq.up_or_down2(freq, "D") > 0:
+    if tools_freq.up_or_down(freq, "D") > 0:
         if freq == "MS":
             period, not_ok = "month", ~i.is_month_start
         elif freq == "QS":

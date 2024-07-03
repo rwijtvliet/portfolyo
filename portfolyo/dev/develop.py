@@ -37,9 +37,9 @@ def get_index(
     if not startdate:
         a, m, d = 2016, 1, 1  # earliest possible
         a += np.random.randint(0, 8) if _seed else (periods % 8)
-        if tools.freq.up_or_down2(freq, "MS") <= 0:
+        if tools.freq.up_or_down(freq, "MS") <= 0:
             m += np.random.randint(0, 12) if _seed else (periods % 12)
-        if tools.freq.up_or_down2(freq, "D") <= 0:
+        if tools.freq.up_or_down(freq, "D") <= 0:
             d += np.random.randint(0, 28) if _seed else (periods % 28)
         startdate = f"{a}-{m}-{d}"
     if not start_of_day:
@@ -48,7 +48,7 @@ def get_index(
     start = tools.stamp.create(startdate, tz, start_of_day)
     i = pd.date_range(start, periods=periods, freq=freq)  # tz included in start
     # Some checks.
-    if tools.freq.up_or_down2(freq, "H") <= 0:
+    if tools.freq.up_or_down(freq, "H") <= 0:
         i = _shorten_index_if_necessary(i, start_of_day)
     return i
 

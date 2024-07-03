@@ -22,7 +22,7 @@ def stamp_general(
     fn : {'floor', 'ceil'}
     ts : pd.Timestamp
         Timestamp for which to do the rounding.
-    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency for which to round the timestamp.
     future : int, optional (default: 0)
         0 to round to current period. 1 (-1) to round to period after (before) that, etc.
@@ -48,7 +48,7 @@ def stamp_current(
     fn : {'floor', 'ceil'}
     ts : pd.Timestamp
         Timestamp for which to do the rounding.
-    freq : {{{tools_freq.ALLOWED_FREQUENCIES_DOCS}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency for which to round the timestamp.
     start_of_day : dt.time, optional (default: midnight)
         Time of day at which daily-or-longer delivery periods start. E.g. if
@@ -67,7 +67,7 @@ def stamp_current(
     # If we land here, the timestamp is not on a boundary.
 
     # Fixed-duration frequency (= (quarter)hour): simply floor/ceil.
-    if tools_freq.up_or_down2(freq, "D") < 0:
+    if tools_freq.up_or_down(freq, "D") < 0:
         if fn == "floor":
             return ts.floor(freq, nonexistent="shift_backward")
         else:
