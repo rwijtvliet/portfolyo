@@ -20,7 +20,7 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
     ----------
     i : pd.DatetimeIndex
         The (untrimmed) DatetimeIndex
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency to trim to. E.g. 'MS' to only keep full months.
 
     Returns
@@ -64,7 +64,7 @@ def frame(fr: pd.Series | pd.DataFrame, freq: str) -> pd.Series | pd.DataFrame:
     ----------
     fr : Series or DataFrame
         The (untrimmed) pandas series or dataframe.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency to trim to. E.g. 'MS' to only keep full months.
 
     Returns
