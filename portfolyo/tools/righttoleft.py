@@ -5,6 +5,7 @@ Calculate the left-bound timestamp of delivery period, given the right-bound one
 import pandas as pd
 
 from . import freq as tools_freq
+from . import startofday as tools_startofday
 
 
 def index(i: pd.DatetimeIndex, how: str = "A") -> pd.DatetimeIndex:
@@ -35,8 +36,15 @@ def index(i: pd.DatetimeIndex, how: str = "A") -> pd.DatetimeIndex:
     # a DST-changeover will have missing or repeated timestamps.
 
     # If frequency is known, we can use pandas built-in to make leftbound.
-    if (freq := i.freq) is not None or (freq := pd.infer_freq(i)) is not None:
-        return i - tools_freq.to_offset(freq)
+    if i.freq is None:
+        i = tools_freq.guess_to_index(i)
+
+    if i.freq is not None:
+        i2 = i.shift(-1)
+        # HACK: pandas does not give correct result if first timestamp is after DST-transition
+        if i.freq == "D" and tools_startofday.get(i2) != tools_startofday.get(i):
+            i2 = i - tools_freq.to_offset(i.freq)
+        return i2
 
     # Couldn't infer frequency. Try from median timedelta and turn into time offset.
     offst = tools_freq.to_offset(tools_freq.from_tdelta((i[1:] - i[:-1]).median()))

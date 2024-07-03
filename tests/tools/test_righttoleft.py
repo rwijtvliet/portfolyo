@@ -32,6 +32,10 @@ TESTCASES = [  # start, periods, freq, expected_start
     ("2020-07-01", 12, "MS", "2020-06-01"),
     ("2020-04-01", 4, "QS", "2020-01-01"),
     ("2020-07-01", 4, "QS", "2020-04-01"),
+    ("2020-04-01", 4, "QS-APR", "2020-01-01"),
+    ("2020-07-01", 4, "QS-APR", "2020-04-01"),
+    ("2020-05-01", 4, "QS-FEB", "2020-02-01"),
+    ("2020-08-01", 4, "QS-FEB", "2020-05-01"),
     # Unnatural-boundary.
     # Unnatural-boundary timestamps; without DST-transition.
     ("2020-02-01 01:30", 24, "H", "2020-02-01 00:30"),
@@ -112,10 +116,19 @@ def test_righttoleft(
     start: str, periods: int, freq: str, expected_start: str, tz: str, remove_freq: str
 ):
     """Test if index of rightbound timestamps can be make leftbound."""
+    # Input.
     i = pd.date_range(start, periods=periods, freq=freq, tz=tz)
-    expected = pd.date_range(expected_start, periods=periods, freq=freq, tz=tz)
     if remove_freq == "remove":
         i.freq = None
+
+    # Expected output.
+    if remove_freq == "remove" and freq == "QS-APR":
+        freq_expected = "QS"  # if freq removed, expect 'base case'
+    else:
+        freq_expected = freq
+    expected = pd.date_range(expected_start, periods=periods, freq=freq_expected, tz=tz)
+
+    # Actual output.
     result = tools.righttoleft.index(i)
     testing.assert_index_equal(result, expected)
 

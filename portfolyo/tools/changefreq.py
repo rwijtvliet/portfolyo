@@ -127,7 +127,7 @@ def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
         True if data is summable, False if it is averagable.
     s : pd.Series
         Series that needs to be resampled.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}, optional (default: 'MS')
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
         Target frequency.
 
     Returns
@@ -172,7 +172,7 @@ def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
     ----------
     i : pd.DatetimeIndex
         Index to resample.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Target frequency.
 
     Returns
@@ -203,7 +203,7 @@ def summable(fr: Series_or_DataFrame, freq: str = "MS") -> Series_or_DataFrame:
     ----------
     fr : Series or DataFrame
         Pandas Series or DataFrame to be resampled.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}, optional (default: 'MS')
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
         Target frequency.
 
     Returns
@@ -239,7 +239,7 @@ def averagable(fr: Series_or_DataFrame, freq: str = "MS") -> Series_or_DataFrame
     ----------
     fr : Series or DataFrame
         Pandas Series or DataFrame to be resampled.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}, optional (default: 'MS')
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
         Target frequency.
 
     Returns
