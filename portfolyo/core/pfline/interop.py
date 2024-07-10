@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
+import pint_pandas
 
 from ... import tools
 from . import classes, create
@@ -322,6 +323,10 @@ def _from_data(
     elif isinstance(data, pd.Series) and isinstance(data.index, pd.DatetimeIndex):
         # timeseries
         if hasattr(data, "pint"):  # pint timeseries
+            if not isinstance(data.dtype, pint_pandas.PintType):
+                data = pd.Series([v.magnitude for v in data.values], data.index).astype(
+                    f"pint[{data.values[0].units}]"
+                )
             return InOp(**{_unit2attr(data.pint.units): data})
         elif data.dtype == object:  # timeeries of objects -> maybe Quantities?
             if len(data) and isinstance(val := data.values[0], tools.unit.Q_):
