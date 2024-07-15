@@ -20,7 +20,7 @@ def test_pfline_plot(
     index = pd.date_range("2020-01-01", "2021-01-01", freq=freq, tz=None)
     pfl = pf.dev.get_pfline(index, nlevels=levels, childcount=childcount, kind=kind)
     pfl.plot(children=children)
-    plt.show()
+    # plt.show()
 
 
 @pytest.mark.parametrize("childcount", [1, 2, 3])

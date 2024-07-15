@@ -4,7 +4,7 @@ Working with pint units.
 
 from pathlib import Path
 from typing import Tuple, overload
-
+from .types import Series_or_DataFrame
 import pandas as pd
 import pint
 import pint_pandas
@@ -160,3 +160,48 @@ def split_magn_unit(
         raise TypeError("For dataframes, handle the series seperately.")
     else:  # int, float, bool, timestamp, ...
         return val, None
+
+
+def avoid_frame_of_objects(fr: Series_or_DataFrame) -> Series_or_DataFrame:
+    """Ensure a Series or Dataframe does not have objects as its values,
+    if possible.
+
+    Parameters:
+    -----------
+    fr : Series_or_DataFrame
+        The input data structure, which can be either a pandas Series or DataFrame.
+        Expected int-Series, float-Series, pint-Series, or Series of pint quantities (of equal dimensionality).
+
+    Returns:
+    --------
+    Series_or_DataFrame
+        The transformed data structure.
+
+
+    """
+
+    if isinstance(fr, pd.DataFrame):
+        return pd.DataFrame({col: avoid_frame_of_objects(s) for col, s in fr.items()})
+
+    # fr is now a Series.
+
+    if fr.dtype == int:
+        return fr.astype(float)
+    if fr.dtype == float:
+        return fr
+    if hasattr(fr, "pint"):
+        if isinstance(fr.dtype, pint_pandas.PintType):
+            return fr
+        # We may have a series of pint quantities. Convert to pint-series, if possible.
+        dimensions = {v.dimensionality for v in fr.values}
+        if len(dimensions) != 1:
+            raise ValueError(
+                f"Expected a Series with quantities of the same dimension; got {dimensions}."
+            )
+        # Convert all values to same unit.
+        units = fr.values[0].units
+        magnitudes = [v.to(units).magnitude for v in fr.values]
+        return pd.Series(magnitudes, fr.index, dtype=f"pint[{units}]")
+    raise TypeError(
+        "Expected int-Series, float-Series, pint-Series, or Series of pint quantities (of equal dimensionality)."
+    )
