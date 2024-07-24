@@ -185,9 +185,9 @@ def avoid_frame_of_objects(fr: Series_or_DataFrame) -> Series_or_DataFrame:
 
     # fr is now a Series.
 
-    if fr.dtype == int:
+    if pd.api.types.is_integer_dtype(fr):
         return fr.astype(float)
-    if fr.dtype == float:
+    if pd.api.types.is_float_dtype(fr):
         return fr
     if hasattr(fr, "pint"):
         if isinstance(fr.dtype, pint_pandas.PintType):
