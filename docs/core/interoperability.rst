@@ -19,7 +19,7 @@ In the code examples below, the following imports are assumed and variables are 
    
    import portfolyo as pf
    import pandas as pd
-   idx = pd.date_range("2023", freq="AS", periods=2)
+   idx = pd.date_range("2023", freq="YS", periods=2)
 
 ---------
 One value
@@ -82,7 +82,7 @@ For timeseries, ``pandas.Series`` are used. These can be "unit-agnostic" (i.e., 
    # --- hide: start ---
    import portfolyo as pf 
    import pandas as pd
-   idx = pd.date_range("2023", freq="AS", periods=2)
+   idx = pd.date_range("2023", freq="YS", periods=2)
    # --- hide: stop ---
    pd.Series([50, 56.0], idx, dtype="pint[Eur/MWh]")  # unit-aware
    # --- hide: start ---
@@ -103,7 +103,7 @@ To pass several timeseries, we can use:
      # --- hide: start ---
      import portfolyo as pf 
      import pandas as pd
-     idx = pd.date_range("2023", freq="AS", periods=2)
+     idx = pd.date_range("2023", freq="YS", periods=2)
      # --- hide: stop ---
      {"p": pd.Series([50, 56], idx), "w": pd.Series([120, 125], idx, dtype="pint[MW]")}
      # --- hide: start ---
@@ -118,7 +118,7 @@ To pass several timeseries, we can use:
      # --- hide: start ---
      import portfolyo as pf 
      import pandas as pd
-     idx = pd.date_range("2023", freq="AS", periods=2)
+     idx = pd.date_range("2023", freq="YS", periods=2)
      # --- hide: stop ---
      pd.DataFrame({"p": [50, 56], "w": [120, 125]}, idx)
      # --- hide: start ---
@@ -139,7 +139,7 @@ Dictionaries are the most versatily of these objects. They can be used to pass a
    # --- hide: start ---
    import portfolyo as pf 
    import pandas as pd
-   idx = pd.date_range("2023", freq="AS", periods=2)
+   idx = pd.date_range("2023", freq="YS", periods=2)
    # --- hide: stop ---
    d1 = {"p": 50}
    d2 = {"p": 50, "w": 120}
@@ -194,7 +194,7 @@ Footnotes
    .. code-block:: python 
        :emphasize-lines: 3,4
 
-       >>> idx = pandas.date_range("2023", freq="AS", periods=2)
+       >>> idx = pandas.date_range("2023", freq="YS", periods=2)
        >>> s_agn = pandas.Series([50, 56], idx)  # unit-agnostic
        >>> s1 = s_agn.astype("pint[Eur/MWh]")  # unit-aware
 
@@ -212,7 +212,7 @@ Footnotes
    .. code-block:: python
       :emphasize-lines: 4, 7
 
-      >>> idx = pandas.date_range("2023", freq="AS", periods=2)
+      >>> idx = pandas.date_range("2023", freq="YS", periods=2)
       >>> s_price = pandas.Series([50, 56], idx, dtype="pint[Eur/MWh]")
       >>> s_volume = pandas.Series([120, 125], idx, dtype="pint[MW]")
       >>> df1 = pandas.DataFrame({"p": s_price, "w": s_volume})

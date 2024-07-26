@@ -27,7 +27,7 @@ class NDFrameLike(abc.ABC):
         Parameters
         ----------
         freq : str, optional
-            The frequency at which to resample. 'AS' for year, 'QS' for quarter, 'MS'
+            The frequency at which to resample. 'YS' for year, 'QS' for quarter, 'MS'
             (default) for month, 'D for day', 'H' for hour, '15T' for quarterhour.
 
         Returns

@@ -19,7 +19,7 @@ from portfolyo import testing, tools
 )
 def test_onehedge_uniformpricesandduration(w_vals, start, w_expected, how):
     """Test hedge with uniform prices and durations."""
-    i = pd.date_range(start, freq="H", periods=len(w_vals), tz="Europe/Berlin")
+    i = pd.date_range(start, freq="h", periods=len(w_vals), tz="Europe/Berlin")
     df = pd.DataFrame({"w": w_vals, "p": 100.0}, i)
     df["duration"] = tools.duration.index(i)
 

@@ -1,5 +1,6 @@
 """Test if portfolio line can be plotted."""
 
+import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
@@ -20,7 +21,7 @@ def test_pfline_plot(
     index = pd.date_range("2020-01-01", "2021-01-01", freq=freq, tz=None)
     pfl = pf.dev.get_pfline(index, nlevels=levels, childcount=childcount, kind=kind)
     pfl.plot(children=children)
-    # plt.show()
+    matplotlib.pyplot.close()
 
 
 @pytest.mark.parametrize("childcount", [1, 2, 3])
@@ -44,6 +45,7 @@ def test_pfstate_plot(
     )
     pfs = PfState(-1 * offtakevolume, unsourcedprice, sourced)
     pfs.plot(children=children)
+    matplotlib.pyplot.close()
 
 
 @pytest.mark.parametrize("children", [True, False])
@@ -51,6 +53,7 @@ def test_flatpfline_plot(children: bool):
     """Test if plotting flatpfline with children attribute gives an error."""
     pfl = pf.dev.get_flatpfline()
     pfl.plot(children=children)
+    matplotlib.pyplot.close()
 
 
 @pytest.mark.parametrize("freq", ["MS", "D"])
@@ -78,3 +81,4 @@ def test_plot_to_ax(levels: int, childcount: int, children: bool, freq: str):
     pfl_vol.plot_to_ax(axs[0][1], children=children, kind=Kind.VOLUME)
     pfl_price.plot_to_ax(axs[1][0], children=children, kind=Kind.PRICE)
     pfl_rev.plot_to_ax(axs[1][1], children=children, kind=Kind.REVENUE)
+    matplotlib.pyplot.close()

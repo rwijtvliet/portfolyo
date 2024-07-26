@@ -9,7 +9,7 @@ from .types import Series_or_DataFrame
 
 
 # Allowed frequencies.
-ALLOWED_FREQUENCIES_DOCS = "'15T' (=quarterhour), 'H', 'D', 'MS', 'QS' (or 'QS-FEB', 'QS-MAR', etc.), or 'AS' (or 'AS-FEB', 'AS-MAR', etc.)"
+ALLOWED_FREQUENCIES_DOCS = "'15T' (=quarterhour), 'H', 'D', 'MS', 'QS' (or 'QS-FEB', 'QS-MAR', etc.), or 'YS' (or 'AS-FEB', 'AS-MAR', etc.)"
 ALLOWED_CLASSES = [
     pd.tseries.offsets.YearBegin,
     pd.tseries.offsets.QuarterBegin,
@@ -20,7 +20,7 @@ ALLOWED_CLASSES = [
 ]
 TO_OFFSET = pd.tseries.frequencies.to_offset
 SHORTEST_TO_LONGEST = [
-    type(TO_OFFSET(freq)) for freq in ["15T", "H", "D", "MS", "QS", "AS"]
+    type(TO_OFFSET(freq)) for freq in ["15min", "h", "D", "MS", "QS", "YS"]
 ]
 
 quarter_matrix = [
@@ -35,7 +35,7 @@ def assert_freq_valid(freq: str) -> None:
     Validate if the given frequency string is allowed based on pandas offset objects.
 
     Parameters:
-    freq (str): A string representing a frequency alias (e.g., "AS", "QS", "MS").
+    freq (str): A string representing a frequency alias (e.g., "YS", "QS", "MS").
 
     Raises:
     ValueError: If the frequency is not allowed.
@@ -231,7 +231,7 @@ def shortest(*freqs: str) -> str:
 
     Examples
     --------
-    >>> freq.shortest('MS', 'H', 'AS', 'D')
+    >>> freq.shortest('MS', 'H', 'YS', 'D')
     'H'
     """
     return _longestshortest(True, *freqs)
@@ -251,8 +251,8 @@ def longest(*freqs: str) -> str:
 
     Examples
     --------
-    >>> freq.longest('MS', 'H', 'AS', 'D')
-    'AS'
+    >>> freq.longest('MS', 'H', 'YS', 'D')
+    'YS'
     """
     return _longestshortest(False, *freqs)
 
@@ -271,7 +271,7 @@ def to_offset(freq: str) -> pd.Timedelta | pd.DateOffset:
 
     Examples
     --------
-    >>> freq.to_offset("H")
+    >>> freq.to_offset("h")
     Timedelta('0 days 01:00:00')
     >>> freq.to_offset("MS")
     <DateOffset: months=1>
@@ -312,9 +312,9 @@ def from_tdelta(tdelta: pd.Timedelta) -> str:
         One of {ALLOWED_FREQUENCIES_DOCS}.
     """
     if tdelta == pd.Timedelta(minutes=15):
-        return "15T"
+        return "15min"
     elif tdelta == pd.Timedelta(hours=1):
-        return "H"
+        return "h"
     elif pd.Timedelta(hours=23) <= tdelta <= pd.Timedelta(hours=25):
         return "D"
     elif pd.Timedelta(days=27) <= tdelta <= pd.Timedelta(days=32):
@@ -322,7 +322,7 @@ def from_tdelta(tdelta: pd.Timedelta) -> str:
     elif pd.Timedelta(days=89) <= tdelta <= pd.Timedelta(days=93):
         return "QS"
     elif pd.Timedelta(days=364) <= tdelta <= pd.Timedelta(days=367):
-        return "AS"
+        return "YS"
     else:
         raise ValueError(
             f"The timedelta ({tdelta}) doesn't seem to be fit to any of the allowed "

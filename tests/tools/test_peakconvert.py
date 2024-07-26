@@ -27,7 +27,7 @@ f_germanpower = tools.peakfn.factory(dt.time(hour=8), dt.time(hour=20))
                 "base": [80.0, 80, 80, 80],
                 "offpeak": [68.8510638, 68.8699360, 68.9361702, 68.9361702],
             },
-            pd.date_range("2020", periods=4, freq="AS", tz="Europe/Berlin"),
+            pd.date_range("2020", periods=4, freq="YS", tz="Europe/Berlin"),
         ),
     ],
 )
@@ -59,7 +59,7 @@ def test_completebpoframe_averagable(bpoframe, testcol: str, withunits: str):
                 "base": [280.0, 180, 80, 380],
                 "offpeak": [180, 80, -20, 280],
             },
-            pd.date_range("2020", periods=4, freq="AS", tz="Europe/Berlin"),
+            pd.date_range("2020", periods=4, freq="YS", tz="Europe/Berlin"),
         ),
     ],
 )

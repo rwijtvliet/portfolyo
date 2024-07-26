@@ -40,7 +40,7 @@ def stamp(
 
     Examples
     --------
-    >>> floor.stamp(pd.Timestamp('2020-04-21 15:42'), 'AS')
+    >>> floor.stamp(pd.Timestamp('2020-04-21 15:42'), 'YS')
     Timestamp('2020-01-01 00:00:00')
     >>> floor.stamp(pd.Timestamp('2020-04-21 15:42'), 'MS')
     Timestamp('2020-04-01 00:00:00')

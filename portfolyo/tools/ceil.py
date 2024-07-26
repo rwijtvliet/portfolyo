@@ -40,7 +40,7 @@ def stamp(
 
     Examples
     --------
-    >>> ceil.stamp(pd.Timestamp('2020-04-21 15:42'), 'AS')
+    >>> ceil.stamp(pd.Timestamp('2020-04-21 15:42'), 'YS')
     Timestamp('2021-01-01 00:00:00')
     >>> ceil.stamp(pd.Timestamp('2020-04-21 15:42'), 'MS')
     Timestamp('2020-05-01 00:00:00')

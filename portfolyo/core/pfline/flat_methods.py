@@ -56,7 +56,7 @@ def hedge_with(
         raise ValueError(
             "Cannot hedge a PfLine that does not contain volume information."
         )
-    if self.index.freq not in ["15T", "H", "D"]:
+    if self.index.freq not in ["15min", "h", "D"]:
         raise ValueError(
             "Can only hedge a PfLine with daily or (quarter)hourly information."
         )

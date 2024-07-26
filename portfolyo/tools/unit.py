@@ -18,7 +18,7 @@ ureg = pint_pandas.PintType.ureg = pint.UnitRegistry(
     auto_reduce_dimensions=True,
     case_sensitive=False,
 )
-ureg.default_format = "~P"  # short by default
+ureg.formatter.default_format = "~P"  # short by default
 ureg.setup_matplotlib()
 
 # Set for export.

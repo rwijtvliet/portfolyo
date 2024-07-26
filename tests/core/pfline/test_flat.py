@@ -77,7 +77,7 @@ def test_flatpfline_access(columns: str, available: str, constructor: type):
 
 
 series = {}
-for freq in ["MS", "D", "15T"]:
+for freq in ["MS", "D", "15min"]:
     idx = pd.date_range(
         "2020", "2020-04", freq=freq, inclusive="left", tz="Europe/Berlin"
     )
@@ -87,8 +87,8 @@ for freq in ["MS", "D", "15T"]:
     series[freq] = {"i": idx, "w": w, "q": q, "p": p, "r": q * p}
 
 
-@pytest.mark.parametrize("freq_in", ["MS", "D", "15T"])
-@pytest.mark.parametrize("freq_out", ["MS", "D", "15T"])
+@pytest.mark.parametrize("freq_in", ["MS", "D", "15min"])
+@pytest.mark.parametrize("freq_out", ["MS", "D", "15min"])
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pw", "wr"])
 def test_flatpfline_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
     """Test if changing frequency is done correctly (when it's possible), for uniform pflines."""
@@ -101,8 +101,8 @@ def test_flatpfline_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
 # . check correct working of attributes .asfreq().
 @pytest.mark.only_on_pr
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("freq", ["H", "D", "MS", "QS", "AS"])
-@pytest.mark.parametrize("newfreq", ["H", "D", "MS", "QS", "AS"])
+@pytest.mark.parametrize("freq", ["h", "D", "MS", "QS", "YS"])
+@pytest.mark.parametrize("newfreq", ["h", "D", "MS", "QS", "YS"])
 @pytest.mark.parametrize("columns", ["pr", "qr", "pq", "wp", "wr"])
 def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
     """Test if changing frequency is done correctly (when it's possible)."""
@@ -137,8 +137,8 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
     testing.assert_series_equal(df1.apply(np.sum), df2.apply(np.sum))
 
 
-@pytest.mark.parametrize("freq", ["15T", "H", "D"])
-@pytest.mark.parametrize("newfreq", ["MS", "QS", "AS"])
+@pytest.mark.parametrize("freq", ["15min", "h", "D"])
+@pytest.mark.parametrize("newfreq", ["MS", "QS", "YS"])
 @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
 def test_flatpfline_asfreqimpossible(freq, newfreq, kind):
     """Test if changing frequency raises error if it's impossible."""
