@@ -25,11 +25,11 @@ jobs:
           architecture: x64
       
 
-      - name: Install system dependencies for Tkinter (Windows)
+      - name: Install Tkinter (Windows and Python 3.10)
         if: runner.os == 'windows-latest'
         run: |
-          # Check if Tkinter is available
-          python -c "import tkinter; print('Tkinter is available')"
+          python -m pip install --upgrade pip
+          python -m pip install tk
 
       - name: Install poetry
         run: |
