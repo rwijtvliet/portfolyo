@@ -737,7 +737,7 @@ Using the ``.hedge_with()`` method, the volume timeseries in a portfolio line is
 .. exec_code:: 
 
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024-04-01', '2024-06-01', freq='H', inclusive='left')
+   index = pd.date_range('2024-04-01', '2024-06-01', freq='h', inclusive='left')
    offtake = pf.PfLine(pf.dev.w_offtake(index))  # mock offtake volumes
    prices = pf.PfLine(pf.dev.p_marketprices(index)) # mock market prices
    # Create hedge
@@ -764,7 +764,7 @@ For markets that have a concept of "peak" and "offpeak" periods, the ``.po()`` m
    
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024-04-01', '2024-06-01', freq='H', inclusive='left')
+   index = pd.date_range('2024-04-01', '2024-06-01', freq='h', inclusive='left')
    offtake = pf.PfLine(pf.dev.w_offtake(index))  # mock offtake volumes
    # --- hide: stop ---
    # continuation of previous code example

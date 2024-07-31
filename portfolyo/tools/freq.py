@@ -9,7 +9,7 @@ from .types import Series_or_DataFrame
 
 
 # Allowed frequencies.
-ALLOWED_FREQUENCIES_DOCS = "'15min' (=quarterhour), 'H', 'D', 'MS', 'QS' (or 'QS-FEB', 'QS-MAR', etc.), or 'YS' (or 'YS-FEB', 'YS-MAR', etc.)"
+ALLOWED_FREQUENCIES_DOCS = "'15min' (=quarterhour), 'h', 'D', 'MS', 'QS' (or 'QS-FEB', 'QS-MAR', etc.), or 'YS' (or 'YS-FEB', 'YS-MAR', etc.)"
 ALLOWED_CLASSES = [
     pd.tseries.offsets.YearBegin,
     pd.tseries.offsets.QuarterBegin,
@@ -231,8 +231,8 @@ def shortest(*freqs: str) -> str:
 
     Examples
     --------
-    >>> freq.shortest('MS', 'H', 'YS', 'D')
-    'H'
+    >>> freq.shortest('MS', 'h', 'YS', 'D')
+    'h'
     """
     return _longestshortest(True, *freqs)
 
@@ -251,7 +251,7 @@ def longest(*freqs: str) -> str:
 
     Examples
     --------
-    >>> freq.longest('MS', 'H', 'YS', 'D')
+    >>> freq.longest('MS', 'h', 'YS', 'D')
     'YS'
     """
     return _longestshortest(False, *freqs)
