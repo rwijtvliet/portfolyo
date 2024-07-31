@@ -81,7 +81,7 @@ def stamp_current(
     else:
         part_of_prevday = ts.time() < start_of_day
         rounded = ts.replace(hour=start_of_day.hour, minute=start_of_day.minute).floor(
-            "15T"
+            "15min"
         )
         if part_of_prevday and fn == "floor":
             rounded -= tools_freq.to_offset("D")
@@ -155,9 +155,9 @@ def stamp_current(
 
 
 def _offset(freq: str, future: int):
-    if freq == "15T":
+    if freq == "15min":
         return pd.Timedelta(minutes=future * 15)
-    elif freq == "H":
+    elif freq == "h":
         return pd.Timedelta(hours=future)
     elif freq == "D":
         return pd.Timedelta(days=future)
@@ -165,7 +165,7 @@ def _offset(freq: str, future: int):
         return pd.offsets.MonthBegin(future)
     elif freq == "QS":
         return pd.offsets.QuarterBegin(future, startingMonth=1)
-    elif freq == "AS":
+    elif freq == "YS":
         return pd.offsets.YearBegin(future)
     else:
         raise ValueError(

@@ -189,7 +189,7 @@ def test_intersect_ignore_all_3obj(
     idx2 = get_idx("2021-01-01", "06:00", None, "MS", "2024-01-01")
     s2 = pd.Series(range(len(idx2)), idx2)
 
-    idx3 = get_idx("2023-01-01", "00:00", "Asia/Kolkata", "AS", "2025-01-01")
+    idx3 = get_idx("2023-01-01", "00:00", "Asia/Kolkata", "YS", "2025-01-01")
     s3 = pd.Series(range(len(idx3)), idx3)
 
     first = create_obj(s1, first_obj) if first_obj != "series" else s1

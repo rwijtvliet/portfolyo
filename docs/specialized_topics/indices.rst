@@ -62,7 +62,7 @@ However, when handling timeseries with shorter-than-daily indices, the offset ca
 
    # --- hide: start ---
    import pandas as pd
-   i = pd.date_range('2024-01-05 06:00', freq= 'H', periods = 40)
+   i = pd.date_range('2024-01-05 06:00', freq= 'h', periods = 40)
    print(repr(i))
 
 It contains 40 hourly values, i.e., it does not contain an integer number of days. We cannot infer, how a day is defined, and in these situations it is therefore assumed, that it is the offset of the first timestamp - '06:00' in this case.

@@ -19,7 +19,7 @@ SEED = 3
 
 
 STARTDATE_AND_FREQ = [
-    ("2020-01-01", "H"),
+    ("2020-01-01", "h"),
     ("2020-01-01", "D"),
     ("2020-01-01", "MS"),
     ("2020-03-28", "D"),
@@ -59,7 +59,7 @@ def create_start_of_day(hour, minute, returntype):
         ),
         (
             pd.date_range(
-                "2020-01-01", "2021-01-01", freq="H", inclusive="left", tz=None
+                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
             ),
             0,
             0,
@@ -91,7 +91,7 @@ def create_start_of_day(hour, minute, returntype):
             pd.date_range(
                 "2020-01-01",
                 "2021-01-01",
-                freq="H",
+                freq="h",
                 inclusive="left",
                 tz="Europe/Berlin",
             ),
@@ -126,7 +126,7 @@ def create_start_of_day(hour, minute, returntype):
             pd.date_range(
                 "2020-01-01 06:00",
                 "2021-01-01 06:00",
-                freq="H",
+                freq="h",
                 inclusive="left",
                 tz=None,
             ),
@@ -160,7 +160,7 @@ def create_start_of_day(hour, minute, returntype):
             pd.date_range(
                 "2020-01-01 06:30",
                 "2021-01-01 06:30",
-                freq="H",
+                freq="h",
                 inclusive="left",
                 tz="Europe/Berlin",
             ),
@@ -200,7 +200,7 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
         ),
         (
             pd.date_range(
-                "2020-01-01", "2021-01-01", freq="H", inclusive="left", tz=None
+                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
             ),
             0,
             0,
@@ -235,7 +235,7 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
             pd.date_range(
                 "2020-01-01",
                 "2021-01-01",
-                freq="H",
+                freq="h",
                 inclusive="left",
                 tz="Europe/Berlin",
             ),
@@ -275,14 +275,14 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
         ),
         (
             pd.date_range(
-                "2020-01-01", "2021-01-01", freq="H", inclusive="left", tz=None
+                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
             ),
             6,
             0,
             pd.date_range(
                 "2020-01-01 06:00",
                 "2020-12-31 06:00",
-                freq="H",
+                freq="h",
                 inclusive="left",
                 tz=None,
             ),
@@ -328,7 +328,7 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
             pd.date_range(
                 "2020-01-01",
                 "2021-01-01",
-                freq="H",
+                freq="h",
                 inclusive="left",
                 tz="Europe/Berlin",
             ),
@@ -337,7 +337,7 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
             pd.date_range(
                 "2020-01-01 06:00",
                 "2020-12-31 06:00",
-                freq="H",
+                freq="h",
                 inclusive="left",
                 tz="Europe/Berlin",
             ),
@@ -362,7 +362,7 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
         ),
         (
             pd.date_range(
-                "2020-01-01", "2021-01-01", freq="H", inclusive="left", tz=None
+                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
             ),
             6,
             3,
@@ -397,7 +397,7 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
             pd.date_range(
                 "2020-01-01",
                 "2021-01-01",
-                freq="H",
+                freq="h",
                 inclusive="left",
                 tz="Europe/Berlin",
             ),

@@ -191,7 +191,7 @@ def git_versions_from_keywords(keywords, tag_prefix, verbose):
         # it's been around since git-1.5.3, and it's too difficult to
         # discover which version we're using, or to work around using an
         # older one.
-        date = date.strip().replace(" ", "T", 1).replace(" ", "", 1)
+        date = date.strip().replace(" ", "min", 1).replace(" ", "", 1)
     refnames = keywords["refnames"].strip()
     if refnames.startswith("$Format"):
         if verbose:
@@ -375,7 +375,7 @@ def git_pieces_from_vcs(tag_prefix, root, verbose, runner=run_command):
     # Use only the last line.  Previous lines may contain GPG signature
     # information.
     date = date.splitlines()[-1]
-    pieces["date"] = date.strip().replace(" ", "T", 1).replace(" ", "", 1)
+    pieces["date"] = date.strip().replace(" ", "min", 1).replace(" ", "", 1)
 
     return pieces
 

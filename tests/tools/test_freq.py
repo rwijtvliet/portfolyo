@@ -4,18 +4,29 @@ import pytest
 
 from portfolyo import tools
 
-freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
+freqs_small_to_large = [
+    "min",
+    "5min",
+    "15min",
+    "30min",
+    "h",
+    "2h",
+    "D",
+    "MS",
+    "QS",
+    "YS",
+]
 freqs_small_to_large_valid = [
-    "15T",
-    "H",
+    "15min",
+    "h",
     "D",
     "MS",
     "QS",
     "QS-FEB",
-    "AS",
-    "AS-APR",
+    "YS",
+    "YS-APR",
 ]
-invalid_freq = ["T", "5T", "2H", "5D", "3MS"]
+invalid_freq = ["min", "5min", "2h", "5D", "3MS"]
 
 
 @pytest.mark.parametrize("count", range(1, 30))
@@ -30,12 +41,12 @@ def test_longestshortestfreq(count):
 @pytest.mark.parametrize(
     ("start", "end", "expected"),
     [
-        ("2020", "2021", "AS"),
+        ("2020", "2021", "YS"),
         ("2020", "2020-04", "QS"),
         ("2020", "2020-02", "MS"),
         ("2020", "2020-01-02", "D"),
-        ("2020", "2020-01-01 01:00", "H"),
-        ("2020", "2020-01-01 00:15", "15T"),
+        ("2020", "2020-01-01 01:00", "h"),
+        ("2020", "2020-01-01 00:15", "15min"),
         ("2020-03-29", "2020-03-30", "D"),
         ("2020-03-01", "2020-04-01", "MS"),
         ("2020-10-25", "2020-10-26", "D"),
@@ -57,19 +68,19 @@ def test_fromtdelta(start, end, expected, tz):
     ("start", "end", "expected"),
     [
         # Hourly.
-        ("2020-03-29 01:00", "2020-03-29 03:00", "H"),
-        ("2020-10-25 01:00", "2020-10-25 02:00+0200", "H"),
+        ("2020-03-29 01:00", "2020-03-29 03:00", "h"),
+        ("2020-10-25 01:00", "2020-10-25 02:00+0200", "h"),
         ("2020-10-25 01:00", "2020-10-25 02:00+0100", None),
-        ("2020-10-25 02:00+0200", "2020-10-25 02:00+0100", "H"),
+        ("2020-10-25 02:00+0200", "2020-10-25 02:00+0100", "h"),
         ("2020-10-25 02:00+0200", "2020-10-25 03:00", None),
-        ("2020-10-25 02:00+0100", "2020-10-25 03:00", "H"),
+        ("2020-10-25 02:00+0100", "2020-10-25 03:00", "h"),
         # Quarterhourly.
-        ("2020-03-29 01:45", "2020-03-29 03:00", "15T"),
-        ("2020-10-25 01:45", "2020-10-25 02:00+0200", "15T"),
+        ("2020-03-29 01:45", "2020-03-29 03:00", "15min"),
+        ("2020-10-25 01:45", "2020-10-25 02:00+0200", "15min"),
         ("2020-10-25 01:45", "2020-10-25 02:00+0100", None),
-        ("2020-10-25 02:45+0200", "2020-10-25 02:00+0100", "15T"),
+        ("2020-10-25 02:45+0200", "2020-10-25 02:00+0100", "15min"),
         ("2020-10-25 02:45+0200", "2020-10-25 03:00", None),
-        ("2020-10-25 02:45+0100", "2020-10-25 03:00", "15T"),
+        ("2020-10-25 02:45+0100", "2020-10-25 03:00", "15min"),
     ],
 )
 def test_fromtdelta_dst(start, end, expected):
@@ -94,9 +105,9 @@ def test_fromtdelta_dst(start, end, expected):
         # . too few
         ("D", 2, "MS", ValueError),
         ("D", 2, "D", "D"),
-        # 15T, too few
-        ("15T", 2, "MS", ValueError),
-        ("15T", 2, "15T", "15T"),
+        # 15min, too few
+        ("15min", 2, "MS", ValueError),
+        ("15min", 2, "15min", "15min"),
         # invalid freq
         # . enough
         ("2D", 10, "MS", ValueError),
@@ -148,8 +159,8 @@ def test_setfreq(
         ("D", 10, "D"),
         # . too few
         ("D", 2, None),
-        # 15T, too few
-        ("15T", 2, None),
+        # 15min, too few
+        ("15min", 2, None),
         # invalid freq
         # . enough
         ("2D", 10, "2D"),
@@ -164,7 +175,7 @@ def test_setfreq(
         # . too few
         ("QS-APR", 2, None),
         ("QS", 2, None),
-        ("AS-FEB", 10, "AS-FEB"),
+        ("YS-FEB", 10, "YS-FEB"),
     ],
 )
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
@@ -191,18 +202,18 @@ def test_guessfreq(
 
 # Define your frequencies and their validity
 freqs_with_validity = [
-    ("15T", True),
-    ("30T", False),
+    ("15min", True),
+    ("30min", False),
     ("D", True),
-    ("H", True),
+    ("h", True),
     ("MS", True),
     ("QS", True),
-    ("AS", True),
-    ("AS-APR", True),
+    ("YS", True),
+    ("YS-APR", True),
     ("QS-FEB", True),
-    ("T", False),
-    ("5T", False),
-    ("2H", False),
+    ("min", False),
+    ("5min", False),
+    ("2h", False),
     ("5D", False),
     ("3MS", False),
 ]
@@ -222,20 +233,20 @@ def test_freq_validity(freq: str, is_valid: bool):
 @pytest.mark.parametrize(
     ("freq1", "freq2", "strict", "is_supposed_to_fail"),
     [
-        ("15T", "15T", False, False),
-        ("15T", "15T", True, True),
-        ("H", "15T", True, False),
-        ("15T", "H", True, True),
-        ("15T", "H", False, True),
+        ("15min", "15min", False, False),
+        ("15min", "15min", True, True),
+        ("h", "15min", True, False),
+        ("15min", "h", True, True),
+        ("15min", "h", False, True),
         ("MS", "MS", True, True),
         ("MS", "MS", False, False),
         ("MS", "QS-APR", False, True),
-        ("QS", "AS", True, True),
+        ("QS", "YS", True, True),
         ("QS", "QS-APR", False, False),
         ("QS-FEB", "QS-APR", True, True),
         ("QS-FEB", "QS-APR", False, False),
-        ("AS", "QS", False, False),
-        ("QS-APR", "AS-APR", False, True),
+        ("YS", "QS", False, False),
+        ("QS-APR", "YS-APR", False, True),
     ],
 )
 def test_freq_sufficiently_long(
@@ -251,17 +262,17 @@ def test_freq_sufficiently_long(
 @pytest.mark.parametrize(
     ("freq1", "freq2", "is_supposed_to_fail"),
     [
-        ("15T", "15T", False),
-        ("H", "15T", True),
-        ("15T", "H", True),
+        ("15min", "15min", False),
+        ("h", "15min", True),
+        ("15min", "h", True),
         ("MS", "MS", False),
         ("MS", "QS-APR", True),
-        ("QS", "AS", True),
+        ("QS", "YS", True),
         ("QS", "QS-APR", False),
         ("QS-FEB", "QS-APR", False),
-        ("AS", "QS", True),
-        ("QS-APR", "AS-APR", True),
-        ("AS-APR", "AS-FEB", False),
+        ("YS", "QS", True),
+        ("QS-APR", "YS-APR", True),
+        ("YS-APR", "YS-FEB", False),
     ],
 )
 def test_freq_equally_long(freq1: str, freq2: str, is_supposed_to_fail: bool):
@@ -275,20 +286,20 @@ def test_freq_equally_long(freq1: str, freq2: str, is_supposed_to_fail: bool):
 @pytest.mark.parametrize(
     ("freq1", "freq2", "strict", "is_supposed_to_fail"),
     [
-        ("15T", "15T", False, False),
-        ("15T", "15T", True, True),
-        ("H", "15T", True, True),
-        ("15T", "H", True, False),
-        ("15T", "H", False, False),
+        ("15min", "15min", False, False),
+        ("15min", "15min", True, True),
+        ("h", "15min", True, True),
+        ("15min", "h", True, False),
+        ("15min", "h", False, False),
         ("MS", "MS", True, True),
         ("MS", "MS", False, False),
         ("MS", "QS-APR", False, False),
-        ("QS", "AS", True, False),
+        ("QS", "YS", True, False),
         ("QS", "QS-APR", False, False),
         ("QS-FEB", "QS-APR", True, True),
         ("QS-FEB", "QS-APR", False, False),
-        ("AS", "QS", False, True),
-        ("QS-APR", "AS-APR", False, False),
+        ("YS", "QS", False, True),
+        ("QS-APR", "YS-APR", False, False),
     ],
 )
 def test_freq_sufficiently_short(
@@ -308,11 +319,11 @@ def test_freq_sufficiently_short(
         ("D", "MS", -1),
         ("MS", "QS", -1),
         ("MS", "QS-APR", -1),
-        ("QS", "AS-APR", -1),
-        ("QS", "AS", -1),
+        ("QS", "YS-APR", -1),
+        ("QS", "YS", -1),
         # upsampling
         ("QS", "D", 1),
-        ("AS-APR", "QS", 1),
+        ("YS-APR", "QS", 1),
         # the same
         ("MS", "MS", 0),
         ("QS", "QS", 0),
@@ -320,9 +331,9 @@ def test_freq_sufficiently_short(
         ("QS", "QS-JAN", 0),
         # ValueError
         ("QS", "QS-FEB", ValueError),
-        ("QS", "AS-FEB", ValueError),
-        ("AS-APR", "AS", ValueError),
-        ("AS-FEB", "QS", ValueError),
+        ("QS", "YS-FEB", ValueError),
+        ("YS-APR", "YS", ValueError),
+        ("YS-FEB", "QS", ValueError),
     ],
 )
 def test_up_pr_down2(source_freq: str, ref_freq: str, expected: int | Exception):

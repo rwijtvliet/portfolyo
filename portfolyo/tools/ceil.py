@@ -40,11 +40,11 @@ def stamp(
 
     Examples
     --------
-    >>> ceil.stamp(pd.Timestamp('2020-04-21 15:42'), 'AS')
+    >>> ceil.stamp(pd.Timestamp('2020-04-21 15:42'), 'YS')
     Timestamp('2021-01-01 00:00:00')
     >>> ceil.stamp(pd.Timestamp('2020-04-21 15:42'), 'MS')
     Timestamp('2020-05-01 00:00:00')
-    >>> ceil.stamp(pd.Timestamp('2020-04-21 15:42'), '15T')
+    >>> ceil.stamp(pd.Timestamp('2020-04-21 15:42'), '15min')
     Timestamp('2020-04-21 15:45:00')
     >>> ceil.stamp(pd.Timestamp('2020-04-21 15:42', tz='Europe/Berlin'), 'MS')
     Timestamp('2020-05-01 00:00:00+0200', tz='Europe/Berlin')

@@ -80,7 +80,7 @@ The keys (or dataframe column names) must each be one of the following: ``w`` (p
    
    import portfolyo as pf 
    import pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    input_dict = {'w': pd.Series([200, 220, 300.0], index)}
    pf.PfLine(input_dict)
    # --- hide: start ---
@@ -95,7 +95,7 @@ Under the condition that a valid ``pint`` unit is present, we may also provide a
 
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    # --- hide: stop ---
    # using the imports and index from the previous example
    input_series = pd.Series([10, 11.5, 10.8], index, dtype='pint[ctEur/kWh]')
@@ -115,7 +115,7 @@ The keys are used as the children names:
 
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    # --- hide: stop ---
    pfl1 = pf.PfLine(pd.Series([0.2, 0.22, 0.3], index, dtype='pint[GW]')) 
    pfl2 = pf.PfLine(pd.Series([100, 150, 200.0], index, dtype='pint[MW]')) 
@@ -177,7 +177,7 @@ The properties ``PfLine.w``, ``.q``, ``.p`` and ``.r`` always return the informa
    # --- hide: start --- 
    # --- hide: stop ---
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
    
@@ -198,7 +198,7 @@ If we want to extract more than one timeseries, we can use the ``.df`` attribute
 
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
@@ -221,7 +221,7 @@ The ``PfLine.index`` property returns the ``pandas.DatetimeIndex`` that applies 
 
    # --- hide: start --- 
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
@@ -236,7 +236,7 @@ For convenience, ``portfolyo`` adds a ``.duration`` and a ``right`` property to 
 
    # --- hide: start --- 
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
@@ -258,7 +258,7 @@ Another slicing method is implemented with the ``.slice[]`` property. The improv
 
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
@@ -280,12 +280,12 @@ Portfolio lines can be concatenated with the ``portfolio.concat()`` function. Th
 
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
    pfl = pf.PfLine(input_df)
    # --- hide: stop ---
    # continuation of previous code example
-   index2 = pd.date_range('2025', freq='AS', periods=3)  # 2 years' overlap with pfl
+   index2 = pd.date_range('2025', freq='YS', periods=3)  # 2 years' overlap with pfl
    pfl2 = pf.PfLine(pd.DataFrame({'w':[22, 30, 40], 'p': [15, 20, 21]}, index))
    # first two datapoints (until/excl 2026) from pfl, last two datapoints (from/incl 2026) from pfl2 
    pf.concat([pfl.slice[:'2026'], pfl2.slice['2026':]]) 
@@ -316,7 +316,7 @@ The data can be shown graphically with the ``.plot()`` method:
 
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    pfl = pf.PfLine(pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index))
    # --- hide: stop ---
    # continuation of previous code example
@@ -352,7 +352,7 @@ Using the ``.asfreq()`` method, we can quickly and correctly downsample our data
 
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024', freq='AS', periods=3)
+   index = pd.date_range('2024', freq='YS', periods=3)
    pfl = pf.PfLine(pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index))
    # --- hide: stop ---
    # continuation of previous code example
@@ -380,7 +380,7 @@ General remarks:
   .. exec_code::
 
      import portfolyo as pf, pandas as pd
-     index = pd.date_range('2024', freq='AS', periods=3)
+     index = pd.date_range('2024', freq='YS', periods=3)
      pfl = pf.PfLine(pd.Series([2, 2.2, 3], index, dtype='pint[MW]')) 
      pfl_1 = pfl + {'q': 50.0}  # standard unit (here: MWh) is assumed
      pfl_2 = pfl + pf.Q_(50000.0, 'kWh')
@@ -435,7 +435,7 @@ Here are several examples.
   .. exec_code::
        
      import portfolyo as pf, pandas as pd
-     index = pd.date_range('2024', freq='AS', periods=3)
+     index = pd.date_range('2024', freq='YS', periods=3)
      vol = pf.PfLine(pd.Series([4, 4.6, 3], index, dtype='pint[MW]'))
      vol + pf.Q_(10.0, 'GWh')
      # --- hide: start ---
@@ -447,7 +447,7 @@ Here are several examples.
        
      # --- hide: start ---
      import portfolyo as pf, pandas as pd
-     index = pd.date_range('2024', freq='AS', periods=3)
+     index = pd.date_range('2024', freq='YS', periods=3)
      # --- hide: stop ---
      # continuation of previous code example
      vol_2 = pf.PfLine({
@@ -474,7 +474,7 @@ Here are several examples.
        
      # --- hide: start ---
      import portfolyo as pf, pandas as pd
-     index = pd.date_range('2024', freq='AS', periods=3)
+     index = pd.date_range('2024', freq='YS', periods=3)
      vol = pf.PfLine(pd.Series([4, 4.6, 3], index, dtype='pint[MW]'))
      vol_2 = pf.PfLine({
          'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
@@ -492,7 +492,7 @@ Here are several examples.
        
      # --- hide: start ---
      import portfolyo as pf, pandas as pd
-     index = pd.date_range('2024', freq='AS', periods=3)
+     index = pd.date_range('2024', freq='YS', periods=3)
      vol = pf.PfLine(pd.Series([4, 4.6, 3], index, dtype='pint[MW]'))
      vol_2 = pf.PfLine({
          'A': pd.Series([4, 4.6, 3], index, dtype='pint[MW]'), 
@@ -737,7 +737,7 @@ Using the ``.hedge_with()`` method, the volume timeseries in a portfolio line is
 .. exec_code:: 
 
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024-04-01', '2024-06-01', freq='H', inclusive='left')
+   index = pd.date_range('2024-04-01', '2024-06-01', freq='h', inclusive='left')
    offtake = pf.PfLine(pf.dev.w_offtake(index))  # mock offtake volumes
    prices = pf.PfLine(pf.dev.p_marketprices(index)) # mock market prices
    # Create hedge
@@ -764,7 +764,7 @@ For markets that have a concept of "peak" and "offpeak" periods, the ``.po()`` m
    
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
-   index = pd.date_range('2024-04-01', '2024-06-01', freq='H', inclusive='left')
+   index = pd.date_range('2024-04-01', '2024-06-01', freq='h', inclusive='left')
    offtake = pf.PfLine(pf.dev.w_offtake(index))  # mock offtake volumes
    # --- hide: stop ---
    # continuation of previous code example

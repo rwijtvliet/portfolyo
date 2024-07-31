@@ -7,16 +7,16 @@ from portfolyo import dev, testing
 from portfolyo.core.pfline import flat_helper
 
 TEST_FREQUENCIES = [
-    "AS",
-    "AS-FEB",
-    "AS-APR",
+    "YS",
+    "YS-FEB",
+    "YS-APR",
     "QS",
     "QS-FEB",
     "QS-APR",
     "MS",
     "D",
-    "H",
-    "15T",
+    "h",
+    "15min",
 ]
 
 
@@ -160,8 +160,8 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
     testing.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize("freq1", ["15T", "MS", "AS"])  # don't do all - many!
-@pytest.mark.parametrize("freq2", ["H", "D", "QS"])
+@pytest.mark.parametrize("freq1", ["15min", "MS", "YS"])  # don't do all - many!
+@pytest.mark.parametrize("freq2", ["h", "D", "QS"])
 @pytest.mark.parametrize("columns", ["rp", "wp", "pq", "qr", "wr"])
 def test_makedataframe_unequalfrequencies(freq1, freq2, columns):
     """Test if error is raised when creating a dataframe from series with unequal frequencies."""
@@ -187,7 +187,7 @@ def test_makedataframe_unequalfrequencies(freq1, freq2, columns):
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("freq", ["15T", "H", "D", "MS"])
+@pytest.mark.parametrize("freq", ["15min", "h", "D", "MS"])
 def test_makedataframe_unequalstartofday(freq: str, tz: str):
     """Test if error is raised for series with unequal starttimes."""
 
@@ -203,7 +203,7 @@ def test_makedataframe_unequalstartofday(freq: str, tz: str):
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("freq", ["15T", "H", "D", "MS"])
+@pytest.mark.parametrize("freq", ["15min", "h", "D", "MS"])
 @pytest.mark.parametrize("overlap", [True, False])
 def test_makedataframe_unequaltimeperiods(freq: str, overlap: bool, tz: str):
     """Test if only intersection is kept for overlapping series, and error is raised
