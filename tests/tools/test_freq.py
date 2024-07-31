@@ -105,7 +105,7 @@ def test_fromtdelta_dst(start, end, expected):
         # . too few
         ("D", 2, "MS", ValueError),
         ("D", 2, "D", "D"),
-        # 15T, too few
+        # 15min, too few
         ("15min", 2, "MS", ValueError),
         ("15min", 2, "15min", "15min"),
         # invalid freq
@@ -159,7 +159,7 @@ def test_setfreq(
         ("D", 10, "D"),
         # . too few
         ("D", 2, None),
-        # 15T, too few
+        # 15min, too few
         ("15min", 2, None),
         # invalid freq
         # . enough

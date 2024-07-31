@@ -72,7 +72,7 @@ TESTCASES_DST = [  # ts, freq, expected_ts_right, periods
     ("2020-10-01 06:00", "QS", "2021-01-01 06:00", None),
 ]
 
-TESTCASES_15T_STAMPONLY = [  # ts, expected_ts_right
+TESTCASES_15min_STAMPONLY = [  # ts, expected_ts_right
     # Start of DST.
     ("2020-03-29 00:45", "2020-03-29 01:00"),
     ("2020-03-29 01:45", "2020-03-29 03:00"),
@@ -112,8 +112,8 @@ def test_right_stamp_dst(ts: str, freq: str, expected_ts_right: str, periods: in
     do_test_stamp(ts, freq, "Europe/Berlin", expected_ts_right)
 
 
-@pytest.mark.parametrize(("ts", "expected_ts_right"), TESTCASES_15T_STAMPONLY)
-def test_right_stamp_15T(ts: str, expected_ts_right: str):
+@pytest.mark.parametrize(("ts", "expected_ts_right"), TESTCASES_15min_STAMPONLY)
+def test_right_stamp_15min(ts: str, expected_ts_right: str):
     """Test if right timestamp is correctly calculated for timestamp at non-round hour."""
     do_test_stamp(ts, "15min", "Europe/Berlin", expected_ts_right)
 

@@ -193,15 +193,13 @@ def avoid_frame_of_objects(fr: Series_or_DataFrame) -> Series_or_DataFrame:
         if isinstance(fr.dtype, pint_pandas.PintType):
             return fr
         # We may have a series of pint quantities. Convert to pint-series, if possible.
-        dimensions = {v.dimensionality for v in fr.values}
-        if len(dimensions) != 1:
-            raise ValueError(
+        try:
+            return fr.astype(f"pint[{fr.iloc[0].units}]")
+        except pint.DimensionalityError as e:
+            dimensions = {v.dimensionality for v in fr.values}
+            raise pint.DimensionalityError(
                 f"Expected a Series with quantities of the same dimension; got {dimensions}."
-            )
-        # Convert all values to same unit.
-        units = fr.values[0].units
-        magnitudes = [v.to(units).magnitude for v in fr.values]
-        return pd.Series(magnitudes, fr.index, dtype=f"pint[{units}]")
+            ) from e
     raise TypeError(
         "Expected int-Series, float-Series, pint-Series, or Series of pint quantities (of equal dimensionality)."
     )

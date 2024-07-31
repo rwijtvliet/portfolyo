@@ -148,7 +148,7 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.Series:
         values = is_X_start(i, freq)
 
     # Comparing shorter-than-daily index to other shorter-than-daily frequency X,
-    # (i.e., '15T' with 'H')
+    # (i.e., '15min' with 'H')
     elif tools_freq.up_or_down(freq, "h") <= 0:
         if i.freq == "15min" and freq == "h":
             values = i.minute == 0

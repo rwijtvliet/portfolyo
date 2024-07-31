@@ -71,7 +71,7 @@ Frequency
 
 The index must have a frequency (``fr.index.freq``) and it must be a valid frequency. To check validity of the frequency, one may use ``portfolyo.assert_freq_valid()``. The following abbreviations are used by ``pandas`` and throughout this package:
 
-* ``15T``: quarterhourly; 
+* ``15min``: quarterhourly; 
 * ``H``: hourly;
 * ``D``: daily;
 * ``MS``: monthly;

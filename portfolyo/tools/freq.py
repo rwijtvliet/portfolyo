@@ -9,7 +9,7 @@ from .types import Series_or_DataFrame
 
 
 # Allowed frequencies.
-ALLOWED_FREQUENCIES_DOCS = "'15T' (=quarterhour), 'H', 'D', 'MS', 'QS' (or 'QS-FEB', 'QS-MAR', etc.), or 'YS' (or 'AS-FEB', 'AS-MAR', etc.)"
+ALLOWED_FREQUENCIES_DOCS = "'15min' (=quarterhour), 'H', 'D', 'MS', 'QS' (or 'QS-FEB', 'QS-MAR', etc.), or 'YS' (or 'YS-FEB', 'YS-MAR', etc.)"
 ALLOWED_CLASSES = [
     pd.tseries.offsets.YearBegin,
     pd.tseries.offsets.QuarterBegin,

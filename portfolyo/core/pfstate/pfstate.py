@@ -210,7 +210,7 @@ class PfState(
         ----------
         freq : str, optional
             The frequency at which to resample. 'YS' for year, 'QS' for quarter, 'MS'
-            (default) for month, 'D for day', 'H' for hour, '15T' for quarterhour.
+            (default) for month, 'D for day', 'H' for hour, '15min' for quarterhour.
 
         Returns
         -------
