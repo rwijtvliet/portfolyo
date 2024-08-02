@@ -21,7 +21,7 @@ def get_df_fromexcel(tz, aggfreq) -> pd.DataFrame:
 
 
 @pytest.mark.parametrize("withunit", [True, False])
-@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 def test_pbaseppeakpoffpeak_fromexcel(tz: str, aggfreq: str, withunit: bool):
     """Test if base, peak and offpeak value for a period can be calculated from the other two."""
@@ -40,7 +40,7 @@ def test_pbaseppeakpoffpeak_fromexcel(tz: str, aggfreq: str, withunit: bool):
     assert np.isclose(convert.base(p, o, ts_left, aggfreq), b)
 
 
-@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 def test_completebpoframe_fromexcel(tz: str, aggfreq: str):
     """Test if a partial bpoframe can be completed to a full bpoframe."""
@@ -52,8 +52,8 @@ def test_completebpoframe_fromexcel(tz: str, aggfreq: str):
         testing.assert_frame_equal(bpoframe_result, bpoframe)
 
 
-@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
-@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 def test_tseries2singlebpo_fromexcel(tz, freq, aggfreq):
     """Test if a timeseries can be converted into single base, peak and offpeak values."""
@@ -70,8 +70,8 @@ def test_tseries2singlebpo_fromexcel(tz, freq, aggfreq):
         assert np.isclose(values_result[key], values_expected[key])
 
 
-@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
-@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 def test_tseries2bpoframe_fromexcel(tz, freq, aggfreq):
     """Test if a timeseries (i.e., long) can be converted into a bpo-frame (i.e., wide)."""
@@ -83,8 +83,8 @@ def test_tseries2bpoframe_fromexcel(tz, freq, aggfreq):
     testing.assert_frame_equal(bpoframe_result, bpoframe_expected)
 
 
-@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
-@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 def test_bpoframe2timeseries_fromexcel(tz, freq, aggfreq, drop):
     """Test if a bpoframe (i.e., wide) can be converted into a timeseries (i.e., long)."""
@@ -100,10 +100,10 @@ def test_bpoframe2timeseries_fromexcel(tz, freq, aggfreq, drop):
     [
         ("MS", "MS"),
         ("MS", "QS"),
-        ("MS", "AS"),
+        ("MS", "YS"),
         ("QS", "QS"),
-        ("QS", "AS"),
-        ("AS", "AS"),
+        ("QS", "YS"),
+        ("YS", "YS"),
     ],
 )
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
@@ -124,13 +124,13 @@ def test_bpoframe2bpoframe_fromexcel(tz, short_aggfreq, long_aggfreq):
     [
         ("MS", "MS"),
         ("MS", "QS"),
-        ("MS", "AS"),
+        ("MS", "YS"),
         ("QS", "QS"),
-        ("QS", "AS"),
-        ("AS", "AS"),
+        ("QS", "YS"),
+        ("YS", "YS"),
     ],
 )
-@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 def test_tseries2tseries_fromexcel(tz, freq, short_aggfreq, long_aggfreq, po):
     """Test if a (e.g., hourly) timeseries with a short aggregation frequency (e.g., months)

@@ -5,16 +5,16 @@ import pytest
 from portfolyo import dev, tools
 
 TEST_FREQUENCIES = [
-    "AS",
-    "AS-FEB",
-    "AS-APR",
+    "YS",
+    "YS-FEB",
+    "YS-APR",
     "QS",
     "QS-FEB",
     "QS-APR",
     "MS",
     "D",
-    "H",
-    "15T",
+    "h",
+    "15min",
 ]
 
 
@@ -27,7 +27,7 @@ TEST_FREQUENCIES = [
 @pytest.mark.parametrize("in_aware", [True, False])
 @pytest.mark.parametrize("in_tz", ["Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("force", ["agnostic", "aware"])
-@pytest.mark.parametrize("freq", ["15T", "D"])
+@pytest.mark.parametrize("freq", ["15min", "D"])
 def test_standardize_DST(
     in_vals_num_specialconditions: int,
     start: str,
@@ -115,9 +115,9 @@ def test_standardize_convert(freq, in_tz, floating, series_or_df, bound, out_tz)
 
     # Get index.
     i = dev.get_index(freq, in_tz, _seed=1)
-    if bound == "right" and freq == "15T":  # Ensure it's a correct full-hour index
+    if bound == "right" and freq == "15min":  # Ensure it's a correct full-hour index
         i += pd.Timedelta(minutes=15)
-    if freq == "15T" and in_tz == "Asia/Kolkata" and not floating and out_tz:
+    if freq == "15min" and in_tz == "Asia/Kolkata" and not floating and out_tz:
         i += pd.Timedelta(minutes=30)
 
     # If no timezone specified and below-daily values, the created index will have too few/many datapoints.
@@ -134,7 +134,7 @@ def test_standardize_convert(freq, in_tz, floating, series_or_df, bound, out_tz)
     if (
         in_tz == "Asia/Kolkata"
         and out_tz == "Europe/Berlin"
-        and tools.freq.shortest(freq, "H") == "H"
+        and tools.freq.shortest(freq, "h") == "h"
         and not floating
     ):
         # Kolkata and Berlin timezone only share 15T-boundaries. Therefore, any other

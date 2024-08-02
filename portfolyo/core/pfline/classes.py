@@ -153,7 +153,7 @@ class PfLine(
         ----------
         peak_fn : PeakFunction
             Function that returns boolean Series indicating if timestamps in index lie in peak period.
-        freq : {'MS' (months, default), 'QS' (quarters), 'AS' (years)}
+        freq : {'MS' (months, default), 'QS' (quarters), 'YS' (years)}
             Frequency of resulting dataframe.
 
         Returns
@@ -187,7 +187,7 @@ class PfLine(
             To hedge with peak and offpeak products: function that returns boolean
             Series indicating if timestamps in index lie in peak period.
             If None, hedge with base products.
-        freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'AS' (years)}
+        freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'YS' (years)}
             Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
 
         See also

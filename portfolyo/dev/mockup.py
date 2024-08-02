@@ -102,9 +102,9 @@ def p_marketprices(
     # week angle: Sun0:00..Sun0:00 -> 0..2pi. But: uniform within day.
     wa = i.map(lambda ts: ts.weekday() + 1) / 7 * np.pi * 2
     # peak fraction: -1 (middle of offpeak hours) .. 1 (middle of peak hours)
-    if i.freq in ["H", "15T"]:
+    if i.freq in ["h", "15min"]:
         b = np.array([0.5, 0.8, 1, 0.8, 0.5])
-        if i.freq == "15T":  # repeat every value 4 times
+        if i.freq == "15min":  # repeat every value 4 times
             b = np.array([[bb, bb, bb, bb] for bb in b]).flatten()
         b = b[: len(i)]  # slice in case i is very short
         pa = np.convolve(-1 + 2 * germanpower_peakfn(i), b / sum(b), mode="same")
@@ -167,7 +167,7 @@ def wp_sourced(
     def group_and_calc(s):
         return s.resample(freq, group_keys=False).apply(calc_wp)
 
-    if sin.index.freq in ["15T", "H"]:
+    if sin.index.freq in ["15min", "h"]:
         is_peak = germanpower_peakfn(sin.index)  # avoid running on each ts individually
         df = sin.groupby(is_peak, group_keys=False).apply(group_and_calc)
     else:

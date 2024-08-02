@@ -18,7 +18,7 @@ i_less = pd.date_range("2020-01-15", freq="D", periods=60)
 s_less = dev.get_series(i_less, "")
 i_more = pd.date_range("2019-12-15", freq="D", periods=100)
 s_more = dev.get_series(i_more, "")
-i_difffreq = pd.date_range("2020", freq="H", periods=24 * 5)
+i_difffreq = pd.date_range("2020", freq="h", periods=24 * 5)
 s_difffreq = dev.get_series(i_difffreq, "")
 
 
@@ -509,7 +509,7 @@ def test_pfstate_consistency_nosourcing():
 
 
 @pytest.mark.parametrize("inclusive", ["left", "both"])
-@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
 def test_contain_whole_day(inclusive: str, freq: str):
     """An index must contain full days.
     For hourly-or-shorter values, this means that the start time of the first period () must equal the end time of the

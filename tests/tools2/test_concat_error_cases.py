@@ -22,7 +22,7 @@ def test_general():
 def test_diff_freq():
     """Test if concatenating of two flat PfLines with different freq raises error."""
     index = pd.date_range("2020", "2024", freq="QS", inclusive="left")
-    index2 = pd.date_range("2024", "2025", freq="AS", inclusive="left")
+    index2 = pd.date_range("2024", "2025", freq="YS", inclusive="left")
     pfl = dev.get_flatpfline(index)
     pfl2 = dev.get_flatpfline(index2)
     with pytest.raises(TypeError):
@@ -41,9 +41,9 @@ def test_diff_sod():
 
 def test_slice_not_sod():
     """Test if concatenating of two flat PfLines with different sod raises error."""
-    index = pd.date_range("2020-01-01 00:00", "2020-03-01", freq="H", inclusive="left")
+    index = pd.date_range("2020-01-01 00:00", "2020-03-01", freq="h", inclusive="left")
     index2 = pd.date_range(
-        "2020-02-01 06:00", "2020-04-01 06:00", freq="H", inclusive="left"
+        "2020-02-01 06:00", "2020-04-01 06:00", freq="h", inclusive="left"
     )
     pfl_a = dev.get_flatpfline(index)
     pfl_b = dev.get_flatpfline(index2)

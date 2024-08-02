@@ -52,7 +52,7 @@ def hedge(
     peak_fn : PeakFunction, optional (default: None)
         Function that returns boolean Series indicating if timestamps in index lie in peak period.
         If None, hedge with base products.
-    freq : {'D' (days), 'MS' (months), 'QS' (quarters), 'AS' (years)}, optional (default: 'MS')
+    freq : {'D' (days), 'MS' (months), 'QS' (quarters), 'YS' (years)}, optional (default: 'MS')
         Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
 
     Returns
@@ -68,13 +68,13 @@ def hedge(
         raise ValueError(
             f"Parameters ``w`` and ``p`` must have same frequency; got {w.index.freq} and {p.index.freq}."
         )
-    if w.index.freq not in ["15T", "H", "D"]:
+    if w.index.freq not in ["15min", "h", "D"]:
         raise ValueError("Can only hedge a timeseries with daily (or shorter) values.")
-    if freq not in ["D", "MS", "QS", "AS"]:
+    if freq not in ["D", "MS", "QS", "YS"]:
         raise ValueError(
-            f"Parameter ``freq`` must be one of 'D', 'MS', 'QS', 'AS'; got '{freq}'."
+            f"Parameter ``freq`` must be one of 'D', 'MS', 'QS', 'YS'; got '{freq}'."
         )
-    if peak_fn is not None and not (w.index.freq in ["15T", "H"] and freq != "D"):
+    if peak_fn is not None and not (w.index.freq in ["15min", "h"] and freq != "D"):
         raise ValueError(
             "Split into peak and offpeak only possible when (a) hedging with monthly (or "
             "longer) products, and (b) if timeseries have hourly (or shorter) values."

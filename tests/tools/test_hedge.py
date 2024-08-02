@@ -19,7 +19,7 @@ from portfolyo import testing, tools
 )
 def test_onehedge_uniformpricesandduration(w_vals, start, w_expected, how):
     """Test hedge with uniform prices and durations."""
-    i = pd.date_range(start, freq="H", periods=len(w_vals), tz="Europe/Berlin")
+    i = pd.date_range(start, freq="h", periods=len(w_vals), tz="Europe/Berlin")
     df = pd.DataFrame({"w": w_vals, "p": 100.0}, i)
     df["duration"] = tools.duration.index(i)
 
@@ -108,8 +108,8 @@ def test_onehedge(
 @pytest.mark.parametrize("withunits", ["units", "nounits"])
 @pytest.mark.parametrize("how", ["vol", "val"])
 @pytest.mark.parametrize("bpo", ["b", "po"])
-@pytest.mark.parametrize("aggfreq", ["MS", "QS", "AS"])
-@pytest.mark.parametrize("freq", ["H", "D"])
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
+@pytest.mark.parametrize("freq", ["h", "D"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 def test_hedge_fromexcel(tz, freq, aggfreq, bpo, how, withunits):
     """Test if hedge results are correctly calculated, by comparing against previously calculated results."""

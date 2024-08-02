@@ -22,7 +22,7 @@ def has_units(request):
     return request.param
 
 
-@pytest.fixture(scope="session", params=["H", "D"])
+@pytest.fixture(scope="session", params=["h", "D"])
 def freq(request):
     return request.param
 
@@ -48,7 +48,7 @@ def peak_fn(request):
     return request.param
 
 
-@pytest.fixture(scope="session", params=["MS", "QS", "AS"])
+@pytest.fixture(scope="session", params=["MS", "QS", "YS"])
 def aggfreq(request):
     return request.param
 

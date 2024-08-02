@@ -438,13 +438,17 @@ def rowvalue_uniformity(df: pd.DataFrame) -> pd.Series:
 
 
 def weights_as_series(weights: Iterable | Mapping, refindex: Iterable) -> pd.Series:
+    # Step 1: turn into Series.
     if isinstance(weights, pd.Series):
-        return weights
-    if isinstance(weights, Mapping):
-        return pd.Series(weights)
-    if isinstance(weights, Iterable):
-        return pd.Series(weights, refindex)
-    raise TypeError("``weights`` must be iterable or mapping.")
+        pass
+    elif isinstance(weights, Mapping):
+        weights = pd.Series(weights)
+    elif isinstance(weights, Iterable):
+        weights = pd.Series(weights, refindex)
+    else:
+        raise TypeError("``weights`` must be iterable or mapping.")
+    # Step 2: avoid Series of Quantity-objects (convert to pint-series instead).
+    return tools_unit.avoid_frame_of_objects(weights)
 
 
 def values_areuniform(series: pd.Series, mask: Iterable = None) -> bool:

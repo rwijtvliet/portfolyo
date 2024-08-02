@@ -181,7 +181,14 @@ def plot_timeseries_as_hline(
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
     categories = Categories(s)
     # Center around x-tick:
-    ax.hlines(categories.y(), categories.x() - 0.4, categories.x() + 0.4, **kwargs)
+    ax.hlines(
+        pd.Series(
+            categories.y(), categories.x()
+        ),  # HACK: categories.y() no longer working after update of pint-pandas to 0.6
+        categories.x() - 0.4,
+        categories.x() + 0.4,
+        **kwargs,
+    )
     ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
     set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
     ax.autoscale()
