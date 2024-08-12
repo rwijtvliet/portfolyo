@@ -256,13 +256,22 @@ def test_init_B(
     assert result.kind is itc.expected_kind
 
 
-@pytest.mark.parametrize("col", ["q", "w", "p", "r"])
-def test_init_with_integers(col: str):
+@pytest.mark.parametrize(
+    "col, unit",
+    [
+        ("w", "pint[MW]"),
+        ("q", "pint[MWh]"),
+        ("p", "pint[euro_per_MWh]"),
+    ],
+)
+def test_init_with_integers(col: str, unit: str):
     """Test if a series of integers is correctly converted into floats."""
     i = pd.date_range("2020", freq="MS", periods=3)
     magnitude = pd.Series([100, 200, -500], i)
-    unit = pf.tools.unit.NAMES_AND_UNITS[col]
-    s = magnitude.astype(f"pint[{unit}]")
+    # unit = pf.tools.unit.NAMES_AND_UNITS[col]
+    # dims = pf.tools.unit.NAMES_AND_DIMENSIONS[col]
+
+    s = magnitude.astype(unit)
     pfl = pf.PfLine(s)
     for dtype in pfl.df.pint.dequantify().dtypes.values:
         assert not pd.api.types.is_integer_dtype(dtype)
@@ -296,3 +305,33 @@ def test_equal_sod(freq: str):
     s_pint = s.astype("pint[MW]")
     with pytest.raises(ValueError):
         pf.PfLine(s_pint)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected_exception",
+    [
+        # Case 1: Correct dtype
+        ("pint[MW]", None),
+        # Case 2: Incorrect dimensionality
+        ("pint[MWh]", AttributeError),
+        # Case 3: Missing unit
+        (None, AssertionError),
+    ],
+)
+def test_pfline_with_diff_units(dtype: str, expected_exception: Exception):
+    if dtype:
+        input_data = {
+            "w": pd.Series(
+                [1, 2], pd.date_range("2024", freq="AS", periods=2), dtype=dtype
+            )
+        }
+    else:
+        input_data = {
+            "w": pd.Series([1, 2], pd.date_range("2024", freq="AS", periods=2))
+        }
+
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            _ = pf.PfLine(input_data)
+    else:
+        pf.PfLine(input_data)

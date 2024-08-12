@@ -26,31 +26,41 @@ PA_ = pint_pandas.PintArray
 Q_ = ureg.Quantity
 Unit = ureg.Unit
 
-NAMES_AND_UNITS = {
-    "w": ureg.MW,
-    "q": ureg.MWh,
-    "p": ureg.euro_per_MWh,
-    "r": ureg.euro,
-    "duration": ureg.hour,
-    "t": ureg.degC,
-    "nodim": ureg.dimensionless,
+# NAMES_AND_UNITS = {
+#     "w": ureg.MW,
+#     "q": ureg.MWh,
+#     "p": ureg.euro_per_MWh,
+#     "r": ureg.euro,
+#     "duration": ureg.hour,
+#     "t": ureg.degC,
+#     "nodim": ureg.dimensionless,
+# }
+
+NAMES_AND_DIMENSIONS = {
+    "w": ureg.MW.dimensionality,
+    "q": ureg.MWh.dimensionality,
+    "p": ureg.euro_per_MWh.dimensionality,
+    "r": ureg.euro.dimensionality,
+    "duration": ureg.hour.dimensionality,
+    "t": ureg.degC.dimensionality,
+    "nodim": ureg.dimensionless.dimensionality,
 }
 
 
 def to_name(unit: pint.Unit) -> str:
     """Find the standard column name belonging to unit `unit`. Checks on dimensionality,
     not exact unit."""
-    for name, u in NAMES_AND_UNITS.items():
-        if u.dimensionality == unit.dimensionality:
+    for name, dim in NAMES_AND_DIMENSIONS.items():
+        if dim == unit.dimensionality:
             return name
     raise pint.UndefinedUnitError(f"No standard name found for unit '{unit}'.")
 
 
-def from_name(name: str) -> pint.Unit:
-    """Find standard unit belonging to a column name."""
-    if name in NAMES_AND_UNITS:
-        return NAMES_AND_UNITS[name]
-    raise ValueError(f"No standard unit found for name '{name}'.")
+# def from_name(name: str) -> pint.Unit:
+#     """Find standard unit belonging to a column name."""
+#     if name in NAMES_AND_UNITS:
+#         return NAMES_AND_UNITS[name]
+#     raise ValueError(f"No standard unit found for name '{name}'.")
 
 
 @overload

@@ -66,21 +66,6 @@ def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:
     raise ValueError("Can't find timestamp to end index on.")
 
 
-def get_value(
-    name: str = None, has_unit: bool = True, magn: float = None, *, _seed: int = None
-) -> float | tools.unit.Q_:
-    """Get a single value."""
-    if _seed:
-        np.random.seed(_seed)
-    if magn is None:
-        magn = np.random.random() * 200
-    if not has_unit:
-        return magn
-    else:
-        unit = tools.unit.from_name(name)
-        return tools.unit.Q_(magn, unit)
-
-
 def get_series(
     i: pd.DatetimeIndex = None,
     name: str = None,
