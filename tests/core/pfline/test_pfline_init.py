@@ -268,8 +268,6 @@ def test_init_with_integers(col: str, unit: str):
     """Test if a series of integers is correctly converted into floats."""
     i = pd.date_range("2020", freq="MS", periods=3)
     magnitude = pd.Series([100, 200, -500], i)
-    # unit = pf.tools.unit.NAMES_AND_UNITS[col]
-    # dims = pf.tools.unit.NAMES_AND_DIMENSIONS[col]
 
     s = magnitude.astype(unit)
     pfl = pf.PfLine(s)

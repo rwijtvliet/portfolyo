@@ -13,12 +13,26 @@ _seed = 3  # any fixed seed
 
 # TODO: nestedPfLine, quantity, float, 0, negation
 
+
+def wrapper_pfline(args_dict):
+    if "w" in args_dict and args_dict["w"].dtype == "float64":
+        args_dict["w"] = args_dict["w"].astype("pint[MW]")
+    if "p" in args_dict and args_dict["p"].dtype == "float64":
+        args_dict["p"] = args_dict["p"].astype("pint[Eur/MWh]")
+    if "q" in args_dict and args_dict["q"].dtype == "float64":
+        args_dict["q"] = args_dict["q"].astype("pint[MWh]")
+    if "r" in args_dict and args_dict["r"].dtype == "float64":
+        args_dict["r"] = args_dict["r"].astype("pint[Eur]")
+
+    return create.flatpfline(args_dict)
+
+
 # Reference Set.
 i_ref = pd.date_range("2020", freq="MS", periods=3, tz="Europe/Berlin")
 series_ref = {
-    "q": pd.Series([-3.5, 5, -5], i_ref),
-    "p": pd.Series([300.0, 150, 100], i_ref),
-    "r": pd.Series([-1050.0, 750, -500], i_ref),
+    "q": pd.Series([-3.5, 5, -5], i_ref, dtype="pint[MWh]"),
+    "p": pd.Series([300.0, 150, 100], i_ref, dtype="pint[Eur/MWh]"),
+    "r": pd.Series([-1050.0, 750, -500], i_ref, dtype="pint[Eur]"),
     "nodim": pd.Series([2, -1.5, 10], i_ref),
 }
 flatset_ref = {
@@ -44,32 +58,32 @@ values_0 = {
         pf.Q_(0.0, "GW"),
         {"q": 0.0},
         pd.Series(0.0, i_ref, dtype="pint[GW]"),
-        create.flatpfline({"w": series_0}),
+        wrapper_pfline({"w": series_0}),
     ],
     Kind.PRICE: [
         pf.Q_(0.0, "Eur/MWh"),
         pf.Q_(0.0, "ctEur/kWh"),
         pd.Series(0.0, i_ref, dtype="pint[ctEur/kWh]"),
-        create.flatpfline({"p": series_0}),
+        wrapper_pfline({"p": series_0}),
     ],
     Kind.REVENUE: [
         pf.Q_(0.0, "Eur"),
         pf.Q_(0.0, "kEur"),
         pd.Series(0.0, i_ref, dtype="pint[kEur]"),
-        create.flatpfline({"r": series_0}),
+        wrapper_pfline({"r": series_0}),
     ],
     Kind.COMPLETE: [
         {"q": 0.0, "r": 0.0},
         {"q": 0.0, "p": 100.0},
-        create.flatpfline({"r": series_0, "q": series_0}),
+        wrapper_pfline({"r": series_0, "q": series_0}),
     ],
     "nodim": [0, 0.0, pd.Series(0.0, i_ref)],
 }
 flatset_ref_times_0 = {
-    Kind.VOLUME: create.flatpfline({"q": series_0}),
-    Kind.PRICE: create.flatpfline({"p": series_0}),
-    Kind.REVENUE: create.flatpfline({"r": series_0}),
-    Kind.COMPLETE: create.flatpfline({"q": series_0, "p": series_ref["p"]}),
+    Kind.VOLUME: wrapper_pfline({"q": series_0}),
+    Kind.PRICE: wrapper_pfline({"p": series_0}),
+    Kind.REVENUE: wrapper_pfline({"r": series_0}),
+    Kind.COMPLETE: wrapper_pfline({"q": series_0, "p": series_ref["p"]}),
 }
 series_2 = pd.Series(2.0, i_ref)
 values_2 = {
@@ -78,30 +92,30 @@ values_2 = {
         pf.Q_(2000.0, "kWh"),
         {"q": 2.0},
         pd.Series(2.0, i_ref, dtype="pint[MWh]"),
-        create.flatpfline({"q": series_2}),
+        wrapper_pfline({"q": series_2}),
     ],
     Kind.PRICE: [
         pf.Q_(2.0, "Eur/MWh"),
         pf.Q_(0.2, "ctEur/kWh"),
         pd.Series(2.0, i_ref, dtype="pint[Eur/MWh]"),
-        create.flatpfline({"p": series_2}),
+        wrapper_pfline({"p": series_2}),
     ],
     Kind.REVENUE: [
         pf.Q_(2.0, "Eur"),
         pf.Q_(0.002, "kEur"),
         pd.Series(2.0, i_ref, dtype="pint[Eur]"),
-        create.flatpfline({"r": series_2}),
+        wrapper_pfline({"r": series_2}),
     ],
     Kind.COMPLETE: [
         {"q": 2.0, "r": 2.0},
-        create.flatpfline({"r": series_2, "q": series_2}),
+        wrapper_pfline({"r": series_2, "q": series_2}),
     ],
     "nodim": [2, 2.0, pd.Series(2.0, i_ref)],
 }
 series_ref_plus_2 = {
-    "q": pd.Series([-1.5, 7, -3], i_ref),
-    "p": pd.Series([302.0, 152, 102], i_ref),
-    "r": pd.Series([-1048.0, 752, -498], i_ref),
+    "q": pd.Series([-1.5, 7, -3], i_ref, dtype="pint[MWh]"),
+    "p": pd.Series([302.0, 152, 102], i_ref, dtype="pint[Eur/MWh]"),
+    "r": pd.Series([-1048.0, 752, -498], i_ref, dtype="pint[Eur]"),
     "nodim": pd.Series([4, 0.5, 12], i_ref),
 }
 flatset_ref_plus_2 = {
@@ -114,9 +128,9 @@ flatset_ref_plus_2 = {
     "nodim": series_ref_plus_2["nodim"],
 }
 series_ref_minus_2 = {
-    "q": pd.Series([-5.5, 3, -7], i_ref),
-    "p": pd.Series([298.0, 148, 98], i_ref),
-    "r": pd.Series([-1052.0, 748, -502], i_ref),
+    "q": pd.Series([-5.5, 3, -7], i_ref, dtype="pint[MWh]"),
+    "p": pd.Series([298.0, 148, 98], i_ref, dtype="pint[Eur/MWh]"),
+    "r": pd.Series([-1052.0, 748, -502], i_ref, dtype="pint[Eur]"),
     "nodim": pd.Series([0, -3.5, 8], i_ref),
 }
 flatset_ref_minus_2 = {
@@ -129,9 +143,9 @@ flatset_ref_minus_2 = {
     "nodim": series_ref_minus_2["nodim"],
 }
 series_ref_times_2 = {
-    "q": pd.Series([-7.0, 10, -10], i_ref),
-    "p": pd.Series([600.0, 300, 200], i_ref),
-    "r": pd.Series([-2100.0, 1500, -1000], i_ref),
+    "q": pd.Series([-7.0, 10, -10], i_ref, dtype="pint[MWh]"),
+    "p": pd.Series([600.0, 300, 200], i_ref, dtype="pint[Eur/MWh]"),
+    "r": pd.Series([-2100.0, 1500, -1000], i_ref, dtype="pint[Eur]"),
     "nodim": pd.Series([4.0, -3, 20], i_ref),
 }
 flatset_ref_times_2 = {
@@ -144,19 +158,26 @@ flatset_ref_times_2 = {
     "nodim": series_ref_times_2["nodim"],
 }
 flatset_ref_dividedby_0 = {
-    Kind.VOLUME: create.flatpfline({"q": pd.Series([-np.inf, np.inf, -np.inf], i_ref)}),
-    Kind.PRICE: create.flatpfline({"p": pd.Series([np.inf, np.inf, np.inf], i_ref)}),
+    Kind.VOLUME: create.flatpfline(
+        {"q": pd.Series([-np.inf, np.inf, -np.inf], i_ref, dtype="pint[MWh]")}
+    ),
+    Kind.PRICE: create.flatpfline(
+        {"p": pd.Series([np.inf, np.inf, np.inf], i_ref, dtype="pint[Eur/MWh]")}
+    ),
     Kind.REVENUE: create.flatpfline(
-        {"r": pd.Series([-np.inf, np.inf, -np.inf], i_ref)}
+        {"r": pd.Series([-np.inf, np.inf, -np.inf], i_ref, dtype="pint[Eur]")}
     ),
     Kind.COMPLETE: create.flatpfline(
-        {"q": pd.Series([-np.inf, np.inf, -np.inf], i_ref), "p": series_ref["p"]}
+        {
+            "q": pd.Series([-np.inf, np.inf, -np.inf], i_ref, dtype="pint[MWh]"),
+            "p": series_ref["p"],
+        }
     ),
 }
 series_ref_dividedby_2 = {
-    "q": pd.Series([-1.75, 2.5, -2.5], i_ref),
-    "p": pd.Series([150.0, 75, 50], i_ref),
-    "r": pd.Series([-525.0, 375, -250], i_ref),
+    "q": pd.Series([-1.75, 2.5, -2.5], i_ref, dtype="pint[MWh]"),
+    "p": pd.Series([150.0, 75, 50], i_ref, dtype="pint[Eur/MWh]"),
+    "r": pd.Series([-525.0, 375, -250], i_ref, dtype="pint[Eur]"),
     "nodim": pd.Series([1, -0.75, 5], i_ref),
 }
 flatset_ref_dividedby_2 = {
@@ -170,24 +191,24 @@ flatset_ref_dividedby_2 = {
 }
 flatset_ref_unionwith_2 = {
     Kind.VOLUME: {
-        Kind.PRICE: create.flatpfline({"q": series_ref["q"], "p": series_2}),
-        Kind.REVENUE: create.flatpfline({"q": series_ref["q"], "r": series_2}),
+        Kind.PRICE: wrapper_pfline({"q": series_ref["q"], "p": series_2}),
+        Kind.REVENUE: wrapper_pfline({"q": series_ref["q"], "r": series_2}),
     },
     Kind.PRICE: {
-        Kind.VOLUME: create.flatpfline({"p": series_ref["p"], "q": series_2}),
-        Kind.REVENUE: create.flatpfline({"p": series_ref["p"], "r": series_2}),
+        Kind.VOLUME: wrapper_pfline({"p": series_ref["p"], "q": series_2}),
+        Kind.REVENUE: wrapper_pfline({"p": series_ref["p"], "r": series_2}),
     },
     Kind.REVENUE: {
-        Kind.VOLUME: create.flatpfline({"r": series_ref["r"], "q": series_2}),
-        Kind.PRICE: create.flatpfline({"r": series_ref["r"], "p": series_2}),
+        Kind.VOLUME: wrapper_pfline({"r": series_ref["r"], "q": series_2}),
+        Kind.PRICE: wrapper_pfline({"r": series_ref["r"], "p": series_2}),
     },
 }
 
 # Set a. Full overlap with reference set.
 series_a = {
-    "q": pd.Series([-3.0, 4, -5], i_ref),
-    "p": pd.Series([400.0, 150, -100], i_ref),
-    "r": pd.Series([-1200.0, 600, 500], i_ref),
+    "q": pd.Series([-3.0, 4, -5], i_ref, dtype="pint[MWh]"),
+    "p": pd.Series([400.0, 150, -100], i_ref, dtype="pint[Eur/MWh]"),
+    "r": pd.Series([-1200.0, 600, 500], i_ref, dtype="pint[Eur]"),
     "nodim": pd.Series([1.0, -10, 2], i_ref),
 }
 flatset_a = {
@@ -202,9 +223,9 @@ flatset_a = {
 i_b = pd.date_range("2020-02", freq="MS", periods=3, tz="Europe/Berlin")
 
 series_b = {
-    "q": pd.Series([-15.0, -20, -4], i_b),
-    "p": pd.Series([400.0, 50, 50], i_b),
-    "r": pd.Series([4000.0, 500, 500], i_b),
+    "q": pd.Series([-15.0, -20, -4], i_b, dtype="pint[MWh]"),
+    "p": pd.Series([400.0, 50, 50], i_b, dtype="pint[Eur/MWh]"),
+    "r": pd.Series([4000.0, 500, 500], i_b, dtype="pint[Eur]"),
     "nodim": pd.Series([1.0, -2.0, 4], i_b),
 }
 flatset_b = {

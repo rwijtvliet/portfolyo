@@ -26,15 +26,15 @@ PA_ = pint_pandas.PintArray
 Q_ = ureg.Quantity
 Unit = ureg.Unit
 
-# NAMES_AND_UNITS = {
-#     "w": ureg.MW,
-#     "q": ureg.MWh,
-#     "p": ureg.euro_per_MWh,
-#     "r": ureg.euro,
-#     "duration": ureg.hour,
-#     "t": ureg.degC,
-#     "nodim": ureg.dimensionless,
-# }
+NAMES_AND_UNITS = {
+    "w": ureg.MW,
+    "q": ureg.MWh,
+    "p": ureg.euro_per_MWh,
+    "r": ureg.euro,
+    "duration": ureg.hour,
+    "t": ureg.degC,
+    "nodim": ureg.dimensionless,
+}
 
 NAMES_AND_DIMENSIONS = {
     "w": ureg.MW.dimensionality,

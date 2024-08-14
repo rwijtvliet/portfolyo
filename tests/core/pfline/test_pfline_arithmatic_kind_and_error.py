@@ -13,20 +13,21 @@ from utils import id_fn  # relative to /tests
 import portfolyo as pf
 from portfolyo import Q_, PfLine
 from portfolyo.core.pfline import Kind, Structure, arithmatic, create
+from portfolyo import tools
 
 # TODO: various timezones
 
 # TODO: use/change STRICT setting
 
-NAMES_AND_UNITS = {
-    "w": "pint[MW]",
-    "q": "pint[MWh]",
-    "p": "pint[Eur/MWh]",
-    "r": "pint[Eur]",
-    "duration": "pint[h]",
-    "t": "pint[degC]",
-    "nodim": "pint[dimensionless]",
-}
+# NAMES_AND_UNITS = {
+#     "w": "pint[MW]",
+#     "q": "pint[MWh]",
+#     "p": "pint[Eur/MWh]",
+#     "r": "pint[Eur]",
+#     "duration": "pint[h]",
+#     "t": "pint[degC]",
+#     "nodim": "pint[dimensionless]",
+# }
 
 
 def get_value(
@@ -40,7 +41,7 @@ def get_value(
     if not has_unit:
         return magn
     else:
-        unit = NAMES_AND_UNITS[name]
+        unit = tools.unit.NAMES_AND_UNITS[name]
         return Q_(magn, unit)
 
 
