@@ -24,11 +24,11 @@ def group_index(
         groups.append(i.month)
     elif freq == "QS":
         groups.append(i.quarter)
-    elif freq == "AS":
+    elif freq == "YS":
         pass
     else:
         raise ValueError(
-            f"Parameter ``freq`` must be one of 'MS', 'QS', 'AS'; got '{freq}'."
+            f"Parameter ``freq`` must be one of 'MS', 'QS', 'YS'; got '{freq}'."
         )
 
     # Add grouping due to peak.
@@ -48,7 +48,7 @@ def complete_bpoframe(
     df : DataFrame
         With at least 2 of following columns: {'base', 'peak', 'offpeak'}. If all 3 are
         present, no verification is done. Additional columns are dropped. DatetimeIndex
-        with freq in {'MS', 'QS', 'AS'}.
+        with freq in {'MS', 'QS', 'YS'}.
     peak_fn : PeakFunction
         Function that returns boolean Series indicating if timestamps in index lie in peak period.
     is_summable : bool, optional (default: False)
@@ -233,7 +233,7 @@ def tseries2poframe(
 def poframe2tseries(
     df: pd.DataFrame,
     peak_fn: tools_peakfn.PeakFunction,
-    freq: str = "H",
+    freq: str = "h",
     is_summable: bool = False,
 ) -> pd.Series:
     """
@@ -310,7 +310,7 @@ def poframe2tseries(
 #         Timeseries with hourly or quarterhourly frequency.
 #     peak_fn : PeakFunction, optional (default: None)
 #         Function that returns boolean Series indicating if timestamps in index lie in peak period.
-#     freq : {'MS' (month, default) 'QS' (quarter), 'AS' (year)}
+#     freq : {'MS' (month, default) 'QS' (quarter), 'YS' (year)}
 #         Target frequency within which peak and offpeak values will be uniform.
 #     is_summable : bool, optional (default: False)
 #         True if data is summable, False if it is averagable.
@@ -367,7 +367,7 @@ def poframe2tseries(
 def poframe2poframe(
     df: pd.DataFrame,
     peak_fn: tools_peakfn.PeakFunction,
-    freq: str = "AS",
+    freq: str = "YS",
     is_summable: bool = False,
 ) -> pd.DataFrame:
     """
@@ -381,7 +381,7 @@ def poframe2poframe(
         or-longer frequency.
     peak_fn : PeakFunction
         Function that returns boolean Series indicating if timestamps in index lie in peak period.
-    freq : str, optional (default: 'AS')
+    freq : str, optional (default: 'YS')
         Target frequency; monthly-or-longer.
     is_summable : bool, optional (default: False)
         True if data is summable, False if it is averagable.
@@ -421,6 +421,6 @@ def poframe2poframe(
             " The result will be uniform at the frequency of the original frame ``df``."
         )
 
-    upsampled = poframe2tseries(df, peak_fn, "H", is_summable)
+    upsampled = poframe2tseries(df, peak_fn, "h", is_summable)
     downsampled = tseries2poframe(upsampled, peak_fn, freq, is_summable)
     return downsampled

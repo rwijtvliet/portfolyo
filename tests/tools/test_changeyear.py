@@ -83,7 +83,9 @@ class TCase:  # testcase
     idx_source: pd.DatetimeIndex  # source index
     idx_target: pd.DatetimeIndex  # target index
     holiday_country: str
-    expected_mapping: pd.Series  # for every day in the target index, get position in source
+    expected_mapping: (
+        pd.Series
+    )  # for every day in the target index, get position in source
 
 
 def create_testcase_factory():
@@ -110,10 +112,10 @@ def create_testcase_factory():
 
         # Testcase with hourly frequency.
         idx_s2 = pd.date_range(
-            str(year_s_start), str(year_s_end), freq="H", inclusive="left", tz=tz
+            str(year_s_start), str(year_s_end), freq="h", inclusive="left", tz=tz
         )
         idx_t2 = pd.date_range(
-            str(year_t_start), str(year_t_end), freq="H", inclusive="left", tz=tz
+            str(year_t_start), str(year_t_end), freq="h", inclusive="left", tz=tz
         )
         count_s = pd.Series(0, idx_s2).resample("D").count()
         count_t = pd.Series(0, idx_t2).resample("D").count()
@@ -121,7 +123,7 @@ def create_testcase_factory():
         for count_t_here, m in zip(count_t, mapping):
             count_s_start = count_s[:m].sum()
             mapping_hourly.extend(range(count_s_start, count_s_start + count_t_here))
-        key = (year_s_start, year_t_start, tz, country, "H", several_years)
+        key = (year_s_start, year_t_start, tz, country, "h", several_years)
 
         testcases[key] = TCase(idx_s2, idx_t2, country, mapping_hourly)
         # Testcase for identical mapping (days).
@@ -129,7 +131,7 @@ def create_testcase_factory():
         testcases[key] = TCase(idx_s, idx_s, country, range(len(idx_s)))
 
         # Testcase for identical mapping (hours).
-        key = (year_s_start, year_s_start, tz, country, "H", several_years)
+        key = (year_s_start, year_s_start, tz, country, "h", several_years)
         testcases[key] = TCase(idx_s2, idx_s2, country, range(len(idx_s2)))
 
     testcases: Dict[Tuple, TCase] = {}
@@ -158,7 +160,7 @@ get_testcase = functools.lru_cache(100)(create_testcase_factory())
 # ---
 
 
-@pytest.mark.parametrize("freq", ["15T", "H", "MS", "QS", "AS"])
+@pytest.mark.parametrize("freq", ["15min", "h", "MS", "QS", "YS"])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 def test_characterizeindex_error(freq: str, tz: str):
     """Test if characterization is only possible for daily indices."""
@@ -260,10 +262,10 @@ def test_characterizeindex_holidays(
         # Distinct frequencies
         (
             pd.date_range("2020", "2021", freq="D", inclusive="left", tz=None),
-            pd.date_range("2021", "2022", freq="15T", inclusive="left", tz=None),
+            pd.date_range("2021", "2022", freq="15min", inclusive="left", tz=None),
         ),
         (
-            pd.date_range("2020", "2021", freq="15T", inclusive="left", tz=None),
+            pd.date_range("2020", "2021", freq="15min", inclusive="left", tz=None),
             pd.date_range("2021", "2022", freq="D", inclusive="left", tz=None),
         ),
         (
@@ -271,7 +273,7 @@ def test_characterizeindex_holidays(
                 "2020", "2021", freq="D", inclusive="left", tz="Europe/Berlin"
             ),
             pd.date_range(
-                "2021", "2022", freq="H", inclusive="left", tz="Europe/Berlin"
+                "2021", "2022", freq="h", inclusive="left", tz="Europe/Berlin"
             ),
         ),
         # Too few source data
@@ -295,7 +297,7 @@ def test_mapindextoindex_error(
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("holiday_country", ["DE", None])
 @pytest.mark.parametrize("numyears", [1, 3])
-@pytest.mark.parametrize("freq", ["MS", "D", "H"])
+@pytest.mark.parametrize("freq", ["MS", "D", "h"])
 @pytest.mark.parametrize("partial", ["partial", "full"])
 def test_mapindextoindex_identical(
     tz: str, holiday_country: str, numyears: int, partial: str, freq: str
@@ -327,10 +329,10 @@ def test_mapindextoindex_identical(
         ("QS", "2020", "2021", 7, 7, [4, 5, 6, 3, 0, 1, 2]),
         ("QS", "2020", "2021", 4, 7, [0, 1, 2, 3, 0, 1, 2]),
         ("QS", "2020", "2021", 7, 4, [4, 5, 6, 3]),
-        ("AS", "2020", "2024", 4, 4, range(4)),
-        ("AS", "2020", "2024", 7, 7, [4, 5, 6, 0, 1, 2, 3]),
-        ("AS", "2020", "2024", 4, 7, [0, 1, 2, 3, 0, 1, 2]),
-        ("AS", "2020", "2024", 7, 4, [4, 5, 6, 0]),
+        ("YS", "2020", "2024", 4, 4, range(4)),
+        ("YS", "2020", "2024", 7, 7, [4, 5, 6, 0, 1, 2, 3]),
+        ("YS", "2020", "2024", 4, 7, [0, 1, 2, 3, 0, 1, 2]),
+        ("YS", "2020", "2024", 7, 4, [4, 5, 6, 0]),
     ],
 )
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
@@ -365,7 +367,7 @@ def test_mapindextoindex_monthlyandlonger(
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
 @pytest.mark.parametrize("partial", ["partial", "full"])
-@pytest.mark.parametrize("freq", ["D", "H"])
+@pytest.mark.parametrize("freq", ["D", "h"])
 @pytest.mark.parametrize("several_years", [True, False])
 def test_mapindextoindex_daysandhours(
     year_s: int,
@@ -399,7 +401,7 @@ def test_mapindextoindex_daysandhours(
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
 @pytest.mark.parametrize("partial", ["partial", "full"])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("freq", ["D", "H"])
+@pytest.mark.parametrize("freq", ["D", "h"])
 @pytest.mark.parametrize("several_years", [True, False])
 def test_mapframetoindex(
     year_s: int,
@@ -450,7 +452,7 @@ def test_mapframetoindex(
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("holiday_country", [None, "DE"])
 @pytest.mark.parametrize("series_or_df", ["series", "df"])
-@pytest.mark.parametrize("freq", ["D", "H"])
+@pytest.mark.parametrize("freq", ["D", "h"])
 @pytest.mark.parametrize("several_years_source", [True, False])
 def test_mapframetoyear_oneyear(
     year_s: int,

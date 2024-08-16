@@ -4,10 +4,12 @@ Working with pint units.
 
 from pathlib import Path
 from typing import Tuple, overload
-from .types import Series_or_DataFrame
+
 import pandas as pd
 import pint
 import pint_pandas
+
+from .types import Series_or_DataFrame
 
 path = Path(__file__).parent / "unitdefinitions.txt"
 
@@ -18,7 +20,7 @@ ureg = pint_pandas.PintType.ureg = pint.UnitRegistry(
     auto_reduce_dimensions=True,
     case_sensitive=False,
 )
-ureg.default_format = "~P"  # short by default
+ureg.formatter.default_format = "~P"  # short by default
 ureg.setup_matplotlib()
 
 # Set for export.
@@ -185,23 +187,21 @@ def avoid_frame_of_objects(fr: Series_or_DataFrame) -> Series_or_DataFrame:
 
     # fr is now a Series.
 
-    if fr.dtype == int:
+    if pd.api.types.is_integer_dtype(fr):
         return fr.astype(float)
-    if fr.dtype == float:
+    if pd.api.types.is_float_dtype(fr):
         return fr
     if hasattr(fr, "pint"):
         if isinstance(fr.dtype, pint_pandas.PintType):
             return fr
         # We may have a series of pint quantities. Convert to pint-series, if possible.
-        dimensions = {v.dimensionality for v in fr.values}
-        if len(dimensions) != 1:
-            raise ValueError(
+        try:
+            return fr.astype(f"pint[{fr.iloc[0].units}]")
+        except pint.DimensionalityError as e:
+            dimensions = {v.dimensionality for v in fr.values}
+            raise pint.DimensionalityError(
                 f"Expected a Series with quantities of the same dimension; got {dimensions}."
-            )
-        # Convert all values to same unit.
-        units = fr.values[0].units
-        magnitudes = [v.to(units).magnitude for v in fr.values]
-        return pd.Series(magnitudes, fr.index, dtype=f"pint[{units}]")
+            ) from e
     raise TypeError(
         "Expected int-Series, float-Series, pint-Series, or Series of pint quantities (of equal dimensionality)."
     )

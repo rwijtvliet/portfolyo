@@ -72,9 +72,9 @@ def factory(
     if not must_check_time:
         longest_freq = "D"
     elif peak_left.minute == 0 and peak_right.minute == 0:
-        longest_freq = "H"
+        longest_freq = "h"
     elif peak_left.minute % 15 == 0 and peak_right.minute % 15 == 0:
-        longest_freq = "15T"
+        longest_freq = "15min"
     else:
         raise ValueError(
             f"Input specifies times that are not 'round' quarter-hours; got {peak_left} and {peak_right}."
@@ -144,7 +144,7 @@ def peak_duration(i: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
     Series has the original index.
     """
     eval_i = i  # index to evaluate if peak or offpeak
-    for eval_freq in ("D", "H", "15T"):
+    for eval_freq in ("D", "h", "15min"):
         if tools_freq.up_or_down(eval_i.freq, eval_freq) > 0:  # upsampling necessary
             eval_i = tools_changefreq.index(eval_i, eval_freq)
         try:

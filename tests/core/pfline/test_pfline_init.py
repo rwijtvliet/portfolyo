@@ -13,16 +13,16 @@ from portfolyo import Kind, PfLine, create, dev
 from portfolyo.core.pfline import classes
 
 TEST_FREQUENCIES = [
-    "15T",
-    "H",
+    "15min",
+    "h",
     "D",
     "MS",
     "QS",
     "QS-FEB",
     "QS-APR",
-    "AS",
-    "AS-FEB",
-    "AS-APR",
+    "YS",
+    "YS-FEB",
+    "YS-APR",
 ]
 
 
@@ -269,7 +269,7 @@ def test_init_with_integers(col: str):
 
 
 @pytest.mark.parametrize("inclusive", ["left", "both"])
-@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
 def test_contain_whole_day(inclusive: str, freq: str):
     """An index must contain full days.
     For hourly-or-shorter values, this means that the start time of the first period () must equal the end time of the
@@ -287,7 +287,7 @@ def test_contain_whole_day(inclusive: str, freq: str):
             pfl = dev.get_flatpfline(index)
 
 
-@pytest.mark.parametrize("freq", ["D", "MS", "QS", "AS"])
+@pytest.mark.parametrize("freq", ["D", "MS", "QS", "YS"])
 def test_equal_sod(freq: str):
     """In an index with daily-or-longer values, all timestamps (all periods) should start at the same time ."""
     i = pd.date_range("2024-03-28", freq=freq, periods=10, tz="Europe/Berlin")

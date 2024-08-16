@@ -21,7 +21,7 @@ class Commodity:
 
 
 power = Commodity(
-    "15T",
+    "15min",
     tools.peakperiod.factory(dt.time(hour=8), dt.time(hour=20), [1, 2, 3, 4, 5]),
     0,
 )

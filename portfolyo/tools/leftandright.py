@@ -53,17 +53,17 @@ def stamps(
 
     if right is pd.NaT:
         if left is pd.NaT:
-            left = tools_floor.stamp(pd.Timestamp.now(tz=tz), "AS", 1, start_of_day)
-        right = tools_floor.stamp(left, "AS", 1, left.time())
+            left = tools_floor.stamp(pd.Timestamp.now(tz=tz), "YS", 1, start_of_day)
+        right = tools_floor.stamp(left, "YS", 1, left.time())
 
     # if we land here, we at least know right.
     if left is pd.NaT:
         start_of_day = right.time()
-        if tools_isboundary.stamp(right, "AS", start_of_day):
+        if tools_isboundary.stamp(right, "YS", start_of_day):
             back = -1
         else:
             back = 0
-        left = tools_floor.stamp(right, "AS", back, start_of_day)
+        left = tools_floor.stamp(right, "YS", back, start_of_day)
 
     # if we land here, we know left and right.
     zones = [None if ts.tz is None else ts.tz.zone for ts in [left, right]]
