@@ -209,8 +209,8 @@ class PfState(
         Parameters
         ----------
         freq : str, optional
-            The frequency at which to resample. 'AS' for year, 'QS' for quarter, 'MS'
-            (default) for month, 'D for day', 'H' for hour, '15T' for quarterhour.
+            The frequency at which to resample. 'YS' for year, 'QS' for quarter, 'MS'
+            (default) for month, 'D for day', 'h' for hour, '15min' for quarterhour.
 
         Returns
         -------
@@ -239,7 +239,7 @@ class PfState(
             To hedge with peak and offpeak products: function that returns boolean
             Series indicating if timestamps in index lie in peak period.
             If None, hedge with base products.
-        freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'AS' (years)}
+        freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'YS' (years)}
             Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
 
         See also
@@ -271,7 +271,7 @@ class PfState(
             To hedge with peak and offpeak products: function that returns boolean
             Series indicating if timestamps in index lie in peak period.
             If None, hedge with base products.
-        freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'AS' (years)}
+        freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'YS' (years)}
             Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
 
         See also

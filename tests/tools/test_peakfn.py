@@ -17,56 +17,56 @@ def index(start: str, end: str, freq: str, tz: str) -> pd.DatetimeIndex:
 
 f_germanpower = tools.peakfn.factory(dt.time(hour=8), dt.time(hour=20))
 TESTCASES_GERMANPOWER = [  # end, freq, count, stretch
-    ("2020-01-08", "15T", 5 * 12 * 4, (32, 79)),
-    ("2020-01-08", "H", 5 * 12, (8, 19)),
-    ("2020-04-01", "15T", 65 * 12 * 4, (-64, -17)),
-    ("2020-04-01", "H", 65 * 12, (-16, -5)),
-    ("2021", "15T", 262 * 12 * 4, (-64, -17)),
-    ("2021", "H", 262 * 12, (-16, -5)),
+    ("2020-01-08", "15min", 5 * 12 * 4, (32, 79)),
+    ("2020-01-08", "h", 5 * 12, (8, 19)),
+    ("2020-04-01", "15min", 65 * 12 * 4, (-64, -17)),
+    ("2020-04-01", "h", 65 * 12, (-16, -5)),
+    ("2021", "15min", 262 * 12 * 4, (-64, -17)),
+    ("2021", "h", 262 * 12, (-16, -5)),
     ("2021", "D", ValueError, None),
     ("2021", "MS", ValueError, None),
     ("2021", "QS", ValueError, None),
-    ("2021", "AS", ValueError, None),
+    ("2021", "YS", ValueError, None),
 ]
 
 f_everyday_13half = tools.peakfn.factory(
     dt.time(hour=8), dt.time(hour=21, minute=30), [1, 2, 3, 4, 5, 6, 7]
 )
 TESTCASES_13HALF = [  # end, freq, count, stretch
-    ("2020-01-08", "15T", 7 * 13.5 * 4, (32, 85)),
-    ("2020-04-01", "15T", 91 * 13.5 * 4, (-64, -11)),
-    ("2021", "15T", 366 * 13.5 * 4, (-64, -11)),
-    ("2021", "H", ValueError, None),
+    ("2020-01-08", "15min", 7 * 13.5 * 4, (32, 85)),
+    ("2020-04-01", "15min", 91 * 13.5 * 4, (-64, -11)),
+    ("2021", "15min", 366 * 13.5 * 4, (-64, -11)),
+    ("2021", "h", ValueError, None),
     ("2021", "D", ValueError, None),
     ("2021", "MS", ValueError, None),
     ("2021", "QS", ValueError, None),
-    ("2021", "AS", ValueError, None),
+    ("2021", "YS", ValueError, None),
 ]
 
 f_workingdays_full = tools.peakfn.factory(None, None, [1, 2, 3, 4, 5])
 TESTCASES_WORKINGDAYS = [  # end, freq, count, stretch
-    ("2020-01-08", "15T", 5 * 24 * 4, (0, 72 * 4 - 1)),
-    ("2020-01-08", "H", 5 * 24, (0, 72 - 1)),
+    ("2020-01-08", "15min", 5 * 24 * 4, (0, 72 * 4 - 1)),
+    ("2020-01-08", "h", 5 * 24, (0, 72 - 1)),
     ("2020-01-08", "D", 5, (0, 3 - 1)),
-    ("2020-04-01", "15T", 65 * 24 * 4, (0, 72 * 4 - 1)),  # avoid DST transition
-    ("2020-04-01", "H", 65 * 24, (0, 72 - 1)),  # avoid DST transition
+    ("2020-04-01", "15min", 65 * 24 * 4, (0, 72 * 4 - 1)),  # avoid DST transition
+    ("2020-04-01", "h", 65 * 24, (0, 72 - 1)),  # avoid DST transition
     ("2020-04-01", "D", 65, (-9, -4 - 1)),
-    ("2021", "15T", 262 * 24 * 4, (-11 * 24 * 4, -6 * 24 * 4 - 1)),
-    ("2021", "H", 262 * 24, (-11 * 24, -6 * 24 - 1)),
+    ("2021", "15min", 262 * 24 * 4, (-11 * 24 * 4, -6 * 24 * 4 - 1)),
+    ("2021", "h", 262 * 24, (-11 * 24, -6 * 24 - 1)),
     ("2021", "D", 262, (-11, -6 - 1)),
     ("2021", "MS", ValueError, None),
     ("2021", "QS", ValueError, None),
-    ("2021", "AS", ValueError, None),
+    ("2021", "YS", ValueError, None),
 ]
 
 f_everyday_until6 = tools.peakfn.factory(None, dt.time(hour=6), [1, 2, 3, 4, 5, 6, 7])
 TESTCASES_EVERYDAY6 = [  # month, freq, tz, count, stretch
-    (1, "15T", None, 31 * 6 * 4, (24 * 4, 30 * 4 - 1)),
-    (1, "15T", "Europe/Berlin", 31 * 6 * 4, (24 * 4, 30 * 4 - 1)),
-    (1, "15T", "Asia/Kolkata", 31 * 6 * 4, (24 * 4, 30 * 4 - 1)),
-    (1, "H", None, 31 * 6, (24, 30 - 1)),
-    (1, "H", "Europe/Berlin", 31 * 6, (24, 30 - 1)),
-    (1, "H", "Asia/Kolkata", 31 * 6, (24, 30 - 1)),
+    (1, "15min", None, 31 * 6 * 4, (24 * 4, 30 * 4 - 1)),
+    (1, "15min", "Europe/Berlin", 31 * 6 * 4, (24 * 4, 30 * 4 - 1)),
+    (1, "15min", "Asia/Kolkata", 31 * 6 * 4, (24 * 4, 30 * 4 - 1)),
+    (1, "h", None, 31 * 6, (24, 30 - 1)),
+    (1, "h", "Europe/Berlin", 31 * 6, (24, 30 - 1)),
+    (1, "h", "Asia/Kolkata", 31 * 6, (24, 30 - 1)),
     (1, "D", None, ValueError, None),
     (1, "D", "Europe/Berlin", ValueError, None),
     (1, "D", "Asia/Kolkata", ValueError, None),
@@ -76,21 +76,21 @@ TESTCASES_EVERYDAY6 = [  # month, freq, tz, count, stretch
     (1, "QS", None, ValueError, None),
     (1, "QS", "Europe/Berlin", ValueError, None),
     (1, "QS", "Asia/Kolkata", ValueError, None),
-    (1, "AS", None, ValueError, None),
-    (1, "AS", "Europe/Berlin", ValueError, None),
-    (1, "AS", "Asia/Kolkata", ValueError, None),
-    (3, "15T", None, 31 * 6 * 4, (-72 * 4, -66 * 4 - 1)),
-    (3, "15T", "Europe/Berlin", (31 * 6 - 1) * 4, (-71 * 4, -66 * 4 - 1)),
-    (3, "15T", "Asia/Kolkata", 31 * 6 * 4, (-72 * 4, -66 * 4 - 1)),
-    (3, "H", None, 31 * 6, (-72, -66 - 1)),
-    (3, "H", "Europe/Berlin", 31 * 6 - 1, (-71, -66 - 1)),  # dst start; one hour less
-    (3, "H", "Asia/Kolkata", 31 * 6, (-72, -66 - 1)),
-    (10, "15T", None, 31 * 6 * 4, (-168 * 4, -162 * 4 - 1)),
-    (10, "15T", "Europe/Berlin", (31 * 6 + 1) * 4, (-169 * 4, -162 * 4 - 1)),
-    (10, "15T", "Asia/Kolkata", 31 * 6 * 4, (-168 * 4, -162 * 4 - 1)),
-    (10, "H", None, 31 * 6, (-168, -162 - 1)),
-    (10, "H", "Europe/Berlin", 31 * 6 + 1, (-169, -162 - 1)),  # dst end; one hour more
-    (10, "H", "Asia/Kolkata", 31 * 6, (-168, -162 - 1)),
+    (1, "YS", None, ValueError, None),
+    (1, "YS", "Europe/Berlin", ValueError, None),
+    (1, "YS", "Asia/Kolkata", ValueError, None),
+    (3, "15min", None, 31 * 6 * 4, (-72 * 4, -66 * 4 - 1)),
+    (3, "15min", "Europe/Berlin", (31 * 6 - 1) * 4, (-71 * 4, -66 * 4 - 1)),
+    (3, "15min", "Asia/Kolkata", 31 * 6 * 4, (-72 * 4, -66 * 4 - 1)),
+    (3, "h", None, 31 * 6, (-72, -66 - 1)),
+    (3, "h", "Europe/Berlin", 31 * 6 - 1, (-71, -66 - 1)),  # dst start; one hour less
+    (3, "h", "Asia/Kolkata", 31 * 6, (-72, -66 - 1)),
+    (10, "15min", None, 31 * 6 * 4, (-168 * 4, -162 * 4 - 1)),
+    (10, "15min", "Europe/Berlin", (31 * 6 + 1) * 4, (-169 * 4, -162 * 4 - 1)),
+    (10, "15min", "Asia/Kolkata", 31 * 6 * 4, (-168 * 4, -162 * 4 - 1)),
+    (10, "h", None, 31 * 6, (-168, -162 - 1)),
+    (10, "h", "Europe/Berlin", 31 * 6 + 1, (-169, -162 - 1)),  # dst end; one hour more
+    (10, "h", "Asia/Kolkata", 31 * 6, (-168, -162 - 1)),
 ]
 
 
@@ -184,7 +184,7 @@ def do_test(
 
 @pytest.mark.parametrize(("tz", "mar_b_corr"), [(None, 0), ("Europe/Berlin", -1)])
 @pytest.mark.parametrize("month", [1, 2, 3])
-@pytest.mark.parametrize("freq", ["D", "MS", "QS", "AS"])
+@pytest.mark.parametrize("freq", ["D", "MS", "QS", "YS"])
 @pytest.mark.parametrize(
     ("year", "bp", "jan_1_weekday", "jan_p", "feb_p", "mar_p"),
     [
@@ -208,7 +208,7 @@ def test_peakduration_longfreqs(
     i = pd.date_range(start, freq=freq, periods=1)
 
     # Expected values.
-    if freq == "AS":
+    if freq == "YS":
         b = 24 * bp[0]
         p = 12 * bp[1]
     elif freq == "QS":
@@ -285,24 +285,24 @@ def test_peakduration_longfreqs(
         ),
         # Hours
         (
-            pd.date_range("2020", freq="H", periods=48, tz=None),
+            pd.date_range("2020", freq="h", periods=48, tz=None),
             [1] * 48,
             [*[0] * 8, *[1] * 12, *[0] * 12, *[1] * 12, *[0] * 4],
         ),
         # . End-of-March: DST (if observed in tz)
         (
-            pd.date_range("2020-03-29", freq="H", periods=48, tz=None),
+            pd.date_range("2020-03-29", freq="h", periods=48, tz=None),
             [1] * 48,
             [*[0] * 32, *[1] * 12, *[0] * 4],
         ),
         (
-            pd.date_range("2020-03-29", freq="H", periods=47, tz="Europe/Berlin"),
+            pd.date_range("2020-03-29", freq="h", periods=47, tz="Europe/Berlin"),
             [1] * 47,
             [*[0] * 31, *[1] * 12, *[0] * 4],
         ),
         # Quarterhours
         (
-            pd.date_range("2020", freq="15T", periods=192, tz=None),
+            pd.date_range("2020", freq="15min", periods=192, tz=None),
             [0.25] * 192,
             [*[0] * 32, *[0.25] * 48, *[0] * 48, *[0.25] * 48, *[0] * 16],
         ),

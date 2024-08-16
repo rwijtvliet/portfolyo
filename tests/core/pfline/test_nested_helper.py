@@ -42,8 +42,8 @@ def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
 
 
 @pytest.mark.only_on_pr
-@pytest.mark.parametrize("freq1", ["15T", "D", "MS", "QS"])  # don't do all - many!
-@pytest.mark.parametrize("freq2", ["15T", "H", "D", "MS", "QS"])
+@pytest.mark.parametrize("freq1", ["15min", "D", "MS", "QS"])  # don't do all - many!
+@pytest.mark.parametrize("freq2", ["15min", "h", "D", "MS", "QS"])
 def test_verifydict_frequencyconsistency(freq1, freq2):
     """Test if error is raised when creating a dictionary from pflines with unequal frequencies."""
 
@@ -72,7 +72,7 @@ def test_verifydict_frequencyconsistency(freq1, freq2):
 
 
 @pytest.mark.only_on_pr
-@pytest.mark.parametrize("freq", ["15T", "H", "D", "MS"])
+@pytest.mark.parametrize("freq", ["15min", "h", "D", "MS"])
 @pytest.mark.parametrize("overlap", [True, False])
 def test_verifydict_unequaltimeperiods(freq, overlap):
     """Test if only intersection is kept for overlapping pflines, and error is raised

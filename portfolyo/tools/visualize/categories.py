@@ -58,7 +58,7 @@ class Categories:
 
 
 def create_categories(s: pd.Series) -> Iterable[Category]:
-    if s.index.freq == "AS":
+    if s.index.freq == "YS":
         prios = priolist(len(s))
 
         def category(i, ts, y):

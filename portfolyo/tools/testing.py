@@ -64,9 +64,9 @@ def assert_indices_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
 
 def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):
     """Assert if timeseries with power- and energy-values are consistent."""
-    if freq == "15T":
+    if freq == "15min":
         assert_series_equal(q, w * tools_unit.Q_(0.25, "h"), check_names=False)
-    elif freq == "H":
+    elif freq == "h":
         assert_series_equal(q, w * tools_unit.Q_(1.0, "h"), check_names=False)
     elif freq == "D":
         assert (q >= w * tools_unit.Q_(22.99, "h")).all()
@@ -77,7 +77,7 @@ def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):
     elif freq == "QS":
         assert (q >= w * 89 * tools_unit.Q_(24.0, "h")).all()
         assert (q <= w * 93 * tools_unit.Q_(24.0, "h")).all()
-    elif freq == "AS":
+    elif freq == "YS":
         assert (q >= w * tools_unit.Q_(8759.9, "h")).all()
         assert (q <= w * tools_unit.Q_(8784.1, "h")).all()
     else:

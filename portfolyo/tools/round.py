@@ -22,7 +22,7 @@ def stamp_general(
     fn : {'floor', 'ceil'}
     ts : pd.Timestamp
         Timestamp for which to do the rounding.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency for which to round the timestamp.
     future : int, optional (default: 0)
         0 to round to current period. 1 (-1) to round to period after (before) that, etc.
@@ -48,7 +48,7 @@ def stamp_current(
     fn : {'floor', 'ceil'}
     ts : pd.Timestamp
         Timestamp for which to do the rounding.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency for which to round the timestamp.
     start_of_day : dt.time, optional (default: midnight)
         Time of day at which daily-or-longer delivery periods start. E.g. if
@@ -81,7 +81,7 @@ def stamp_current(
     else:
         part_of_prevday = ts.time() < start_of_day
         rounded = ts.replace(hour=start_of_day.hour, minute=start_of_day.minute).floor(
-            "15T"
+            "15min"
         )
         if part_of_prevday and fn == "floor":
             rounded -= tools_freq.to_offset("D")
@@ -155,9 +155,9 @@ def stamp_current(
 
 
 def _offset(freq: str, future: int):
-    if freq == "15T":
+    if freq == "15min":
         return pd.Timedelta(minutes=future * 15)
-    elif freq == "H":
+    elif freq == "h":
         return pd.Timedelta(hours=future)
     elif freq == "D":
         return pd.Timedelta(days=future)
@@ -165,9 +165,9 @@ def _offset(freq: str, future: int):
         return pd.offsets.MonthBegin(future)
     elif freq == "QS":
         return pd.offsets.QuarterBegin(future, startingMonth=1)
-    elif freq == "AS":
+    elif freq == "YS":
         return pd.offsets.YearBegin(future)
     else:
         raise ValueError(
-            f"Parameter ``freq`` must be one of {', '.join(tools_freq.FREQUENCIES)}; got {freq}."
+            f"Parameter ``freq`` must be one of {tools_freq.ALLOWED_FREQUENCIES_DOCS}; got {freq}."
         )

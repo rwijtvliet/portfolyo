@@ -12,6 +12,19 @@ import portfolyo as pf
 from portfolyo import Kind, PfLine, create, dev
 from portfolyo.core.pfline import classes
 
+TEST_FREQUENCIES = [
+    "15min",
+    "h",
+    "D",
+    "MS",
+    "QS",
+    "QS-FEB",
+    "QS-APR",
+    "YS",
+    "YS-FEB",
+    "YS-APR",
+]
+
 
 @dataclass
 class InitTestcase:
@@ -173,7 +186,7 @@ def anyerror(*args):
 
 
 @pytest.mark.only_on_pr
-@pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES[::2])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
 @pytest.mark.parametrize("inputtype", InputTypeA)
@@ -213,7 +226,7 @@ def test_init_A(
 
 
 @pytest.mark.only_on_pr
-@pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES[::2])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("kind", Kind)
 @pytest.mark.parametrize("inputtype", InputTypeB)
@@ -256,7 +269,7 @@ def test_init_with_integers(col: str):
 
 
 @pytest.mark.parametrize("inclusive", ["left", "both"])
-@pytest.mark.parametrize("freq", ["15T", "H"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
 def test_contain_whole_day(inclusive: str, freq: str):
     """An index must contain full days.
     For hourly-or-shorter values, this means that the start time of the first period () must equal the end time of the
@@ -274,7 +287,7 @@ def test_contain_whole_day(inclusive: str, freq: str):
             pfl = dev.get_flatpfline(index)
 
 
-@pytest.mark.parametrize("freq", ["D", "MS", "QS", "AS"])
+@pytest.mark.parametrize("freq", ["D", "MS", "QS", "YS"])
 def test_equal_sod(freq: str):
     """In an index with daily-or-longer values, all timestamps (all periods) should start at the same time ."""
     i = pd.date_range("2024-03-28", freq=freq, periods=10, tz="Europe/Berlin")

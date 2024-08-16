@@ -46,7 +46,7 @@ def delivery_period(
         Left (inclusive) and right (exclusive) timestamp of delivery period.
     """
     ts_trade = ts_trade.replace(hour=23, minute=59)  # ensure after start_of_day
-    if period_type in ["m", "q", "a"]:
+    if period_type in ["m", "q", "y"]:
         freq = period_type.upper() + "S"
         ts_left = tools_floor.stamp(ts_trade, freq, front_count, start_of_day)
         ts_right = tools_right.stamp(ts_left, freq)
@@ -62,6 +62,6 @@ def delivery_period(
             ts_right = tools_right.stamp(ts_right, "QS")
     else:
         raise ValueError(
-            f"Parameter ``period_type`` must be one of 'd', 'm', 'q', 's', 'a'; got '{period_type}'."
+            f"Parameter ``period_type`` must be one of 'd', 'm', 'q', 's', 'y'; got '{period_type}'."
         )
     return ts_left, ts_right

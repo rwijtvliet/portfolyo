@@ -71,9 +71,8 @@ def do_test_dataframe(values: pd.DataFrame, weights: Any, expected: Any, **kwarg
         with pytest.raises(expected):
             tools.wavg.dataframe(values, weights, **kwargs)
         return
-    pf.testing.assert_series_equal(
-        tools.wavg.dataframe(values, weights, **kwargs), expected
-    )
+    result = tools.wavg.dataframe(values, weights, **kwargs)
+    pf.testing.assert_series_equal(result, expected)
 
 
 @pytest.mark.parametrize("weightsas", ["none", "list", "dict", "series"])

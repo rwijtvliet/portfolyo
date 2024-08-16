@@ -312,8 +312,10 @@ def _from_data(
     if data is None:
         return InOp()
 
-    elif isinstance(data, int) or isinstance(data, float):
-        # TODO: if int, change to float?
+    elif isinstance(data, int):
+        return InOp(agn=float(data))
+
+    elif isinstance(data, float):
         return InOp(agn=data)
 
     elif isinstance(data, tools.unit.Q_):
@@ -321,14 +323,11 @@ def _from_data(
 
     elif isinstance(data, pd.Series) and isinstance(data.index, pd.DatetimeIndex):
         # timeseries
-        if hasattr(data, "pint"):  # pint timeseries
-            return InOp(**{_unit2attr(data.pint.units): data})
-        elif data.dtype == object:  # timeeries of objects -> maybe Quantities?
-            if len(data) and isinstance(val := data.values[0], tools.unit.Q_):
-                # use unit of first value to find dimension
-                return InOp(**{_unit2attr(val.u): data})
-        else:  # assume float or int
+        data = tools.unit.avoid_frame_of_objects(data)
+        if data.dtype in [float, int]:
             return InOp(agn=data)
+        else:
+            return InOp(**{_unit2attr(data.pint.units): data})
 
     elif (
         isinstance(data, pd.DataFrame)

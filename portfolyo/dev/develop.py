@@ -15,7 +15,7 @@ from . import mockup
 
 OK_COL_COMBOS = ["w", "q", "p", "pr", "qr", "qp", "wp", "wr"]
 
-INDEX_LEN = {"AS": 4, "QS": 5, "MS": 14, "D": 400, "H": 10_000, "15T": 50_000}
+INDEX_LEN = {"YS": 4, "QS": 5, "MS": 14, "D": 400, "h": 10_000, "15min": 50_000}
 
 
 def get_index(
@@ -48,7 +48,7 @@ def get_index(
     start = tools.stamp.create(startdate, tz, start_of_day)
     i = pd.date_range(start, periods=periods, freq=freq)  # tz included in start
     # Some checks.
-    if tools.freq.up_or_down(freq, "H") <= 0:
+    if tools.freq.up_or_down(freq, "h") <= 0:
         i = _shorten_index_if_necessary(i, start_of_day)
     return i
 

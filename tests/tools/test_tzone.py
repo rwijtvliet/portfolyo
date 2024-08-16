@@ -27,7 +27,7 @@ class TzType(Enum):
 def get_df_fromexcel(aggfreq, tzt_in: TzType, tzt_out: TzType) -> pd.DataFrame:
     path = Path(__file__).parent / "test_tzone_data.xlsx"
 
-    if tzt_in is TzType.A_NONFLOAT and aggfreq != "15T":
+    if tzt_in is TzType.A_NONFLOAT and aggfreq != "15min":
         return None, None  # does not exist as starting point for our tests
 
     df = pd.read_excel(path, aggfreq, header=[5, 6])
@@ -64,7 +64,7 @@ def get_df_fromexcel(aggfreq, tzt_in: TzType, tzt_out: TzType) -> pd.DataFrame:
 
 @pytest.mark.only_on_pr
 @pytest.mark.parametrize("seriesordf", ["series", "df"])
-@pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
+@pytest.mark.parametrize("aggfreq", ["15min", "h", "D", "MS"])
 @pytest.mark.parametrize(
     ("tzt_in", "tzt_out"),
     [
@@ -85,7 +85,7 @@ def test_forceaware_fromexcel(aggfreq, tzt_in, tzt_out, seriesordf):
 
 @pytest.mark.only_on_pr
 @pytest.mark.parametrize("seriesordf", ["series", "df"])
-@pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
+@pytest.mark.parametrize("aggfreq", ["15min", "h", "D", "MS"])
 @pytest.mark.parametrize(
     ("tzt_in", "tzt_out"),
     [
@@ -105,7 +105,7 @@ def test_forceagnostic_fromexcel(aggfreq, tzt_in, tzt_out, seriesordf):
 
 @pytest.mark.only_on_pr
 @pytest.mark.parametrize("seriesordf", ["series", "df"])
-@pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
+@pytest.mark.parametrize("aggfreq", ["15min", "h", "D", "MS"])
 @pytest.mark.parametrize(
     ("tzt_in", "tzt_out"),
     [
@@ -122,13 +122,13 @@ def test_conversionAtoA_fromexcel(aggfreq, tzt_in, tzt_out, seriesordf):
     def conversion_fn(fr):
         floating = tzt_in.floating or tzt_out.floating
         fr_out = tools.tzone._A_to_A(fr, tz=tzt_out.explicit, floating=floating)
-        return tools.freq.set_to_frame(fr_out, aggfreq)
+        return fr_out
 
     do_test_conversion(aggfreq, tzt_in, tzt_out, seriesordf, conversion_fn)
 
 
 @pytest.mark.parametrize("seriesordf", ["series", "df"])
-@pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
+@pytest.mark.parametrize("aggfreq", ["15min", "h", "D", "MS"])
 @pytest.mark.parametrize(
     ("tzt_in", "tzt_out"), [(TzType.A, TzType.B), (TzType.A_FLOAT, TzType.B)]
 )
@@ -143,7 +143,7 @@ def test_conversionAtoB_fromexcel(aggfreq, tzt_in, tzt_out, seriesordf):
 
 
 @pytest.mark.parametrize("seriesordf", ["series", "df"])
-@pytest.mark.parametrize("aggfreq", ["15T", "H", "D", "MS"])
+@pytest.mark.parametrize("aggfreq", ["15min", "h", "D", "MS"])
 @pytest.mark.parametrize(("tzt_in", "tzt_out"), [(TzType.B, TzType.A)])
 def test_conversionBtoA_fromexcel(aggfreq, tzt_in, tzt_out, seriesordf):
     """Test if frames can be correctly converted from type B to type A."""

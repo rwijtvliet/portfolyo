@@ -74,7 +74,7 @@ def is_X_start(i: pd.Timestamp | pd.DatetimeIndex, freq: str) -> bool | np.ndarr
         return is_month_start(i)
     elif freq == "QS":
         return is_quarter_start(i)
-    elif freq == "AS":
+    elif freq == "YS":
         return is_year_start(i)
     else:
         raise ValueError(f"Unexpected frequency ``freq``; got {freq}.")
@@ -88,7 +88,7 @@ def stamp(ts: pd.Timestamp, freq: str, start_of_day: dt.time = None) -> bool:
     ----------
     ts : pd.Timestamp
         Timestamp for which to do the assertion.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency for which to check if the timestamp is a valid start (or end) timestamp.
     start_of_day : dt.time, optional (default: midnight)
         Time of day at which daily-or-longer delivery periods start. E.g. if
@@ -99,9 +99,9 @@ def stamp(ts: pd.Timestamp, freq: str, start_of_day: dt.time = None) -> bool:
     bool
     """
     start_of_day = start_of_day or dt.time(0, 0)
-    if freq == "15T":
+    if freq == "15min":
         return ts.minute % 15 == 0
-    elif freq == "H":
+    elif freq == "h":
         return ts.minute == 0
     elif freq == "D":
         return ts.time() == start_of_day
@@ -109,7 +109,7 @@ def stamp(ts: pd.Timestamp, freq: str, start_of_day: dt.time = None) -> bool:
         return (ts.time() == start_of_day) & is_month_start(ts)
     elif freq == "QS":
         return (ts.time() == start_of_day) & is_quarter_start(ts)
-    elif freq == "AS":
+    elif freq == "YS":
         return (ts.time() == start_of_day) & is_year_start(ts)
     else:
         raise ValueError(f"Unexpected frequency ``freq``; got {freq}.")
@@ -122,7 +122,7 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.Series:
     ----------
     ts : pd.Timestamp
         Timestamp for which to do the assertion.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency for which to check if the timestamp is a valid start (or end) timestamp.
 
     Returns
@@ -148,9 +148,9 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.Series:
         values = is_X_start(i, freq)
 
     # Comparing shorter-than-daily index to other shorter-than-daily frequency X,
-    # (i.e., '15T' with 'H')
-    elif tools_freq.up_or_down(freq, "H") <= 0:
-        if i.freq == "15T" and freq == "H":
+    # (i.e., '15min' with 'h')
+    elif tools_freq.up_or_down(freq, "h") <= 0:
+        if i.freq == "15min" and freq == "h":
             values = i.minute == 0
         else:
             raise ValueError(

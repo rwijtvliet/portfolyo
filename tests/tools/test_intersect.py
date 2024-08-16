@@ -5,27 +5,40 @@ import pytest
 
 from portfolyo import testing, tools
 
+TEST_FREQUENCIES = [
+    "YS",
+    "YS-FEB",
+    "YS-APR",
+    "QS",
+    "QS-FEB",
+    "QS-APR",
+    "MS",
+    "D",
+    "h",
+    "15min",
+]
+
 COMMON_END = "2022-02-02"
 
 TESTCASES = [  # startdates, freq, expected_startdate
     # One starts at first day of year.
-    (("2020-01-01", "2020-01-20"), "15T", "2020-01-20"),
-    (("2020-01-01", "2020-01-20"), "15T", "2020-01-20"),
-    (("2020-01-01", "2020-01-20"), "H", "2020-01-20"),
-    (("2020-01-01", "2020-01-20"), "H", "2020-01-20"),
+    (("2020-01-01", "2020-01-20"), "15min", "2020-01-20"),
+    (("2020-01-01", "2020-01-20"), "15min", "2020-01-20"),
+    (("2020-01-01", "2020-01-20"), "h", "2020-01-20"),
+    (("2020-01-01", "2020-01-20"), "h", "2020-01-20"),
     (("2020-01-01", "2020-01-20"), "D", "2020-01-20"),
     (("2020-01-01", "2020-01-20"), "D", "2020-01-20"),
     (("2020-01-01", "2020-03-01"), "MS", "2020-03-01"),
     (("2020-01-01", "2020-03-01"), "MS", "2020-03-01"),
     (("2020-01-01", "2020-04-01"), "QS", "2020-04-01"),
     (("2020-01-01", "2020-04-01"), "QS", "2020-04-01"),
-    (("2020-01-01", "2021-01-01"), "AS", "2021-01-01"),
-    (("2020-01-01", "2021-01-01"), "AS", "2021-01-01"),
+    (("2020-01-01", "2021-01-01"), "YS", "2021-01-01"),
+    (("2020-01-01", "2021-01-01"), "YS", "2021-01-01"),
     # Both start in middle of year.
-    (("2020-04-21", "2020-06-20"), "15T", "2020-06-20"),
-    (("2020-04-21", "2020-06-20"), "15T", "2020-06-20"),
-    (("2020-04-21", "2020-06-20"), "H", "2020-06-20"),
-    (("2020-04-21", "2020-06-20"), "H", "2020-06-20"),
+    (("2020-04-21", "2020-06-20"), "15min", "2020-06-20"),
+    (("2020-04-21", "2020-06-20"), "15min", "2020-06-20"),
+    (("2020-04-21", "2020-06-20"), "h", "2020-06-20"),
+    (("2020-04-21", "2020-06-20"), "h", "2020-06-20"),
     (("2020-04-21", "2020-06-20"), "D", "2020-06-20"),
     (("2020-04-21", "2020-06-20"), "D", "2020-06-20"),
 ]
@@ -94,7 +107,7 @@ def test_intersect_distinctfreq(
     expected_startdate: str,
 ):
     """Test if intersection of indices with distinct frequencies gives correct result."""
-    otherfreq = "H" if freq == "D" else "D"
+    otherfreq = "h" if freq == "D" else "D"
     idxs = [
         get_idx(startdates[0], starttime, tz, freq),
         get_idx(startdates[1], starttime, tz, otherfreq),
@@ -146,7 +159,7 @@ def test_intersect_distinctstartofday(
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("indexorframe", ["idx", "fr"])
-@pytest.mark.parametrize("freq", tools.freq.FREQUENCIES)
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES)
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 def test_intersect_nooverlap(indexorframe: str, tz: str, freq: str, starttime: str):
     """Test if intersection of non-overlapping indices gives correct result."""
