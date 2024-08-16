@@ -1,4 +1,4 @@
-from typing import Iterable, Mapping, overload
+from typing import Iterable, Mapping, Optional, overload
 
 import numpy as np
 import pandas as pd
@@ -43,12 +43,17 @@ from . import unit as tools_unit
 # --> Otherwise, if values are identical --> result is that value
 # --> Otherwise, result is NaN.
 
+# Mapping of values ot weights:
+# - If mapping is unclear: raise Error.
+# - If there more values than weights: no worries; value apparently not needed.
+# - If there more weights than values: raise Error.
+
 RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM = np.nan
 
 
 @overload
 def general(
-    fr: pd.Series, weights: Iterable | Mapping | pd.Series = None, axis: int = 0
+    fr: pd.Series, weights: Optional[Iterable | Mapping | pd.Series], axis: int = 0
 ) -> float:
     ...
 
@@ -56,7 +61,7 @@ def general(
 @overload
 def general(
     fr: pd.DataFrame,
-    weights: Iterable | Mapping | pd.Series | pd.DataFrame = None,
+    weights: Optional[Iterable | Mapping | pd.Series | pd.DataFrame],
     axis: int = 0,
 ) -> pd.Series:
     ...
@@ -64,7 +69,7 @@ def general(
 
 def general(
     fr: pd.Series | pd.DataFrame,
-    weights: Iterable | Mapping | pd.Series | pd.DataFrame = None,
+    weights: Optional[Iterable | Mapping | pd.Series | pd.DataFrame] = None,
     axis: int = 0,
 ) -> float | tools_unit.Q_ | pd.Series:
     """
@@ -92,14 +97,12 @@ def general(
         return dataframe(fr, weights, axis)
     elif isinstance(fr, pd.Series):
         return series(fr, weights)
-    else:
-        raise TypeError(
-            f"Parameter ``fr`` must be Series or DataFrame; got {type(fr)}."
-        )
+    raise TypeError(f"Parameter ``fr`` must be Series or DataFrame; got {type(fr)}.")
 
 
 def series(
-    s: pd.Series, weights: Iterable | Mapping | pd.Series = None
+    s: pd.Series,
+    weights: Optional[Iterable | Mapping | pd.Series] = None,
 ) -> float | tools_unit.Q_:
     """
     Weighted average of series.
@@ -142,7 +145,7 @@ def series(
     replaceable = s.isna() & (weights == 0.0)
     s[replaceable] = 0.0
 
-    # If we arrive here, ``s`` only has NaN on locations where weight != 0.
+    # If we arrive here, if ``s`` contains NaN, it is on locations where weight != 0.
 
     # Check if ALL weights are 0.
     # In that case, the result is NaN.
@@ -174,7 +177,7 @@ def series(
 
 def dataframe(
     df: pd.DataFrame,
-    weights: Iterable | Mapping | pd.Series | pd.DataFrame = None,
+    weights: Optional[Iterable | Mapping | pd.Series | pd.DataFrame] = None,
     axis: int = 0,
 ) -> pd.Series:
     """
@@ -444,14 +447,14 @@ def weights_as_series(weights: Iterable | Mapping, refindex: Iterable) -> pd.Ser
     elif isinstance(weights, Mapping):
         weights = pd.Series(weights)
     elif isinstance(weights, Iterable):
-        weights = pd.Series(weights, refindex)
+        weights = pd.Series(weights, refindex)  # will only work if same length
     else:
         raise TypeError("``weights`` must be iterable or mapping.")
     # Step 2: avoid Series of Quantity-objects (convert to pint-series instead).
     return tools_unit.avoid_frame_of_objects(weights)
 
 
-def values_areuniform(series: pd.Series, mask: Iterable = None) -> bool:
+def values_areuniform(series: pd.Series, mask: Optional[Iterable] = None) -> bool:
     """Return True if all values in series are same. If mask is provided, only compare
     values where the mask is True. If there are no values to compare, return True."""
     values = series[mask].values if mask is not None else series.values
@@ -463,7 +466,9 @@ def values_areuniform(series: pd.Series, mask: Iterable = None) -> bool:
     return True
 
 
-def concatseries(series: Iterable[pd.Series], refindex: Iterable = None) -> pd.Series:
+def concatseries(
+    series: Iterable[pd.Series], refindex: Optional[Iterable]
+) -> pd.Series:
     """Concatenate some series, and try to make it a pint-series if possible."""
     dtypes = set()
     for s in series:
