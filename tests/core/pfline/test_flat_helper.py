@@ -1,6 +1,7 @@
 from typing import Any
 
 import pandas as pd
+from pint import DimensionalityError
 import pytest
 
 from portfolyo import dev, testing
@@ -51,18 +52,18 @@ TESTCASES_INPUTTYPES = [  # data,expected
     (DF[["w", "q"]], DF[["w", "q"]]),
     ({"w": DF["w"]}, DF[["w", "q"]]),
     ({"w": DF["w"], "q": DF["q"]}, DF[["w", "q"]]),
-    ({"w": DF["w"].pint.m}, DF[["w", "q"]]),
+    ({"w": DF["w"].pint.m}, DimensionalityError),
     (DF["w"], DF[["w", "q"]]),
     ([DF["w"], DF["q"]], DF[["w", "q"]]),
     (DF[["p"]], DF[["p"]]),
-    ({"p": DF["p"].pint.m}, DF[["p"]]),
+    ({"p": DF["p"].pint.m}, DimensionalityError),
     (DF[["r"]], DF[["r"]]),
-    ({"r": DF["r"].pint.m}, DF[["r"]]),
+    ({"r": DF["r"].pint.m}, DimensionalityError),
     (DF, DF),
     (DF[["w", "p"]], DF),
     (DF[["w", "p", "q"]], DF),
     (DF[["r", "w"]], DF),
-    ({"r": DF["r"].pint.m, "w": DF["w"]}, DF),
+    ({"r": DF["r"].pint.m, "w": DF["w"]}, DimensionalityError),
     ([DF["r"], DF["w"]], DF),
 ]
 
@@ -70,6 +71,10 @@ TESTCASES_INPUTTYPES = [  # data,expected
 @pytest.mark.parametrize("data,expected", TESTCASES_INPUTTYPES)
 def test_makedataframe_inputtypes(data: Any, expected: pd.DataFrame):
     """Test if dataframe can be created from various input types."""
+    if type(expected) is type and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            _ = flat_helper._dataframe(data)
+        return
     result = flat_helper._dataframe(data)
     testing.assert_frame_equal(result, expected)
 

@@ -224,7 +224,9 @@ def _check_unit(
     if isinstance(v, float | int):
         if dim is not tools.unit.NAMES_AND_DIMENSIONS["nodim"]:
             raise DimensionalityError(
-                "Float or int only allowed for dimensionless value. To specify a physical quantity, add a unit."
+                dim,
+                tools.unit.NAMES_AND_DIMENSIONS["nodim"],
+                extra_msg="Float or int only allowed for dimensionless value. To specify a physical quantity, add a unit.",
             )
         else:
             return float(v)
@@ -232,8 +234,14 @@ def _check_unit(
     elif isinstance(v, tools.unit.Q_):
         if not v.dimensionality == dim:
             raise DimensionalityError(
-                f"Incorrect dimension for this attribute; expected {dim}, got {v.dimensionality}"
+                dim,
+                v.pint.dimensionality,
+                extra_msg=f"Incorrect dimension for this attribute; expected {dim}, got {v.pint.dimensionality}",
             )
+            # if the dim is nodim, we retun float
+        elif v.dimensionality == tools.unit.NAMES_AND_DIMENSIONS["nodim"]:
+            return float(v)
+        # else
         else:
             return v
 

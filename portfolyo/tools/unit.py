@@ -201,7 +201,8 @@ def avoid_frame_of_objects(fr: Series_or_DataFrame) -> Series_or_DataFrame:
         return fr
     if hasattr(fr, "pint"):
         if isinstance(fr.dtype, pint_pandas.PintType):
-            return fr
+            # Ensure the magnitudes are floats too.
+            return fr.pint.magnitude.astype(float).astype(f"pint[{fr.pint.units}]")
         # We may have a series of pint quantities. Convert to pint-series, if possible.
         try:
             return fr.astype(f"pint[{fr.iloc[0].units}]")

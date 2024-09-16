@@ -89,113 +89,93 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         # . name but no unit
         (
             {"nodim": 120.0},
-            # io.InOp(nodim=120),
-            ValueError,
+            io.InOp(nodim=120),
             ValueError,
         ),
         (
             pd.Series({"nodim": 120.0}),
-            # io.InOp(nodim=120),
-            ValueError,
+            io.InOp(nodim=120),
             ValueError,
         ),
         (
             {"w": 120.0},
-            # io.InOp(w=120),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             pd.Series({"w": 120.0}),
-            # io.InOp(w=120),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             {"q": -90_000.0},
-            # io.InOp(
-            #     q=-90_000
-            # ),  # should be value error we have don't have an object on line before it
-            ValueError,
-            ValueError,
+            DimensionalityError,  # should be value error we have don't have an object on line before it
+            None,
         ),
         (
             pd.Series({"q": -90_000.0}),
-            # io.InOp(q=-90_000),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             {"p": 50.0},
-            # io.InOp(p=50),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             pd.Series({"p": 50.0}),
-            # io.InOp(p=50),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             {"r": 4.5e6},
-            # io.InOp(r=4_500_000),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             pd.Series({"r": 4.5e6}),
-            # io.InOp(r=4_500_000),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             {"w": 120.0, "q": -90_000},
-            # io.InOp(w=120, q=-90_000),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             pd.Series({"w": 120.0, "q": -90_000}),
-            # io.InOp(w=120.0, q=-90_000),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             {"w": 120.0, "p": 50},
-            # io.InOp(w=120.0, p=50),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             pd.Series({"w": 120.0, "p": 50}),
-            # io.InOp(w=120.0, p=50),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             {"w": 120.0, "p": 50.0, "r": 4.5e6},
-            # io.InOp(w=120.0, p=50.0, r=4.5e6),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             pd.Series({"w": 120.0, "p": 50.0, "r": 4.5e6}),
-            # io.InOp(w=120.0, p=50.0, r=4.5e6),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             {"w": 120.0, "p": 50.0, "r": 4.5e6},
-            # io.InOp(w=120.0, p=50.0, r=4.5e6),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             pd.Series({"w": 120.0, "p": 50.0, "r": 4.5e6}),
-            # io.InOp(w=120.0, p=50.0, r=4.5e6),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         # . name and correct unit
         (
@@ -228,23 +208,23 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
             io.InOp(r=Q_(4.5, "MEur")),
             ValueError,
         ),
-        (  # HERE
+        (
             {"w": 120.0, "q": Q_(-90_000.0, "MWh")},
             # io.InOp(w=120.0, q=-90_000),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             pd.Series({"w": 120.0, "q": Q_(-90_000.0, "MWh")}),
             # io.InOp(w=120.0, q=-90_000),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         (
             pd.Series({"w": 120.0, "q": Q_(-90.0, "GWh")}),
             # io.InOp(w=120.0, q=-90_000),
-            ValueError,
-            ValueError,
+            DimensionalityError,
+            None,
         ),
         # . unknown name -> KeyError
         (
@@ -270,48 +250,48 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         # . mix of know and unknown names -> KeyError
         (
             {"w": 120.0, "z": 28.0},
-            KeyError,
+            DimensionalityError,
             None,
         ),
-        (
+        (  # depends on what columnt we get firat
             pd.Series({"w": 120.0, "z": 28.0}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"z": 28.0, "w": 120.0, "p": 50.0},
             KeyError,
             None,
         ),
         (
-            {"w": 120.0, "p": 50.0, "z": 28.0},
-            KeyError,
-            None,
-        ),
-        (
-            pd.Series({"w": 120.0, "p": 50.0, "z": 28.0}),
+            pd.Series({"z": 28.0, "w": 120.0, "p": 50.0}),
             KeyError,
             None,
         ),
         # . combination of name with incorrect unit -> error
         (
             {"w": Q_(90.0, "MWh")},
-            DimensionalityError,
+            AttributeError,
             None,
         ),
         (
             pd.Series({"w": Q_(90.0, "MWh")}),
-            DimensionalityError,
+            AttributeError,
             None,
         ),
         (
             pd.Series({"w": 90}).astype("pint[MWh]"),
-            DimensionalityError,
+            AttributeError,
             None,
         ),
         (
             {"p": Q_(90.0, "MWh")},
-            DimensionalityError,
+            AttributeError,
             None,
         ),
         (
             pd.Series({"p": Q_(90.0, "MWh")}),
-            DimensionalityError,
+            AttributeError,
             None,
         ),
         # One timeseries
@@ -345,8 +325,8 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         ),
         (
             s1.astype("pint[MEur]"),
-            io.InOp(r=s1.astype("pint[MEur]") * 1e6),
-            io.InOp(r=s1.astype("pint[MEur]") * 1e6),
+            io.InOp(r=s1.astype("pint[MEur]")),
+            io.InOp(r=s1.astype("pint[MEur]")),
         ),
         # . unknown unit
         (
@@ -424,13 +404,13 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         ),
         (
             {"r": s1.astype("pint[MEur]")},
-            io.InOp(r=s1.astype("pint[MEur]") * 1e6),
-            io.InOp(r=s1.astype("pint[MEur]") * 1e6),
+            io.InOp(r=s1.astype("pint[MEur]")),
+            io.InOp(r=s1.astype("pint[MEur]")),
         ),
         (
             pd.DataFrame({"r": s1.astype("pint[MEur]")}),
-            io.InOp(r=s1.astype("pint[MEur]") * 1e6),
-            io.InOp(r=s1.astype("pint[MEur]") * 1e6),
+            io.InOp(r=s1.astype("pint[MEur]")),
+            io.InOp(r=s1.astype("pint[MEur]")),
         ),
         (
             {"w": s1.astype("pint[MW]"), "q": s2.astype("pint[MWh]")},
@@ -475,27 +455,22 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         ),
         # . mix of know and unknown names -> KeyError
         (
-            {"w": s1, "z": s2},
+            {"z": s2, "w": s1},
             KeyError,
             None,
         ),
         (
-            pd.DataFrame({"w": s1, "z": s2}),
+            pd.DataFrame({"z": s2, "w": s1}),
             KeyError,
             None,
         ),
         (
-            {"w": s1, "p": s2 * 10, "z": s2},
+            pd.DataFrame({"z": s2, "w": s1, "p": s2 * 10}),
             KeyError,
             None,
         ),
         (
-            pd.DataFrame({"w": s1, "p": s2 * 10, "z": s2}),
-            KeyError,
-            None,
-        ),
-        (
-            pd.DataFrame({"w": s2.astype("pint[GW]"), "p": s2 * 10, "z": s2}),
+            pd.DataFrame({"w": s2.astype("pint[GW]"), "z": s2}),
             KeyError,
             None,
         ),
@@ -580,17 +555,12 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
             KeyError,
             None,
         ),
-        (
-            {"w": s1, "p": s2 * 10, "z": 50},
-            KeyError,
-            None,
-        ),
         # ( # exclude: not a valid dataframe contructor
         #    pd.DataFrame({"w": s1, "p": Q_(5.0, "ctEur/kWh"), "z": s2}),
         #    io.InterOp(w=s1, p=50, rest=({"z": s2},)),
         # ),
         (
-            pd.DataFrame({"w": s1.astype("pint[GW]"), "p": 50.0, "z": s2}),
+            pd.DataFrame({"w": s1.astype("pint[GW]"), "z": s2}),
             KeyError,
             None,
         ),

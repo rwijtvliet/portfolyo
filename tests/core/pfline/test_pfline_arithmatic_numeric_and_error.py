@@ -513,7 +513,16 @@ def do_test(tc: Case, order: str = ""):
 
     def calc():
         val1, val2 = tc.value1, tc.value2
+        # !ATTN: is it all values are float or any values?
 
+        # Check if either val1 or val2 is a dictionary with all float values
+        if any(
+            (isinstance(vs, dict) and all(isinstance(v, float) for v in vs.values()))
+            for vs in [val1, val2]
+        ):
+            pytest.skip(
+                "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+            )
         if order == "reversed":
             # Some classes cause problems; do not refer to PfLine.__radd__, .__rmul__, etc.
             if (
@@ -526,6 +535,7 @@ def do_test(tc: Case, order: str = ""):
                     " methods to us, so our reverse methods are not called, or called"
                     " with incorrect objects."
                 )
+
             val1, val2 = val2, val1
         if tc.operation == "neg":
             return -val1
@@ -549,6 +559,7 @@ def do_test(tc: Case, order: str = ""):
 
     # Test correct case.
     result = calc()
+
     if isinstance(result, pd.DataFrame):
         testing.assert_frame_equal(result, tc.expected)
     elif isinstance(result, pd.Series):

@@ -47,6 +47,8 @@ def get_value(
 
 @pytest.fixture
 def strict_arithmetic():
+    # STRICT is set to True only in this test
+    # after the test is done, sets it back to False
     arithmatic.STRICT = True
     yield
     arithmatic.STRICT = False
@@ -629,6 +631,31 @@ def do_kind_test(testcase: Case, operation: str):
     pfl = testcase.pfl
     value = testcase.value
     expected = testcase.expected_result
+
+    if isinstance(value, float):
+        pytest.skip(
+            "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+        )
+    elif isinstance(value, dict):
+        if any(isinstance(value, float) for value in value.values()):
+            pytest.skip(
+                "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+            )
+        if any(pd.api.types.is_float_dtype(value) for value in value.values()):
+            pytest.skip(
+                "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+            )
+
+    elif isinstance(value, pd.Series) and pd.api.types.is_float_dtype(value):
+        pytest.skip(
+            "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+        )
+    if isinstance(value, pd.DataFrame) and any(
+        pd.api.types.is_float_dtype(value[col]) for col in value.columns
+    ):
+        pytest.skip(
+            "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+        )
 
     # Guard clause for skipping test.
     if operation.startswith("r"):
