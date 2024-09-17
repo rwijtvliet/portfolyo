@@ -1,6 +1,6 @@
 # prefixes
 centi- = 1e-2 = c-
-kilo- = 1e3 = k- 
+kilo- = 1e3 = k-= K-
 mega- = 1e6 = M-
 giga- = 1e9 = G-
 terra- = 1e12 = T-
