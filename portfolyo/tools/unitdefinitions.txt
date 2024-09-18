@@ -1,6 +1,6 @@
 # prefixes
 centi- = 1e-2 = c-
-kilo- = 1e3 = k- = K-
+kilo- = 1e3 = k-= K-
 mega- = 1e6 = M-
 giga- = 1e9 = G-
 terra- = 1e12 = T-
@@ -18,6 +18,11 @@ second = minute / 60 = s = sec
 # Energy
 watthour = [energy] = Wh
 joule = watt * second = J
+tonne_oil_equiv = 11.63 * MWh = toe
+tonne_coal_equiv = 6.978 * MWh = tce
+
+# Emissions
+tonne_co2 = [emisisons] = tCO2
 
 # Revenue (Currency)
 euro = [currency] = Eur = €
