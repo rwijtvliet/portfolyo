@@ -77,6 +77,7 @@ def prepare_sourced(sourced: Any, ref_idx: pd.DatetimeIndex) -> PfLine:
                 ref_idx,
             )
         )
+        # return pd.DataFrame({'q': pd.Series(0, ref_idx, dtype='pint[MWh]'), 'r': pd.Series(0, ref_idx, dtype='pint[Eur]')},ref_idx)
 
     sourced = create.pfline(sourced)
     if sourced.kind is not Kind.COMPLETE:

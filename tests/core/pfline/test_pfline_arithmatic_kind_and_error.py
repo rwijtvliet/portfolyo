@@ -5,44 +5,18 @@ from enum import Enum
 from functools import lru_cache
 from typing import Any, Dict, Iterable
 
-import numpy as np
 import pandas as pd
 import pytest
+from portfolyo import dev
 from utils import id_fn  # relative to /tests
 
 import portfolyo as pf
 from portfolyo import Q_, PfLine
 from portfolyo.core.pfline import Kind, Structure, arithmatic, create
-from portfolyo import tools
 
 # TODO: various timezones
 
 # TODO: use/change STRICT setting
-
-# NAMES_AND_UNITS = {
-#     "w": "pint[MW]",
-#     "q": "pint[MWh]",
-#     "p": "pint[Eur/MWh]",
-#     "r": "pint[Eur]",
-#     "duration": "pint[h]",
-#     "t": "pint[degC]",
-#     "nodim": "pint[dimensionless]",
-# }
-
-
-def get_value(
-    name: str = None, has_unit: bool = True, magn: float = None, *, _seed: int = None
-) -> float | Q_:
-    """Get a single value."""
-    if _seed:
-        np.random.seed(_seed)
-    if magn is None:
-        magn = np.random.random() * 200
-    if not has_unit:
-        return magn
-    else:
-        unit = tools.unit.NAMES_AND_UNITS[name]
-        return Q_(magn, unit)
 
 
 @pytest.fixture
@@ -163,7 +137,7 @@ class Values:  # Testvalues
 
     @staticmethod
     def from_noname(i: pd.DatetimeIndex) -> Iterable[Value]:
-        flvalue = get_value("nodim", False, _seed=2)
+        flvalue = dev.get_value("nodim", False, _seed=2)
         flseries = pf.dev.get_series(i, "", False, _seed=2)
         return [
             Value(Kind2.NONE, Structure.FLAT, None),
@@ -174,7 +148,7 @@ class Values:  # Testvalues
     @staticmethod
     def from_1name(kind: Kind2, name: str, i: pd.DatetimeIndex) -> Iterable[Value]:
         """name == {'w', 'q', 'p', 'r', 'nodim'}"""
-        quantity = get_value(name, True, _seed=2)
+        quantity = dev.get_value(name, True, _seed=2)
         altunit = Values.UNIT_ALT[name]
         quseries = pf.dev.get_series(i, name, _seed=2)
         values = [
@@ -203,7 +177,7 @@ class Values:  # Testvalues
     ) -> Iterable[Value]:
         """names == two of {'w', 'q', 'p', 'r'}"""
         n1, n2 = names
-        qu1, qu2 = (get_value(name, True, _seed=2) for name in names)
+        qu1, qu2 = (dev.get_value(name, True, _seed=2) for name in names)
         fl1, fl2 = (qu.magnitude for qu in (qu1, qu2))
         qus1, qus2 = (pf.dev.get_series(i, name, _seed=2) for name in names)
         fls1, fls2 = (quseries.pint.m for quseries in (qus1, qus2))

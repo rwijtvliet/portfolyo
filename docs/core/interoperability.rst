@@ -119,6 +119,7 @@ To pass several timeseries, we can use:
      import pandas as pd
      idx = pd.date_range("2023", freq="YS", periods=2)
      # --- hide: stop ---
+     dict_of_tseries = {"p": pd.Series([50, 56], idx, dtype="pint[Eur/MWh]"), "w": pd.Series([120, 125], idx, dtype="pint[MW]")}
      df = pd.DataFrame(dict_of_tseries) 
      df
      # --- hide: start ---

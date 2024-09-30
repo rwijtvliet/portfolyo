@@ -8,6 +8,8 @@ from typing import Callable, Dict, Tuple
 import numpy as np
 import pandas as pd
 
+from portfolyo.tools.unit import Q_
+
 from .. import tools
 from ..core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine, create
 from ..core.pfstate import PfState
@@ -51,6 +53,21 @@ def get_index(
     if tools.freq.up_or_down(freq, "h") <= 0:
         i = _shorten_index_if_necessary(i, start_of_day)
     return i
+
+
+def get_value(
+    name: str = None, has_unit: bool = True, magn: float = None, *, _seed: int = None
+) -> float | Q_:
+    """Get a single value."""
+    if _seed:
+        np.random.seed(_seed)
+    if magn is None:
+        magn = np.random.random() * 200
+    if not has_unit:
+        return magn
+    else:
+        unit = tools.unit.NAMES_AND_UNITS[name]
+        return Q_(magn, unit)
 
 
 def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:

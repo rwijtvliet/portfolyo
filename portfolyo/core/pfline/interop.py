@@ -50,7 +50,6 @@ class InOp:
     p: tools.unit.Q_ | pd.Series = None
     r: tools.unit.Q_ | pd.Series = None
     nodim: tools.unit.Q_ | pd.Series = None  # explicitly dimensionless
-    agn: float | pd.Series = None  # agnostic TODO factor out
 
     def __post_init__(self):
         # Add correct units and check type.

@@ -37,13 +37,13 @@ NAMES_AND_UNITS = {
 }
 
 NAMES_AND_DIMENSIONS = {
-    "w": ureg.MW.dimensionality,
-    "q": ureg.MWh.dimensionality,
-    "p": ureg.euro_per_MWh.dimensionality,
-    "r": ureg.euro.dimensionality,
-    "duration": ureg.hour.dimensionality,
-    "t": ureg.degC.dimensionality,
-    "nodim": ureg.dimensionless.dimensionality,
+    "w": ureg.get_dimensionality({"[energy]": 1, "[time]": -1}),
+    "q": ureg.get_dimensionality({"[energy]": 1}),
+    "p": ureg.get_dimensionality({"[currency]": 1, "[energy]": -1}),
+    "r": ureg.get_dimensionality({"[currency]": 1}),
+    "duration": ureg.get_dimensionality({"[time]": 1}),
+    "t": ureg.get_dimensionality({"[temperature]": 1}),
+    "nodim": ureg.get_dimensionality({}),
 }
 
 
