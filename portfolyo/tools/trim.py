@@ -48,13 +48,11 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
 
 
 @overload
-def frame(fr: pd.Series, freq: str) -> pd.Series:
-    ...
+def frame(fr: pd.Series, freq: str) -> pd.Series: ...
 
 
 @overload
-def frame(fr: pd.DataFrame, freq: str) -> pd.DataFrame:
-    ...
+def frame(fr: pd.DataFrame, freq: str) -> pd.DataFrame: ...
 
 
 def frame(fr: pd.Series | pd.DataFrame, freq: str) -> pd.Series | pd.DataFrame:

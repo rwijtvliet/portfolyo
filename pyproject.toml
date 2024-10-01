@@ -10,6 +10,8 @@ authors = [
 license = "BSD-3"
 readme = "README.rst"
 
+# dependencies
+
 [tool.poetry.dependencies]
 python = "^3.10"
 pandas = "^2.2"        
@@ -23,7 +25,7 @@ numpy = "^1.26.2"
 
 [tool.poetry.group.test.dependencies]
 codecov = "^2.1.13"
-pytest = "^7.4.1"
+pytest = "^8"
 coverage = "^7.3.0"
 pytest-cov = "^4.1.0"
 pyyaml = "^6.0.1"
@@ -44,7 +46,6 @@ pandoc = "^2.3"
 pip-tools = "^7.4.1"
 IPython = "^8.23.0"
 
-
 [tool.poetry.group.dev.dependencies]
 flake8 = "^6.1.0"
 black = "^23.7.0"
@@ -52,6 +53,11 @@ pre-commit = "^3.4.0"
 ipykernel = "^6.25.2"
 importlib-metadata = "^4.8"
 
+# building
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+# tool config
+

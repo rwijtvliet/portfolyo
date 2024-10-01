@@ -17,6 +17,17 @@ from . import mockup
 
 OK_COL_COMBOS = ["w", "q", "p", "pr", "qr", "qp", "wp", "wr"]
 
+NAMES_AND_UNITS = {
+    "w": tools.unit.ureg.MW,
+    "q": tools.unit.ureg.MWh,
+    "p": tools.unit.ureg.euro_per_MWh,
+    "r": tools.unit.ureg.euro,
+    "duration": tools.unit.ureg.hour,
+    "t": tools.unit.ureg.degC,
+    "nodim": tools.unit.ureg.dimensionless,
+}
+
+
 INDEX_LEN = {"YS": 4, "QS": 5, "MS": 14, "D": 400, "h": 10_000, "15min": 50_000}
 
 
@@ -66,8 +77,7 @@ def get_value(
     if not has_unit:
         return magn
     else:
-        unit = tools.unit.NAMES_AND_UNITS[name]
-        return Q_(magn, unit)
+        return Q_(magn, NAMES_AND_UNITS[name])
 
 
 def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:

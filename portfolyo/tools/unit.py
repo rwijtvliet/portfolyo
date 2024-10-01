@@ -26,15 +26,6 @@ PA_ = pint_pandas.PintArray
 Q_ = ureg.Quantity
 Unit = ureg.Unit
 
-NAMES_AND_UNITS = {
-    "w": ureg.MW,
-    "q": ureg.MWh,
-    "p": ureg.euro_per_MWh,
-    "r": ureg.euro,
-    "duration": ureg.hour,
-    "t": ureg.degC,
-    "nodim": ureg.dimensionless,
-}
 
 NAMES_AND_DIMENSIONS = {
     "w": ureg.get_dimensionality({"[energy]": 1, "[time]": -1}),
@@ -56,31 +47,20 @@ def to_name(unit: pint.Unit) -> str:
     raise pint.UndefinedUnitError(f"No standard name found for unit '{unit}'.")
 
 
-# def from_name(name: str) -> pint.Unit:
-#     """Find standard unit belonging to a column name."""
-#     if name in NAMES_AND_UNITS:
-#         return NAMES_AND_UNITS[name]
-#     raise ValueError(f"No standard unit found for name '{name}'.")
+@overload
+def defaultunit(val: int | float) -> float: ...
 
 
 @overload
-def defaultunit(val: int | float) -> float:
-    ...
+def defaultunit(val: pint.Quantity) -> pint.Quantity: ...
 
 
 @overload
-def defaultunit(val: pint.Quantity) -> pint.Quantity:
-    ...
+def defaultunit(val: pd.Series) -> pd.Series: ...
 
 
 @overload
-def defaultunit(val: pd.Series) -> pd.Series:
-    ...
-
-
-@overload
-def defaultunit(val: pd.DataFrame) -> pd.DataFrame:
-    ...
+def defaultunit(val: pd.DataFrame) -> pd.DataFrame: ...
 
 
 def defaultunit(
@@ -132,20 +112,17 @@ def defaultunit(
 
 
 @overload
-def split_magn_unit(val: int | float) -> Tuple[float, None]:
-    ...
+def split_magn_unit(val: int | float) -> Tuple[float, None]: ...
 
 
 @overload
-def split_magn_unit(val: pint.Quantity) -> Tuple[float, None | pint.Unit]:
-    ...
+def split_magn_unit(val: pint.Quantity) -> Tuple[float, None | pint.Unit]: ...
 
 
 @overload
 def split_magn_unit(
     val: pd.Series,
-) -> Tuple[pd.Series, None | pint.Unit | pd.Series]:
-    ...
+) -> Tuple[pd.Series, None | pint.Unit | pd.Series]: ...
 
 
 def split_magn_unit(
