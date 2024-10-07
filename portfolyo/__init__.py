@@ -21,6 +21,7 @@ from .tools.product import germanpower_peakfn, is_peak_hour
 from .tools.standardize import frame as standardize
 from .tools.tzone import force_agnostic, force_aware
 from .tools.unit import Q_, Unit, ureg
+from .tools.unit import avoid_frame_of_objects as pintframe
 from .tools.wavg import general as wavg
 
 VOLUME = Kind.VOLUME

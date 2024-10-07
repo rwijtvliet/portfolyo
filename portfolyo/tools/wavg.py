@@ -206,7 +206,7 @@ def dataframe(
     # Unweighted average if no weights are provided.
     if weights is None:
         # Fix possible problems, like distinct units of same dimension
-        # df = tools_unit.defaultunit(df)
+        df = tools_unit.avoid_frame_of_objects(df)
         return df.apply(np.mean, axis=axis)  # can't do .mean() if pint-series
 
     # Prep: orient so that we can always average over columns.
@@ -215,7 +215,7 @@ def dataframe(
         # HACK: transposing moves unit to element-level, undo here
 
     # Fix possible problems, also those introduced by .T
-    # df = tools_unit.defaultunit(df)
+    df = tools_unit.defaultunit(df)
 
     # Do averaging.
     if isinstance(weights, pd.DataFrame):

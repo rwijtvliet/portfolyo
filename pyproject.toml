@@ -19,8 +19,8 @@ matplotlib = "^3.7.2"
 pint = "^0.24"
 pint-pandas = "0.6"
 colorama = "^0.4.6"
-holidays = "^0.32"
 numpy = "^1.26.2"
+holidays = "^0.57"
 
 
 [tool.poetry.group.test.dependencies]
