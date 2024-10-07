@@ -26,51 +26,41 @@ PA_ = pint_pandas.PintArray
 Q_ = ureg.Quantity
 Unit = ureg.Unit
 
-NAMES_AND_UNITS = {
-    "w": ureg.MW,
-    "q": ureg.MWh,
-    "p": ureg.euro_per_MWh,
-    "r": ureg.euro,
-    "duration": ureg.hour,
-    "t": ureg.degC,
-    "nodim": ureg.dimensionless,
+
+NAMES_AND_DIMENSIONS = {
+    "w": ureg.get_dimensionality({"[energy]": 1, "[time]": -1}),
+    "q": ureg.get_dimensionality({"[energy]": 1}),
+    "p": ureg.get_dimensionality({"[currency]": 1, "[energy]": -1}),
+    "r": ureg.get_dimensionality({"[currency]": 1}),
+    "duration": ureg.get_dimensionality({"[time]": 1}),
+    "t": ureg.get_dimensionality({"[temperature]": 1}),
+    "nodim": ureg.get_dimensionality({}),
 }
 
 
 def to_name(unit: pint.Unit) -> str:
     """Find the standard column name belonging to unit `unit`. Checks on dimensionality,
     not exact unit."""
-    for name, u in NAMES_AND_UNITS.items():
-        if u.dimensionality == unit.dimensionality:
+    for name, dim in NAMES_AND_DIMENSIONS.items():
+        if dim == unit.dimensionality:
             return name
     raise pint.UndefinedUnitError(f"No standard name found for unit '{unit}'.")
 
 
-def from_name(name: str) -> pint.Unit:
-    """Find standard unit belonging to a column name."""
-    if name in NAMES_AND_UNITS:
-        return NAMES_AND_UNITS[name]
-    raise ValueError(f"No standard unit found for name '{name}'.")
+@overload
+def defaultunit(val: int | float) -> float: ...
 
 
 @overload
-def defaultunit(val: int | float) -> float:
-    ...
+def defaultunit(val: pint.Quantity) -> pint.Quantity: ...
 
 
 @overload
-def defaultunit(val: pint.Quantity) -> pint.Quantity:
-    ...
+def defaultunit(val: pd.Series) -> pd.Series: ...
 
 
 @overload
-def defaultunit(val: pd.Series) -> pd.Series:
-    ...
-
-
-@overload
-def defaultunit(val: pd.DataFrame) -> pd.DataFrame:
-    ...
+def defaultunit(val: pd.DataFrame) -> pd.DataFrame: ...
 
 
 def defaultunit(
@@ -122,20 +112,17 @@ def defaultunit(
 
 
 @overload
-def split_magn_unit(val: int | float) -> Tuple[float, None]:
-    ...
+def split_magn_unit(val: int | float) -> Tuple[float, None]: ...
 
 
 @overload
-def split_magn_unit(val: pint.Quantity) -> Tuple[float, None | pint.Unit]:
-    ...
+def split_magn_unit(val: pint.Quantity) -> Tuple[float, None | pint.Unit]: ...
 
 
 @overload
 def split_magn_unit(
     val: pd.Series,
-) -> Tuple[pd.Series, None | pint.Unit | pd.Series]:
-    ...
+) -> Tuple[pd.Series, None | pint.Unit | pd.Series]: ...
 
 
 def split_magn_unit(
@@ -191,7 +178,8 @@ def avoid_frame_of_objects(fr: Series_or_DataFrame) -> Series_or_DataFrame:
         return fr
     if hasattr(fr, "pint"):
         if isinstance(fr.dtype, pint_pandas.PintType):
-            return fr
+            # Ensure the magnitudes are floats too.
+            return fr.pint.magnitude.astype(float).astype(f"pint[{fr.pint.units}]")
         # We may have a series of pint quantities. Convert to pint-series, if possible.
         try:
             return fr.astype(f"pint[{fr.iloc[0].units}]")

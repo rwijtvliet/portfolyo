@@ -7,6 +7,7 @@ import pandas as pd
 
 from ... import tools
 from ..pfline import Kind, PfLine, create
+from portfolyo.tools.unit import Q_
 
 
 def make_pflines(
@@ -67,7 +68,16 @@ def prepare_unsourcedprice(unsourcedprice: Any, ref_idx: pd.DatetimeIndex) -> Pf
 
 def prepare_sourced(sourced: Any, ref_idx: pd.DatetimeIndex) -> PfLine:
     if sourced is None:
-        return create.flatpfline(pd.DataFrame({"q": 0, "r": 0}, ref_idx))
+        return create.flatpfline(
+            pd.DataFrame(
+                {
+                    "q": [Q_(0, "MWh") for _ in range(len(ref_idx))],
+                    "r": [Q_(0, "Eur") for _ in range(len(ref_idx))],
+                },
+                ref_idx,
+            )
+        )
+        # return pd.DataFrame({'q': pd.Series(0, ref_idx, dtype='pint[MWh]'), 'r': pd.Series(0, ref_idx, dtype='pint[Eur]')},ref_idx)
 
     sourced = create.pfline(sourced)
     if sourced.kind is not Kind.COMPLETE:

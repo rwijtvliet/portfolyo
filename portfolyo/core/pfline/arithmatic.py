@@ -104,7 +104,7 @@ class Prep:
         """Turn other into None, PfLine or dimensionless Series."""
 
         def wrapper(pfl: PfLine, other: Any):
-            other = interop.pfline_or_nodimseries(other, pfl.index, "nodim")
+            other = interop.pfline_or_nodimseries(other, pfl.index)
             return fn(pfl, other)
 
         return wrapper

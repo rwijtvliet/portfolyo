@@ -18,13 +18,11 @@ from . import startofday as tools_startofday
 # i.is_year_start
 # array([False, False, False, False, False, False, False, False, False, False, False, True])
 @overload
-def is_year_start(i: pd.Timestamp) -> bool:
-    ...
+def is_year_start(i: pd.Timestamp) -> bool: ...
 
 
 @overload
-def is_year_start(i: pd.DatetimeIndex) -> np.ndarray:
-    ...
+def is_year_start(i: pd.DatetimeIndex) -> np.ndarray: ...
 
 
 def is_year_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
@@ -32,13 +30,11 @@ def is_year_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
 
 
 @overload
-def is_quarter_start(i: pd.Timestamp) -> bool:
-    ...
+def is_quarter_start(i: pd.Timestamp) -> bool: ...
 
 
 @overload
-def is_quarter_start(i: pd.DatetimeIndex) -> np.ndarray:
-    ...
+def is_quarter_start(i: pd.DatetimeIndex) -> np.ndarray: ...
 
 
 def is_quarter_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
@@ -46,13 +42,11 @@ def is_quarter_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
 
 
 @overload
-def is_month_start(i: pd.Timestamp) -> bool:
-    ...
+def is_month_start(i: pd.Timestamp) -> bool: ...
 
 
 @overload
-def is_month_start(i: pd.DatetimeIndex) -> np.ndarray:
-    ...
+def is_month_start(i: pd.DatetimeIndex) -> np.ndarray: ...
 
 
 def is_month_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
@@ -60,13 +54,11 @@ def is_month_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
 
 
 @overload
-def is_X_start(i: pd.Timestamp) -> bool:
-    ...
+def is_X_start(i: pd.Timestamp) -> bool: ...
 
 
 @overload
-def is_X_start(i: pd.DatetimeIndex) -> np.ndarray:
-    ...
+def is_X_start(i: pd.DatetimeIndex) -> np.ndarray: ...
 
 
 def is_X_start(i: pd.Timestamp | pd.DatetimeIndex, freq: str) -> bool | np.ndarray:

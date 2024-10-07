@@ -63,33 +63,6 @@ def assert_freq_valid(freq: str) -> None:
             raise ValueError(f"The passed frequency {freq} is not allowed.")
 
 
-def assert_freq_sufficiently_long(freq, freq_ref, strict: bool = False) -> None:
-    """
-    Compares ``freq`` and ``freq_ref``, raising an AssertionError if ``freq`` is not long enough.
-
-    Parameters
-    ----------
-    freq_source, freq_ref : frequencies to compare.
-    strict : bool, optional (default: False)
-        - If ``strict`` is True, ``freq`` must be strictly longer than ``freq_long``.
-        - If False, it may be equally long.
-
-    """
-    # freq should start from the beginning of the year
-    index_freq = SHORTEST_TO_LONGEST.index(type(TO_OFFSET(freq)))
-    index_ref = SHORTEST_TO_LONGEST.index(type(TO_OFFSET(freq_ref)))
-    if strict is True:
-        if not (index_freq > index_ref):
-            raise AssertionError(
-                f"The passed frequency is not sufficiently long; passed {freq}, but should be {freq_ref} or longer."
-            )
-    else:
-        if not (index_freq >= index_ref):
-            raise AssertionError(
-                f"The passed frequency is not sufficiently long; passed {freq}, but should be {freq_ref} or longer."
-            )
-
-
 def up_or_down(freq_source: str, freq_target: str) -> int:
     """
     Compare source frequency with target frequency to see if it needs up- or downsampling.
@@ -172,6 +145,33 @@ def up_or_down(freq_source: str, freq_target: str) -> int:
         raise ValueError(
             f"The passed frequency {freq_source} can't be aggregated to {freq_target}."
         )
+
+
+def assert_freq_sufficiently_long(freq, freq_ref, strict: bool = False) -> None:
+    """
+    Compares ``freq`` and ``freq_ref``, raising an AssertionError if ``freq`` is not long enough.
+
+    Parameters
+    ----------
+    freq_source, freq_ref : frequencies to compare.
+    strict : bool, optional (default: False)
+        - If ``strict`` is True, ``freq`` must be strictly longer than ``freq_long``.
+        - If False, it may be equally long.
+
+    """
+    # freq should start from the beginning of the year
+    index_freq = SHORTEST_TO_LONGEST.index(type(TO_OFFSET(freq)))
+    index_ref = SHORTEST_TO_LONGEST.index(type(TO_OFFSET(freq_ref)))
+    if strict is True:
+        if not (index_freq > index_ref):
+            raise AssertionError(
+                f"The passed frequency is not sufficiently long; passed {freq}, but should be {freq_ref} or longer."
+            )
+    else:
+        if not (index_freq >= index_ref):
+            raise AssertionError(
+                f"The passed frequency is not sufficiently long; passed {freq}, but should be {freq_ref} or longer."
+            )
 
 
 def assert_freq_equally_long(freq, freq_ref) -> None:
