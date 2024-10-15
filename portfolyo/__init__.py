@@ -23,6 +23,9 @@ from .tools.tzone import force_agnostic, force_aware
 from .tools.unit import Q_, Unit, ureg
 from .tools.wavg import general as wavg
 
+import tomli
+from pathlib import Path
+
 VOLUME = Kind.VOLUME
 PRICE = Kind.PRICE
 REVENUE = Kind.REVENUE
@@ -31,5 +34,16 @@ COMPLETE = Kind.COMPLETE
 extendpandas.apply()
 suppresswarnings.apply()
 
-__version__ = _version.get_versions()["version"]
+
+def get_version():
+    # Find the pyproject.toml file relative to this file
+    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+
+    # Open and read the pyproject.toml file using tomli
+    with pyproject_path.open("rb") as f:
+        pyproject_data = tomli.load(f)
+        return pyproject_data["project"]["version"]
+
+
+__version__ = get_version()
 __all__ = ["tools", "dev", "PfLine", "PfState"]
