@@ -48,21 +48,21 @@ RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM = np.nan
 
 @overload
 def general(
-    fr: pd.Series, weights: Iterable | Mapping | pd.Series = None, axis: int = 0
+    fr: pd.Series, weights: Iterable | Mapping | pd.Series | None = None, axis: int = 0
 ) -> float: ...
 
 
 @overload
 def general(
     fr: pd.DataFrame,
-    weights: Iterable | Mapping | pd.Series | pd.DataFrame = None,
+    weights: Iterable | Mapping | pd.Series | pd.DataFrame | None = None,
     axis: int = 0,
 ) -> pd.Series: ...
 
 
 def general(
     fr: pd.Series | pd.DataFrame,
-    weights: Iterable | Mapping | pd.Series | pd.DataFrame = None,
+    weights: Iterable | Mapping | pd.Series | pd.DataFrame | None = None,
     axis: int = 0,
 ) -> float | tools_unit.Q_ | pd.Series:
     """
@@ -97,7 +97,7 @@ def general(
 
 
 def series(
-    s: pd.Series, weights: Iterable | Mapping | pd.Series = None
+    s: pd.Series, weights: Iterable | Mapping | pd.Series | None = None
 ) -> float | tools_unit.Q_:
     """
     Weighted average of series.
@@ -172,7 +172,7 @@ def series(
 
 def dataframe(
     df: pd.DataFrame,
-    weights: Iterable | Mapping | pd.Series | pd.DataFrame = None,
+    weights: Iterable | Mapping | pd.Series | pd.DataFrame | None = None,
     axis: int = 0,
 ) -> pd.Series:
     """
@@ -206,6 +206,7 @@ def dataframe(
     # Unweighted average if no weights are provided.
     if weights is None:
         # Fix possible problems, like distinct units of same dimension
+        # df = tools_unit.defaultunit(df)
         df = tools_unit.avoid_frame_of_objects(df)
         return df.apply(np.mean, axis=axis)  # can't do .mean() if pint-series
 

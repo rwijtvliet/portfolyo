@@ -54,6 +54,7 @@ ipykernel = "^6.25.2"
 importlib-metadata = "^4.8"
 
 # building
+debugpy = "^1.8.6"
 
 [build-system]
 requires = ["poetry-core"]
