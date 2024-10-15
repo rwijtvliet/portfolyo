@@ -19,7 +19,7 @@ pint-pandas = "0.6"
 colorama = "^0.4.6"
 holidays = "^0.32"
 numpy = "^1.26.2"
-tomli
+tomli = "^2.0"
 
 
 [tool.poetry.group.test.dependencies]
