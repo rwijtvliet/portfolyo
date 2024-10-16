@@ -42,7 +42,7 @@ def get_version():
     # Open and read the pyproject.toml file using tomli
     with pyproject_path.open("rb") as f:
         pyproject_data = tomli.load(f)
-        return pyproject_data["project"]["version"]
+        return pyproject_data["tool"]["poetry"]["version"]
 
 
 __version__ = get_version()

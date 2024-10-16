@@ -1,4 +1,4 @@
-[project]
+[tool.poetry]
 name = "portfolyo"
 version = "0.6.2"
 description = "Analyse and manipulate timeseries related to power and gas offtake portfolios"
@@ -60,7 +60,7 @@ build-backend = "poetry.core.masonry.api"
  
   
 [tool.flake8]
-exclude = ["__init__.py", "versioneer.py", ".venv/"]
+exclude = ["__init__.py", ".venv/"]
 max-line-length = 88
 ignore = ["E501", "W503", "E202", "E226"]
  
