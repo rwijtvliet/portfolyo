@@ -12,7 +12,7 @@ readme = "README.rst"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-pandas = "^2.2"        
+pandas = "^2.2"
 matplotlib = "^3.7.2"
 pint = "^0.24"
 pint-pandas = "0.6"
@@ -47,7 +47,7 @@ IPython = "^8.23.0"
 
 
 [tool.poetry.group.dev.dependencies]
-flake8 = "^6.1.0"
+ruff = "^0.6.9"
 black = "^23.7.0"
 pre-commit = "^3.4.0"
 ipykernel = "^6.25.2"
@@ -57,21 +57,25 @@ importlib-metadata = "^4.8"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
- 
-  
-[tool.flake8]
-exclude = ["__init__.py", ".venv/"]
-max-line-length = 88
-ignore = ["E501", "W503", "E202", "E226"]
- 
+
+
+[tool.ruff]
+line-length = 88
+lint.select = ["E", "F", "W"] # Equivalent to flake8's built-in codes
+lint.ignore = [
+    "E501",
+    "E202",
+    "E226",
+] # Ignored codes (e.g., for long lines or line breaks before binary operators)
+exclude = ["__init__.py", "versioneer.py", "_version.py", ".venv/"]
+
 
 [tool.pytest.ini_options]
 markers = [
-    "only_on_pr: marks tests as slow (select with -m only_on_pr and deselect with -m 'not only_on_pr')"
+    "only_on_pr: marks tests as slow (select with -m only_on_pr and deselect with -m 'not only_on_pr')",
 ]
 pythonpath = ["./tests"]
 
 
 [tool.black]
 line-length = 88
-
