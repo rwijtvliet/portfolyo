@@ -276,7 +276,7 @@ class PfState(
 
         See also
         --------
-        .hedge_of_unsourced()
+        PfState.hedge_of_unsourced
 
         Returns
         -------

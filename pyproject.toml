@@ -59,6 +59,17 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 
+[tool.pytest.ini_options]
+markers = [
+    "only_on_pr: marks tests as slow (select with -m only_on_pr and deselect with -m 'not only_on_pr')",
+]
+pythonpath = ["./tests"]
+
+
+[tool.black]
+line-length = 88
+
+
 [tool.ruff]
 line-length = 88
 lint.select = ["E", "F", "W"] # Equivalent to flake8's built-in codes
@@ -70,12 +81,10 @@ lint.ignore = [
 exclude = ["__init__.py", "versioneer.py", "_version.py", ".venv/"]
 
 
-[tool.pytest.ini_options]
-markers = [
-    "only_on_pr: marks tests as slow (select with -m only_on_pr and deselect with -m 'not only_on_pr')",
+[tool.numpydoc_validation]
+checks = [
+    "all",  # report on all checks, except the below
+    "EX01",
+    "SA01",
+    "ES01",
 ]
-pythonpath = ["./tests"]
-
-
-[tool.black]
-line-length = 88
