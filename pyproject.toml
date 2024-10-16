@@ -1,4 +1,4 @@
-[tool.poetry]
+[project]
 name = "portfolyo"
 version = "0.6.2"
 description = "Analyse and manipulate timeseries related to power and gas offtake portfolios"
