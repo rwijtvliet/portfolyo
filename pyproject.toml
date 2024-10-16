@@ -53,6 +53,25 @@ pre-commit = "^3.4.0"
 ipykernel = "^6.25.2"
 importlib-metadata = "^4.8"
 
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+ 
+  
+[tool.flake8]
+exclude = ["__init__.py", "versioneer.py", ".venv/"]
+max-line-length = 88
+ignore = ["E501", "W503", "E202", "E226"]
+ 
+
+[tool.pytest.ini_options]
+markers = [
+    "only_on_pr: marks tests as slow (select with -m only_on_pr and deselect with -m 'not only_on_pr')"
+]
+pythonpath = ["./tests"]
+
+
+[tool.black]
+line-length = 88
+

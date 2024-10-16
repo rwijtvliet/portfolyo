@@ -1,6 +1,6 @@
 """Package to analyse and manipulate timeseries related to power and gas offtake portfolios."""
 
-from . import _version, dev, tools
+from . import dev, tools
 from .core import extendpandas  # extend functionalty of pandas
 from .core import suppresswarnings
 from .core.pfline import Kind, PfLine, Structure, create

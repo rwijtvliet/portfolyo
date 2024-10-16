@@ -49,8 +49,7 @@ RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM = np.nan
 @overload
 def general(
     fr: pd.Series, weights: Iterable | Mapping | pd.Series = None, axis: int = 0
-) -> float:
-    ...
+) -> float: ...
 
 
 @overload
@@ -58,8 +57,7 @@ def general(
     fr: pd.DataFrame,
     weights: Iterable | Mapping | pd.Series | pd.DataFrame = None,
     axis: int = 0,
-) -> pd.Series:
-    ...
+) -> pd.Series: ...
 
 
 def general(
