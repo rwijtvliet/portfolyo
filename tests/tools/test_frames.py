@@ -150,3 +150,6 @@ vals2 = np.array([1, 2.0, -4.1234, 0.5])
 def test_series_allclose(s1, s2, expected_result):
     """Test if series can be correctly compared, even if they have a unit."""
     assert tools.frame.series_allclose(s1, s2) == expected_result
+
+
+print("")

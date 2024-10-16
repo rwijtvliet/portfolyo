@@ -10,6 +10,8 @@ authors = [
 license = "BSD-3"
 readme = "README.rst"
 
+# dependencies
+
 [tool.poetry.dependencies]
 python = "^3.10"
 pandas = "^2.2"
@@ -17,19 +19,17 @@ matplotlib = "^3.7.2"
 pint = "^0.24"
 pint-pandas = "0.6"
 colorama = "^0.4.6"
-holidays = "^0.32"
 numpy = "^1.26.2"
+holidays = "^0.57"
 tomli = "^2.0"
-
 
 [tool.poetry.group.test.dependencies]
 codecov = "^2.1.13"
-pytest = "^7.4.1"
+pytest = "^8"
 coverage = "^7.3.0"
 pytest-cov = "^4.1.0"
 pyyaml = "^6.0.1"
 openpyxl = "^3.1.2"
-
 
 [tool.poetry.group.docs.dependencies]
 sphinx = "^7.2.6"
@@ -45,19 +45,23 @@ pandoc = "^2.3"
 pip-tools = "^7.4.1"
 IPython = "^8.23.0"
 
-
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.6.9"
 black = "^23.7.0"
 pre-commit = "^3.4.0"
 ipykernel = "^6.25.2"
 importlib-metadata = "^4.8"
+debugpy = "^1.8.6"
 
+
+# building
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
+
+# tool config
 
 [tool.pytest.ini_options]
 markers = [
