@@ -46,7 +46,6 @@ pip-tools = "^7.4.1"
 IPython = "^8.23.0"
 
 [tool.poetry.group.dev.dependencies]
-ruff = "^0.6.9"
 black = "^23.7.0"
 pre-commit = "^3.4.0"
 ipykernel = "^6.25.2"
@@ -55,6 +54,7 @@ debugpy = "^1.8.6"
 
 
 # building
+ruff = "^0.7.0"
 
 [build-system]
 requires = ["poetry-core"]
