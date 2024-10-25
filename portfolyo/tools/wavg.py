@@ -203,38 +203,34 @@ def dataframe(
     # same module, which results in a much shorter function. However, the speed penalty
     # is enormous, which is why this elaborate function is used.
 
-    # Unweighted average if no weights are provided.
+    # Prep: orient to always average over rows.
+    if axis == 1:
+        idx_to_keep = df.index # store now, because .T loses properties (e.g. freq)
+        df = df.T
+    else:
+        idx_to_keep = df.columns
+    idx_to_collapse = df.index
+    # Fix possible problems, like distinct units of same dimension in the same column.
+    df = tools_unit.avoid_frame_of_objects(df)
+    
+    
+    # Calculate average over rows.
+    # . No weights.
     if weights is None:
-        # Fix possible problems, like distinct units of same dimension
-        # df = tools_unit.defaultunit(df)
-        df = tools_unit.avoid_frame_of_objects(df)
-        return df.apply(np.mean, axis=axis)  # can't do .mean() if pint-series
-
-    # Prep: orient so that we can always average over columns.
-    if axis == 0:
-        df = df.T  # slow, but axis==0 is uncommon
-        # HACK: transposing moves unit to element-level, undo here
-
-    # Fix possible problems, also those introduced by .T
-    df = tools_unit.defaultunit(df)
-
-    # Do averaging.
-    if isinstance(weights, pd.DataFrame):
-        if axis == 0:
-            weights = weights.T  # slow, but axis==0 is uncommon
-            # HACK: transposing moves unit to element-level, undo here
-            # weights = tools_unit.defaultunit(weights)
-
-        result = dataframe_columnwavg_with_weightsdataframe(df, weights)
-
+        return df.mean().set_axis(idx_to_keep) 
+    # . Element-specific weights.
+    elif isinstance(weights, pd.DataFrame):
+        if axis == 1:
+            weights = weights.T 
+        return dataframe_rowwavg_with_weightsdataframe(df, weights).set_axis(idx_to_keep)
+    # . Row or column-specific weights.
     else:  # weights == series or iterable
-        weights = weights_as_series(weights, df.columns)  # ensure weights is Series
-        result = dataframe_columnwavg_with_weightsseries(df, weights)
-
-    return tools_unit.defaultunit(result)
+        weights = weights_as_series(weights, idx_to_collapse)  # ensure weights is Series
+        return dataframe_rowwavg_with_weightsseries(df, weights).set_axis(idx_to_keep)
 
 
-def dataframe_columnwavg_with_weightsdataframe(
+
+def dataframe_rowwavg_with_weightsdataframe(
     df: pd.DataFrame, weights: pd.DataFrame
 ) -> pd.Series:
     # Keep only relevant section.
@@ -245,14 +241,14 @@ def dataframe_columnwavg_with_weightsdataframe(
     originalindex = df.index
 
     # Create masks and aggregates for weights.
-    # . One float/quantity for each row.
-    weightssum = sum(s for _, s in weights.items())  # HACK: for speed
+    # . One float/quantity for each col.
+    weightssum = weights.sum()
     # . One boolean for each row.
     weights_sum0 = weightssum == 0.0  # TODO: use np.isclose?
     # . One boolean for each weight.
     weight_is0 = weights == 0.0  # TODO: use np.isclose?
     # . One boolean for each row.
-    weights_all0 = weight_is0.all(axis=1)
+    weights_all0 = weight_is0.all(axis=0)
 
     # Handle each case seperately, and combine later.
 
@@ -262,7 +258,7 @@ def dataframe_columnwavg_with_weightsdataframe(
 
     if (mask := ~weights_sum0).any():
         series.extend(
-            _dataframe_columnwavg_with_weightssumnot0(
+            _dataframe_rowwavg_with_weightssumnot0(
                 df[mask], weights[mask], weightssum[mask]
             )
         )
@@ -271,31 +267,32 @@ def dataframe_columnwavg_with_weightsdataframe(
 
     if (mask := weights_sum0 & ~weights_all0).any():
         series.extend(
-            _dataframe_columnwavg_with_weightssum0notall0(df[mask], weights[mask])
+            _dataframe_rowwavg_with_weightssum0notall0(df[mask], weights[mask])
         )
 
     # Each weight has a value of 0.
 
     if (mask := weights_all0).any():
-        series.extend(_dataframe_columnwavg_with_weightsall0(df[mask]))
+        series.extend(_dataframe_rowwavg_with_weightsall0(df[mask]))
 
     # Every index value of weights is now in exactly one series.
     return concatseries(series, originalindex)
 
 
-def dataframe_columnwavg_with_weightsseries(
+def dataframe_rowwavg_with_weightsseries(
     df: pd.DataFrame, weights: pd.Series
 ) -> pd.Series:
+
     originalindex = df.index
     # Keep only relevant section.
     try:
-        df = df.loc[:, weights.index]
+        df = df.loc[weights.index, :]
     except KeyError as e:  # more weights than values
         raise ValueError("No values found for one or more weights.") from e
 
     # Create masks and aggregates for weights.
     # . One fleat/quantity.
-    weightssum = sum(w for w in weights.values)
+    weightssum = sum(weights.values)
     # . One boolean.
     weights_sum0 = weightssum == 0.0
     # . One boolean for each weight.
@@ -308,23 +305,23 @@ def dataframe_columnwavg_with_weightsseries(
     # "Normal": sum of weights != 0.
 
     if not weights_sum0:
-        series = _dataframe_columnwavg_with_weightssumnot0(df, weights, weightssum)
+        series = _dataframe_rowwavg_with_weightssumnot0(df, weights, weightssum)
 
     # Sum of weights == 0 but not all values are 0.
 
     elif not weights_all0:
-        series = _dataframe_columnwavg_with_weightssum0notall0(df, weights)
+        series = _dataframe_rowwavg_with_weightssum0notall0(df, weights)
 
     # Each weight has a value of 0.
 
     else:
-        series = _dataframe_columnwavg_with_weightsall0(df)
+        series = _dataframe_rowwavg_with_weightsall0(df)
 
     # Every index value of weights is now in exactly one series.
     return concatseries(series, originalindex)
 
 
-def _dataframe_columnwavg_with_weightssumnot0(
+def _dataframe_rowwavg_with_weightssumnot0(
     df: pd.DataFrame,
     weights: pd.Series | pd.DataFrame,
     weightssum: float | tools_unit.Q_ | pd.Series,
@@ -334,12 +331,12 @@ def _dataframe_columnwavg_with_weightssumnot0(
     value_isna = df.isna()
     df = df.where(~(weight_is0 & value_isna), other=0.0)  # to ignore NaN if allowed
     factors = weights.div(weightssum, axis=0).astype(float)
-    scaled_values = df * factors  # fast, even with quantities
-    result = sum(s for _, s in scaled_values.items())  # HACK: for speed
+    scaled_values = df.mul(factors, axis=0)  # fast, even with quantities
+    result = scaled_values.sum() 
     return [result]
 
 
-def _dataframe_columnwavg_with_weightssum0notall0(
+def _dataframe_rowwavg_with_weightssum0notall0(
     df: pd.DataFrame, weights: pd.Series | pd.DataFrame
 ) -> Iterable[pd.Series]:
     # Calculate the weighted average if sum of weights == 0, but not all weights are 0.
@@ -372,7 +369,7 @@ def _dataframe_columnwavg_with_weightssum0notall0(
     return series
 
 
-def _dataframe_columnwavg_with_weightsall0(
+def _dataframe_rowwavg_with_weightsall0(
     df: pd.DataFrame,
 ) -> Iterable[pd.Series]:
     # Calculate the weighted average if all weights == 0.
