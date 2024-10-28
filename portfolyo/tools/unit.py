@@ -178,14 +178,15 @@ def avoid_frame_of_objects(fr: Series_or_DataFrame) -> Series_or_DataFrame:
         if isinstance(fr.dtype, pint_pandas.PintType):
             units = float if (u := fr.pint.units) == "dimensionless" else f"pint[{u}]"
             return fr.pint.magnitude.astype(float).astype(units)
-        # We may have a series of pint quantities. Convert to pint-series, if possible.
-        try:
-            return fr.astype(f"pint[{fr.iloc[0].units}]")
-        except pint.DimensionalityError as e:
-            dimensions = {v.dimensionality for v in fr.values}
+        # We MAY have a series of pint quantities. Convert to pint-series, if possible.
+        units = {v.units for v in fr.values if isinstance(v, Q_)}
+        dims = {u.dimensionality for u in units}
+        if len(units):
+            if len(dims) == 1:
+                return fr.astype(f"pint[{units.pop()}]")
             raise pint.DimensionalityError(
-                f"Expected a Series with quantities of the same dimension; got {dimensions}."
-            ) from e
+                f"Expected a Series with quantities of the same dimension; got {dims}."
+            )
     raise TypeError(
         "Expected int-Series, float-Series, pint-Series, or Series of pint quantities (of equal dimensionality)."
     )
