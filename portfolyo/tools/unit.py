@@ -149,7 +149,9 @@ def split_magn_unit(
         return val, None
 
 
-def avoid_frame_of_objects(fr: Series_or_DataFrame) -> Series_or_DataFrame:
+def avoid_frame_of_objects(
+    fr: Series_or_DataFrame, strict: bool = True
+) -> Series_or_DataFrame:
     """Ensure a Series or Dataframe does not have objects as its values,
     if possible.
 
@@ -184,6 +186,8 @@ def avoid_frame_of_objects(fr: Series_or_DataFrame) -> Series_or_DataFrame:
         if len(units):
             if len(dims) == 1:
                 return fr.astype(f"pint[{units.pop()}]")
+            if not strict:
+                return fr
             raise pint.DimensionalityError(
                 f"Expected a Series with quantities of the same dimension; got {dims}."
             )
