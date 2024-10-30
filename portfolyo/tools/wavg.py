@@ -3,12 +3,8 @@ from typing import Iterable, Mapping, overload
 import numpy as np
 import pandas as pd
 
+from . import freq as tools_freq
 from . import unit as tools_unit
-
-# Developer notes:
-# HACK: for speed:
-# meaning: for series and dataframes with pint quantities, .sum() does not work,
-# and .apply(np.sum) is really slow. The workaround is fast also for pint quantities.
 
 # Developer notes:
 # The following behaviour is wanted in calculating the weighted average:
@@ -48,8 +44,10 @@ RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM = np.nan
 
 @overload
 def general(
-    fr: pd.Series, weights: Iterable | Mapping | pd.Series | None = None, axis: int = 0
-) -> float: ...
+    fr: pd.Series,
+    weights: Iterable | Mapping | pd.Series | None = None,
+    axis: int = 0,
+) -> float | tools_unit.Q_: ...
 
 
 @overload
@@ -161,7 +159,7 @@ def series(
     weightsum = weights.sum()  # a float or quantity
     if np.isclose(weightsum, 0):  # edge case (more common)
         is_uniform = values_areuniform(s)
-        return s.iloc[0] if is_uniform else np.nan
+        return s.iloc[0] if is_uniform else RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM
 
     # If we arrive here, the sum of the weights is not zero.
 
@@ -206,32 +204,37 @@ def dataframe(
 
     # Prep: orient to always collapse the rows and keep the columns.
     if axis == 1:
-        idx_to_keep = df.index # store now, because .T loses properties (e.g. freq)
+        idx_to_keep = df.index  # store now, because .T loses properties (e.g. freq)
         df = df.T
     else:
         idx_to_keep = df.columns
     idx_to_collapse = df.index
     # Fix possible problems, like distinct units of same dimension in the same column.
     df = tools_unit.avoid_frame_of_objects(df)
-    
 
     # Calculate average of each column.
     # . No weights.
     if weights is None:
-        return df.mean().set_axis(idx_to_keep) 
+        return df.mean().set_axis(idx_to_keep)
     # . Element-specific weights.
     elif isinstance(weights, pd.DataFrame):
         if axis == 1:
-            weights = weights.T 
-        return dataframe_rowwavg_with_weightsdataframe(df, weights).set_axis(idx_to_keep)
+            weights = weights.T
+        result = dataframe_colwavg_with_weightsdataframe(df, weights)
     # . Row or column-specific weights.
     else:  # weights == series or iterable
-        weights = weights_as_series(weights, idx_to_collapse)  # ensure weights is Series
-        return dataframe_colwavg_with_weightsseries(df, weights).set_axis(idx_to_keep)
+        weights = weights_as_series(
+            weights, idx_to_collapse
+        )  # ensure weights is Series
+        result = dataframe_colwavg_with_weightsseries(df, weights)
+
+    # Fix possible issue: lost .freq property on index.
+    if isinstance(result.index, pd.DatetimeIndex) and result.index.freq is None:
+        result = tools_freq.guess_to_frame(result)
+    return tools_unit.avoid_frame_of_objects(result, False)
 
 
-
-def dataframe_rowwavg_with_weightsdataframe(
+def dataframe_colwavg_with_weightsdataframe(
     df: pd.DataFrame, weights: pd.DataFrame
 ) -> pd.Series:
     # Keep only relevant section.
@@ -239,7 +242,6 @@ def dataframe_rowwavg_with_weightsdataframe(
         df = df.loc[weights.index, weights.columns]
     except KeyError as e:  # more weights than values
         raise ValueError("No values found for one or more weights.") from e
-    originalindex = df.index
 
     # Create masks and aggregates for weights.
     # . One float/quantity for each col.
@@ -257,7 +259,7 @@ def dataframe_rowwavg_with_weightsdataframe(
 
     # "Normal": sum of weights != 0.
     if (mask := ~weights_sum0).any():
-        series.extend(
+        series.append(
             _dataframe_colwavg_with_weightssumnot0(
                 df.loc[:, mask], weights.loc[:, mask], weightssum[mask]
             )
@@ -265,22 +267,23 @@ def dataframe_rowwavg_with_weightsdataframe(
 
     # Sum of weights == 0 but not all values are 0.
     if (mask := weights_sum0 & ~weights_all0).any():
-        series.extend(
-            _dataframe_colwavg_with_weightssum0notall0(df.loc[:, mask], weights.loc[:, mask])
+        series.append(
+            _dataframe_colwavg_with_weightssum0notall0(
+                df.loc[:, mask], weights.loc[:, mask]
+            )
         )
 
     # Each weight has a value of 0.
     if (mask := weights_all0).any():
-        series.extend(_dataframe_colwavg_with_weightsall0(df.loc[:, mask]))
+        series.append(_dataframe_colwavg_with_weightsall0(df.loc[:, mask]))
 
     # Every index value of weights is now in exactly one series.
-    return tools_unit.avoid_frame_of_objects(concatseries(series))
+    return pd.concat(series).sort_index()
 
 
 def dataframe_colwavg_with_weightsseries(
     df: pd.DataFrame, weights: pd.Series
 ) -> pd.Series:
-
     # Keep only relevant section.
     try:
         df = df.loc[weights.index, :]
@@ -301,45 +304,42 @@ def dataframe_colwavg_with_weightsseries(
 
     # "Normal": sum of weights != 0.
     if not weights_sum0:
-        series = _dataframe_colwavg_with_weightssumnot0(df, weights, weightssum)
+        return _dataframe_colwavg_with_weightssumnot0(df, weights, weightssum)
 
     # Sum of weights == 0 but not all values are 0.
     elif not weights_all0:
-        series = _dataframe_colwavg_with_weightssum0notall0(df, weights)
+        return _dataframe_colwavg_with_weightssum0notall0(df, weights)
 
     # Each weight has a value of 0.
     else:
-        series = _dataframe_colwavg_with_weightsall0(df)
-
-    # Every index value of weights is now in exactly one series.
-    return tools_unit.avoid_frame_of_objects(concatseries(series))
+        return _dataframe_colwavg_with_weightsall0(df)
 
 
 def _dataframe_colwavg_with_weightssumnot0(
     df: pd.DataFrame,
     weights: pd.Series | pd.DataFrame,
     weightssum: float | tools_unit.Q_ | pd.Series,
-) -> Iterable[pd.Series]:
+) -> pd.Series:
     # Calculate the weighted average if sum of weights != 0.
     weight_is0 = weights == 0.0
     value_isna = df.isna()
     df = df.where(~(weight_is0 & value_isna), other=0.0)  # to ignore NaN if allowed
     factors = weights.div(weightssum).astype(float)
     scaled_values = df.mul(factors, axis=0)  # fast, even with quantities
-    result = scaled_values.sum() 
-    return [result]
+    result = scaled_values.sum()
+    return result
 
 
 def _dataframe_colwavg_with_weightssum0notall0(
     df: pd.DataFrame, weights: pd.Series | pd.DataFrame
-) -> Iterable[pd.Series]:
+) -> pd.Series:
     # Calculate the weighted average if sum of weights == 0, but not all weights are 0.
 
     series = []
 
     if len(df.index) == 0:
         return series
-    
+
     # Ensure weights is Dataframe.
     if isinstance(weights, pd.Series):
         weights = pd.DataFrame({c: weights for c in df})
@@ -352,7 +352,7 @@ def _dataframe_colwavg_with_weightssum0notall0(
         # Column contains NaN-values whose weight != 0
         if (s.isna() & relevantweights_not0).any():
             returnvalues[c] = np.nan
-        
+
         # Column contain no NaN-values, or only where weight == 0. Ignore these elements.
         else:
             relevantseries = s[~s.isna() & relevantweights_not0]
@@ -361,37 +361,18 @@ def _dataframe_colwavg_with_weightssum0notall0(
             else:
                 returnvalues[c] = relevantseries.iloc[0]
 
-    return [pd.Series(returnvalues)]
-
-    # series.append(pd.Series(np.nan, df.index[mask]))
-
-    # # Remaining rows only have NaN if weight == 0; these elements can be ignored.
-    # # Ignore ALL values with weight == 0, and check if rows are uniform.
-
-    # if isinstance(weights, pd.Series):
-    #     # Keep only remaining rows and keep only columns with weight != 0.
-    #     df = df.loc[~mask, ~weight_is0]
-    # else:
-    #     # Keep only remaining rows, and replace all values with weight == 0 with NaN.
-    #     df, weight_is0 = df[~mask], weight_is0[~mask]
-    #     df = df.where(~weight_is0, other=np.nan)
-    # series.append(colvalue_uniformity(df))
-    # return series
+    return pd.Series(returnvalues)
 
 
 def _dataframe_colwavg_with_weightsall0(
     df: pd.DataFrame,
-) -> Iterable[pd.Series]:
+) -> pd.Series:
     # Calculate the weighted average if all weights == 0.
 
     series = []
 
     if len(df.index) == 0:
         return series
-
-    # Create masks and aggregates.
-    # value_isna = df.isna()  # one boolean for each value
-    # mask = value_isna.any()
 
     returnvalues = {}
     for c, s in df.items():
@@ -401,64 +382,8 @@ def _dataframe_colwavg_with_weightsall0(
             returnvalues[c] = RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM
         else:
             returnvalues[c] = s.iloc[0]
-    
-    return [pd.Series(returnvalues)]
 
-    # Columns containing (at least 1) NaN-values: result is NaN.
-
-
-    # part_with_na = df.loc[:, mask]
-    # series.append(pd.Series(np.nan, part_with_na.columns))
-    
-    # # Columns not containing any NaN-values: result MIGHT be a value
-    # part_without_na = df.loc[:, ~mask]
-    # series.append(colvalue_uniformity(part_without_na))
-
-    # return series
-
-
-# def colvalue_uniformity(df: pd.DataFrame) -> pd.Series:
-#     """Calculate a value for each columns. First discard the NaN. Then see if remaining
-#     values are identical. If yes, that value is the result. If not, NaN is the result.
-#     """
-#     returnvalues = {}
-#     for c, s in df.items():
-#         if s.nunique() == 1:
-#             returnvalues[c] = s.iloc[0]
-#         else:
-#             returnvalues[c] = RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM
-#     return pd.Series(returnvalues)
-
-
-#     # HACK: we should do these calculations row-by-row, but this is really slow for pint,
-#     # because the row Series don't have a pint-unit, but are series of pint-quantities.
-#     # So we use the following column-operations instead to get to the same result.
-#     # - Replace values whose weight == 0 with NaN.
-#     # We now want to verify, if all remainig values in a row are identical.
-#     # - Initially fill buffer with NaN-values.
-#     # - Observe first column. Ignore NaN. For not-NaN: put in buffer.
-#     # - Observe second column. Ignore NaN. For not-NaN: if buffer is empty, put in buffer.
-#     #   If buffer is not empty, compare. If not same, put uniform-flag to False.
-#     # - Continue for other columns.
-#     # Uniform flag is now set to False for non-uniform rows. For rows with uniform values
-#     # or uniform NaN, this value/NaN is found in buffer.
-#     uniform = pd.Series(True, df.columns)
-#     buffer = pd.Series(np.nan, df.columns)  # define to ensure exists even if df empty
-#     for i, (_, s) in enumerate(df.items()):
-#         if i == 0:
-#             # define here to ensure ``values`` has pint dtype if df does too
-#             to_type = float if pd.api.types.is_integer_dtype(s.dtype) else s.dtype
-#             buffer = pd.Series(np.nan, s.index).astype(to_type)
-#         must_compare = s.notna() & buffer.notna()
-#         if must_compare.any():
-#             # HACK: cannot use ``uniform & (...)`` because must_compare has partial index, and missing values are set to False
-#             uniform = ~(~uniform | ~(s[must_compare] == buffer[must_compare]))
-#         must_replace = s.notna() & buffer.isna()
-#         if must_replace.any():
-#             buffer = buffer.fillna(s[must_replace])
-
-#     buffer[~uniform] = RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM
-#     return buffer
+    return pd.Series(returnvalues)
 
 
 def weights_as_series(weights: Iterable | Mapping, refindex: Iterable) -> pd.Series:
@@ -487,21 +412,6 @@ def values_areuniform(series: pd.Series, mask: Iterable = None) -> bool:
     return True
 
 
-def concatseries(series: Iterable[pd.Series], refindex: Iterable = None) -> pd.Series:
+def concatseries(series: Iterable[pd.Series]) -> pd.Series:
     """Concatenate some series, and try to make it a pint-series if possible."""
-    dtypes = set()
-    for s in series:
-        if s.isna().all():
-            continue
-        dtypes.add(s.dtype)
-    if len(dtypes) == 1:
-        dtype = dtypes.pop()
-        series = [s.astype(dtype) for s in series]
-    result = pd.concat(series)
-
-    if refindex is None:
-        return result.sort_index()
-    result = result.loc[refindex]
-    if isinstance(refindex, pd.DatetimeIndex) and (freq := refindex.freq):
-        result.index.freq = freq 
-    return result
+    return tools_unit.avoid_frame_of_objects(pd.concat(series).sort_index(), False)

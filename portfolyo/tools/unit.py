@@ -178,8 +178,9 @@ def avoid_frame_of_objects(
         return fr
     if hasattr(fr, "pint"):
         if isinstance(fr.dtype, pint_pandas.PintType):
-            units = float if (u := fr.pint.units) == "dimensionless" else f"pint[{u}]"
-            return fr.pint.magnitude.astype(float).astype(units)
+            if fr.pint.dimensionless:
+                return fr.pint.magnitude.astype(float)
+            return fr
         # We MAY have a series of pint quantities. Convert to pint-series, if possible.
         units = {v.units for v in fr.values if isinstance(v, Q_)}
         dims = {u.dimensionality for u in units}
