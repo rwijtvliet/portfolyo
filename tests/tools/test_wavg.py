@@ -50,9 +50,9 @@ def get_weights_df(weights: dict, index: Iterable, units: bool = False):
     return weights
 
 
-def get_index(number: int, indextype: str) -> Iterable:
+def get_index(number: int, indextype: str) -> list | pd.DatetimeIndex:
     if indextype == "int":
-        return range(number)
+        return list(range(number))
     return pd.date_range("2020", freq="D", periods=number)
 
 

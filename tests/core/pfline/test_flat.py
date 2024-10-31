@@ -124,7 +124,6 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
     start = f"{a}-{m}-{d}"
     a, (m, d) = a + 3, np.array([1, 1]) + np.random.randint(0, 12, 2)  # each + 0..11
     end = f"{a}-{m}-{d}"
-
     i = pd.date_range(start, end, freq=freq, inclusive="left", tz=tz)
     df = dev.get_dataframe(i, columns)
     pfl1 = create.flatpfline(df)

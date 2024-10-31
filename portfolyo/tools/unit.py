@@ -178,20 +178,41 @@ def avoid_frame_of_objects(
         return fr
     if hasattr(fr, "pint"):
         if isinstance(fr.dtype, pint_pandas.PintType):
-            if fr.pint.dimensionless:
-                return fr.pint.magnitude.astype(float)
-            return fr
-        # We MAY have a series of pint quantities. Convert to pint-series, if possible.
-        units = {v.units for v in fr.values if isinstance(v, Q_)}
-        dims = {u.dimensionality for u in units}
-        if len(units):
-            if len(dims) == 1:
-                return fr.astype(f"pint[{units.pop()}]")
-            if not strict:
-                return fr
-            raise pint.DimensionalityError(
-                f"Expected a Series with quantities of the same dimension; got {dims}."
-            )
+            return _normalize_pintseries(fr)
+        else:
+            # We MAY have a series of pint quantities. Convert to pint-series, if possible.
+            return _normalize_pintobjects(fr, strict)
     raise TypeError(
         "Expected int-Series, float-Series, pint-Series, or Series of pint quantities (of equal dimensionality)."
     )
+
+
+def _normalize_pintseries(s: pd.Series) -> pd.Series:
+    float_magnitudes = avoid_frame_of_objects(s.pint.magnitude)
+    if s.pint.dimensionless:
+        return float_magnitudes
+    return float_magnitudes.astype(f"pint[{s.pint.units}]")
+
+
+def _normalize_pintobjects(s: pd.Series, strict: bool) -> pd.Series:
+    # If we have a series of quantities (and nan-values), convert to pint-series if possible.
+    if not all(isinstance(v, Q_) for v in s.values):
+        if not strict:
+            return s
+        raise ValueError("Expected a Series with quantities.")
+
+    # All values are quantities.
+
+    units = {v.units for v in s.values if isinstance(v, Q_)}
+    dims = {u.dimensionality for u in units}
+
+    if len(dims) > 1:
+        if not strict:
+            return s
+        raise pint.DimensionalityError(
+            f"Expected a Series with quantities of the same dimension; got {dims}."
+        )
+
+    # All values are quantities of the same dimension.
+
+    return s.astype(f"pint[{units.pop()}]")
