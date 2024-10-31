@@ -48,70 +48,6 @@ def to_name(unit: pint.Unit) -> str:
 
 
 @overload
-def defaultunit(val: int | float) -> float: ...
-
-
-@overload
-def defaultunit(val: pint.Quantity) -> pint.Quantity: ...
-
-
-@overload
-def defaultunit(val: pd.Series) -> pd.Series: ...
-
-
-@overload
-def defaultunit(val: pd.DataFrame) -> pd.DataFrame: ...
-
-
-def defaultunit(
-    val: int | float | pint.Quantity | pd.Series | pd.DataFrame,
-) -> float | pint.Quantity | pd.Series | pd.DataFrame:
-    """Convert ``val`` to base units. Also turns dimensionless values into floats.
-
-    Parameters
-    ----------
-    val : int, float, pint.Quantity, pd.Series, or pd.DataFrame
-        The value to convert to base units.
-
-    Returns
-    -------
-    float, pint.Quantity, pd.Series, or pd.DataFrame
-        In base units.
-    """
-    # Do the conversion.
-    if isinstance(val, int):
-        return float(val)
-    elif isinstance(val, float):
-        return val
-    elif isinstance(val, pint.Quantity):
-        if val.units == ureg.Unit("dimensionless"):
-            return val.magnitude
-        return val.to_base_units()
-    elif isinstance(val, pd.Series):
-        if isinstance(val.dtype, pint_pandas.PintType):
-            if val.pint.units == ureg.Unit("dimensionless"):
-                return val.astype(float)
-            return val.pint.to_base_units()
-        elif pd.api.types.is_object_dtype(val.dtype) and isinstance(val.iloc[0], Q_):
-            try:
-                unit = val.iloc[0].to_base_units().units
-                pintseries = val.astype(f"pint[{unit}]")
-                return defaultunit(pintseries)
-            except pint.DimensionalityError:  # not all have same dimension
-                # convert to base units instead.
-                magn_unit_tupls = [split_magn_unit(v) for v in val.values]
-                qq = [m if u is None else Q_(m, u) for m, u in magn_unit_tupls]
-                return pd.Series(qq, val.index)
-        elif pd.api.types.is_integer_dtype(val.dtype):
-            return val.astype(float)
-        else:  # series of floats, bools, timestamps, ...
-            return val
-    elif isinstance(val, pd.DataFrame):
-        return pd.DataFrame({col: defaultunit(s) for col, s in val.items()})
-    raise TypeError("``val`` must be an int, float, Quantity, Series, or DataFrame.")
-
-
-@overload
 def split_magn_unit(val: int | float) -> Tuple[float, None]: ...
 
 
@@ -131,9 +67,12 @@ def split_magn_unit(
     """Split ``val`` into magnitude and units. If ``val`` is a Series with uniform
     dimension, the unit is returned as a pint Unit. If not, it is returned as a Series.
     """
-    val = defaultunit(val)
-    if isinstance(val, pint.Quantity):
-        return val.magnitude, val.units
+    if isinstance(val, int):
+        return float(val), None
+    elif isinstance(val, float):
+        return val, None
+    elif isinstance(val, pint.Quantity):
+        return float(val.magnitude), val.units
     elif isinstance(val, pd.Series):
         if isinstance(val.dtype, pint_pandas.PintType):
             return val.pint.magnitude, val.pint.units
@@ -145,7 +84,7 @@ def split_magn_unit(
         return val, None
     elif isinstance(val, pd.DataFrame):
         raise TypeError("For dataframes, handle the series seperately.")
-    else:  # int, float, bool, timestamp, ...
+    else:  # bool, timestamp, ...
         return val, None
 
 
