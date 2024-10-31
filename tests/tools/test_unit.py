@@ -71,4 +71,3 @@ QUANTITY_IDENTITIES = [
 def test_extended_identities(quants):
     for q in quants:
         assert np.isclose(q, quants[0])
-

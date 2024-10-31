@@ -30,6 +30,5 @@ jobs:
         run: |
           poetry run python -B -m pytest -m "not only_on_pr"
 
-
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
