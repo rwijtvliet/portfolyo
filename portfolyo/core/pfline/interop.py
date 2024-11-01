@@ -371,7 +371,7 @@ def _union(inop1: InOp, inop2: InOp) -> InOp:
     return InOp(**kwargs)
 
 
-def _equal(inop1: InOp, inop2: InOp) -> InOp:
+def _equal(inop1: InOp, inop2: InOp) -> bool:
     """2 ``InOp`` objects are equal if they have the same attributes."""
     if not isinstance(inop2, InOp):
         return False
