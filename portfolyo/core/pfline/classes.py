@@ -82,11 +82,13 @@ class PfLine(
 
     @property
     @abc.abstractmethod
-    def kind(self) -> Kind: ...
+    def kind(self) -> Kind:
+        ...
 
     @property
     @abc.abstractmethod
-    def structure(self) -> Structure: ...
+    def structure(self) -> Structure:
+        ...
 
     @property
     def index(self) -> pd.DatetimeIndex:

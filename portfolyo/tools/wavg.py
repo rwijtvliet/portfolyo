@@ -47,7 +47,8 @@ def general(
     fr: pd.Series,
     weights: Iterable | Mapping | pd.Series | None = None,
     axis: int = 0,
-) -> float | tools_unit.Q_: ...
+) -> float | tools_unit.Q_:
+    ...
 
 
 @overload
@@ -55,7 +56,8 @@ def general(
     fr: pd.DataFrame,
     weights: Iterable | Mapping | pd.Series | pd.DataFrame | None = None,
     axis: int = 0,
-) -> pd.Series: ...
+) -> pd.Series:
+    ...
 
 
 def general(

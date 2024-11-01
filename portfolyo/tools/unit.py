@@ -48,17 +48,20 @@ def to_name(unit: pint.Unit) -> str:
 
 
 @overload
-def split_magn_unit(val: int | float) -> Tuple[float, None]: ...
+def split_magn_unit(val: int | float) -> Tuple[float, None]:
+    ...
 
 
 @overload
-def split_magn_unit(val: pint.Quantity) -> Tuple[float, None | pint.Unit]: ...
+def split_magn_unit(val: pint.Quantity) -> Tuple[float, None | pint.Unit]:
+    ...
 
 
 @overload
 def split_magn_unit(
     val: pd.Series,
-) -> Tuple[pd.Series, None | pint.Unit | pd.Series]: ...
+) -> Tuple[pd.Series, None | pint.Unit | pd.Series]:
+    ...
 
 
 def split_magn_unit(
