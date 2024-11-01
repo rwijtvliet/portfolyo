@@ -69,7 +69,7 @@ TESTCASES_INPUTTYPES = [  # data,expected
 
 
 @pytest.mark.parametrize("data,expected", TESTCASES_INPUTTYPES)
-def test_makedataframe_inputtypes(data: Any, expected: pd.DataFrame):
+def test_makedataframe_inputtypes(data: Any, expected: pd.DataFrame | type):
     """Test if dataframe can be created from various input types."""
     if type(expected) is type and issubclass(expected, Exception):
         with pytest.raises(expected):

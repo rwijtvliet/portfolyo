@@ -44,10 +44,12 @@ def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
     pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)
 
     # Units must be the same.
+    assert type(leftu) is type(rightu)
     if leftu is None:
         assert leftu is rightu
     elif isinstance(leftu, pint.Unit):  # all values share the same unit, leftu is Unit
-        assert leftu == rightu
+        # Use `1*` to turn back into quantity. Ensures 'MWh' and 'MW*h' are the same.
+        assert 1 * leftu == 1 * rightu
     else:  # each value has its own unit; leftu is Series
         pd.testing.assert_series_equal(leftu, rightu)
 
