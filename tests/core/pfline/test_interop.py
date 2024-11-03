@@ -26,14 +26,242 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
 @pytest.mark.parametrize(
     ("data_in", "expected_io", "expected_io2"),
     [
-        # One value
-        # . unitless
+        # A) Cannot create InterOp-object: invalid key.
+        (
+            {"z": 28.0},
+            KeyError,
+            None,
+        ),
+        (
+            pd.Series({"z": 28.0}),
+            KeyError,
+            None,
+        ),
+        (
+            {"z": s1},
+            KeyError,
+            None,
+        ),
+        (
+            pd.DataFrame({"z": s1}),
+            KeyError,
+            None,
+        ),
+        (
+            {"z": Q_(120.0, "MWh")},
+            KeyError,
+            None,
+        ),
+        (
+            pd.Series({"z": Q_(120.0, "MWh")}),
+            KeyError,
+            None,
+        ),
+        (
+            {"z": s1.astype("pint[MWh]")},
+            KeyError,
+            None,
+        ),
+        (
+            pd.DataFrame({"z": s1.astype("pint[MWh]")}),
+            KeyError,
+            None,
+        ),
+        # . mix of know and unknown keys -> KeyError
+        (
+            {"z": s2, "w": s1},
+            KeyError,
+            None,
+        ),
+        (
+            pd.DataFrame({"z": s2, "w": s1}),
+            KeyError,
+            None,
+        ),
+        (
+            pd.DataFrame({"z": s2, "w": s1, "p": s2 * 10}),
+            KeyError,
+            None,
+        ),
+        (
+            pd.DataFrame({"w": s2.astype("pint[GW]"), "z": s2}),
+            KeyError,
+            None,
+        ),
+        # B) Cannot create InterOp-object: no key, invalid unit.
+        (
+            Q_(4.5, "MWh/Eur"),
+            UndefinedUnitError,
+            None,
+        ),
+        (
+            s1.astype("pint[Wh/MEur]"),
+            UndefinedUnitError,
+            None,
+        ),
+        # C) Cannot create InterOp-object: key(s) with at least one missing unit.
+        (
+            {"w": 120.0},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.Series({"w": 120.0}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"w": s1},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.DataFrame({"w": s1}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"q": -90_000.0},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.Series({"q": -90_000.0}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"q": s1},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.DataFrame({"q": s1}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"p": 50.0},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.Series({"p": 50.0}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"r": 4.5e6},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.Series({"r": 4.5e6}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"w": 120.0, "p": -50},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.Series({"w": 120.0, "p": -50}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"w": s1, "p": -s2},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.DataFrame({"w": s1, "p": -s2}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"w": 120.0, "p": -s2},
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"w": s1, "p": Q_(-50.0, "Eur/MWh")},
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"w": 120.0, "p": 50.0, "r": 4.5e6},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.Series({"w": 120.0, "p": 50.0, "r": 4.5e6}),
+            DimensionalityError,
+            None,
+        ),
+        # D) Cannot create InterOp-object: key(s) with at least one incompatible unit.
+        (
+            {"w": Q_(90.0, "MWh")},
+            AttributeError,
+            None,
+        ),
+        (
+            pd.Series({"w": Q_(90.0, "MWh")}),
+            AttributeError,
+            None,
+        ),
+        (
+            pd.Series({"w": 90}).astype("pint[MWh]"),
+            AttributeError,
+            None,
+        ),
+        (
+            {"w": s1.astype("pint[MWh]")},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.DataFrame({"w": s1.astype("pint[MWh]")}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"p": Q_(90.0, "MWh")},
+            AttributeError,
+            None,
+        ),
+        (
+            pd.Series({"p": Q_(90.0, "MWh")}),
+            AttributeError,
+            None,
+        ),
+        (
+            {"p": s1.astype("pint[MWh]")},
+            DimensionalityError,
+            None,
+        ),
+        (
+            pd.DataFrame({"p": s1.astype("pint[MWh]")}),
+            DimensionalityError,
+            None,
+        ),
+        (
+            {"w": s1.astype("pint[MWh]"), "p": Q_(50.0, "Eur/MWh")},
+            DimensionalityError,
+            None,
+        ),
+        # (
+        #     {"w": s1.astype("pint[MW]"), "p": Q_(120.0, "MW")},
+        #     DimensionalityError,
+        #     None,
+        # ),
+        # E) Can create InterOp-object, but cannot create timeseries: no key(s), valid units, all single values.
         (
             Q_(23.0, ""),
             io.InOp(nodim=23.0),
             ValueError,
         ),
-        # . known unit
         (
             Q_(-120.0, "MW"),
             io.InOp(w=Q_(-120.0, "MW")),
@@ -74,14 +302,7 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
             io.InOp(r=Q_(4.5, "MEur")),
             ValueError,
         ),
-        # . unknown unit
-        (
-            Q_(4.5, "MWh/Eur"),
-            UndefinedUnitError,
-            None,
-        ),
-        # One or several values
-        # . key but no unit
+        # F) Can create InterOp-object, but cannot create timeseries: key(s) with compatible unit, all single values.
         (
             {"nodim": 120.0},
             io.InOp(nodim=120),
@@ -92,87 +313,6 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
             io.InOp(nodim=120),
             ValueError,
         ),
-        (
-            {"w": 120.0},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.Series({"w": 120.0}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"q": -90_000.0},
-            DimensionalityError,  # should be value error we have don't have an object on line before it
-            None,
-        ),
-        (
-            pd.Series({"q": -90_000.0}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"p": 50.0},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.Series({"p": 50.0}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"r": 4.5e6},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.Series({"r": 4.5e6}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"w": 120.0, "q": -90_000},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.Series({"w": 120.0, "q": -90_000}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"w": 120.0, "p": 50},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.Series({"w": 120.0, "p": 50}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"w": 120.0, "p": 50.0, "r": 4.5e6},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.Series({"w": 120.0, "p": 50.0, "r": 4.5e6}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"w": 120.0, "p": 50.0, "r": 4.5e6},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.Series({"w": 120.0, "p": 50.0, "r": 4.5e6}),
-            DimensionalityError,
-            None,
-        ),
-        # . key and correct unit
         (
             {"p": Q_(50.0, "Eur/MWh")},
             io.InOp(p=Q_(50.0, "Eur/MWh")),
@@ -203,93 +343,7 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
             io.InOp(r=Q_(4.5, "MEur")),
             ValueError,
         ),
-        (
-            {"w": 120.0, "q": Q_(-90_000.0, "MWh")},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.Series({"w": 120.0, "q": Q_(-90_000.0, "MWh")}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.Series({"w": 120.0, "q": Q_(-90.0, "GWh")}),
-            DimensionalityError,
-            None,
-        ),
-        # . unknown key -> KeyError
-        (
-            {"z": 28.0},
-            KeyError,
-            None,
-        ),
-        (
-            pd.Series({"z": 28.0}),
-            KeyError,
-            None,
-        ),
-        (
-            {"z": Q_(120.0, "MWh")},
-            KeyError,
-            None,
-        ),
-        (
-            pd.Series({"z": Q_(120.0, "MWh")}),
-            KeyError,
-            None,
-        ),
-        # . mix of know and unknown key -> KeyError
-        (
-            {"w": 120.0, "z": 28.0},
-            DimensionalityError,
-            None,
-        ),
-        (  # depends on what columnt we get first
-            pd.Series({"w": 120.0, "z": 28.0}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"z": 28.0, "w": 120.0, "p": 50.0},
-            KeyError,
-            None,
-        ),
-        (
-            pd.Series({"z": 28.0, "w": 120.0, "p": 50.0}),
-            KeyError,
-            None,
-        ),
-        # . combination of key with incorrect unit -> error
-        (
-            {"w": Q_(90.0, "MWh")},
-            AttributeError,
-            None,
-        ),
-        (
-            pd.Series({"w": Q_(90.0, "MWh")}),
-            AttributeError,
-            None,
-        ),
-        (
-            pd.Series({"w": 90}).astype("pint[MWh]"),
-            AttributeError,
-            None,
-        ),
-        (
-            {"p": Q_(90.0, "MWh")},
-            AttributeError,
-            None,
-        ),
-        (
-            pd.Series({"p": Q_(90.0, "MWh")}),
-            AttributeError,
-            None,
-        ),
-        # One timeseries
-        # . unitless
-        # (s1.astype("pint[dimensionless]"), io.InterOp(nodim=s1)), # TODO: fix
-        # . known unit
+        # G) Can create InterOp-object and can also create timeseries: no key(s), valid units, at least one series.
         (
             s1.astype("pint[MW]"),
             io.InOp(w=s1.astype("pint[MW]")),
@@ -315,65 +369,7 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
             io.InOp(r=s1.astype("pint[MEur]")),
             io.InOp(r=s1.astype("pint[MEur]")),
         ),
-        # . unknown unit
-        (
-            s1.astype("pint[Wh/MEur]"),
-            UndefinedUnitError,
-            None,
-        ),
-        # One or several timeseries
-        # . key but no unit
-        (
-            {"w": s1},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.DataFrame({"w": s1}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"q": -s1},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.DataFrame({"q": -s1}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"r": s1},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.DataFrame({"r": s1}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"w": s1, "q": -s2},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.DataFrame({"w": s1, "q": -s2}),
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"w": s1, "p": s2, "r": s1 * 4},
-            DimensionalityError,
-            None,
-        ),
-        (
-            pd.DataFrame({"w": s1, "p": s2, "r": s1 * 4}),
-            DimensionalityError,
-            None,
-        ),
-        # . key and correct unit
+        # H) Can create InterOp-object and can also create timeseries: key(s) with valid units, at least one series.
         (
             {"p": s1.astype("pint[Eur/MWh]")},
             io.InOp(p=s1.astype("pint[Eur/MWh]")),
@@ -411,77 +407,43 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         ),
         (
             {"w": s1.astype("pint[MW]"), "q": s2.astype("pint[GWh]")},
-            io.InOp(w=s1.astype("pint[MW]"), q=s2.astype("pint[MWh]") * 1000),
-            io.InOp(w=s1_i.astype("pint[MW]"), q=s2_i.astype("pint[MWh]") * 1000),
+            io.InOp(w=s1.astype("pint[MW]"), q=s2.astype("pint[GWh]")),
+            io.InOp(w=s1_i.astype("pint[MW]"), q=s2_i.astype("pint[GWh]")),
         ),
         (
             pd.DataFrame({"w": s1.astype("pint[MW]"), "q": s2.astype("pint[GWh]")}),
-            io.InOp(w=s1_u.astype("pint[MW]"), q=s2_u.astype("pint[MWh]") * 1000),
-            io.InOp(w=s1_u.astype("pint[MW]"), q=s2_u.astype("pint[MWh]") * 1000),
-        ),
-        # . unknown key -> KeyError
-        (
-            {"z": s1},
-            KeyError,
-            None,
+            io.InOp(w=s1_u.astype("pint[MW]"), q=s2_u.astype("pint[GWh]")),
+            io.InOp(w=s1_u.astype("pint[MW]"), q=s2_u.astype("pint[GWh]")),
         ),
         (
-            pd.DataFrame({"z": s1}),
-            KeyError,
-            None,
+            {"w": s1.astype("pint[MW]"), "p": Q_(50, "Eur/MWh")},
+            io.InOp(w=s1.astype("pint[MW]"), p=Q_(50.0, "Eur/MWh")),
+            io.InOp(
+                w=s1.astype("pint[MW]"), p=pd.Series(50.0, idx1).astype("pint[Eur/MWh]")
+            ),
         ),
+        # (A) + (C): invalid key AND key with missing units.
         (
-            {"z": s1.astype("pint[MW]")},
-            KeyError,
-            None,
-        ),
-        (
-            pd.DataFrame({"z": s1.astype("pint[MW]")}),
-            KeyError,
-            None,
-        ),
-        # . mix of know and unknown keys -> KeyError
-        (
-            {"z": s2, "w": s1},
-            KeyError,
-            None,
-        ),
-        (
-            pd.DataFrame({"z": s2, "w": s1}),
-            KeyError,
-            None,
-        ),
-        (
-            pd.DataFrame({"z": s2, "w": s1, "p": s2 * 10}),
-            KeyError,
-            None,
-        ),
-        (
-            pd.DataFrame({"w": s2.astype("pint[GW]"), "z": s2}),
-            KeyError,
-            None,
-        ),
-        # . combination of key with incorrect unit -> error
-        (
-            {"w": s1.astype("pint[MWh]")},
+            {"w": 120.0, "z": 28.0},
             DimensionalityError,
             None,
         ),
         (
-            pd.DataFrame({"w": s1.astype("pint[MWh]")}),
+            pd.Series({"w": 120.0, "z": 28.0}),
             DimensionalityError,
             None,
         ),
         (
-            {"p": s1.astype("pint[MWh]")},
-            DimensionalityError,
+            {"z": 28.0, "w": 120.0, "p": 50.0},
+            KeyError,
             None,
         ),
         (
-            pd.DataFrame({"p": s1.astype("pint[MWh]")}),
-            DimensionalityError,
+            pd.Series({"z": 28.0, "w": 120.0, "p": 50.0}),
+            KeyError,
             None,
         ),
+        # (C) + (D): key with missing unit, and key with incompatible unit.
         (
             {"p": s2, "w": s1.astype("pint[MWh]")},
             DimensionalityError,
@@ -490,72 +452,6 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         (
             pd.DataFrame({"p": s2, "w": s1.astype("pint[MWh]")}),
             DimensionalityError,
-            None,
-        ),
-        # Combinations of value(s) and timeseries.
-        # . all have key but no unit
-        (
-            {"w": s1, "p": 50.0},
-            DimensionalityError,
-            None,
-        ),
-        # . at least one has key but no unit
-        (
-            {"w": s1.astype("pint[MW]"), "p": 50.0},
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"w": s1.astype("pint[MW]"), "q": s2.astype("pint[MWh]"), "p": 50},
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"w": s1, "p": Q_(50.0, "Eur/MWh")},
-            DimensionalityError,
-            None,
-        ),
-        # . unknown key -> KeyError
-        (
-            {"z": s1, "xy": 50},
-            KeyError,
-            None,
-        ),
-        # . mix of know and unknown keys -> KeyError
-        (
-            {"z": s1, "p": 50.0},
-            KeyError,
-            None,
-        ),
-        (
-            {"z": s1.astype("pint[MW]"), "p": s2},
-            KeyError,
-            None,
-        ),
-        (
-            {"w": s1.astype("pint[GW]"), "z": 28},
-            KeyError,
-            None,
-        ),
-        (
-            pd.DataFrame({"w": s1.astype("pint[GW]"), "z": s2}),
-            KeyError,
-            None,
-        ),
-        # . combination of key with (at least one) incorrect dimension -> error
-        (
-            {"w": s1.astype("pint[MWh]"), "p": Q_(50.0, "MW")},
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"p": s1.astype("pint[MWh]"), "w": Q_(120.0, "MW")},
-            DimensionalityError,
-            None,
-        ),
-        (
-            {"z": 23.0, "p": s2, "w": s1.astype("pint[MWh]")},
-            KeyError,
             None,
         ),
     ],

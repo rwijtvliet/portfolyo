@@ -5,6 +5,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import pint_pandas
 import pint
 
 from . import unit as tools_unit
@@ -35,33 +36,47 @@ def assert_frame_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwargs)
 
 @functools.wraps(pd.testing.assert_series_equal)
 def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
-    leftm, leftu = tools_unit.split_magn_unit(left)
-    rightm, rightu = tools_unit.split_magn_unit(right)
+    if pd.api.types.is_float_dtype(left) or pd.api.types.is_integer_dtype(left):
+        leftm = left.replace([np.inf, -np.inf], np.nan)
+        rightm = right.replace([np.inf, -np.inf], np.nan)
+        pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)
 
-    # Magnitudes must be the same.
-    leftm = leftm.replace([np.inf, -np.inf], np.nan)
-    rightm = rightm.replace([np.inf, -np.inf], np.nan)
-    pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)
+    elif isinstance(left.dtype, pint_pandas.PintType):
+        # Units.
+        try:
+            right = right.pint.to(left.pint.units)
+        except pint.DimensionalityError as e:
+            raise AssertionError("Dimensions not equal.") from e
+        # Magnitudes.
+        leftm = left.pint.magnitude.replace([np.inf, -np.inf], np.nan)
+        rightm = right.pint.magnitude.replace([np.inf, -np.inf], np.nan)
+        pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)
 
-    # Units must be the same.
-    assert type(leftu) is type(rightu)
-    if leftu is None:
-        assert leftu is rightu
-    elif isinstance(leftu, pint.Unit):  # all values share the same unit, leftu is Unit
-        # Use `1*` to turn back into quantity. Ensures 'MWh' and 'MW*h' are the same.
-        assert 1 * leftu == 1 * rightu
-    else:  # each value has its own unit; leftu is Series
-        pd.testing.assert_series_equal(leftu, rightu)
+    elif pd.api.types.is_object_dtype(left) and isinstance(left.iloc[0], tools_unit.Q_):
+        # series of quantities?
+        leftm = left.apply(lambda q: q.magnitude).replace([np.inf, -np.inf], np.nan)
+        leftu = left.apply(lambda q: q.units)
+        rightm = right.apply(lambda q: q.magnitude).replace([np.inf, -np.inf], np.nan)
+        rightu = right.apply(lambda q: q.units)
+        # TODO: this (incorrectly) raises AssertionError if e.g. 5 MWh is compared with 5000 kWh.
+        pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)
+        assert (leftu == rightu).all()
+
+    else:
+        # Whatever this is, use normal pandas testing function.
+        pd.testing.assert_series_equal(left, right, *args, **kwargs)
 
 
 assert_index_equal = pd.testing.assert_index_equal
 
 
 def assert_indices_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
-    if (lf := left.freq) != (r := right.freq):
-        raise AssertionError(f"Indices have unequal frequency: {lf} and {r}.")
-    if (lf := left[0].time()) != (r := right[0].time()):
-        raise AssertionError(f"Indices that have unequal start-of-day; {lf} and {r}.")
+    if (lf := left.freq) != (rf := right.freq):
+        raise AssertionError(f"Indices have unequal frequency: {lf} and {rf}.")
+    if (lt := left[0].time()) != (rt := right[0].time()):
+        raise AssertionError(f"Indices that have unequal start-of-day; {lt} and {rt}.")
+    if (lz := left.tz) != (rz := right.tz):
+        raise AssertionError(f"Indices that have unequal timezone: {lz} and {rz}.")
 
 
 def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):

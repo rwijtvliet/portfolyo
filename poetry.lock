@@ -1957,18 +1957,18 @@ xarray = ["xarray"]
 
 [[package]]
 name = "pint-pandas"
-version = "0.6"
+version = "0.6.2"
 description = "Extend Pandas Dataframe with Physical quantities module"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "Pint_Pandas-0.6-py3-none-any.whl", hash = "sha256:9ef7fd53be9cfd94e7d35dfad48dc34a62d9c15b149d5c205ee7ce703954da72"},
-    {file = "pint_pandas-0.6.tar.gz", hash = "sha256:d691f82d461e9c8e8487b13000cc99d4d8f7d608257fb2eb7d556a2271bec95c"},
+    {file = "Pint_Pandas-0.6.2-py3-none-any.whl", hash = "sha256:dd2a1f50814e1b213e147d7380d37f7c079d6b9b58b0b7af90aa3b14124a64b2"},
+    {file = "pint_pandas-0.6.2.tar.gz", hash = "sha256:ec6bd1ab9c826d40fbd78ed05e1b014f7251319e0fe3f48312523accaf816b5e"},
 ]
 
 [package.dependencies]
-pandas = ">=1.5"
-pint = ">=0.21"
+pandas = ">=2.2"
+pint = ">=0.24"
 
 [package.extras]
 test = ["codecov", "coveralls", "nbval", "pyarrow", "pytest", "pytest-cov", "pytest-mpl", "pytest-subtests"]
@@ -3128,4 +3128,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "39cdea38600344168d8bc5439c7ceac10d6d46f82c30d3cad0f2ee243d5ac9d9"
+content-hash = "91a127d7701e3b613b177c092f7336596c37f0ae482fe94c1ba11a3a09be208f"
