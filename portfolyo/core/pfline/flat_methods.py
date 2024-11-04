@@ -92,6 +92,16 @@ def slice(self: FlatPfLine) -> SliceIndexer:
     return SliceIndexer(self)
 
 
+def reindex(self: FlatPfLine, index: pd.DatetimeIndex) -> FlatPfLine:
+    if (f1 := self.index.freq) != (f2 := index.freq):
+        raise ValueError(
+            f"Can only reindex if frequencies are same; got {f1} and {f2}."
+            " To change the frequency of a portfolyo line, use .asfreq()."
+        )
+    newdf = self.df.reindex(index, fill_value=0)
+    return self.__class__(newdf)
+
+
 class LocIndexer:
     """Helper class to obtain FlatPfLine instance, whose index is subset of original index."""
 
