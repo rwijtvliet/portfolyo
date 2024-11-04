@@ -93,11 +93,7 @@ def slice(self: FlatPfLine) -> SliceIndexer:
 
 
 def reindex(self: FlatPfLine, index: pd.DatetimeIndex) -> FlatPfLine:
-    if (f1 := self.index.freq) != (f2 := index.freq):
-        raise ValueError(
-            f"Can only reindex if frequencies are same; got {f1} and {f2}."
-            " To change the frequency of a portfolyo line, use .asfreq()."
-        )
+    tools.testing.assert_indices_compatible(self.index, index)
     newdf = self.df.reindex(index, fill_value=0)
     return self.__class__(newdf)
 

@@ -429,11 +429,7 @@ class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
         return FlatCompletePfLine(newdf)
 
     def reindex(self, index: pd.DatetimeIndex) -> FlatCompletePfLine:
-        if (f1 := self.index.freq) != (f2 := index.freq):
-            raise ValueError(
-                f"Can only reindex if frequencies are same; got {f1} and {f2}."
-                " To change the frequency of a portfolyo line, use .asfreq()."
-            )
+        tools.testing.assert_indices_compatible(self.index, index)
         newdf = self.df[["w", "q", "r"]].reindex(index, fill_value=0)
         newdf["p"] = newdf["r"] / newdf["q"]
         return FlatCompletePfLine(newdf)
