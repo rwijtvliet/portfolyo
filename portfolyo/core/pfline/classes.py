@@ -143,6 +143,11 @@ class PfLine(
         ...
 
     @abc.abstractmethod
+    def reindex(self, index: pd.DatetimeIndex):
+        """Reindex and fill any new values with zero (where applicable)."""
+        ...
+
+    @abc.abstractmethod
     def po(
         self: PfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS"
     ) -> pd.DataFrame:
@@ -221,43 +226,46 @@ class PfLine(
 
 class VolumePfLine:
     kind = Kind.VOLUME
-    w: pd.Series = property(lambda self: self.df["w"])
-    q: pd.Series = property(lambda self: self.df["q"])
-    p: pd.Series = series_property_raising_typeerror("price")
-    r: pd.Series = series_property_raising_typeerror("revenue")
-    volume: VolumePfLine = property(lambda self: self)
-    price: PricePfLine = series_property_raising_typeerror("price")
-    revenue: RevenuePfLine = series_property_raising_typeerror("revenue")
+    w = property(lambda self: self.df["w"])
+    q = property(lambda self: self.df["q"])
+    p = series_property_raising_typeerror("price")
+    r = series_property_raising_typeerror("revenue")
+    volume = property(lambda self: self)
+    price = series_property_raising_typeerror("price")
+    revenue = series_property_raising_typeerror("revenue")
 
 
 class PricePfLine:
     kind = Kind.PRICE
-    w: pd.Series = series_property_raising_typeerror("volume")
-    q: pd.Series = series_property_raising_typeerror("volume")
-    p: pd.Series = property(lambda self: self.df["p"])
-    r: pd.Series = series_property_raising_typeerror("revenue")
-    volume: VolumePfLine = series_property_raising_typeerror("volume")
-    price: PricePfLine = property(lambda self: self)
-    revenue: RevenuePfLine = series_property_raising_typeerror("revenue")
+    w = series_property_raising_typeerror("volume")
+    q = series_property_raising_typeerror("volume")
+    p = property(lambda self: self.df["p"])
+    r = series_property_raising_typeerror("revenue")
+    volume = series_property_raising_typeerror("volume")
+    price = property(lambda self: self)
+    revenue = series_property_raising_typeerror("revenue")
 
 
 class RevenuePfLine:
     kind = Kind.REVENUE
-    w: pd.Series = series_property_raising_typeerror("volume")
-    q: pd.Series = series_property_raising_typeerror("volume")
-    p: pd.Series = series_property_raising_typeerror("price")
-    r: pd.Series = property(lambda self: self.df["r"])
-    volume: VolumePfLine = series_property_raising_typeerror("volume")
-    price: PricePfLine = series_property_raising_typeerror("price")
-    revenue: RevenuePfLine = property(lambda self: self)
+    w = series_property_raising_typeerror("volume")
+    q = series_property_raising_typeerror("volume")
+    p = series_property_raising_typeerror("price")
+    r = property(lambda self: self.df["r"])
+    volume = series_property_raising_typeerror("volume")
+    price = series_property_raising_typeerror("price")
+    revenue = property(lambda self: self)
 
 
 class CompletePfLine:
     kind = Kind.COMPLETE
-    w: pd.Series = property(lambda self: self.df["w"])
-    q: pd.Series = property(lambda self: self.df["q"])
-    p: pd.Series = property(lambda self: self.df["p"])
-    r: pd.Series = property(lambda self: self.df["r"])
+    w = property(lambda self: self.df["w"])
+    q = property(lambda self: self.df["q"])
+    p = property(lambda self: self.df["p"])
+    r = property(lambda self: self.df["r"])
+    # volume => on child clasess
+    # price => on child clasess
+    # revenue => on child classes
 
 
 class FlatPfLine:
@@ -269,6 +277,7 @@ class FlatPfLine:
     hedge_with = flat_methods.hedge_with
     loc = flat_methods.loc
     slice = flat_methods.slice
+    reindex = flat_methods.reindex
     __getitem__ = flat_methods.__getitem__
     # __bool__ => on child classes
     __eq__ = flat_methods.__eq__
@@ -283,6 +292,7 @@ class NestedPfLine(children.ChildFunctionality):
     hedge_with = nested_methods.hedge_with
     loc = nested_methods.loc
     slice = nested_methods.slice
+    reindex = nested_methods.reindex
     __bool__ = nested_methods.__bool__
     __eq__ = nested_methods.__eq__
 
@@ -415,6 +425,12 @@ class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
                 f"There are no full periods available when changing to the frequency {freq}."
             )
         newdf["w"] = newdf["q"] / tools.duration.index(newdf.index)
+        newdf["p"] = newdf["r"] / newdf["q"]
+        return FlatCompletePfLine(newdf)
+
+    def reindex(self, index: pd.DatetimeIndex) -> FlatCompletePfLine:
+        tools.testing.assert_indices_compatible(self.index, index)
+        newdf = self.df[["w", "q", "r"]].reindex(index, fill_value=0)
         newdf["p"] = newdf["r"] / newdf["q"]
         return FlatCompletePfLine(newdf)
 

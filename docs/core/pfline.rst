@@ -268,7 +268,25 @@ Another slicing method is implemented with the ``.slice[]`` property. The improv
    print(pfl.slice['2024':'2026'])
    # --- hide: stop ---
 
+Reindexing
+----------
 
+A portfolio line can be reindexed with ``.index()``, using another index, e.g. of another portfolio line. This returns a new portfolio line, with the specified index. Any timestamps that were not present in the original object are filled with "zero" (as applicable).
+
+.. exec_code::
+
+   # --- hide: start ---
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='YS', periods=3)
+   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
+   pfl = pf.PfLine(input_df)
+   # --- hide: stop ---
+   # continuation of previous code example
+   index2 = pd.date_range('2025', freq='YS', periods=3)  
+   pfl.reindex(index2)  # 2024 is dropped; 2025 and 2026 are kept; 2027 is new (0)
+   # --- hide: start ---
+   print(pfl.reindex(index2))
+   # --- hide: stop ---
 
 
 Concatenation
@@ -389,6 +407,8 @@ General remarks:
      pfl_1 == pfl_2 == pfl_3 == pfl_4
      # --- hide: start ---
      print(repr(pfl_1 == pfl_2 == pfl_3 == pfl_4))
+
+* If two portfolio lines span distinct periods, only their overlap is kept. If instead we want to keep all timestamps, e.g., when adding a portfolio line which spans a quarter to one that spans a year (with the same frequency, e.g. hourly), first use the ``.reindex()`` method on the former with the index of the latter. The values outside the specified quarter are filled with "zero" values as is applicable to the kind of portfolio line under consideration.
 
 * A single value is understood to apply uniformly to each timestamp in the index of the portfolio line.
 
