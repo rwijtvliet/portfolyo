@@ -96,6 +96,16 @@ class PfLine(
         return self.df.index
 
     @property
+    def start(self) -> pd.Timestamp:
+        """Start (incl) of the portfolio line."""
+        return self.df.index[0]
+
+    @property
+    def end(self) -> pd.Timestamp:
+        """End (excl) of the portfolio line."""
+        return tools.right.index(self.df.index)[-1]
+
+    @property
     @abc.abstractmethod
     def w(self) -> pd.Series:
         """Return (flat) volume timeseries in [MW]."""
