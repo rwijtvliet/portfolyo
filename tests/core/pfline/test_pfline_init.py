@@ -272,8 +272,8 @@ def test_init_with_integers(col: str):
 @pytest.mark.parametrize("freq", ["15min", "h"])
 def test_contain_whole_day(inclusive: str, freq: str):
     """An index must contain full days.
-    For hourly-or-shorter values, this means that the start time of the first period () must equal the end time of the
-    last period (), which is not the case."""
+    For hourly-or-shorter values, this means that the start time of the first period must equal the end time of the last period.
+    """
     index = pd.date_range(
         "2020-01-01", "2020-02-01", freq=freq, tz="Europe/Berlin", inclusive=inclusive
     )
@@ -281,6 +281,9 @@ def test_contain_whole_day(inclusive: str, freq: str):
         # This should work without any error
         pfl = dev.get_flatpfline(index)
         assert isinstance(pfl, PfLine)
+        pf.testing.assert_index_equal(pfl.index, index)
+        assert pfl.start == index[0]
+        assert pfl.end not in index  # because exclusive
     else:
         # For "both" inclusive, it should raise an error
         with pytest.raises(ValueError):
