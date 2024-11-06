@@ -1,4 +1,4 @@
-""" Module to work with peak and offpeak periods. """
+"""Module to work with peak and offpeak periods."""
 
 import datetime as dt
 from typing import Callable, Iterable

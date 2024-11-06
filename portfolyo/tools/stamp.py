@@ -1,6 +1,5 @@
 """Module to create a timestamp from any input."""
 
-
 import datetime as dt
 from typing import Any
 

@@ -92,6 +92,12 @@ def slice(self: FlatPfLine) -> SliceIndexer:
     return SliceIndexer(self)
 
 
+def reindex(self: FlatPfLine, index: pd.DatetimeIndex) -> FlatPfLine:
+    tools.testing.assert_indices_compatible(self.index, index)
+    newdf = self.df.reindex(index, fill_value=0)
+    return self.__class__(newdf)
+
+
 class LocIndexer:
     """Helper class to obtain FlatPfLine instance, whose index is subset of original index."""
 

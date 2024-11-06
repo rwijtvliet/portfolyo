@@ -56,14 +56,17 @@ assert_index_equal = pd.testing.assert_index_equal
 
 
 def assert_indices_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
+    """Assert that indices are compatible, i.e., with equal frequency, start-of-day, and timezone."""
     if (lf := left.freq) != (r := right.freq):
         raise AssertionError(f"Indices have unequal frequency: {lf} and {r}.")
-    if (lf := left[0].time()) != (r := right[0].time()):
-        raise AssertionError(f"Indices that have unequal start-of-day; {lf} and {r}.")
+    if (lt := left[0].time()) != (rt := right[0].time()):
+        raise AssertionError(f"Indices that have unequal start-of-day; {lt} and {rt}.")
+    if (lz := left.tz) != (rz := right.tz):
+        raise AssertionError(f"Indices that have unequal timezone; {lz} and {rz}.")
 
 
 def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):
-    """Assert if timeseries with power- and energy-values are consistent."""
+    """Assert that timeseries with power- and energy-values are consistent."""
     if freq == "15min":
         assert_series_equal(q, w * tools_unit.Q_(0.25, "h"), check_names=False)
     elif freq == "h":

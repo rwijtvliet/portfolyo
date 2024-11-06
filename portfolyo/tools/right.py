@@ -7,7 +7,7 @@ import pandas as pd
 from . import freq as tools_freq
 
 
-def stamp(ts: pd.Timestamp, freq: str = None) -> pd.Timestamp:
+def stamp(ts: pd.Timestamp, freq: str) -> pd.Timestamp:
     f"""Right-bound timestamp belonging to left-bound timestamp.
 
     Parameters
