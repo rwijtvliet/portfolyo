@@ -8,6 +8,7 @@ from .types import Series_or_DataFrame
 import pandas as pd
 import pint
 import pint_pandas
+import numpy as np
 
 path = Path(__file__).parent / "unitdefinitions.txt"
 
@@ -130,7 +131,7 @@ def avoid_frame_of_objects(
 
 
 def _normalize_pintseries(s: pd.Series) -> pd.Series:
-    float_magnitudes = avoid_frame_of_objects(s.pint.magnitude)
+    float_magnitudes = s.pint.magnitude.astype(float)
     if s.pint.dimensionless:
         return float_magnitudes
     return float_magnitudes.astype(f"pint[{s.pint.units}]")
@@ -138,20 +139,25 @@ def _normalize_pintseries(s: pd.Series) -> pd.Series:
 
 def _normalize_pintobjects(s: pd.Series, strict: bool) -> pd.Series:
     # If we have a series of quantities (and nan-values), convert to pint-series if possible.
-    if not all(isinstance(v, Q_) for v in s.values):
+    is_q = s.apply(lambda v: isinstance(v, Q_))
+    if not any(is_q):
         if not strict:
             return s
-        raise ValueError("Expected a Series with quantities.")
+        raise ValueError("Expected at least one quantity.")
 
-    # All values are quantities.
+    is_q_or_nan = s.apply(lambda v: isinstance(v, Q_) or np.isnan(v))
+    if not all(is_q_or_nan):
+        if not strict:
+            return s
+        raise ValueError("Expected only quantities (and np.nan).")
 
-    units = {v.units for v in s.values if isinstance(v, Q_)}
+    units = {v.units for v in s.loc[is_q].values}
     dims = {u.dimensionality for u in units}
 
     if len(dims) > 1:
         if not strict:
             return s
-        raise pint.DimensionalityError(
+        raise ValueError(
             f"Expected a Series with quantities of the same dimension; got {dims}."
         )
 

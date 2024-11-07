@@ -2,7 +2,8 @@ from typing import Iterable, Mapping, overload
 
 import numpy as np
 import pandas as pd
-
+import pint_pandas
+from typing import Callable
 from . import freq as tools_freq
 from . import unit as tools_unit
 
@@ -39,7 +40,13 @@ from . import unit as tools_unit
 # --> Otherwise, if values are identical --> result is that value
 # --> Otherwise, result is NaN.
 
-RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM = np.nan
+# Handling units
+# --------------
+# Mathematically, weights must have uniform dimension (but not identical units).
+# Step 1: calculate the sum of the weights.
+# Step 2: remove
+# step 1) don't consider individual units, but calculate values * weights.
+# step 2) calculate
 
 
 @overload
@@ -61,7 +68,7 @@ def general(
 
 
 def general(
-    fr: pd.Series | pd.DataFrame,
+    fr,
     weights: Iterable | Mapping | pd.Series | pd.DataFrame | None = None,
     axis: int = 0,
 ) -> float | tools_unit.Q_ | pd.Series:
@@ -90,10 +97,104 @@ def general(
         return dataframe(fr, weights, axis)
     elif isinstance(fr, pd.Series):
         return series(fr, weights)
-    else:
-        raise TypeError(
-            f"Parameter ``fr`` must be Series or DataFrame; got {type(fr)}."
+    raise TypeError(f"Parameter ``fr`` must be Series or DataFrame; got {type(fr)}.")
+
+
+# Various functions to calculate the average from a series.
+
+
+def unweighted(s: pd.Series) -> float | tools_unit.Q_:
+    s = tools_unit.avoid_frame_of_objects(s)
+    return s.mean()
+
+
+def unweighted_on_subset(keep: pd.Index):
+    def unweighted_subset(s: pd.Series) -> float | tools_unit.Q_:
+        s = s.loc[keep]
+        return unweighted(s)
+
+    return unweighted_subset
+
+
+def nanunlessuniform(s: pd.Series) -> float | tools_unit.Q_:
+    if any(s.isna()):
+        return np.nan
+    s = tools_unit.avoid_frame_of_objects(s)
+    if not values_are_uniform(s):
+        return np.nan
+    return s.iloc[0]
+
+
+def nanunlessuniform_on_subet(keep: pd.Index):
+    def nanunlessuniform_subset(s: pd.Series) -> float | tools_unit.Q_:
+        s = s.loc[keep]
+        return nanunlessuniform(s)
+
+    return nanunlessuniform_subset
+
+
+def wavg_on_subset(factors: pd.Series):
+    def wavg_subset(s: pd.Series) -> float | tools_unit.Q_:
+        s = s.loc[factors.index]
+        if any(s.isna()):
+            return np.nan
+        s = tools_unit.avoid_frame_of_objects(s)
+        return sum(s * factors)
+
+    return wavg_subset
+
+
+def partial(
+    weights: Iterable | Mapping | pd.Series | None, refindex: pd.Index
+) -> Callable[[pd.Series], float | tools_unit.Q_]:
+    """Do analyses and prepare values to quickly calculate the wavg of a series.
+
+    Parameters
+    ----------
+    weights
+        Weights to be used for calculating the average.
+    refindex
+        Index of the series that will be passed in.
+
+    Returns
+    -------
+        Function that takes pandas.Series of values and returns the weighted average.
+    """
+    # Case: no weights provided: unweighted average
+    if weights is None:
+        return unweighted
+
+    # Prep: ensure weights is also a Series of floats.
+    weights = weights_as_floatseries(weights, refindex)
+
+    # Check: is a value available for all weights?
+    surplus_weights = [i not in refindex for i in weights.index]
+    if any(surplus_weights):  # more weights than values
+        raise ValueError(
+            f"There are surplus weights (i.e., weights without a corresponding value): {weights.loc[surplus_weights]}."
         )
+
+    # Case: all weights same (and unequal to 0): unweighted average.
+    if weights.round(10).nunique() == 1 and not np.isclose(weights.iloc[0], 0.0):
+        return unweighted_on_subset(weights.index)
+
+    non0 = ~np.isclose(weights, 0.0)  # bool-array
+
+    # Case: all weights same (and equal to 0): undefined unless uniform.
+    if not any(non0):  # edge case (very uncommon)
+        return nanunlessuniform
+
+    weights = weights[non0]  # keep relevant weights
+    weightsum = weights.sum()  # float
+    weightsum0 = np.isclose(weightsum, 0.0)
+
+    # Case: distinct weights, sum equal to 0: undefined unless uniform.
+    if weightsum0:
+        return nanunlessuniform_on_subet(weights.index)
+
+    # Case: distinct weights, sum unequal to 0: finally, a real weighted avg.
+    factors = weights.div(weightsum)
+    return wavg_on_subset(factors)
 
 
 def series(
@@ -120,54 +221,7 @@ def series(
     -----
     Will raise Error if values in ``s`` have distinct units.
     """
-    # Unweighted average if no weights provided.
-    if weights is None:
-        return s.mean()
-
-    # Prep: ensure weights is also a Series.
-    weights = weights_as_series(weights, s.index)
-    # Keep only relevant section.
-    try:
-        s = s.loc[weights.index]
-    except KeyError as e:  # more weights than values
-        raise ValueError("No values found for one or more weights.") from e
-
-    # Unweighted average if all weights the same but not all 0.
-    if weights.nunique() == 1 and not np.isclose(weights.iloc[0], 0):
-        return s.mean()
-
-    # Replace NaN with 0 in locations where it doesn't change the result.
-    replaceable = s.isna() & (weights == 0.0)
-    s[replaceable] = 0.0
-
-    # If we arrive here, ``s`` only has NaN on locations where weight != 0.
-
-    # Check if ALL weights are 0.
-    # In that case, the result is NaN.
-    if (weights == 0).all():  # edge case (very uncommon)
-        return np.nan
-
-    # If we arrive here, not all weights are 0.
-
-    # Check if ``s`` contains a NaN.
-    # In that case, the result is NaN.
-    if s.isna().sum() > 0:
-        return np.nan
-
-    # For the other rows, we must calculate the wavg.
-
-    # Check if SUM of weights is 0.
-    # In that case, the result is NaN in case of non-uniform values.
-    weightsum = weights.sum()  # a float or quantity
-    if np.isclose(weightsum, 0):  # edge case (more common)
-        is_uniform = values_areuniform(s)
-        return s.iloc[0] if is_uniform else RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM
-
-    # If we arrive here, the sum of the weights is not zero.
-
-    factors = weights.div(weightsum).astype(float)
-    scaled_values = s * factors  # fast, even with quantities
-    return sum(scaled_values)
+    return partial(weights, s.index)(s)
 
 
 def dataframe(
@@ -200,38 +254,34 @@ def dataframe(
     -----
     Will raise error if axis == 1 and columns have distinct unit-dimensions.
     """
-    # Developer note: it is possible to repeatedly call the `series` function in this
-    # same module, which results in a much shorter function. However, the speed penalty
-    # is enormous, which is why this elaborate function is used.
-
     # Prep: orient to always collapse the rows and keep the columns.
     if axis == 1:
-        idx_to_keep = df.index  # store now, because .T loses properties (e.g. freq)
         df = df.T
-    else:
-        idx_to_keep = df.columns
-    idx_to_collapse = df.index
-    # Fix possible problems, like distinct units of same dimension in the same column.
-    df = tools_unit.avoid_frame_of_objects(df)
 
-    # Calculate average of each column.
-    # . No weights.
-    if weights is None:
-        return df.mean().set_axis(idx_to_keep)
-    # . Element-specific weights.
-    elif isinstance(weights, pd.DataFrame):
+    # Two cases:
+
+    # a) Different set of weights in each column.
+    if isinstance(weights, pd.DataFrame):
         if axis == 1:
             weights = weights.T
-        result = dataframe_colwavg_with_weightsdataframe(df, weights)
-    # . Row or column-specific weights.
-    else:  # weights == series or iterable
-        weights = weights_as_series(
-            weights, idx_to_collapse
-        )  # ensure weights is Series
-        result = dataframe_colwavg_with_weightsseries(df, weights)
 
-    # Fix possible issue: lost .freq property on index.
-    if isinstance(result.index, pd.DatetimeIndex) and result.index.freq is None:
+        if surplusweights := set(weights.columns) - set(df.columns):
+            raise ValueError(
+                f"No values found for one or more weights: {surplusweights}."
+            )
+
+        resultvalues = {}
+        for c, weightseries in weights.items():
+            resultvalues[c] = partial(weightseries, df.index)(df[c])
+        result = pd.Series(resultvalues)
+
+    # b) Same weights applicable to each column. Also applies to None
+    else:
+        fn = partial(weights, df.index)
+        result = pd.Series({c: fn(s) for c, s in df.items()})
+
+    # Transposing loses some properties, like .index.freq
+    if axis == 1 and isinstance(result.index, pd.DatetimeIndex):
         result = tools_freq.guess_to_frame(result)
     return tools_unit.avoid_frame_of_objects(result, False)
 
@@ -286,6 +336,8 @@ def dataframe_colwavg_with_weightsdataframe(
 def dataframe_colwavg_with_weightsseries(
     df: pd.DataFrame, weights: pd.Series
 ) -> pd.Series:
+    fn = partial(weights, df.index)
+    return df.apply(fn, axis=0)
     # Keep only relevant section.
     try:
         df = df.loc[weights.index, :]
@@ -359,7 +411,7 @@ def _dataframe_colwavg_with_weightssum0notall0(
         else:
             relevantseries = s[~s.isna() & relevantweights_not0]
             if not len(relevantseries) or relevantseries.nunique() > 1:
-                returnvalues[c] = RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM
+                returnvalues[c] = np.nan
             else:
                 returnvalues[c] = relevantseries.iloc[0]
 
@@ -381,37 +433,38 @@ def _dataframe_colwavg_with_weightsall0(
         if s.isna().any():
             returnvalues[c] = np.nan
         elif not len(s) or s.nunique() > 1:
-            returnvalues[c] = RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM
+            returnvalues[c] = np.nan
         else:
             returnvalues[c] = s.iloc[0]
 
     return pd.Series(returnvalues)
 
 
-def weights_as_series(weights: Iterable | Mapping, refindex: Iterable) -> pd.Series:
+def weights_as_floatseries(
+    weights: Iterable | Mapping, refindex: Iterable
+) -> pd.Series:
     # Step 1: turn into Series.
     if isinstance(weights, pd.Series):
-        pass
+        weightseries = weights
     elif isinstance(weights, Mapping):
-        weights = pd.Series(weights)
+        weightseries = pd.Series(weights)
     elif isinstance(weights, Iterable):
-        weights = pd.Series(weights, refindex)
+        weightseries = pd.Series(weights, refindex)
     else:
         raise TypeError("``weights`` must be iterable or mapping.")
     # Step 2: avoid Series of Quantity-objects (convert to pint-series instead).
-    return tools_unit.avoid_frame_of_objects(weights)
+    weightseries = tools_unit.avoid_frame_of_objects(weightseries)
+    # Step 3: keep magnitude only.
+    if isinstance(weightseries.dtype, pint_pandas.PintType):
+        weightseries = weightseries.pint.magnitude
+    return weightseries
 
 
-def values_areuniform(series: pd.Series, mask: Iterable = None) -> bool:
-    """Return True if all values in series are same. If mask is provided, only compare
-    values where the mask is True. If there are no values to compare, return True."""
-    values = series[mask].values if mask is not None else series.values
-    for i, val in enumerate(values):
-        if i == 0:
-            theval = val
-        elif val != theval:
-            return False
-    return True
+def values_are_uniform(s: pd.Series) -> bool:
+    """Return True if all values in series are same. If there are no values to compare, return True."""
+    if isinstance(s.dtype, pint_pandas.PintType):
+        s = s.pint.magnitude
+    return s.round(10).nunique() <= 1
 
 
 def concatseries(series: Iterable[pd.Series]) -> pd.Series:
