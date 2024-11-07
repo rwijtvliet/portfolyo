@@ -54,6 +54,11 @@ def slice(self: NestedPfLine) -> SliceIndexer:
     return SliceIndexer(self)
 
 
+def reindex(self: NestedPfLine, index: pd.DatetimeIndex) -> NestedPfLine:
+    newchildren = {name: child.reindex(index) for name, child in self.pfl.items()}
+    return self.pfl.__class__(newchildren)
+
+
 class LocIndexer:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index."""
 
