@@ -37,6 +37,7 @@ def assert_frame_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwargs)
 @functools.wraps(pd.testing.assert_series_equal)
 def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
     if pd.api.types.is_float_dtype(left) or pd.api.types.is_integer_dtype(left):
+        # Numbers.
         leftm = left.replace([np.inf, -np.inf], np.nan)
         rightm = right.replace([np.inf, -np.inf], np.nan)
         pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)

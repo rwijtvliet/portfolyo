@@ -60,10 +60,13 @@ def reindex(self: NestedPfLine, index: pd.DatetimeIndex) -> NestedPfLine:
 
 
 def agg(self) -> pd.DataFrame:
-    dfs = [pd.DataFrame({"": self.flatten().agg()})]
+    dfs = [self.flatten().agg().to_frame("").T]
     for name, child in self.items():
-        dfs.append(tools.frame.add_header(child.agg(), name))
-    return tools.frame.concat(dfs, 1)
+        if isinstance(child, classes.FlatPfLine):
+            dfs.append(child.agg().to_frame(name).T)
+        else:
+            dfs.append(tools.frame.add_header(child.agg(), name, 0))
+    return tools.unit.avoid_frame_of_objects(tools.frame.concat(dfs))
 
 
 class LocIndexer:

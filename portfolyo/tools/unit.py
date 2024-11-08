@@ -3,7 +3,6 @@ Working with pint units.
 """
 
 from pathlib import Path
-from typing import Tuple, overload
 from .types import Series_or_DataFrame
 import pandas as pd
 import pint
@@ -29,67 +28,65 @@ Unit = ureg.Unit
 
 
 NAMES_AND_DIMENSIONS = {
-    "w": ureg.get_dimensionality({"[energy]": 1, "[time]": -1}),
-    "q": ureg.get_dimensionality({"[energy]": 1}),
-    "p": ureg.get_dimensionality({"[currency]": 1, "[energy]": -1}),
-    "r": ureg.get_dimensionality({"[currency]": 1}),
-    "duration": ureg.get_dimensionality({"[time]": 1}),
-    "t": ureg.get_dimensionality({"[temperature]": 1}),
-    "nodim": ureg.get_dimensionality({}),
+    "w": ureg.get_dimensionality("[energy]/[time]"),
+    "q": ureg.get_dimensionality("[energy]"),
+    "p": ureg.get_dimensionality("[currency]/[energy]"),
+    "r": ureg.get_dimensionality("[currency]"),
+    "duration": ureg.get_dimensionality("[time]"),
+    "t": ureg.get_dimensionality("temperature"),
+    "nodim": ureg.get_dimensionality("dimensionless"),
 }
 
 
-def to_name(unit: pint.Unit) -> str:
-    """Find the standard column name belonging to unit `unit`. Checks on dimensionality,
-    not exact unit."""
+def to_name(arg: Unit | Q_) -> str:
+    """Find the standard column name belonging to ``arg``, which can be a unit or
+    a quantity. Checks on dimensionality, not exact unit."""
     for name, dim in NAMES_AND_DIMENSIONS.items():
-        if dim == unit.dimensionality:
+        if arg.dimensionality == dim:
             return name
-    raise pint.UndefinedUnitError(f"No standard name found for unit '{unit}'.")
+    raise ValueError(f"No standard name found for dimension '{arg.dimensionality}'.")
 
 
-@overload
-def split_magn_unit(val: int | float) -> Tuple[float, None]:
-    ...
-
-
-@overload
-def split_magn_unit(val: pint.Quantity) -> Tuple[float, None | pint.Unit]:
-    ...
-
-
-@overload
-def split_magn_unit(
-    val: pd.Series,
-) -> Tuple[pd.Series, None | pint.Unit | pd.Series]:
-    ...
-
-
-def split_magn_unit(
-    val: int | float | pint.Quantity | pd.Series,
-) -> Tuple[float, None | pint.Unit] | Tuple[pd.Series, None | pint.Unit | pd.Series]:
-    """Split ``val`` into magnitude and units. If ``val`` is a Series with uniform
-    dimension, the unit is returned as a pint Unit. If not, it is returned as a Series.
-    """
-    if isinstance(val, int):
-        return float(val), None
-    elif isinstance(val, float):
-        return val, None
-    elif isinstance(val, pint.Quantity):
-        return float(val.magnitude), val.units
-    elif isinstance(val, pd.Series):
-        if isinstance(val.dtype, pint_pandas.PintType):
-            return val.pint.magnitude, val.pint.units
-        elif pd.api.types.is_object_dtype(val.dtype) and isinstance(val.iloc[0], Q_):
-            # series of quantities?
-            m = [q.magnitude for q in val.values]
-            u = [q.units for q in val.values]
-            return pd.Series(m, val.index), pd.Series(u, val.index)
-        return val, None
-    elif isinstance(val, pd.DataFrame):
-        raise TypeError("For dataframes, handle the series seperately.")
-    else:  # bool, timestamp, ...
-        return val, None
+# @overload
+# def split_magn_unit(val: int | float) -> Tuple[float, None]: ...
+#
+#
+# @overload
+# def split_magn_unit(val: pint.Quantity) -> Tuple[float, None | pint.Unit]: ...
+#
+#
+# @overload
+# def split_magn_unit(
+#     val: pd.Series,
+# ) -> Tuple[pd.Series, None | pint.Unit | pd.Series]: ...
+#
+#
+# def split_magn_unit(
+#     val: int | float | pint.Quantity | pd.Series,
+# ) -> Tuple[float, None | pint.Unit] | Tuple[pd.Series, None | pint.Unit | pd.Series]:
+#     """Split ``val`` into magnitude and units. If ``val`` is a Series with uniform
+#     dimension, the unit is returned as a pint Unit. If not, it is returned as a Series.
+#     """
+#     if isinstance(val, int):
+#         return float(val), None
+#     elif isinstance(val, float):
+#         return val, None
+#     elif isinstance(val, pint.Quantity):
+#         return float(val.magnitude), val.units
+#     elif isinstance(val, pd.Series):
+#         if isinstance(val.dtype, pint_pandas.PintType):
+#             return val.pint.magnitude, val.pint.units
+#         elif pd.api.types.is_object_dtype(val.dtype) and isinstance(val.iloc[0], Q_):
+#             # series of quantities?
+#             m = [q.magnitude for q in val.values]
+#             u = [q.units for q in val.values]
+#             return pd.Series(m, val.index), pd.Series(u, val.index)
+#         return val, None
+#     elif isinstance(val, pd.DataFrame):
+#         raise TypeError("For dataframes, handle the series seperately.")
+#     else:  # bool, timestamp, ...
+#         return val, None
+#
 
 
 def avoid_frame_of_objects(
@@ -122,8 +119,7 @@ def avoid_frame_of_objects(
     if hasattr(fr, "pint"):
         if isinstance(fr.dtype, pint_pandas.PintType):
             return _normalize_pintseries(fr)
-        else:
-            # We MAY have a series of pint quantities. Convert to pint-series, if possible.
+        else:  # we MAY have a series of pint quantities. Convert to pint-series, if possible
             return _normalize_pintobjects(fr, strict)
     raise TypeError(
         "Expected int-Series, float-Series, pint-Series, or Series of pint quantities (of equal dimensionality)."
