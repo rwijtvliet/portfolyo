@@ -59,6 +59,13 @@ def reindex(self: NestedPfLine, index: pd.DatetimeIndex) -> NestedPfLine:
     return self.pfl.__class__(newchildren)
 
 
+def agg(self) -> pd.DataFrame:
+    dfs = [pd.DataFrame({"": self.flatten().agg()})]
+    for name, child in self.items():
+        dfs.append(tools.frame.add_header(child.agg(), name))
+    return tools.frame.concat(dfs, 1)
+
+
 class LocIndexer:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index."""
 
