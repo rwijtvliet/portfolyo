@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 import pytest
-from pint import DimensionalityError, UndefinedUnitError
+from pint import DimensionalityError
 from utils import id_fn  # relative to /tests
 
 from portfolyo.core.pfline import interop as io
@@ -91,12 +91,12 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         # B) Cannot create InterOp-object: no key, invalid unit.
         (
             Q_(4.5, "MWh/Eur"),
-            UndefinedUnitError,
+            ValueError,
             None,
         ),
         (
             s1.astype("pint[Wh/MEur]"),
-            UndefinedUnitError,
+            ValueError,
             None,
         ),
         # C) Cannot create InterOp-object: key(s) with at least one missing unit.
@@ -203,17 +203,17 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         # D) Cannot create InterOp-object: key(s) with at least one incompatible unit.
         (
             {"w": Q_(90.0, "MWh")},
-            AttributeError,
+            DimensionalityError,
             None,
         ),
         (
             pd.Series({"w": Q_(90.0, "MWh")}),
-            AttributeError,
+            DimensionalityError,
             None,
         ),
         (
             pd.Series({"w": 90}).astype("pint[MWh]"),
-            AttributeError,
+            DimensionalityError,
             None,
         ),
         (
@@ -228,12 +228,12 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         ),
         (
             {"p": Q_(90.0, "MWh")},
-            AttributeError,
+            DimensionalityError,
             None,
         ),
         (
             pd.Series({"p": Q_(90.0, "MWh")}),
-            AttributeError,
+            DimensionalityError,
             None,
         ),
         (

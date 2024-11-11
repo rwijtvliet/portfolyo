@@ -107,7 +107,6 @@ def pfl_as_string(
     lines.extend(shared_text.index_info(pfl.index))
     if isinstance(pfl, classes.NestedPfLine):
         lines.extend(_children_info(pfl))
-    cols = pfl.kind.available
     if flatten:
         lines.extend(shared_text.dataheader(cols_and_units))
         lines.extend([""])
@@ -117,7 +116,7 @@ def pfl_as_string(
         lines.extend(
             [spaces + txtline for txtline in shared_text.dataheader(cols_and_units)]
         )
-        lines.extend(nestedtree("(this pfline)", pfl, cols, num_of_ts))
+        lines.extend(nestedtree("(this pfline)", pfl, cols_and_units, num_of_ts))
     txt = "\n".join(lines)
     return txt if color else shared_text.remove_color(txt)
 

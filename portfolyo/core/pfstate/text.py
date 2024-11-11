@@ -19,8 +19,15 @@ def pfs_as_string(pfs: PfState, num_of_ts: int, color: bool) -> str:
     lines.extend(
         [spaces + txtline for txtline in shared_text.dataheader(cols_and_units)]
     )
-    lines.extend(pfline_text.nestedtree("offtake", pfs.offtakevolume, "wq", num_of_ts))
-    lines.extend(pfline_text.nestedtree("pnl_cost", pfs.pnl_cost, "wqpr", num_of_ts))
+    volume_cols_and_units = {c: cols_and_units[c] for c in ["w", "q"]}
+    lines.extend(
+        pfline_text.nestedtree(
+            "offtake", pfs.offtakevolume, volume_cols_and_units, num_of_ts
+        )
+    )
+    lines.extend(
+        pfline_text.nestedtree("pnl_cost", pfs.pnl_cost, cols_and_units, num_of_ts)
+    )
     txt = "\n".join(lines)
     return txt if color else shared_text.remove_color(txt)
 

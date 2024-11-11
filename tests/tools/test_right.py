@@ -126,7 +126,7 @@ def do_test_index(ts, freq, tz, expected_ts_right, periods):
         pd.Timestamp(expected_ts_right, tz=tz), freq=freq, periods=periods, name="right"
     )
     testing.assert_index_equal(result, expected)
-    tools.standardize.assert_index_standardized(result, __right=True)
+    testing.assert_index_standardized(result)
 
 
 def do_test_stamp(ts, freq, tz, expected_ts_right):
