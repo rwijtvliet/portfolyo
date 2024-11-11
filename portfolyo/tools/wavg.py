@@ -104,7 +104,7 @@ def general(
 
 
 def unweighted(s: pd.Series) -> float | tools_unit.Q_:
-    s = tools_unit.avoid_frame_of_objects(s)
+    s = tools_unit.normalize_frame(s)
     return s.mean()
 
 
@@ -119,7 +119,7 @@ def unweighted_on_subset(keep: pd.Index):
 def nanunlessuniform(s: pd.Series) -> float | tools_unit.Q_:
     if any(s.isna()):
         return np.nan
-    s = tools_unit.avoid_frame_of_objects(s)
+    s = tools_unit.normalize_frame(s)
     if not values_are_uniform(s):
         return np.nan
     return s.iloc[0]
@@ -138,7 +138,7 @@ def wavg_on_subset(factors: pd.Series):
         s = s.loc[factors.index]
         if any(s.isna()):
             return np.nan
-        s = tools_unit.avoid_frame_of_objects(s)
+        s = tools_unit.normalize_frame(s)
         return sum(s * factors)
 
     return wavg_subset
@@ -283,7 +283,7 @@ def dataframe(
     # Transposing loses some properties, like .index.freq
     if axis == 1 and isinstance(result.index, pd.DatetimeIndex):
         result = tools_freq.guess_to_frame(result)
-    return tools_unit.avoid_frame_of_objects(result, False)
+    return tools_unit.normalize_frame(result, False)
 
 
 def weights_as_floatseries(
@@ -299,7 +299,7 @@ def weights_as_floatseries(
     else:
         raise TypeError("``weights`` must be iterable or mapping.")
     # Step 2: avoid Series of Quantity-objects (convert to pint-series instead).
-    weightseries = tools_unit.avoid_frame_of_objects(weightseries)
+    weightseries = tools_unit.normalize_frame(weightseries)
     # Step 3: keep magnitude only.
     if isinstance(weightseries.dtype, pint_pandas.PintType):
         weightseries = weightseries.pint.magnitude

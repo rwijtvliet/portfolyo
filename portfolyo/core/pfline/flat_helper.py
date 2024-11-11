@@ -32,8 +32,7 @@ def _dataframe(data: Any) -> pd.DataFrame:
     # Check data types.
     if inop.nodim is not None:
         raise ValueError(
-            f"Found explicitly dimensionless ({inop.nodim}) data. Use 'w', 'q', 'p', 'r' (e.g. as dictionary"
-            " keys), or explicitly pass values with a ``pint`` unit, to indicate dimensionality."
+            f"Found explicitly dimensionless ({inop.nodim}) data. Add a ``pint`` unit to indicate dimensionality."
         )
 
     # Make actual dataframe.

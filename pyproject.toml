@@ -13,7 +13,7 @@ readme = "README.rst"
 # dependencies
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.10,<3.13" # <3.13 because of mip. check if can be removed once mip gets updated
 pandas = "^2.2"
 matplotlib = "^3.7.2"
 pint = "^0.24"
@@ -21,6 +21,7 @@ pint-pandas = "^0.6.2"
 colorama = "^0.4.6"
 numpy = "^1.26.2"
 tomli = "^2.0"
+mip = "^1.15.0"
 
 [tool.poetry.group.test.dependencies]
 codecov = "^2.1.13"

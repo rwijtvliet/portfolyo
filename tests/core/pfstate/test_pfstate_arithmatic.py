@@ -254,6 +254,6 @@ def test_pfs_arithmatic(pfs_in, value, operation, expected):
     # Test correct case.
     result = calc()
     if isinstance(expected, pd.DataFrame):
-        testing.assert_frame_equal(result, expected)
+        testing.assert_dataframe_equal(result, expected)
     else:
         assert result == expected

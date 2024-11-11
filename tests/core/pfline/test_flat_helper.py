@@ -34,7 +34,7 @@ def test_makedataframe_freqtz(freq, tz):
     expected = pd.DataFrame({"q": q, "w": w})
     expected.index.freq = freq
 
-    testing.assert_frame_equal(result1, expected, check_names=False)
+    testing.assert_dataframe_equal(result1, expected, check_names=False)
 
 
 i = pd.date_range("2020-01-01", freq="MS", periods=2)
@@ -76,7 +76,7 @@ def test_makedataframe_inputtypes(data: Any, expected: pd.DataFrame | type):
             _ = flat_helper._dataframe(data)
         return
     result = flat_helper._dataframe(data)
-    testing.assert_frame_equal(result, expected)
+    testing.assert_dataframe_equal(result, expected)
 
 
 TESTCASES_COLUMNS = [
@@ -162,7 +162,7 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
             expected["p"] = expected.r / expected.q
             expected["w"] = expected.q / expected.index.duration
 
-    testing.assert_frame_equal(result, expected)
+    testing.assert_dataframe_equal(result, expected)
 
 
 @pytest.mark.parametrize("freq1", ["15min", "MS", "YS"])  # don't do all - many!

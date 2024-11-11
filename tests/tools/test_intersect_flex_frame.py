@@ -38,8 +38,8 @@ def test_frames_ignore_tz(types: str, ignore_tz: bool):
             return
         exp_a, exp_b = pd.DataFrame({"col_a": exp_a}), pd.DataFrame({"col_b": exp_b})
         result_a, result_b = tools.intersect.frames(a, b, ignore_tz=ignore_tz)
-        testing.assert_frame_equal(result_a, exp_a)
-        testing.assert_frame_equal(result_b, exp_b)
+        testing.assert_dataframe_equal(result_a, exp_a)
+        testing.assert_dataframe_equal(result_b, exp_b)
 
 
 @pytest.mark.parametrize("types", ["series", "df"])
@@ -81,8 +81,8 @@ def test_frames_ignore_start_of_day(types: str, ignore_start_of_day: bool):
         result_a, result_b = tools.intersect.frames(
             a, b, ignore_start_of_day=ignore_start_of_day
         )
-        testing.assert_frame_equal(result_a, exp_a)
-        testing.assert_frame_equal(result_b, exp_b)
+        testing.assert_dataframe_equal(result_a, exp_a)
+        testing.assert_dataframe_equal(result_b, exp_b)
 
 
 @pytest.mark.parametrize("types", ["series", "df"])
@@ -114,8 +114,8 @@ def test_frames_ignore_freq(types: str, ignore_freq: bool):
             return
         exp_a, exp_b = pd.DataFrame({"col_a": exp_a}), pd.DataFrame({"col_b": exp_b})
         result_a, result_b = tools.intersect.frames(a, b, ignore_freq=ignore_freq)
-        testing.assert_frame_equal(result_a, exp_a)
-        testing.assert_frame_equal(result_b, exp_b)
+        testing.assert_dataframe_equal(result_a, exp_a)
+        testing.assert_dataframe_equal(result_b, exp_b)
 
 
 @pytest.mark.parametrize("types", ["series", "df"])
@@ -171,5 +171,5 @@ def test_frames_ignore_all(types: str, ignore_all: bool):
         result_a, result_b = tools.intersect.frames(
             a, b, ignore_freq=True, ignore_start_of_day=True, ignore_tz=True
         )
-        testing.assert_frame_equal(result_a, exp_a)
-        testing.assert_frame_equal(result_b, exp_b)
+        testing.assert_dataframe_equal(result_a, exp_a)
+        testing.assert_dataframe_equal(result_b, exp_b)

@@ -130,7 +130,7 @@ def do_test_setchild(
     result = pfl
 
     assert result == expected
-    testing.assert_frame_equal(result.df, expected.df)
+    testing.assert_dataframe_equal(result.df, expected.df)
 
 
 def do_test_dropchild(pfl: PfLine, to_drop: Iterable[str], expected: PfLine, how: str):
@@ -153,7 +153,7 @@ def do_test_dropchild(pfl: PfLine, to_drop: Iterable[str], expected: PfLine, how
     result = pfl
 
     assert result == expected
-    testing.assert_frame_equal(result.df, expected.df)
+    testing.assert_dataframe_equal(result.df, expected.df)
 
 
 @pytest.mark.parametrize(

@@ -66,7 +66,7 @@ def agg(self) -> pd.DataFrame:
             dfs.append(child.agg().to_frame(name).T)
         else:
             dfs.append(tools.frame.add_header(child.agg(), name, 0))
-    return tools.unit.avoid_frame_of_objects(tools.frame.concat(dfs))
+    return tools.unit.normalize_frame(tools.frame.concat(dfs))
 
 
 class LocIndexer:

@@ -8,6 +8,7 @@ import pandas as pd
 from ..shared import text as shared_text
 from . import classes
 from .enums import Kind
+from ... import tools
 
 if TYPE_CHECKING:
     from .classes import PfLine
@@ -28,15 +29,17 @@ def _children_info(pfl: PfLine) -> Iterable[str]:
     return [". Children: " + ("none" if not childtxt else ", ".join(childtxt))]
 
 
-def _flatdatablock(pfl: PfLine, cols: Iterable[str], num_of_ts: int) -> Iterable[str]:
+def _flatdatablock(
+    pfl: PfLine, cols_and_units: dict[str, tools.unit.Unit], num_of_ts: int
+) -> Iterable[str]:
     """The timestamps and data to be shown in a block, next to the tree."""
     # Obtain dataframe with index = timestamp as string and columns = one or more of 'qwpr'.
-    df = pfl.df[list(cols)]
+    df = pfl.df[cols_and_units.keys()]
     # . (roughly) reduce number of timestamps to increase speed of conversion to strings.
     if len(df.index) > num_of_ts * 2:
         df = pd.concat([df.iloc[:num_of_ts, :], df.iloc[-num_of_ts:, :]], axis=0)
     # . turn values into strings.
-    df = shared_text.df_with_strvalues(df)
+    df = shared_text.df_with_strvalues(df, cols_and_units)
     # . turn index into strings and reduce to wanted number of datapoints
     df = shared_text.df_with_strindex(df, num_of_ts)
     # . column withs
@@ -47,7 +50,7 @@ def _flatdatablock(pfl: PfLine, cols: Iterable[str], num_of_ts: int) -> Iterable
 
 
 def _childrenlines(
-    pfl: PfLine, cols: Iterable[str], num_of_ts: int, depth: int
+    pfl: PfLine, cols_and_units: dict[str, tools.unit.Unit], num_of_ts: int, depth: int
 ) -> Iterable[str]:
     """Treeview of only the children."""
     out = []
@@ -56,7 +59,9 @@ def _childrenlines(
     for c, (name, child) in enumerate(pfl.items()):
         is_last, is_only = (c == len(pfl) - 1), (len(pfl) == 1)
         out.extend(
-            nestedtree(name, child, cols, num_of_ts, depth + 1, is_last, is_only)
+            nestedtree(
+                name, child, cols_and_units, num_of_ts, depth + 1, is_last, is_only
+            )
         )
     return out
 
@@ -67,7 +72,7 @@ def _childrenlines(
 def nestedtree(
     name: str,
     pfl: PfLine,
-    cols: Iterable[str],
+    cols_and_units: dict[str, tools.unit.Unit],
     num_of_ts: int,
     depth: int = 0,
     is_last: bool = True,
@@ -82,28 +87,36 @@ def nestedtree(
     if is_only and depth > 0:
         txtlines = ["(only contributor to parent data; has same values)"]
     else:
-        txtlines = _flatdatablock(pfl, cols, num_of_ts)
+        txtlines = _flatdatablock(pfl, cols_and_units, num_of_ts)
     for txtline in txtlines:
         out.append(tree["10"] + tree["11"] + colorama.Style.RESET_ALL + txtline)
     # Add children if any.
-    for txtline in _childrenlines(pfl, cols, num_of_ts, depth):
+    for txtline in _childrenlines(pfl, cols_and_units, num_of_ts, depth):
         out.append(tree["10"] + txtline)
     return out
 
 
-def pfl_as_string(pfl: PfLine, flatten: bool, num_of_ts: int, color: bool) -> str:
+def pfl_as_string(
+    pfl: PfLine,
+    flatten: bool,
+    num_of_ts: int,
+    color: bool,
+) -> str:
+    cols_and_units = shared_text.cols_and_units(pfl)
     lines = [f"PfLine object with {_what(pfl)} information."]
     lines.extend(shared_text.index_info(pfl.index))
     if isinstance(pfl, classes.NestedPfLine):
         lines.extend(_children_info(pfl))
     cols = pfl.kind.available
     if flatten:
-        lines.extend(shared_text.dataheader(cols))
+        lines.extend(shared_text.dataheader(cols_and_units))
         lines.extend([""])
-        lines.extend(_flatdatablock(pfl, cols, num_of_ts))
+        lines.extend(_flatdatablock(pfl, cols_and_units, num_of_ts))
     else:
         spaces = " " * (shared_text.MAX_DEPTH + 5)
-        lines.extend([spaces + txtline for txtline in shared_text.dataheader(cols)])
+        lines.extend(
+            [spaces + txtline for txtline in shared_text.dataheader(cols_and_units)]
+        )
         lines.extend(nestedtree("(this pfline)", pfl, cols, num_of_ts))
     txt = "\n".join(lines)
     return txt if color else shared_text.remove_color(txt)

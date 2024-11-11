@@ -1443,6 +1443,26 @@ files = [
 traitlets = "*"
 
 [[package]]
+name = "mip"
+version = "1.16rc0"
+description = "Python tools for Modeling and Solving Mixed-Integer Linear Programs (MIPs)"
+optional = false
+python-versions = "<3.13,>=3.7"
+files = [
+    {file = "mip-1.16rc0-py3-none-any.whl", hash = "sha256:62e04c27bce56da94d070f6b03d9e342600d10f4016984334af7dae8c0f9fd09"},
+    {file = "mip-1.16rc0.tar.gz", hash = "sha256:f250083a41f4e1f61b6885041d64ed2a88bff5ead7165c329b5b31d07c517466"},
+]
+
+[package.dependencies]
+cffi = ">=1.15"
+
+[package.extras]
+gurobi = ["gurobipy (>=8)"]
+highs = ["highspy (>=1.5.3)"]
+numpy = ["numpy (==1.21.*)", "numpy (==1.24.*)", "numpy (>=1.25)"]
+test = ["matplotlib (==3.5.3)", "matplotlib (==3.6.2)", "matplotlib (>=3.7)", "networkx (==2.6.3)", "networkx (==2.8.8)", "pytest (>=7.4)"]
+
+[[package]]
 name = "mistune"
 version = "3.0.2"
 description = "A sane and fast Markdown parser with useful plugins and renderers"
@@ -3113,5 +3133,5 @@ type = ["pytest-mypy"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.10"
-content-hash = "91a127d7701e3b613b177c092f7336596c37f0ae482fe94c1ba11a3a09be208f"
+python-versions = "^3.10,<3.13"
+content-hash = "52f67b9ae8d57032f4d7a23ed97d9b3d0fcc876d287b61bd3edc2ddb8f8888e4"

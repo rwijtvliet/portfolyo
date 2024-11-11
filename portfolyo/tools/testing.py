@@ -9,6 +9,9 @@ import pint_pandas
 import pint
 
 from . import unit as tools_unit
+from . import standardize as tools_standardize
+
+ALLOWED_TYPES = int | float | pint.Quantity | pd.Series | pd.DataFrame
 
 
 def assert_value_equal(left: Any, right: Any):
@@ -18,20 +21,6 @@ def assert_value_equal(left: Any, right: Any):
         assert np.isclose(left, right)
     except Exception as e:
         raise AssertionError from e
-
-
-@functools.wraps(pd.testing.assert_frame_equal)
-def assert_frame_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwargs):
-    # Dataframes equal even if *order* of columns is not the same.
-    left = left.sort_index(axis=1)
-    right = right.sort_index(axis=1)
-    assert set(left.columns) == set(right.columns)
-
-    for (coll, sl), (colr, sr) in zip(left.items(), right.items()):
-        # Names must match.
-        assert coll == colr
-        # Series must match.
-        assert_series_equal(sl, sr, *args, **kwargs)
 
 
 @functools.wraps(pd.testing.assert_series_equal)
@@ -53,7 +42,7 @@ def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
         rightm = right.pint.magnitude.replace([np.inf, -np.inf], np.nan)
         pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)
 
-    elif pd.api.types.is_object_dtype(left) and isinstance(left.iloc[0], tools_unit.Q_):
+    elif pd.api.types.is_object_dtype(left) and isinstance(left.iloc[0], pint.Quantity):
         # series of quantities?
         leftm = left.apply(lambda q: q.magnitude).replace([np.inf, -np.inf], np.nan)
         leftu = left.apply(lambda q: q.units)
@@ -68,6 +57,20 @@ def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
         pd.testing.assert_series_equal(left, right, *args, **kwargs)
 
 
+@functools.wraps(pd.testing.assert_frame_equal)
+def assert_dataframe_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwargs):
+    # Dataframes equal even if *order* of columns is not the same.
+    left = left.sort_index(axis=1)
+    right = right.sort_index(axis=1)
+    assert set(left.columns) == set(right.columns)
+
+    for (coll, sl), (colr, sr) in zip(left.items(), right.items()):
+        # Names must match.
+        assert coll == colr
+        # Series must match.
+        assert_series_equal(sl, sr, *args, **kwargs)
+
+
 assert_index_equal = pd.testing.assert_index_equal
 
 
@@ -79,6 +82,43 @@ def assert_indices_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
         raise AssertionError(f"Indices that have unequal start-of-day; {lt} and {rt}.")
     if (lz := left.tz) != (rz := right.tz):
         raise AssertionError(f"Indices that have unequal timezone; {lz} and {rz}.")
+
+
+# Characterizing input data.
+
+
+assert_index_standardized = tools_standardize.assert_index_standardized
+assert_frame_standardized = tools_standardize.assert_frame_standardized
+
+
+def assert_allowed_type(v: Any) -> None:
+    if not isinstance(v, ALLOWED_TYPES):
+        raise AssertionError(f"Unexpected type: {type(v)}.")
+
+
+def order(v: ALLOWED_TYPES) -> int:
+    """Return 0 if ``v`` is float, int, or Quantity. Return 1 if ``v`` is a Series. Return 2 if ``v`` is a DataFrame."""
+    if isinstance(v, float | int | pint.Quantity):
+        return 0
+    elif isinstance(v, pd.Series):
+        return 1
+    elif isinstance(v, pd.DataFrame):
+        return 2
+
+
+def is_order_0(v: ALLOWED_TYPES) -> bool:
+    return isinstance(v, float | int | pint.Quantity)
+
+
+def is_order_1(v: ALLOWED_TYPES) -> bool:
+    return isinstance(v, pd.Series)
+
+
+def is_order_2(v: ALLOWED_TYPES) -> bool:
+    return isinstance(v, pd.DataFrame)
+
+
+# Comparing energy, power, price, revenue.
 
 
 def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):

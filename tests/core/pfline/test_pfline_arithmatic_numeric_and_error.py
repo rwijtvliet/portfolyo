@@ -561,7 +561,7 @@ def do_test(tc: Case, order: str = ""):
     result = calc()
 
     if isinstance(result, pd.DataFrame):
-        testing.assert_frame_equal(result, tc.expected)
+        testing.assert_dataframe_equal(result, tc.expected)
     elif isinstance(result, pd.Series):
         testing.assert_series_equal(result, tc.expected)
     else:

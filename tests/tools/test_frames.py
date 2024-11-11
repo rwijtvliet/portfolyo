@@ -121,7 +121,7 @@ expect_concat_13 = pd.DataFrame(
 def test_concat(dfs, axis, expected):
     """Test if concatenation works as expected."""
     result = tools.frame.concat(dfs, axis)
-    testing.assert_frame_equal(result, expected)
+    testing.assert_dataframe_equal(result, expected)
 
 
 vals1 = np.array([1, 2.0, -4.1234, 0])

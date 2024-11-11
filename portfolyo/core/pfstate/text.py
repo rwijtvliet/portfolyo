@@ -10,10 +10,15 @@ if TYPE_CHECKING:
 
 
 def pfs_as_string(pfs: PfState, num_of_ts: int, color: bool) -> str:
+    cols_and_units = shared_text.FALLBACKUNITS | shared_text.cols_and_units(
+        pfs.offtakevolume, pfs.unsourcedprice, pfs.sourced
+    )  # ensure we have all of wqpr
     lines = ["PfState object."]
     lines.extend(shared_text.index_info(pfs.index))
     spaces = " " * (shared_text.MAX_DEPTH + 5)
-    lines.extend([spaces + txtline for txtline in shared_text.dataheader("wqpr")])
+    lines.extend(
+        [spaces + txtline for txtline in shared_text.dataheader(cols_and_units)]
+    )
     lines.extend(pfline_text.nestedtree("offtake", pfs.offtakevolume, "wq", num_of_ts))
     lines.extend(pfline_text.nestedtree("pnl_cost", pfs.pnl_cost, "wqpr", num_of_ts))
     txt = "\n".join(lines)

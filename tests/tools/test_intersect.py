@@ -256,4 +256,4 @@ def do_test_intersect_frame(
         if isinstance(result, pd.Series):
             testing.assert_series_equal(result, expected, **kwargs)
         else:
-            testing.assert_frame_equal(result, expected, **kwargs)
+            testing.assert_dataframe_equal(result, expected, **kwargs)

@@ -236,7 +236,7 @@ def test_init_A(
     assert isinstance(result, expected_type)
     if type(itc.data_in) is type(constructor):
         assert result is itc.data_in  # assert no copy but reference.
-    pf.testing.assert_frame_equal(result_df, itc.expected_df.rename_axis("ts_left"))
+    pf.testing.assert_dataframe_equal(result_df, itc.expected_df.rename_axis("ts_left"))
     assert result.kind is itc.expected_kind
     if expected_type is classes.NestedPfLine:
         assert len(result)

@@ -30,15 +30,14 @@ quarter_matrix = [
 ]
 
 
-def assert_freq_valid(freq: str) -> None:
+def assert_freq_valid(freq: str | pd.offsets.BaseOffset) -> None:
     """
     Validate if the given frequency string is allowed based on pandas offset objects.
 
-    Parameters:
-    freq (str): A string representing a frequency alias (e.g., "YS", "QS", "MS").
-
-    Raises:
-    ValueError: If the frequency is not allowed.
+    Parameters
+    ----------
+    freq
+        Frequency, or frequency alias (e.g., "YS", "QS", "MS").
     """
 
     freq_offset = pd.tseries.frequencies.to_offset(freq)
@@ -47,20 +46,20 @@ def assert_freq_valid(freq: str) -> None:
     # Check if the MRO is in the list of allowed MROs
     # have to make sure it's only the first class on the list
     if mro_class not in ALLOWED_CLASSES:
-        raise ValueError(f"The passed frequency '{freq}' is not allowed.")
+        raise AssertionError(f"The passed frequency '{freq}' is not allowed.")
 
     # Define restricted classes that should have n == 1
     restricted_classes = {
-        pd.tseries.offsets.MonthBegin: 1,
-        pd.tseries.offsets.Day: 1,
-        pd.tseries.offsets.Hour: 1,
-        pd.tseries.offsets.Minute: 15,
+        pd.offsets.MonthBegin: 1,
+        pd.offsets.Day: 1,
+        pd.offsets.Hour: 1,
+        pd.offsets.Minute: 15,
     }
     allowed_n = restricted_classes.get(type(freq_offset))
     if allowed_n is not None:  # case where freq is not in restricted class
         # Check if freq_offset.n is not None and if it doesn't match allowed_n
         if freq_offset.n is None or freq_offset.n != allowed_n:
-            raise ValueError(f"The passed frequency {freq} is not allowed.")
+            raise AssertionError(f"The passed frequency {freq} is not allowed.")
 
 
 def up_or_down(freq_source: str, freq_target: str) -> int:
