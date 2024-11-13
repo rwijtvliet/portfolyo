@@ -226,7 +226,7 @@ def test_freq_validity(freq: str, is_valid: bool):
         tools.freq.assert_freq_valid(freq)
     else:
         # ValueError should be raised for invalid frequencies
-        with pytest.raises(ValueError):
+        with pytest.raises(AssertionError):
             _ = tools.freq.assert_freq_valid(freq)
 
 

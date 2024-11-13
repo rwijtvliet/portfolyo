@@ -340,12 +340,12 @@ def test_pfline_with_diff_units(dtype: str, expected_exception: Exception):
     if dtype:
         input_data = {
             "w": pd.Series(
-                [1, 2], pd.date_range("2024", freq="AS", periods=2), dtype=dtype
+                [1, 2], pd.date_range("2024", freq="YS", periods=2), dtype=dtype
             )
         }
     else:
         input_data = {
-            "w": pd.Series([1, 2], pd.date_range("2024", freq="AS", periods=2))
+            "w": pd.Series([1, 2], pd.date_range("2024", freq="YS", periods=2))
         }
 
     if expected_exception:

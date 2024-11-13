@@ -20,7 +20,6 @@ pint = "^0.24"
 pint-pandas = "^0.6.2"
 colorama = "^0.4.6"
 numpy = "^1.26.2"
-tomli = "^2.0"
 mip = "^1.15.0"
 
 [tool.poetry.group.test.dependencies]

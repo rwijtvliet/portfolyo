@@ -227,7 +227,7 @@ Footnotes
       # --- hide: start ---
       import portfolyo as pf 
       import pandas as pd
-      idx = pd.date_range("2023", freq="AS", periods=2)
+      idx = pd.date_range("2023", freq="YS", periods=2)
       s_price = pd.Series([50, 56], idx, dtype="pint[Eur/MWh]")
       s_volume = pd.Series([120, 125], idx, dtype="pint[MW]")
       df1 = pd.DataFrame({"p": s_price, "w": s_volume})
@@ -243,7 +243,7 @@ Footnotes
       # --- hide: start ---
       import portfolyo as pf 
       import pandas as pd
-      idx = pd.date_range("2023", freq="AS", periods=2)
+      idx = pd.date_range("2023", freq="YS", periods=2)
       s_price = pd.Series([50, 56], idx, dtype="pint[Eur/MWh]")
       s_volume = pd.Series([120, 125], idx, dtype="pint[MW]")
       df1 = pd.DataFrame({"p": s_price, "w": s_volume})
