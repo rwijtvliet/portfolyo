@@ -6,10 +6,25 @@ from numpy import nan
 from portfolyo import dev, testing, tools
 
 
+@pytest.fixture(
+    params=[
+        [1, 2, 3, 4, 25, 7, 8],
+        [1, 2, 3, 4, nan, 7, 8],
+        [1, 2, 3, 4, nan, 7, 8],
+        [1, 2, 3, 4, nan, 7, 8],
+        [3, 2, 1, nan, nan, 7, 8],
+        [3, 2, 1, nan, nan, 7, 8],
+        [3, 2, 1, nan, nan, 7, 8],
+    ]
+)
+def values(request):
+    return request.param
+
+
 @pytest.mark.parametrize(
     ("values", "maxgap", "gapvalues"),
     [
-        ([1, 2, 3, 4, 25, 7, 8], 1, []),
+        ([1, 2, 3, 4, 25, 7, 8], 1, None),
         ([1, 2, 3, 4, nan, 7, 8], 1, [5.5]),
         ([1, 2, 3, 4, nan, 7, 8], 2, [5.5]),
         ([1, 2, 3, 4, nan, 7, 8], 3, [5.5]),
