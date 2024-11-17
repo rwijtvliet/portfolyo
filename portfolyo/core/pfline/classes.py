@@ -469,6 +469,7 @@ class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
         return pd.Series({"w": w, "q": q, "p": p, "r": r})
 
     def reindex(self, index: pd.DatetimeIndex) -> FlatCompletePfLine:
+        # override default from FlatPfLine
         tools.testing.assert_indices_compatible(self.index, index)
         newdf = self.df[["w", "q", "r"]].reindex(index, fill_value=0)
         newdf["p"] = newdf["r"] / newdf["q"]
