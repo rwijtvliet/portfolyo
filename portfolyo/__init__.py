@@ -18,6 +18,7 @@ from .tools.peakfn import factory as create_peakfn
 from .tools.product import germanpower_peakfn, is_peak_hour
 from .tools.standardize import frame as standardize
 from .tools.tzone import force_agnostic, force_aware
+from .tools.right import index as right_index, stamp as right_stamp
 from .tools.unit import Q_, Unit, ureg
 from .tools.unit import normalize_frame as pintframe
 from .tools.wavg import general as wavg

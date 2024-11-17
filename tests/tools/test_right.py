@@ -63,11 +63,18 @@ def index_right(startts_right, freq, periods):
     return pd.date_range(startts_right, freq=freq, periods=periods, name="right")
 
 
-def test_right_index(index, index_right):
+@pytest.fixture
+def expect_standardized_index_right(freq):
+    return freq != "15min"
+
+
+def test_right_index(index, index_right, expect_standardized_index_right):
     """Test if right index is correctly calculated for index without dst-transition."""
     result = tools.right.index(index)
     expected = index_right
     testing.assert_index_equal(result, expected)
+    if expect_standardized_index_right:
+        testing.assert_index_standardized(result)
 
 
 def test_right_stamp(startts, startts_right, freq):
@@ -144,11 +151,20 @@ def index_right_dst1(startts_right_dst1, freq_dst, periods_dst1):
     )
 
 
-def test_right_index_dst1(index_dst1, index_right_dst1):
+@pytest.fixture
+def expect_standardized_index_right_dst1(freq_dst, startofday_dst1):
+    return not (freq_dst == "15min" or (freq_dst == "h" and startofday_dst1 == "01:00"))
+
+
+def test_right_index_dst1(
+    index_dst1, index_right_dst1, expect_standardized_index_right_dst1
+):
     """Test if right index is correctly calculated for index with winter->summer dst-transition."""
     result = tools.right.index(index_dst1)
     expected = index_right_dst1
     testing.assert_index_equal(result, expected)
+    if expect_standardized_index_right_dst1:
+        testing.assert_index_standardized(result)
 
 
 def test_right_stamp_dst1(startts_dst1, startts_right_dst1, freq_dst):
@@ -213,7 +229,7 @@ def startts_right_dst2(startdate_dst2, startofday_dst2, freq_dst) -> pd.Timestam
             "02:00+0100": "03:00",
             "03:00": "04:00",
         }[startofday_dst2]
-    elif freq_dst == "D":
+    else:  # freq_dst == "D":
         if startofday_dst2 in ["02:00+0200", "02:00+0100"]:
             pytest.skip("Unclear what correct outcome is in this situation.")
         timestr = startofday_dst2
@@ -228,11 +244,22 @@ def index_right_dst2(startts_right_dst2, freq_dst, periods_dst2):
     )
 
 
-def test_right_index_dst2(index_dst2, index_right_dst2):
+@pytest.fixture
+def expect_standardized_index_right_dst2(freq_dst, startofday_dst2):
+    return not (
+        freq_dst == "15min" or (freq_dst == "h" and startofday_dst2 == "02:00+0200")
+    )
+
+
+def test_right_index_dst2(
+    index_dst2, index_right_dst2, expect_standardized_index_right_dst2
+):
     """Test if right index is correctly calculated for index with summer->winter dst-transition."""
     result = tools.right.index(index_dst2)
     expected = index_right_dst2
     testing.assert_index_equal(result, expected)
+    if expect_standardized_index_right_dst2:
+        testing.assert_index_standardized(result)
 
 
 def test_right_stamp_dst2(startts_dst2, startts_right_dst2, freq_dst):
