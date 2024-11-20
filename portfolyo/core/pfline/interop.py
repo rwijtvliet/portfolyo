@@ -331,7 +331,7 @@ def _multiple_union(inops: Iterable[InOp]) -> InOp:
     return inop_result
 
 
-def _union(inop1: InOp, inop2: InOp) -> InOp:
+def _union(inop1: InOp, inop2: InOp | None) -> InOp:
     """Combine 2 ``InOp`` objects, and raise error if same dimension is supplied twice."""
     if inop2 is None:
         return inop1

@@ -4,23 +4,8 @@ import datetime as dt
 from portfolyo import testing, tools
 
 
-@pytest.fixture(params=[None, "Europe/Berlin", "Asia/Kolkata"])
-def tz(request) -> str | None:
-    return request.param
-
-
 @pytest.fixture(params=["2020-01-01", "2020-04-01"])
-def startdate(request) -> dt.date:
-    return dt.date.fromisoformat(request.param)
-
-
-@pytest.fixture(params=["00:00", "06:00"])
-def startofday(request) -> str:
-    return request.param
-
-
-@pytest.fixture(params=["15min", "h", "D", "MS", "QS", "YS"])
-def freq(request) -> str:
+def startdate(request) -> str:
     return request.param
 
 
@@ -43,19 +28,20 @@ def index(startts, freq, periods) -> pd.DatetimeIndex:
 @pytest.fixture
 def startts_right(startdate, startofday, freq, tz) -> pd.Timestamp:
     time = dt.time.fromisoformat(startofday)
+    date = dt.date.fromisoformat(startdate)
     if freq == "15min":
         time = time.replace(minute=time.minute + 15)
     elif freq == "h":
         time = time.replace(hour=time.hour + 1)
     elif freq == "D":
-        startdate = startdate.replace(day=startdate.day + 1)
+        date = date.replace(day=date.day + 1)
     elif freq == "MS":
-        startdate = startdate.replace(month=startdate.month + 1)
+        date = date.replace(month=date.month + 1)
     elif freq == "QS":
-        startdate = startdate.replace(month=startdate.month + 3)
+        date = date.replace(month=date.month + 3)
     elif freq == "YS":
-        startdate = startdate.replace(year=startdate.year + 1)
-    return pd.Timestamp(f"{startdate} {time}", tz=tz)
+        date = date.replace(year=date.year + 1)
+    return pd.Timestamp(f"{date} {time}", tz=tz)
 
 
 @pytest.fixture

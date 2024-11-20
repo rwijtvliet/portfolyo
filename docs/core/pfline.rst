@@ -178,8 +178,9 @@ The properties ``PfLine.w``, ``.q``, ``.p`` and ``.r`` always return the informa
    # --- hide: stop ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index).astype({'w': 'pint[MW]', 'p': 'pint[Eur/MWh]'})
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    
    pfl.r
    # --- hide: start ---
@@ -199,8 +200,9 @@ If we want to extract more than one timeseries, we can use the ``.df`` attribute
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index).astype({'w': 'pint[MW]', 'p': 'pint[Eur/MWh]'})
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.df
@@ -222,8 +224,9 @@ The ``PfLine.index`` property returns the ``pandas.DatetimeIndex`` that applies 
    # --- hide: start --- 
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index).astype({'w': 'pint[MW]', 'p': 'pint[Eur/MWh]'})
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.index
@@ -237,8 +240,9 @@ For convenience, ``portfolyo`` adds a ``.duration`` and a ``right`` property to 
    # --- hide: start --- 
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index).astype({'w': 'pint[MW]', 'p': 'pint[Eur/MWh]'})
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.index.duration, pfl.index.right
@@ -259,8 +263,9 @@ Another slicing method is implemented with the ``.slice[]`` property. The improv
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index).astype({'w': 'pint[MW]', 'p': 'pint[Eur/MWh]'})
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.slice['2024':'2026']  # excludes 2026; 2026 interpreted as timestamp 2026-01-01 00:00:00
@@ -278,8 +283,9 @@ A portfolio line can be reindexed with ``.index()``, using another index, e.g. o
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    index2 = pd.date_range('2025', freq='YS', periods=3)  
@@ -299,8 +305,9 @@ Portfolio lines can be concatenated with the ``portfolio.concat()`` function. Th
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index).astype({'w': 'pint[MW]', 'p': 'pint[Eur/MWh]'})
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    index2 = pd.date_range('2025', freq='YS', periods=3)  # 2 years' overlap with pfl
@@ -335,8 +342,9 @@ The data can be shown graphically with the ``.plot()`` method:
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index).astype({'w': 'pint[MW]', 'p': 'pint[Eur/MWh]'})
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.plot()
@@ -358,8 +366,9 @@ Alternatively, the data can be saved as an Excel workbook with the ``.to_excel()
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index).astype({'w': 'pint[MW]', 'p': 'pint[Eur/MWh]'})
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.to_clipboard()
@@ -378,8 +387,9 @@ Using the ``.asfreq()`` method, we can quickly and correctly downsample our data
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index).astype({'w': 'pint[MW]', 'p': 'pint[Eur/MWh]'})
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.asfreq('QS')
