@@ -7,7 +7,11 @@ from portfolyo import Kind, dev, testing, tools
 from portfolyo.core.pfline import nested_helper
 
 
-@pytest.mark.parametrize("freq", ["MS", "D"])
+@pytest.fixture(params=["MS", "D"])
+def freq(request) -> str:
+    return request.param
+
+
 @pytest.mark.parametrize("kind1", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
 @pytest.mark.parametrize("kind2", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE, None])
 @pytest.mark.parametrize("kind3", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE, None])

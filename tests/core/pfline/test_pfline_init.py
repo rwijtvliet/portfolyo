@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Any, Callable, Iterable
 
 import pandas as pd
+from pint import DimensionalityError
 import pytest
 
 import portfolyo as pf
@@ -62,9 +63,9 @@ class InputTypeB(Enum):
     PFDICTFLAT = ("pfdictflat", False, True)
     PFDICTNESTED = ("pfdictnested", False, True)
     PFDICTMIX = ("pfdictmix", False, True)
-    DICTINITIABLE_NOUNIT = ("object dict", False, True)
+    # DICTINITIABLE_NOUNIT = ("object dict", False, True)
     DICTINITIABLE_UNIT = ("object-with-unit dict", False, True)
-    MULTILEVELDF_NOUNIT = ("multileveldf", False, True)
+    # MULTILEVELDF_NOUNIT = ("multileveldf", False, True)
     MULTILEVELDF_UNIT = ("multileveldf-with-units", False, True)
 
     returntype = _returntype
@@ -141,7 +142,8 @@ def get_testcase_B(
             "child1": dev.get_flatpfline(i, kind),
             "child2": dev.get_nestedpfline(i, kind),
         }
-    elif inputtype in [InputTypeB.MULTILEVELDF_NOUNIT, InputTypeB.MULTILEVELDF_UNIT]:
+    # elif inputtype in [InputTypeB.MULTILEVELDF_NOUNIT, InputTypeB.MULTILEVELDF_UNIT]:
+    elif inputtype is InputTypeB.MULTILEVELDF_UNIT:
         # only check one initalisable inputtype
         has_unit = inputtype is InputTypeB.MULTILEVELDF_UNIT
         data_in = {}
@@ -158,7 +160,8 @@ def get_testcase_B(
                 get_testcase_A(i, columns, InputTypeA.FLATDF, has_unit).data_in,
             )
 
-    elif inputtype in [InputTypeB.DICTINITIABLE_NOUNIT, InputTypeB.DICTINITIABLE_UNIT]:
+    # elif inputtype in [InputTypeB.DICTINITIABLE_NOUNIT, InputTypeB.DICTINITIABLE_UNIT]:
+    elif inputtype is InputTypeB.DICTINITIABLE_UNIT:
         has_unit = inputtype is InputTypeB.DICTINITIABLE_UNIT
         columns = {
             Kind.PRICE: "p",
@@ -205,11 +208,25 @@ def test_init_A(
     """Test if pfline can be initialized correctly from a flat testcase."""
 
     i = dev.get_index(freq, tz)
+    if has_unit is False and inputtype in [
+        InputTypeA.FLATPFLINE,
+        InputTypeA.NESTEDPFLINE,
+    ]:
+        with pytest.raises((DimensionalityError, ValueError)):
+            _ = get_testcase_A(i, columns, inputtype, has_unit)
+        return
+
     itc = get_testcase_A(i, columns, inputtype, has_unit)
 
     expected_type = inputtype.returntype(constructor)
     if expected_error := anyerror(expected_type, itc.expected_df):
         with pytest.raises(expected_error):
+            _ = constructor(itc.data_in)
+        return
+
+    # !ATTN: wasn't the case before
+    if has_unit is False and inputtype in [InputTypeA.FLATDICT, InputTypeA.FLATDF]:
+        with pytest.raises((DimensionalityError, ValueError)):
             _ = constructor(itc.data_in)
         return
 
@@ -219,7 +236,7 @@ def test_init_A(
     assert isinstance(result, expected_type)
     if type(itc.data_in) is type(constructor):
         assert result is itc.data_in  # assert no copy but reference.
-    pf.testing.assert_frame_equal(result_df, itc.expected_df.rename_axis("ts_left"))
+    pf.testing.assert_dataframe_equal(result_df, itc.expected_df.rename_axis("ts_left"))
     assert result.kind is itc.expected_kind
     if expected_type is classes.NestedPfLine:
         assert len(result)
@@ -256,13 +273,20 @@ def test_init_B(
     assert result.kind is itc.expected_kind
 
 
-@pytest.mark.parametrize("col", ["q", "w", "p", "r"])
-def test_init_with_integers(col: str):
+@pytest.mark.parametrize(
+    "col, unit",
+    [
+        ("w", "pint[MW]"),
+        ("q", "pint[MWh]"),
+        ("p", "pint[euro_per_MWh]"),
+    ],
+)
+def test_init_with_integers(col: str, unit: str):
     """Test if a series of integers is correctly converted into floats."""
     i = pd.date_range("2020", freq="MS", periods=3)
     magnitude = pd.Series([100, 200, -500], i)
-    unit = pf.tools.unit.NAMES_AND_UNITS[col]
-    s = magnitude.astype(f"pint[{unit}]")
+
+    s = magnitude.astype(unit)
     pfl = pf.PfLine(s)
     for dtype in pfl.df.pint.dequantify().dtypes.values:
         assert not pd.api.types.is_integer_dtype(dtype)
@@ -299,3 +323,33 @@ def test_equal_sod(freq: str):
     s_pint = s.astype("pint[MW]")
     with pytest.raises(ValueError):
         pf.PfLine(s_pint)
+
+
+@pytest.mark.parametrize(
+    "dtype, expected_exception",
+    [
+        # Case 1: Correct dtype
+        ("pint[MW]", None),
+        # Case 2: Incorrect dimensionality
+        ("pint[MWh]", ValueError),
+        # Case 3: Missing unit
+        (None, ValueError),
+    ],
+)
+def test_pfline_with_diff_units(dtype: str, expected_exception: Exception):
+    if dtype:
+        input_data = {
+            "w": pd.Series(
+                [1, 2], pd.date_range("2024", freq="YS", periods=2), dtype=dtype
+            )
+        }
+    else:
+        input_data = {
+            "w": pd.Series([1, 2], pd.date_range("2024", freq="YS", periods=2))
+        }
+
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            _ = pf.PfLine(input_data)
+    else:
+        pf.PfLine(input_data)

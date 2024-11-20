@@ -72,7 +72,7 @@ def __eq__(self: FlatPfLine, other: Any) -> bool:
     if not isinstance(other, self.__class__):
         return False
     try:
-        tools.testing.assert_frame_equal(self.df, other.df, rtol=1e-7)
+        tools.testing.assert_dataframe_equal(self.df, other.df, rtol=1e-7)
         return True
     except AssertionError:
         return False

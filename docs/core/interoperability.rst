@@ -38,9 +38,7 @@ To pass a single value, the following objects can be used:
      print(repr(pf.Q_(50.0, "Eur/MWh")))
      # --- hide: stop ---
      pf.Q_(50.0, "Eur/MWh")
-     
-  The unit is converted to the default unit for its dimension once it is used in any of the ``portfolyo`` objects, see also :ref:`this section<nameunitcompatibility>` further below.
-  
+
   See `pint's website <https://pint.readthedocs.io>`_ for more information about ``pint``.
 
 .. hint:: Using a ``pint.Quantity`` expresses a more deliberate intent, and therefore allows us to catch dimensionality errors more easily. For dimensionless values, such as fractions, we could even use a dimensionless ``Quantity`` (though this quickly becomes cumbersome).
@@ -51,7 +49,7 @@ One or more values
 
 If we have to specify several individual values, we can use:
 
-* A dictionary with the one or more of the dimension abbrevations (``"w"``, ``"q"``, ``"p"``, ``"r"``, ``"nodim"``) as the keys, and ``float``, ``int`` or ``pint.Quantity`` instances as the values. E.g.:
+* A dictionary with the one or more of the dimension abbrevations (``"w"``, ``"q"``, ``"p"``, ``"r"``, ``"nodim"``) as the keys, and ``pint.Quantity`` instances (or ``float`` or ``int`` if dimensionless) as the values. E.g.:
 
   .. exec_code::
      
@@ -59,9 +57,9 @@ If we have to specify several individual values, we can use:
      import portfolyo as pf
      import pandas as pd
      # --- hide: stop ---
-     {"p": 50.0, "w": pf.Q_(120, 'MW')}
+     {"p": pf.Q_(50.0, 'Eur/MWh'), "w": pf.Q_(120, 'MW')}
      # --- hide: start ---
-     print(repr({"p": 50.0, "w": pf.Q_(120.0, 'MW')}))
+     print(repr({"p": pf.Q_(50.0, 'Eur/MWh'), "w": pf.Q_(120.0, 'MW')}))
 
 * Or we can use any other ``Mapping`` from string values to ``float``s, ``int``s, or ``pint.Quantity`` objects, e.g., a ``pandas.Series`` with a string index. It is recommended, however, to use ``Series`` only for timeseries information.
 
@@ -75,7 +73,7 @@ One timeseries
 
 .. warning:: To avoid unexpected behavior, timeseries (``pandas.Series`` and ``pandas.DataFrame`` objects) should be of a certain form. See :doc:`../specialized_topics/dataprep`.
 
-For timeseries, ``pandas.Series`` are used. These can be "unit-agnostic" (i.e., of datatype ``float`` or ``int``), or unit-aware as in the example below. [#ts]_
+For timeseries, ``pandas.Series`` are used. Unless dimensionless, these should be "unit-aware" as in the example below. [#ts]_
 
 .. exec_code::
    
@@ -84,9 +82,9 @@ For timeseries, ``pandas.Series`` are used. These can be "unit-agnostic" (i.e., 
    import pandas as pd
    idx = pd.date_range("2023", freq="YS", periods=2)
    # --- hide: stop ---
-   pd.Series([50, 56.0], idx, dtype="pint[Eur/MWh]")  # unit-aware
+   tseries = pd.Series([50, 56.0], idx, dtype="pint[Eur/MWh]")  # unit-aware
    # --- hide: start ---
-   print(repr(pd.Series([50, 56.0], idx, dtype="pint[Eur/MWh]")))
+   print(repr(tseries))
 
 .. warning:: The ``name`` attribute of a ``pandas.Series`` is always ignored.
 
@@ -105,11 +103,12 @@ To pass several timeseries, we can use:
      import pandas as pd
      idx = pd.date_range("2023", freq="YS", periods=2)
      # --- hide: stop ---
-     {"p": pd.Series([50, 56], idx), "w": pd.Series([120, 125], idx, dtype="pint[MW]")}
+     dict_of_tseries = {"p": pd.Series([50, 56], idx, dtype="pint[Eur/MWh]"), "w": pd.Series([120, 125], idx, dtype="pint[MW]")}
+     dict_of_tseries
      # --- hide: start ---
-     print(repr({"p": pd.Series([50, 56.0], idx), "w": pd.Series([120, 125.0], idx, dtype="pint[MW]")}))
+     print(repr(dict_of_tseries))
     
-  Each of the timeseries can have a unit or be unit-agnostic.
+  Each of the timeseries must have a unit unless it's dimensionless.
 
 * Or we can use any other ``Mapping`` from string values to timeseries, e.g., a ``pandas.DataFrame`` with a datetime-index. In this case:
 
@@ -120,19 +119,22 @@ To pass several timeseries, we can use:
      import pandas as pd
      idx = pd.date_range("2023", freq="YS", periods=2)
      # --- hide: stop ---
-     pd.DataFrame({"p": [50, 56], "w": [120, 125]}, idx)
+     dict_of_tseries = {"p": pd.Series([50, 56], idx, dtype="pint[Eur/MWh]"), "w": pd.Series([120, 125], idx, dtype="pint[MW]")}
+     df = pd.DataFrame(dict_of_tseries) 
+     df
      # --- hide: start ---
-     print(repr(pd.DataFrame({"p": [50, 56.0], "w": [120, 125.0]}, idx)))
+     print(repr(df))
 
-  Dataframes can also be made unit-aware. [#df]_
+  Note that it is not immediately obvious, that the dataframe is unit-aware. [#df]_ 
 
-.. note:: The same applied here: because we have to explicitly state the dimension abbreviation, these objects help us avoid dimensionality errors. For this reason, we may want to use them, even for *single* timeseries.
+
+.. note:: The same applied here: because we have to explicitly state the dimension abbreviation when creating a dataframe, they help us avoid dimensionality errors. For this reason, we may want to use them, even for *single* timeseries.
   
 ------------
 Combinations
 ------------
 
-Dictionaries are the most versatily of these objects. They can be used to pass a single value, multiple values, a single timeseries, multiple timeseries, or a combination of these:
+Dictionaries are the most versatile of these objects. They can be used to pass a single value, multiple values, a single timeseries, multiple timeseries, or a combination of these:
 
 .. exec_code::
     
@@ -141,11 +143,11 @@ Dictionaries are the most versatily of these objects. They can be used to pass a
    import pandas as pd
    idx = pd.date_range("2023", freq="YS", periods=2)
    # --- hide: stop ---
-   d1 = {"p": 50}
-   d2 = {"p": 50, "w": 120}
-   d3 = {"p": pd.Series([50, 56], idx)}
-   d4 = {"p": pd.Series([50, 56], idx), "w": pd.Series([120, 125], idx)}
-   d5 = {"p": pd.Series([50, 56], idx), "w": 120}
+   d1 = {"p": pf.Q_(50, "Eur/MWh")}
+   d2 = {"p": pf.Q_(50, "Eur/MWh"), "w": pf.Q_(120, "MW")}
+   d3 = {"p": pd.Series([50, 56], idx, dtype="pint[Eur/MWh]")}
+   d4 = {"p": pd.Series([50, 56], idx, dtype="pint[Eur/MWh]"), "w": pd.Series([120, 125], idx, dtype="pint[MW]")}
+   d5 = {"p": pd.Series([50, 56], idx, dtype="pint[Eur/MWh]"), "w": pf.Q_(120, "MW")}
     
 
 .. _ducktyping:
@@ -164,23 +166,21 @@ Compatilibity of abbrevation and unit
 
 Information can have a key (one of the dimension abbrevations: ``"w"``, ``"q"``, ``"p"``, ``"r"``, ``"nodim"``) and/or a unit. In a DataFrame, a timeseries' key is the corresponding column name. A timeseries 'by itself' has no key; its name is ignored.
 
-There is a one-to-one relationship between dimension abbrevation and unit; see :doc:`../specialized_topics/dimensions`.
+* In some of the objects discussed above, we specify both a key *and* a unit. In that case, ``portfolyo`` checks if it knows the unit, and if it has the correct dimensionality.
 
-* In some of the objects discussed above, we specify both a key *and* a unit. In that case, ``portfolyo`` checks if the unit has the correct dimensionality. If so, but it is not the default unit, a conversion to the default unit is done. 
+  E.g., the key ``"p"`` and unit ``ctEur/kWh`` of ``{"p": pd.Series([5.0, 5.6], idx, dtype="pint[ctEur/kWh]")}`` are consistent. Using ``"q"`` instead of ``"p"`` results in a dimensionality error, and using ``"x"`` results in a KeyError.
 
-  E.g., the key ``"p"`` and unit ``ctEur/kWh`` of ``{"p": pd.Series([5.0, 5.6], idx, dtype="pint[ctEur/kWh]")}`` are consistent. The values will be changed to the default unit (=Eur/MWh) upon further processing. Using ``"q"`` instead of ``"p"`` results in a dimensionality error, and using ``"x"`` results in a KeyError.
-
-* In some objects, only the unit is specified. Here, the dimension is deduced from the unit, and the unit is converted into the default (if necessary). 
+* In some objects, only the unit is specified. Here, the dimension is deduced from the unit.
 
   E.g., the timeseries ``pd.Series([5.0, 5.6], idx, dtype="pint[ctEur/kWh]")`` (NB: without the dictionary key) is such an object.
 
-* In other objects, only the key is specified. In that case, the unit is deduced from the key - the default unit is assumed. 
+* In other objects, only the key is specified. This is bad practice, as the unit is unclear, and an error is raised when using it in calculations or ``PfLine`` initialisation.
 
-  E.g., the key ``"p"`` of ``{"p": pd.Series([50, 56], idx)}`` indicates that we are dealing with prices, and the default unit of Eur/MWh is assumed.
+  E.g., the key ``"p"`` of ``{"p": pd.Series([50, 56], idx)}`` indicates that we are dealing with prices, but the unit is unclear.
 
-* If both are not provided, the dimension must be inferrable from the context, and the unit is assumed to be the default for that dimension. 
+* If both are not provided, an error is also raised.
 
-  E.g. when adding a ``float`` value to a ``PfLine`` containing prices, the value is assumed to also be a price, in the default unit (= Eur/MWh).
+  E.g. when adding a ``float`` value to a ``PfLine`` containing prices.
 
 
 ---------
@@ -217,10 +217,37 @@ Footnotes
       >>> s_volume = pandas.Series([120, 125], idx, dtype="pint[MW]")
       >>> df1 = pandas.DataFrame({"p": s_price, "w": s_volume})
 
-      >>> df_agn = pandas.DataFrame({"p": [50, 56], 'w': [120, 125]}, idx) # unit-agnostic
+      >>> df_agn = pd.DataFrame({"p": [50, 56], 'w': [120, 125]}, idx) # unit-agnostic
       >>> df2 = df_agn.astype({'p': 'pint[Eur/MWh]', 'w': 'pint[MW]'}) # same as df1
 
-      >>> df1.dtypes
-      p    pint[Eur/MWh]
-      w         pint[MW]
-      dtype: object
+   We can inspect the units with `.dtypes`... 
+
+   .. exec_code::
+
+      # --- hide: start ---
+      import portfolyo as pf 
+      import pandas as pd
+      idx = pd.date_range("2023", freq="YS", periods=2)
+      s_price = pd.Series([50, 56], idx, dtype="pint[Eur/MWh]")
+      s_volume = pd.Series([120, 125], idx, dtype="pint[MW]")
+      df1 = pd.DataFrame({"p": s_price, "w": s_volume})
+      # --- hide: stop ---
+      df1.dtypes
+      # --- hide: start ---
+      print(repr(df1.dtypes))
+
+   ...or by removing the units from the values and adding them as a column level instead: 
+
+   .. exec_code::
+  
+      # --- hide: start ---
+      import portfolyo as pf 
+      import pandas as pd
+      idx = pd.date_range("2023", freq="YS", periods=2)
+      s_price = pd.Series([50, 56], idx, dtype="pint[Eur/MWh]")
+      s_volume = pd.Series([120, 125], idx, dtype="pint[MW]")
+      df1 = pd.DataFrame({"p": s_price, "w": s_volume})
+      # --- hide: stop ---
+      df1.pint.dequantify()
+      # --- hide: start ---
+      print(repr(df1.pint.dequantify()))

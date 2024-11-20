@@ -375,7 +375,7 @@ def do_test_dataframe(
     expected = pd.DataFrame({"a": expected_series(i, i_expected, dtype)})
 
     result = tools.trim.frame(fr, trimfreq)
-    testing.assert_frame_equal(result, expected)
+    testing.assert_dataframe_equal(result, expected)
 
 
 def expected_series(i, i_expected, dtype):
