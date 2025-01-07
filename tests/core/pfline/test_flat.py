@@ -142,6 +142,7 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
 @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
 def test_flatpfline_asfreqimpossible(freq, newfreq, kind):
     """Test if changing frequency raises error if it's impossible."""
+    # this is the case where it's always impossible with given freq since the index is only a few days long
 
     i = pd.date_range(
         "2020-04-06", "2020-04-16", freq=freq, inclusive="left", tz="Europe/Berlin"
