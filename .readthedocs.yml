@@ -13,7 +13,7 @@ build:
       - poetry export -f requirements.txt --without-hashes --without-urls --with docs -o requirements.txt
       - pip install -r requirements.txt
       - pip install -e . # install current package
-      #- pip list
+      - pip list
 
 sphinx:
   configuration: docs/conf.py
