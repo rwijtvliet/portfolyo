@@ -71,7 +71,7 @@ def hedge(
     if w.index.freq not in ["15min", "h", "D"]:
         raise ValueError("Can only hedge a timeseries with daily (or shorter) values.")
     # ATTN!: changed due to new freq
-    if freq not in ["D", "MS", freq.startswith("QS"), freq.startswith("YS")]:
+    if not any(freq.startswith(t) for t in ["D", "MS", "QS", "YS"]):
         raise ValueError(
             f"Parameter ``freq`` must be one of 'D', 'MS', 'QS', 'YS'; got '{freq}'."
         )

@@ -148,6 +148,10 @@ def up_or_down(freq_source: str, freq_target: str) -> int:
     else:
         source_index = restricted_classes.index(type(freq_source_as_offset))
         target_index = restricted_classes.index(type(freq_target_as_offset))
+        # the code below describes the case when year and/or quarter starts from the same month group
+        # example: JAN,APR,JUl and OCT
+        # if we are in the same quadrant (belong to the same month group), we can transfrom one to another
+        # better described at https://github.com/rwijtvliet/portfolyo/issues/57
         group_by_month_beginn = (
             freq_source_as_offset.startingMonth
             if source_index == 0

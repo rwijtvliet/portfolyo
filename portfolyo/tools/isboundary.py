@@ -115,7 +115,6 @@ def stamp(ts: pd.Timestamp, freq: str, start_of_day: dt.time = None) -> bool:
     elif freq == "MS":
         return (ts.time() == start_of_day) & is_month_start(ts)
     # ATTN!: changed due to new frequencies
-    # not working with 'pandas._libs.tslibs.offsets.YearBegin' object
     elif freq_to_string(freq).startswith("QS"):
         # get the start month (ie. QS-JAN -> 1, QS-FEB -> 2 )
         start_month = pd.tseries.frequencies.to_offset(freq).startingMonth
@@ -127,7 +126,25 @@ def stamp(ts: pd.Timestamp, freq: str, start_of_day: dt.time = None) -> bool:
         raise ValueError(f"Unexpected frequency ``freq``; got {freq}.")
 
 
-def freq_to_string(freq):
+def freq_to_string(freq: str | pd.DateOffset) -> str:
+    """
+    Converts a frequency object to its string representation.
+
+    Parameters:
+    ----------
+    freq : str or pandas.DateOffset
+        The input frequency to convert. This can be:
+        - A string representing a frequency (e.g., "D", "M", "Y").
+        - A pandas DateOffset object (e.g., YearBegin, MonthBegin, QuarterBegin, etc.).
+
+    Returns:
+    -------
+    str
+    Raises:
+    ------
+    ValueError
+        If the input is neither a string nor a pandas DateOffset object.
+    """
     if isinstance(freq, str):
         return freq  # Return as is if it's already a string
     elif isinstance(freq, pd.DateOffset):
