@@ -99,6 +99,7 @@ def test_flatpfline_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
 
 
 # . check correct working of attributes .asfreq().
+# ATTN!: need to be adapted to the new freq
 @pytest.mark.only_on_pr
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("freq", ["h", "D", "MS", "QS", "YS"])
@@ -137,6 +138,7 @@ def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
     testing.assert_series_equal(df1.apply(np.sum), df2.apply(np.sum))
 
 
+# ATTN!: need to add new freq
 @pytest.mark.parametrize("freq", ["15min", "h", "D"])
 @pytest.mark.parametrize("newfreq", ["MS", "QS", "YS"])
 @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])

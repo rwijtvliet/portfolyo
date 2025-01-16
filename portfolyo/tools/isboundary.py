@@ -27,8 +27,10 @@ def is_year_start(i: pd.DatetimeIndex) -> np.ndarray:
     ...
 
 
-def is_year_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
-    return (i.day == 1) & (i.month == 1)
+def is_year_start(
+    i: pd.Timestamp | pd.DatetimeIndex, start_month: int = 1
+) -> bool | np.ndarray:
+    return (i.day == 1) & (i.month == start_month)
 
 
 @overload
@@ -41,8 +43,10 @@ def is_quarter_start(i: pd.DatetimeIndex) -> np.ndarray:
     ...
 
 
-def is_quarter_start(i: pd.Timestamp | pd.DatetimeIndex) -> bool | np.ndarray:
-    return (i.day == 1) & ((i.month - 1) % 3 == 0)
+def is_quarter_start(
+    i: pd.Timestamp | pd.DatetimeIndex, start_month: int = 1
+) -> bool | np.ndarray:
+    return (i.day == 1) & (i.month % 3 == start_month)
 
 
 @overload
@@ -72,10 +76,13 @@ def is_X_start(i: pd.DatetimeIndex) -> np.ndarray:
 def is_X_start(i: pd.Timestamp | pd.DatetimeIndex, freq: str) -> bool | np.ndarray:
     if freq == "MS":
         return is_month_start(i)
-    elif freq == "QS":
-        return is_quarter_start(i)
-    elif freq == "YS":
-        return is_year_start(i)
+    # ATTN!: changed due to new frequences
+    elif freq.startswith("QS"):
+        start_month = pd.tseries.frequencies.to_offset(freq).startingMonth
+        return is_quarter_start(i, start_month)
+    elif freq.startswith("YS"):
+        start_month = pd.tseries.frequencies.to_offset(freq).month
+        return is_year_start(i, start_month)
     else:
         raise ValueError(f"Unexpected frequency ``freq``; got {freq}.")
 
@@ -107,10 +114,14 @@ def stamp(ts: pd.Timestamp, freq: str, start_of_day: dt.time = None) -> bool:
         return ts.time() == start_of_day
     elif freq == "MS":
         return (ts.time() == start_of_day) & is_month_start(ts)
-    elif freq == "QS":
-        return (ts.time() == start_of_day) & is_quarter_start(ts)
-    elif freq == "YS":
-        return (ts.time() == start_of_day) & is_year_start(ts)
+    # ATTN!: changed due to new frequencies
+    elif freq.startswith("QS"):
+        # get the start month (ie. QS-JAN -> 1, QS-FEB -> 2 )
+        start_month = pd.tseries.frequencies.to_offset(freq).startingMonth
+        return (ts.time() == start_of_day) & is_quarter_start(ts, start_month)
+    elif freq.startswith("YS"):
+        start_month = pd.tseries.frequencies.to_offset(freq).month
+        return (ts.time() == start_of_day) & is_year_start(ts, start_month)
     else:
         raise ValueError(f"Unexpected frequency ``freq``; got {freq}.")
 
