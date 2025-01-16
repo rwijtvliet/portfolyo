@@ -164,10 +164,10 @@ def _offset(freq: str, future: int):
     # ATTN!:changed due to new frequencies
     elif freq == "MS":
         return pd.offsets.MonthBegin(future)
-    elif freq.startswith("QS"):
+    elif tools_isboundary.freq_to_string(freq).startswith("QS"):
         start_month = pd.tseries.frequencies.to_offset(freq).startingMonth
         return pd.offsets.QuarterBegin(future, startingMonth=start_month)
-    elif freq.startswith("YS"):
+    elif tools_isboundary.freq_to_string(freq).startswith("YS"):
         start_month = pd.tseries.frequencies.to_offset(freq).month
         return pd.offsets.YearBegin(future, month=start_month)
     else:
