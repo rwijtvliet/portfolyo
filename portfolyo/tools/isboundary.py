@@ -118,10 +118,10 @@ def stamp(ts: pd.Timestamp, freq: str, start_of_day: dt.time = None) -> bool:
     elif freq_to_string(freq).startswith("QS"):
         # get the start month (ie. QS-JAN -> 1, QS-FEB -> 2 )
         start_month = pd.tseries.frequencies.to_offset(freq).startingMonth
-        return (ts.time() == start_of_day) & is_quarter_start(ts, start_month)
+        return (ts.time() == start_of_day) and is_quarter_start(ts, start_month)
     elif freq_to_string(freq).startswith("YS"):
         start_month = pd.tseries.frequencies.to_offset(freq).month
-        return (ts.time() == start_of_day) & is_year_start(ts, start_month)
+        return (ts.time() == start_of_day) and is_year_start(ts, start_month)
     else:
         raise ValueError(f"Unexpected frequency ``freq``; got {freq}.")
 

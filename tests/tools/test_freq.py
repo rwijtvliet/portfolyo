@@ -346,24 +346,24 @@ def test_up_pr_down2(source_freq: str, ref_freq: str, expected: int | Exception)
         assert result == expected
 
 
-# ATTN!: expected == int doesn't really mean anything and could be changed to something else
+# ATTN!: expected means if it works or expects and error
 @pytest.mark.parametrize(
     ("source_freq", "ref_freq", "expected"),
     [
         # downsampling
-        ("D", "MS", -1),
-        ("MS", "QS", -1),
-        ("MS", "QS-APR", -1),
-        ("QS", "YS-APR", -1),
-        ("QS", "YS", -1),
+        ("D", "MS", True),
+        ("MS", "QS", True),
+        ("MS", "QS-APR", True),
+        ("QS", "YS-APR", True),
+        ("QS", "YS", True),
         # upsampling
-        ("QS", "D", 1),
-        ("YS-APR", "QS", 1),
+        ("QS", "D", True),
+        ("YS-APR", "QS", True),
         # the same
-        ("MS", "MS", 0),
-        ("QS", "QS", 0),
-        ("QS", "QS-APR", 0),
-        ("QS", "QS-JAN", 0),
+        ("MS", "MS", True),
+        ("QS", "QS", True),
+        ("QS", "QS-APR", True),
+        ("QS", "QS-JAN", True),
         # ValueError
         ("QS", "QS-FEB", ValueError),
         ("QS", "YS-FEB", ValueError),

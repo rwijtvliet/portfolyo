@@ -4,6 +4,8 @@ from typing import Tuple
 
 import pandas as pd
 
+from . import isboundary as tools_boundary
+
 from . import duration as tools_duration
 from . import intersect as tools_intersect
 from . import peakconvert as tools_peakconvert
@@ -71,7 +73,10 @@ def hedge(
     if w.index.freq not in ["15min", "h", "D"]:
         raise ValueError("Can only hedge a timeseries with daily (or shorter) values.")
     # ATTN!: changed due to new freq
-    if not any(freq.startswith(t) for t in ["D", "MS", "QS", "YS"]):
+    if not any(
+        tools_boundary.freq_to_string(freq).startswith(t)
+        for t in ["D", "MS", "QS", "YS"]
+    ):
         raise ValueError(
             f"Parameter ``freq`` must be one of 'D', 'MS', 'QS', 'YS'; got '{freq}'."
         )
