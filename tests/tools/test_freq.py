@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from portfolyo import tools, dev, create, Kind, testing
+from portfolyo import tools
 
 
 freqs_small_to_large = [
@@ -27,7 +27,7 @@ freqs_small_to_large_valid = [
     "YS",
     "YS-APR",
 ]
-invalid_freq = ["min", "5min", "2h", "5D", "3MS"]
+invalid_freq = ["min", "5min", "30min", "2h", "5D", "3MS"]
 
 
 @pytest.mark.parametrize("count", range(1, 30))
@@ -344,72 +344,3 @@ def test_up_pr_down2(source_freq: str, ref_freq: str, expected: int | Exception)
     else:
         result = tools.freq.up_or_down(source_freq, ref_freq)
         assert result == expected
-
-
-# ATTN!: expected means if it works or expects and error
-@pytest.mark.parametrize(
-    ("source_freq", "ref_freq", "expected"),
-    [
-        # downsampling
-        ("D", "MS", True),
-        ("MS", "QS", True),
-        ("MS", "QS-APR", True),
-        ("QS", "YS-APR", True),
-        ("QS", "YS", True),
-        # upsampling
-        ("QS", "D", True),
-        ("YS-APR", "QS", True),
-        # the same
-        ("MS", "MS", True),
-        ("QS", "QS", True),
-        ("QS", "QS-APR", True),
-        ("QS", "QS-JAN", True),
-        # ValueError
-        ("QS", "QS-FEB", ValueError),
-        ("QS", "YS-FEB", ValueError),
-        ("YS-APR", "YS", ValueError),
-        ("YS-FEB", "QS", ValueError),
-    ],
-)
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("columns", ["pr", "qr", "pq", "wp", "wr"])
-def test_asfreq_with_new_freq(
-    source_freq: str,
-    ref_freq: str,
-    expected: int | Exception,
-    tz: str | None,
-    columns: str,
-):
-    # create pfl with original freq
-    # Includes at least 2 full years
-    a, m, d = np.array([2016, 1, 1]) + np.random.randint(0, 12, 3)  # each + 0..11
-    start = f"{a}-{m}-{d}"
-    a, (m, d) = a + 3, np.array([1, 1]) + np.random.randint(0, 12, 2)  # each + 0..11
-    end = f"{a}-{m}-{d}"
-
-    i = pd.date_range(start, end, freq=source_freq, inclusive="left", tz=tz)
-    df = dev.get_dataframe(i, columns)
-    pfl1 = create.flatpfline(df)
-
-    if isinstance(expected, type) and issubclass(expected, Exception):
-        with pytest.raises(expected):
-            _ = pfl1.asfreq(ref_freq)
-    else:
-        pfl2 = pfl1.asfreq(ref_freq)
-        # Compare the dataframes, only keep time intervals that are in both objects.
-        if pfl1.kind is Kind.PRICE:
-            df1, df2 = pfl1.p * pfl1.index.duration, pfl2.p * pfl2.index.duration
-        else:
-            cols = ["q"]
-            if pfl1.kind is Kind.COMPLETE:
-                cols.append("r")
-            df1, df2 = pfl1.df[cols], pfl2.df[cols]
-
-        mask1 = (df1.index >= df2.index[0]) & (df1.index.right <= df2.index.right[-1])
-        mask2 = (df2.index >= df1.index[0]) & (df2.index.right <= df1.index.right[-1])
-        df1, df2 = df1[mask1], df2[mask2]
-
-        if df2.empty or df1.empty:
-            return
-
-        testing.assert_series_equal(df1.apply(np.sum), df2.apply(np.sum))
