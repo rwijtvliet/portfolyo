@@ -4,6 +4,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
 import pytest
+import numpy as np
 
 import portfolyo as pf
 from portfolyo import Kind, PfState
@@ -81,4 +82,24 @@ def test_plot_to_ax(levels: int, childcount: int, children: bool, freq: str):
     pfl_vol.plot_to_ax(axs[0][1], children=children, kind=Kind.VOLUME)
     pfl_price.plot_to_ax(axs[1][0], children=children, kind=Kind.PRICE)
     pfl_rev.plot_to_ax(axs[1][1], children=children, kind=Kind.REVENUE)
+    matplotlib.pyplot.close()
+
+
+@pytest.mark.parametrize("freq", ["MS", "D"])
+@pytest.mark.parametrize("children", [True, False])
+@pytest.mark.parametrize(
+    "kind, letter", [(Kind.VOLUME, "w"), (Kind.PRICE, "p"), (Kind.REVENUE, "r")]
+)
+def test_plot_with_nan(freq: str, children: bool, kind: Kind, letter: str):
+    index = pd.date_range("2020-01-01", "2021-01-01", freq=freq, tz=None)
+    # random_values = np.random.uniform(0, 1000, len(index))
+    # random_series = pd.Series(random_values, index=index)
+    s = pf.dev.get_series(index, letter)
+    s.iloc[:] = np.nan
+    pfl = pf.PfLine(s)
+    if children:
+        pfl2 = pf.dev.get_flatpfline(index, kind=kind)
+        dict_of_children = {"southeast": pfl, "northwest": pfl2}
+        pfl = pf.PfLine(dict_of_children)
+    pfl.plot(children=children)
     matplotlib.pyplot.close()

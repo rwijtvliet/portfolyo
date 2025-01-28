@@ -102,7 +102,10 @@ def plot_timeseries_as_bar(
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     categories = Categories(s)
-    ax.bar(categories.x(), categories.y(), width=width, **kwargs)
+    height = categories.y()
+    if all((h is pd.NA for h in height.quantity.magnitude)):
+        height = 0
+    ax.bar(categories.x(), height, width=width, **kwargs)
     ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
     set_data_labels(
         ax, categories.x(MAX_XLABELS), categories.y(MAX_XLABELS), labelfmt, True
@@ -132,6 +135,10 @@ def plot_timeseries_as_area(
     bottom = [0.0 for i in range(0, splot.size)]
     # make bottom into pintarray
     bottom = bottom * splot.values[0].units
+    # the case with all nan values
+    if all(pd.isna(s.magnitude) for s in splot.values):
+        for i in range(0, splot.size):
+            splot.values[i] = 0 * splot.values[i].u
 
     ax.fill_between(
         splot.index,
@@ -313,14 +320,18 @@ def set_data_labels(
     # Add labels.
     for x, y in zip(xx, yy):
         lbl = labelfmt.format(y.magnitude).replace(",", " ")
-        xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
+
+        xytext = (
+            (0, -10) if pd.isna(y.magnitude) or outside and y.magnitude < 0 else (0, 10)
+        )
+        # xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
         ax.annotate(
             lbl,
             (x, y),
             textcoords="offset points",
             xytext=xytext,
             ha="center",
-            va="top" if y.magnitude < 0 else "bottom",
+            va="top" if pd.isna(y.magnitude) or y.magnitude < 0 else "bottom",
             rotation=90,
         )
 
