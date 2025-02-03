@@ -45,6 +45,32 @@ TESTCASES_2 = [  # startdates, freq, end_dates
     (("2020-04-21", "2020-07-01"), ("h", "MS"), ("2020-07-01", "2023-01-01")),
     (("2020-04-21", "2020-07-01"), ("h", "QS"), ("2020-07-01", "2023-01-01")),
     (("2020-04-21", "2021-01-01"), ("D", "YS"), ("2021-01-01", "2023-01-01")),
+    (("2020-03-21", "2020-04-01"), ("D", "YS-APR"), ("2020-04-01", "2022-04-01")),
+]
+
+TESTCASES_3 = [  # first_period, second_period, freqs, result1, result2
+    # the start and end dates of the resulting intersection are not the same for first and second index
+    (
+        ("2020-03-01", "2021-02-01"),
+        ("2020-05-01", "2021-02-01"),
+        ("MS", "QS-MAY"),
+        ("2020-05-01", "2020-11-01"),
+        ("2020-05-01", "2020-11-01"),
+    ),
+    (
+        ("2020-03-01", "2021-04-01"),
+        ("2020-04-01", "2021-03-01"),
+        ("MS", "YS-APR"),
+        ("2020-04-01", "2021-04-01"),
+        ("2020-04-01", "2021-03-01"),
+    ),
+    (
+        ("2020-01-01", "2021-04-01"),
+        ("2020-04-01", "2021-03-01"),
+        ("QS", "YS-APR"),
+        ("2020-04-01", "2021-02-01"),
+        ("2020-04-01", "2021-03-01"),
+    ),
 ]
 
 
@@ -173,6 +199,44 @@ def test_intersect_flex_ignore_freq(
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize(
+    ("first_period", "second_period", "freq", "result1_dates", "result2_dates"),
+    TESTCASES_3,
+)
+@pytest.mark.parametrize("starttime", ["00:00", "06:00"])
+def test_intersect_flex_ignore_freq_new_freq(
+    # indexorframe: str,
+    first_period: Iterable[str],
+    second_period: Iterable[str],
+    starttime: str,
+    tz: str,
+    freq: Iterable[str],
+    result1_dates: Iterable[str],
+    result2_dates: Iterable[str],
+):
+    """Test if intersection of indices with distinct frequencies gives correct result."""
+
+    idxs = [
+        get_idx(first_period[0], starttime, tz, freq[0], first_period[1]),
+        get_idx(second_period[0], starttime, tz, freq[1], second_period[1]),
+    ]
+    do_test_intersect_index_2(
+        idxs,
+        result1_dates[0],
+        result2_dates[0],
+        expected_tz=tz,
+        expected_freq=freq[0],
+        expected_starttime=starttime,
+        expected_otherstarttime=starttime,
+        expected_othertz=tz,
+        expected_otherfreq=freq[1],
+        enddate_1=result1_dates[1],
+        enddate_2=result2_dates[1],
+        ignore_freq=True,
+    )
+
+
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(("startdates", "freq", "end_dates"), TESTCASES_2)
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 def test_ignore_all(  # indexorframe: str,
@@ -290,6 +354,47 @@ def do_test_intersect_index(
         expected_othertz,
         expected_otherfreq,
         enddate,
+    )
+    testing.assert_index_equal(out_a, expected_a)
+    testing.assert_index_equal(out_b, expected_b)
+
+
+def do_test_intersect_index_2(
+    idxs: Iterable[pd.DatetimeIndex],
+    expected_startdate_1: str,
+    expected_startdate_2: str,
+    expected_starttime: str = None,
+    expected_tz: str = None,
+    expected_freq: str = None,
+    expected_otherstarttime: str = None,
+    expected_othertz: str = None,
+    expected_otherfreq: str = None,
+    enddate_1: str = None,
+    enddate_2: str = None,
+    ignore_start_of_day: bool = False,
+    ignore_tz: bool = False,
+    ignore_freq: bool = False,
+):
+    # Normal case.
+    out_a, out_b = tools.intersect.indices_flex(
+        *idxs,
+        ignore_start_of_day=ignore_start_of_day,
+        ignore_tz=ignore_tz,
+        ignore_freq=ignore_freq,
+    )
+    expected_a = get_idx(
+        expected_startdate_1,
+        expected_starttime,
+        expected_tz,
+        expected_freq,
+        enddate_1,
+    )
+    expected_b = get_idx(
+        expected_startdate_2,
+        expected_otherstarttime,
+        expected_othertz,
+        expected_otherfreq,
+        enddate_2,
     )
     testing.assert_index_equal(out_a, expected_a)
     testing.assert_index_equal(out_b, expected_b)
