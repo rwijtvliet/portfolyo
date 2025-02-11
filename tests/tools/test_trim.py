@@ -63,6 +63,23 @@ TESTCASES_ALMOSTFULL = [  # start, end, freq, trimfreq, tr_start, tr_end
     ("2020-01-01 06", "2022-01-01 04", "h", "MS", "2020-01-01 06", "2021-12-01 06"),
     ("2020-01-01 06", "2022-01-01 04", "h", "QS", "2020-01-01 06", "2021-10-01 06"),
     ("2020-01-01 06", "2022-01-01 04", "h", "YS", "2020-01-01 06", "2021-01-01 06"),
+    (
+        "2020-01-01 06",
+        "2022-01-01 06",
+        "QS",
+        "YS-FEB",
+        "",
+        "",
+    ),  # ATTENZIONE:should return empty index
+    ("2020-01-01 06", "2022-01-01 06", "QS", "QS-FEB", "", ""),
+    (
+        "2020-01-01 06",
+        "2022-01-01 06",
+        "MS",
+        "YS-FEB",
+        "2020-02-01 06",
+        "2021-02-01 06",
+    ),
 ]
 
 TESTCASES_MIDYEAR = [  # start, end, freq, trimfreq, tr_start, tr_end
@@ -175,6 +192,17 @@ TESTCASES_MIDYEAR = [  # start, end, freq, trimfreq, tr_start, tr_end
     ("2020-01-01 06", "2022-01-01 06", "YS", "MS", "2020-01-01 06", "2022-01-01 06"),
     ("2020-01-01 06", "2022-01-01 06", "YS", "QS", "2020-01-01 06", "2022-01-01 06"),
     ("2020-01-01 06", "2022-01-01 06", "YS", "YS", "2020-01-01 06", "2022-01-01 06"),
+    ("2020-01-01 06", "2022-01-01 06", "YS", "QS-FEB", "", ""),
+    ("2020-02-01 06", "2022-02-01 06", "QS-FEB", "QS", "", ""),
+    ("2020-02-01 06", "2022-02-01 06", "QS-FEB", "YS", "", ""),
+    (
+        "2020-02-01 06",
+        "2022-02-01 06",
+        "YS-FEB",
+        "QS-FEB",
+        "2020-02-01 06",
+        "2022-02-01 06",
+    ),
 ]
 
 
@@ -208,7 +236,12 @@ def test_trim_midyear(
     tr_end: str,
 ):
     """Test if no trimming is done when it is not necessary."""
-    start, end, tr_start, tr_end = (f"{ts}:00" for ts in (start, end, tr_start, tr_end))
+    if tr_start or tr_end:
+        start, end, tr_start, tr_end = (
+            f"{ts}:00" for ts in (start, end, tr_start, tr_end)
+        )
+    else:
+        start, end = (f"{ts}:00" for ts in (start, end))
     do_test_general(indexorframe, start, end, freq, tz, trimfreq, tr_start, tr_end)
 
 
@@ -228,7 +261,12 @@ def test_trim_almostfull(
     tr_end: str,
 ):
     """Test if no trimming is done when it is not necessary."""
-    start, end, tr_start, tr_end = (f"{ts}:00" for ts in (start, end, tr_start, tr_end))
+    if tr_start or tr_end:
+        start, end, tr_start, tr_end = (
+            f"{ts}:00" for ts in (start, end, tr_start, tr_end)
+        )
+    else:
+        start, end = (f"{ts}:00" for ts in (start, end))
     do_test_general(indexorframe, start, end, freq, tz, trimfreq, tr_start, tr_end)
 
 
@@ -379,6 +417,8 @@ def do_test_dataframe(
 
 
 def expected_series(i, i_expected, dtype):
+    if i_expected.empty:  # if empty series
+        return pd.Series(range(len(i_expected)), i_expected, dtype=float).astype(dtype)
     for num, ts in enumerate(i):
         if ts == i_expected[0]:
             break
