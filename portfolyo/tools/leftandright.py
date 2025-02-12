@@ -59,6 +59,7 @@ def stamps(
     # if we land here, we at least know right.
     if left is pd.NaT:
         start_of_day = right.time()
+        # ATTN!: this one is also no longer working, i suspect, since we don't do it only for YS now
         if tools_isboundary.stamp(right, "YS", start_of_day):
             back = -1
         else:

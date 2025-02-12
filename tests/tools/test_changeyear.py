@@ -160,7 +160,7 @@ get_testcase = functools.lru_cache(100)(create_testcase_factory())
 # ---
 
 
-@pytest.mark.parametrize("freq", ["15min", "h", "MS", "QS", "YS"])
+@pytest.mark.parametrize("freq", ["15min", "h", "MS", "QS", "QS-MAR", "YS", "YS-APR"])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 def test_characterizeindex_error(freq: str, tz: str):
     """Test if characterization is only possible for daily indices."""
