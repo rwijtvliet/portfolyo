@@ -1,0 +1,6 @@
+Organisation of modules and methods:
+
+* Each module works on a specific object class.
+
+* All methods inside a module take the same object type as their first argument.
+

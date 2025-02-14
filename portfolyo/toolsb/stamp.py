@@ -2,16 +2,16 @@
 
 import pandas as pd
 
-from . import freq2 as tools_freq
+from . import freq as tools_freq
 from .types import Frequencylike
 
 
-def to_right(ts: pd.Timestamp, freq: Frequencylike) -> pd.Timestamp:
+def to_right(stamp: pd.Timestamp, freq: Frequencylike) -> pd.Timestamp:
     f"""Right-bound timestamp belonging to left-bound timestamp.
 
     Parameters
     ----------
-    ts
+    stamp
         Timestamp for which to calculate the right-bound timestamp.
     freq : {tools_freq.DOCS}
         Frequency to use in determining the right-bound timestamp.
@@ -20,4 +20,4 @@ def to_right(ts: pd.Timestamp, freq: Frequencylike) -> pd.Timestamp:
     -------
         Corresponding right-bound timestamp.
     """
-    return ts + tools_freq.to_jump(freq)
+    return stamp + tools_freq.to_jump(freq)
