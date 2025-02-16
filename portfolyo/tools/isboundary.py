@@ -153,6 +153,7 @@ def freq_to_string(freq: str | pd.DateOffset) -> str:
         raise ValueError(f"Unexpected frequency ``freq`` class; got {freq}.")
 
 
+# TODO: This one is not used anywhere except in tests. Maybe remove.
 def index(i: pd.DatetimeIndex, freq: str) -> pd.Series:
     f"""Check if timestamps in index are a valid delivery period start (or end).
 

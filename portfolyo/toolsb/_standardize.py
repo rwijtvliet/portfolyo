@@ -5,7 +5,7 @@ Standardizing series and dataframes to use as input for PfLine.
 import pandas as pd
 from pytz import AmbiguousTimeError, NonExistentTimeError
 
-from . import freq2 as tools_freq
+from . import freq as tools_freq
 from . import right as tools_right
 from . import tzone as tools_tzone
 from .types import Series_or_DataFrame
@@ -124,7 +124,7 @@ def frame(
     fr = _standardize_index_name(fr)
     # After standardizing timezone, the frequency should have been set.
     fr = tools_freq.set_to_frame(fr, freq_input)
-    tools_freq.assert_freq_valid(fr.index.freq)
+    tools_freq.assert_valid(fr.index.freq)
     return fr
 
 
@@ -187,11 +187,11 @@ def left_index(i: pd.DatetimeIndex, how: str = "A") -> pd.DatetimeIndex:
         i = tools_freq.guess_to_index(i)
 
     if (freq := i.freq) is not None:
-        return i - tools_freq.to_jump(freq)
+        return i - tools_freq.lefttoright_jump(freq)
 
     # Couldn't infer frequency. Try from median timedelta and turn into time offset.
     possible_freq = tools_freq.from_tdelta((i[1:] - i[:-1]).median())
-    additionterm = tools_freq.to_jump(possible_freq)
+    additionterm = tools_freq.lefttoright_jump(possible_freq)
     if i.tz or how == "A":  # if tz-aware, only one way to make leftbound.
         return i - additionterm
     else:  # how == "B"
@@ -217,7 +217,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
     #     raise AssertionError(
     #         f"Index frequency must be one of {', '.join(freqs)}; found '{freq}'."
     #     )
-    tools_freq.assert_freq_valid(freq)
+    tools_freq.assert_valid(freq)
 
     # Check length.
     if not len(i):

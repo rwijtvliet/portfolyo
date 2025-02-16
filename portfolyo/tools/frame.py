@@ -101,7 +101,7 @@ def concat(dfs: Iterable[pd.DataFrame], axis: int = 0, *args, **kwargs) -> pd.Da
     """
 
     def index(df):
-        return df.columns if axis == 1 else df.index
+        return df.index if axis == 0 or isinstance(df, pd.Series) else df.columns
 
     def add_levels(df):
         need = want - index(df).nlevels
