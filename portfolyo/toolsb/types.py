@@ -6,6 +6,7 @@ import functools
 import pandas as pd
 import inspect
 
+PintSeries = pd.Series  # aLias to make it more clear, what is being returned
 Frequencylike = str | pd.DateOffset
 Series_or_DataFrame = TypeVar("Series_or_DataFrame", pd.Series, pd.DataFrame)
 

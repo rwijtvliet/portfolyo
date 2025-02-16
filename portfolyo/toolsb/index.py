@@ -2,7 +2,7 @@
 
 import pandas as pd
 
-from portfolyo.toolsb.types import Frequencylike
+from portfolyo.toolsb.types import Frequencylike, PintSeries
 from . import freq as tools_freq
 from . import startofday as tools_startofday
 from . import stamp as tools_stamp
@@ -67,6 +67,27 @@ def lefttoright(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     i2 = (idx + tools_freq.lefttoright_jump(idx.freq)).rename("right")
     i2.freq = idx.freq
     return i2
+
+
+def duration(idx: pd.DatetimeIndex) -> PintSeries:
+    """Duration of the delivery periods in a datetime index.
+
+    Parameters
+    ----------
+    idx
+        Index for which to calculate the durations.
+
+    Returns
+    -------
+        Series, with ``idx`` as index and durations as values.
+    """
+    jump = tools_freq.lefttoright_jump(idx.freq)
+    if isinstance(jump, pd.Timedelta):
+        tdelta = jump  # one timedelta
+    else:
+        tdelta = (idx + jump) - idx  # timedeltaindex
+    hours = tdelta.total_seconds() / 3600  # one value or index
+    return pd.Series(hours, idx, dtype="pint[h]")
 
 
 def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
@@ -180,7 +201,7 @@ def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
 
 
 def intersect(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:
-    """Intersect several DatetimeIndices.
+    """Intersect several datetime indices.
 
     Parameters
     ----------
@@ -229,25 +250,26 @@ def intersect(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:
 
     # If we land here, we have at least 2 indices, all not empty, with equivalent freq, equal tz, and equal start-of-day.
 
+    # Do actual intersection.
     # TODO: remove this comment after verification that indeed fixed
     # Calculation is cumbersome: pandas DatetimeIndex.intersection not working correctly on timezone-aware indices (#46702)
     # values = set(idxs[0])
     # for i in idxs[1:]:
     #     values = values.intersection(set(i))
     # return pd.DatetimeIndex(sorted(list(values)), freq=freq, name=name, tz=tz)
-    idx = idxs[0]
-    for idx2 in idxs[1:]:
-        idx = idx.intersection(idx2)
-    return idx
+    intersected_idx = idxs[0]
+    for idx in idxs[1:]:
+        intersected_idx = intersected_idx.intersection(idx)
+    return intersected_idx
 
 
-def intersection_flex(
+def intersect_flex(
     *idxs: pd.DatetimeIndex,
     ignore_freq: bool = False,
     ignore_tz: bool = False,
     ignore_startofday: bool = False,
 ) -> tuple[pd.DatetimeIndex, ...]:
-    """Intersect several DatetimeIndices, but allow for more flexibility of ignoring
+    """Intersect several datetime indices, but allow for more flexibility of ignoring
     certain properties.
 
     Parameters
@@ -272,7 +294,7 @@ def intersection_flex(
 
     See also
     --------
-    .intersection()
+    .intersect()
     """
     if len(idxs) == 0:
         raise ValueError("Must specify at least one index.")
@@ -285,19 +307,18 @@ def intersection_flex(
     # Assert frequencies equivalent.
     # (Even if we want to ignore the frequency, the frequencies should be compatible,
     # which is (also) tested in the sorted method.)
-    shortest, *_, longest = tools_freq.sorted(*set(idx.freq for idx in idxs))
-    if not ignore_freq:
-        if tools_freq.up_or_down(shortest, longest) != 0:
-            raise ValueError(
-                f"Indices must have equal (or equivalent) frequencies; got {shortest} and {longest}."
-            )
-    freq = longest
+    short, *_, long = tools_freq.sorted(*set(idx.freq for idx in idxs))
+    all_equivalent_freq = tools_freq.up_or_down(short, long) == 0  # compare extremes
+    if not ignore_freq and not all_equivalent_freq:
+        raise ValueError(
+            f"Indices must have equal (or equivalent) frequencies; got {short} and {long}."
+        )
 
     # Assert timezones equal.
-    if not ignore_tz:
-        unequal_tzs = set([idx.tz for idx in idxs])
-        if len(unequal_tzs) != 1:
-            raise ValueError(f"Indices must have equal timezones; got {unequal_tzs}.")
+    unique_tzs = set([idx.tz for idx in idxs])
+    all_equal_tz = len(unique_tzs) == 1
+    if not ignore_tz and not all_equal_tz:
+        raise ValueError(f"Indices must have equal timezones; got {unique_tzs}.")
 
     # If we land here, we have at least 2 indices with equivalent (or ignored) freq and equal (or ignored) tz. But, one or more might be empty.
 
@@ -305,73 +326,32 @@ def intersection_flex(
         return tuple((idx[:0] for idx in idxs))
 
     # Assert start-of-day equal.
-    if not ignore_startofday:
-        unequal_sod = set([idx[0].time() for idx in idxs])
-        if len(unequal_sod) != 1:
-            raise ValueError(
-                f"Indices must have equal start-of-day; got {unequal_sod}."
-            )
+    unique_sods = set([idx[0].time() for idx in idxs])
+    all_equal_sod = len(unique_sods) == 1
+    if not ignore_startofday and not all_equal_sod:
+        raise ValueError(f"Indices must have equal start-of-day; got {unique_sods}.")
 
     # If we land here, we have at least 2 indices, all not empty, with equivalent (or ignored) freq, equal (or ignored) tz, and equal (or ignored) start-of-day.
 
-    # Apply frequency intersection.
-    if ignore_freq:  # only case where frequency needs to be considered.
-        pass
-    return freq
-    ####################
-    #
-    # longest_freq = freq[0]
-    # if ignore_freq is True and len(distinct_freqs) != 1:
-    #     # Find the longest frequency
-    #     longest_freq = tools_freq.longest(*freq)
-    #     # trim datetimeindex
-    #     for i in range(len(idxs)):
-    #         # if idxs[i].freq is not the same as longest freq, we trim idxs[i]
-    #         if idxs[i].freq != longest_freq:
-    #             idxs[i] = tools_trim.index(idxs[i], longest_freq)
-    #
-    # if ignore_tz is True and len(distinct_tzs) != 1:
-    #     # set timezone to none for all values
-    #     for i in range(len(idxs)):
-    #         idxs[i] = idxs[i].tz_localize(None)
-    #
-    # if ignore_startofday is True and len(distinct_sod) != 1:
-    #     # Save a copy of the original hours and minutes
-    #     start_of_day = [x[0].time() for x in idxs]
-    #     # Set the time components to midnight for each index in the list
-    #     idxs = [index.normalize() for index in idxs]
-    #
-    # # Calculation is cumbersome: pandas DatetimeIndex.intersection not working correctly on timezone-aware indices (#46702)
-    # values = set(idxs[0])
-    # # intersection is not working on datetimeindex with different freq->we need to use mask
-    # for i in idxs[1:]:
-    #     values = values.intersection(set(i))
-    # values = sorted(values)
-    #
-    # if len(values) == 0:
-    #     return tuple([pd.DatetimeIndex([]) for _ in idxs])
-    #
-    # idxs_out = []
-    # for i in range(len(idxs)):
-    #     start = min(values)
-    #     # end = stamp(start, longest_freq._prefix)
-    #     end = max(values)
-    #     end = tools_right.stamp(end, longest_freq)
-    #
-    #     if ignore_startofday is True:
-    #         start = datetime.combine(pd.to_datetime(start).date(), start_of_day[i])
-    #         end = datetime.combine(pd.to_datetime(end).date(), start_of_day[i])
-    #         # inclusive = "left"
-    #
-    #     idxs_out.append(
-    #         pd.date_range(
-    #             start=start,
-    #             end=end,
-    #             freq=freq[i],
-    #             name=name[i],
-    #             tz=tz[i],
-    #             inclusive="left",
-    #         )
-    #     )
-    #
-    # return tuple(idxsqqout)
+    # Prepare adjusted indices, for intersection.
+    l_and_r = [(idx, lefttoright(idx)) for idx in idxs]
+    if not all_equal_sod:  # convert to wall time to ignore timezones
+        l_and_r = [(le.tz_localize(None), ri.tz_localize(None)) for (le, ri) in l_and_r]
+    if not all_equal_sod:  # remove time-part to ignore start-of-day
+        l_and_r = [(le.normalize(), ri.normalize()) for (le, ri) in l_and_r]
+
+    # Do actual intersection.
+    # Find stretch of time present in all indices.
+    common_l, common_r = l_and_r[0]
+    for le, ri in l_and_r[1:]:
+        common_l, common_r = common_l.intersection(le), common_r.intersection(ri)
+    # If empty: return empty indices.
+    if len(common_l) == 0 or len(common_r) == 0:
+        return tuple([idx[:0] for idx in idxs])
+    # If not empty: return overlapping part in all indices.
+    first_left_stamp, last_right_stamp = min(common_l), max(common_r)
+    intersected_idxs = []
+    for idx, (le, ri) in zip(idxs, l_and_r):
+        keep = (le >= first_left_stamp) & (ri <= last_right_stamp)
+        intersected_idxs.append(idx[keep])
+    return tuple(intersected_idxs)

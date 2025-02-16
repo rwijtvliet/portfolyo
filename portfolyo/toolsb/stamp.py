@@ -8,6 +8,8 @@ from portfolyo.toolsb.types import Frequencylike
 from . import freq as tools_freq
 from typing import Literal
 from . import startofday as tools_startofday
+from pint import Quantity
+from . import unit as tools_unit
 
 
 def lefttoright(stamp: pd.Timestamp, freq: Frequencylike) -> pd.Timestamp:
@@ -25,6 +27,39 @@ def lefttoright(stamp: pd.Timestamp, freq: Frequencylike) -> pd.Timestamp:
         Corresponding right-bound timestamp.
     """
     return stamp + tools_freq.lefttoright_jump(freq)
+
+
+@tools_freq.accept_freqstr("freq")
+def duration(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
+    f"""Duration of a delivery period.
+
+    Parameters
+    ----------
+    stamp
+        Left-bound (i.e., start) timestamp of delivery period for which to calculate the duration.
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
+        Frequency of delivery period.
+
+    Returns
+    -------
+        Duration.
+
+    Example
+    -------
+    >>> duration(pd.Timestamp('2020-04-21'), 'D')
+    24.0 h
+    >>> duration(pd.Timestamp('2020-03-29'), 'D')
+    24.0 h
+    >>> duration(pd.Timestamp('2020-03-29', tz='Europe/Berlin'), 'D')
+    23.0 h
+    """
+    jump = tools_freq.lefttoright_jump(freq)
+    if isinstance(jump, pd.Timedelta):
+        tdelta = jump  # one timedelta
+    else:
+        tdelta = (stamp + jump) - stamp  # one timedelta
+    hours = tdelta.total_seconds() / 3600
+    return tools_unit.Q_(hours, "h")
 
 
 def replace_time(stamp: pd.Timestamp, startofday: dt.time) -> pd.Timestamp:
