@@ -148,7 +148,7 @@ def freq_to_string(freq: str | pd.DateOffset) -> str:
     if isinstance(freq, str):
         return freq  # Return as is if it's already a string
     elif isinstance(freq, pd.DateOffset):
-        return freq.name
+        return freq.freqstr
     else:
         raise ValueError(f"Unexpected frequency ``freq`` class; got {freq}.")
 

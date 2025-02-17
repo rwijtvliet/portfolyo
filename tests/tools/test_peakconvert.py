@@ -29,6 +29,19 @@ f_germanpower = tools.peakfn.factory(dt.time(hour=8), dt.time(hour=20))
             },
             pd.date_range("2020", periods=4, freq="YS", tz="Europe/Berlin"),
         ),
+        pd.DataFrame(
+            {
+                "peak": [100.0, 100, 100, 100],
+                "base": [80.0, 80, 80, 80],
+                "offpeak": [
+                    68.86993603411514,
+                    68.86993603411514,
+                    68.86993603411514,
+                    68.98305084745763,
+                ],
+            },
+            pd.date_range("2020-04-01", periods=4, freq="YS-APR", tz="Europe/Berlin"),
+        ),
     ],
 )
 def test_completebpoframe_averagable(bpoframe, testcol: str, withunits: str):
@@ -60,6 +73,14 @@ def test_completebpoframe_averagable(bpoframe, testcol: str, withunits: str):
                 "offpeak": [180, 80, -20, 280],
             },
             pd.date_range("2020", periods=4, freq="YS", tz="Europe/Berlin"),
+        ),
+        pd.DataFrame(
+            {
+                "peak": [100.0, 100, 100, 100],
+                "base": [280.0, 180, 80, 380],
+                "offpeak": [180, 80, -20, 280],
+            },
+            pd.date_range("2020-04-01", periods=4, freq="YS-APR", tz="Europe/Berlin"),
         ),
     ],
 )
