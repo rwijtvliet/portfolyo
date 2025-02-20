@@ -1,4 +1,5 @@
 import pandas as pd
+
 import portfolyo as pf
 
 index1 = pd.date_range("2020-01-01", "2021-04-01", freq="QS", inclusive="left")

@@ -4,7 +4,6 @@ import pytest
 
 from portfolyo import tools
 
-
 freqs_small_to_large = [
     "min",
     "5min",

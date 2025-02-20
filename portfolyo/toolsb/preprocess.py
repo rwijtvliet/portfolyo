@@ -1,6 +1,7 @@
 """Module to preprocess indices, frequencies, timedeltas."""
 
 import pandas as pd
+
 from .. import tools
 
 

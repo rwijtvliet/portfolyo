@@ -7,6 +7,7 @@ from pytz import AmbiguousTimeError, NonExistentTimeError
 
 from . import freq as tools_freq
 from . import right as tools_right
+from . import righttoleft as tools_righttoleft
 from . import tzone as tools_tzone
 from .types import Series_or_DataFrame
 
@@ -124,14 +125,14 @@ def frame(
     fr = _standardize_index_name(fr)
     # After standardizing timezone, the frequency should have been set.
     fr = tools_freq.set_to_frame(fr, freq_input)
-    tools_freq._assert_valid(fr.index.freq)
+    tools_freq.assert_freq_valid(fr.index.freq)
     return fr
 
 
 def _fix_rightbound(fr, force, tz, floating):
     for how in ["A", "B"]:
         try:
-            i_left = left_index(fr.index, how)
+            i_left = tools_righttoleft.index(fr.index, how)
             fr_left = fr.set_axis(i_left)
             return frame(fr_left, force, "left", tz=tz, floating=floating)
         except ValueError:
@@ -155,49 +156,6 @@ def _standardize_index_name(fr: Series_or_DataFrame) -> Series_or_DataFrame:
     return fr.rename_axis(index="ts_left")
 
 
-def left_index(i: pd.DatetimeIndex, how: str = "A") -> pd.DatetimeIndex:
-    """Turn an index with right-bound timestamps into one with left-bound timestamps.
-
-    Parameters
-    ----------
-    i : pd.DatetimeIndex
-        The index that needs its timestamps changed.
-    how : {'A', 'B'}, optional (default: 'A')
-        If ``i`` is not localized, and contains a DST-transition, there are two ways
-        in which it may be right-bound. E.g. at start of DST: (A) contains 2:00 but not
-        3:00 (like left-bound timestamps do); or (B) contains 3:00 but not 2:00.
-        Ignored for timezone-aware ``i`` or if ``i.freq`` can be inferred.
-
-    Returns
-    -------
-    pd.DatetimeIndex
-        With left-bound timestamps.
-
-    Notes
-    -----
-    If frequency is not set, guess from the spacing of the timestamps. Assumes values
-    are in order. Does no error checking to see if index actually makes sense. Does not
-    assess if 'A' or 'B' makes most sense for tz-naive ``i``.
-    """
-    # Must be able to handle cases where .freq is not set. A tz-naive index that contains
-    # a DST-changeover will have missing or repeated timestamps.
-
-    # If frequency is known, we can use pandas built-in to make leftbound.
-    if i.freq is None:
-        i = tools_freq.guess_to_index(i)
-
-    if (freq := i.freq) is not None:
-        return i - tools_freq.lefttoright_jump(freq)
-
-    # Couldn't infer frequency. Try from median timedelta and turn into time offset.
-    possible_freq = tools_freq.from_tdelta((i[1:] - i[:-1]).median())
-    additionterm = tools_freq.lefttoright_jump(possible_freq)
-    if i.tz or how == "A":  # if tz-aware, only one way to make leftbound.
-        return i - additionterm
-    else:  # how == "B"
-        return pd.DatetimeIndex([i[0] - additionterm, *i[:-1]])
-
-
 def assert_frame_standardized(fr: Series_or_DataFrame) -> None:
     """Assert that series or dataframe is standardized."""
     assert_index_standardized(fr.index)
@@ -217,7 +175,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
     #     raise AssertionError(
     #         f"Index frequency must be one of {', '.join(freqs)}; found '{freq}'."
     #     )
-    tools_freq._assert_valid(freq)
+    tools_freq.assert_freq_valid(freq)
 
     # Check length.
     if not len(i):
@@ -250,7 +208,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
             start = i[0]
             end = tools_right.stamp(i[-1], i.freq)
         else:
-            start = left_index(i)[0]
+            start = tools_righttoleft.index(i)[0]
             end = i[-1]
         if start.time() != end.time():
             raise AssertionError(
@@ -269,6 +227,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
     if tools_freq.up_or_down(freq, "D") > 0:
         if freq == "MS":
             period, not_ok = "month", ~i.is_month_start
+            # ATTN!: again, this now wouldn't work as expected
         elif freq == "QS":
             period, not_ok = "quarter", ~i.is_quarter_start
         elif freq == "YS":

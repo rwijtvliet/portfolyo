@@ -1,65 +1,19 @@
 """Module to work with timestamps."""
 
+import datetime as dt
+from typing import Literal
+
 import pandas as pd
 from pandas.core.dtypes.dtypes import BaseOffset
-import datetime as dt
 
-from portfolyo.toolsb.types import Frequencylike
+
+from . import _duration as tools_duration
+from . import _lefttoright as tools_lefttoright
 from . import freq as tools_freq
-from typing import Literal
 from . import startofday as tools_startofday
-from pint import Quantity
-from . import unit as tools_unit
 
-
-def lefttoright(stamp: pd.Timestamp, freq: Frequencylike) -> pd.Timestamp:
-    f"""Right-bound timestamp belonging to left-bound timestamp.
-
-    Parameters
-    ----------
-    stamp
-        Left-bound (i.e., start) timestamp of a delivery period.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
-        Frequency of delivery period.
-
-    Returns
-    -------
-        Corresponding right-bound timestamp.
-    """
-    return stamp + tools_freq.lefttoright_jump(freq)
-
-
-@tools_freq.accept_freqstr("freq")
-def duration(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
-    f"""Duration of a delivery period.
-
-    Parameters
-    ----------
-    stamp
-        Left-bound (i.e., start) timestamp of delivery period for which to calculate the duration.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
-        Frequency of delivery period.
-
-    Returns
-    -------
-        Duration.
-
-    Example
-    -------
-    >>> duration(pd.Timestamp('2020-04-21'), 'D')
-    24.0 h
-    >>> duration(pd.Timestamp('2020-03-29'), 'D')
-    24.0 h
-    >>> duration(pd.Timestamp('2020-03-29', tz='Europe/Berlin'), 'D')
-    23.0 h
-    """
-    jump = tools_freq.lefttoright_jump(freq)
-    if isinstance(jump, pd.Timedelta):
-        tdelta = jump  # one timedelta
-    else:
-        tdelta = (stamp + jump) - stamp  # one timedelta
-    hours = tdelta.total_seconds() / 3600
-    return tools_unit.Q_(hours, "h")
+lefttoright = tools_lefttoright.stamp
+duration = tools_duration.stamp
 
 
 def replace_time(stamp: pd.Timestamp, startofday: dt.time) -> pd.Timestamp:
@@ -69,34 +23,8 @@ def replace_time(stamp: pd.Timestamp, startofday: dt.time) -> pd.Timestamp:
     )
 
 
-def is_calendar_start(stamp: pd.Timestamp, freq: Frequencylike) -> bool:
-    """Check if a timestamp falls on the first day of a calendar month, quarter, or year.
-
-    Parameters
-    ----------
-    stamp
-        Any timestamp to check.
-    freq
-        (Daily-or-longer) frequency of calendar period to check for.
-
-    Returns
-    -------
-         True if stamp is on the first day of the calendar periods described by the
-         frequency.
-
-    Notes
-    -----
-    - Start-of-day is not considered, so if e.g. freq=='MS', True is returned for any
-    timestamp on the first day of the month.
-    - Starting month is considered for quarterly and yearly frequencies, so if e.g.
-    freq=='QS-FEB', True is returned for any timestamp on the first day of Feb, May,
-    Aug, or Nov.
-    - If freq=='D', True is returned.
-    """
-    return tools_freq.is_calendar_start_fn(freq)(stamp)
-
-
-@tools_freq.accept_freqstr("freq")
+@tools_freq.check()
+@tools_startofday.check()
 def is_boundary(
     stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None
 ) -> bool:
@@ -117,25 +45,19 @@ def is_boundary(
         True if stamp is at start of a delivery period described by ``freq`` and
         ``startofday``.
     """
-    startofday = startofday or dt.time(0, 0)
-    tools_startofday.assert_valid(startofday)
-
     if tools_freq.is_shorter_than_daily(freq):
         return stamp.floor(freq) == stamp
     else:
-        return stamp.time() == startofday and is_calendar_start(stamp, freq)
+        return stamp.time() == startofday and freq.is_on_offset(stamp)
 
 
 def _round(
     stamp: pd.Timestamp,
     freq: BaseOffset,
-    startofday: dt.time | None,
+    startofday: dt.time,
     fn: Literal["floor", "ceil"],
 ) -> pd.Timestamp:
     """Floor (or ceil) a timestamp to start (or end) of delivery period it's contained in."""
-    startofday = startofday or dt.time(0, 0)
-    tools_startofday.assert_valid(startofday)
-
     # Fixed-duration frequency: simply floor/ceil.
     if tools_freq.is_shorter_than_daily(freq):
         return stamp.floor(freq) if fn == "floor" else stamp.ceil(freq)
@@ -149,26 +71,16 @@ def _round(
         is_part_of_prevday = stamp.time() < startofday
         rounded = replace_time(stamp, startofday)
         if is_part_of_prevday and fn == "floor":
-            rounded -= tools_freq.lefttoright_jump("D")
+            rounded -= tools_lefttoright.jump("D")
         elif not is_part_of_prevday and fn == "ceil":
-            rounded += tools_freq.lefttoright_jump("D")
-
-    if freq == "D":
-        return rounded
-
-    # If we reach here, we have longer-than-daily frequency.
+            rounded += tools_lefttoright.jump("D")
 
     # Correct for the day-of-X.
-    # HACK: Adding the frequency (which is a DateOffset) always causes jump to next valid
-    # left-bound timestamp, whereever we were in the period. If we then subtract the
-    # frequency again, we reach previous left-bound timestamp, i.e., the floor.
-    if fn == "floor":
-        return rounded + freq - freq
-    else:  # fn == 'ceil'
-        return rounded - freq + freq
+    return freq.rollback(rounded) if fn == "floor" else freq.rollforward(rounded)
 
 
-@tools_freq.accept_freqstr("freq")
+@tools_freq.check()
+@tools_startofday.check()
 def floor(
     stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None
 ) -> pd.Timestamp:
@@ -212,7 +124,8 @@ def floor(
     return _round(stamp, freq, startofday, "floor")
 
 
-@tools_freq.accept_freqstr("freq")
+@tools_freq.check()
+@tools_startofday.check()
 def ceil(
     stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None
 ) -> pd.Timestamp:

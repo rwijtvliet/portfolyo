@@ -1,16 +1,22 @@
 """Module to work with indices."""
 
+import datetime as dt
+from typing import Iterable
+
 import pandas as pd
 
-from portfolyo.toolsb.types import Frequencylike, PintSeries
+from portfolyo.toolsb.types import Frequencylike
+
+from . import _decorator as tools_decorator
+from . import _duration as tools_duration
+from . import _lefttoright as tools_lefttoright
 from . import freq as tools_freq
-from . import startofday as tools_startofday
 from . import stamp as tools_stamp
-import datetime as dt
+from . import startofday as tools_startofday
 
 
-def assert_valid(idx: pd.DatetimeIndex) -> None:
-    f"""Validate if the given index has the necessary properties to be used in portfolio lines.
+def validate(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    f"""Validate if index has necessary properties to be used in portfolio lines.
 
     Parameters
     ----------
@@ -19,77 +25,35 @@ def assert_valid(idx: pd.DatetimeIndex) -> None:
         for shorter-than-daily frequencies, the index must contain entire days and start at a full
         hour.
 
-    Raises
-    ------
-    AssertionError
-        If the index is not valid.
+    Returns
+    -------
+        Same index.
     """
     # Check on frequency.
-    tools_freq.assert_valid(idx.freq)
+    freq = tools_freq.validate(idx.freq)
 
     # Check on start_of_day.
-    startofday = idx[0].time()
-    tools_startofday.assert_valid(startofday)
+    startofday = tools_startofday.validate(idx[0].time())
 
-    # Check on number of days.
-    if tools_freq.is_shorter_than_daily(idx.freq):
-        end_time = tools_stamp.lefttoright(idx[-1], idx.freq).time()
+    # Check on integer number of days.
+    if tools_freq.is_shorter_than_daily(freq):
+        end_time = tools_stamp.lefttoright(idx[-1], freq).time()
         if end_time != startofday:
-            raise AssertionError(
+            raise ValueError(
                 "Index must contain an integer number of days, i.e., the end time of the final delivery period "
                 f"(here: {end_time}) must equal the start time of the first delivery period (here: {startofday})."
             )
 
-
-def lefttoright(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
-    """Right-bound timestamps, belonging to left-bound timestamps of delivery periods
-    in index.
-
-    Parameters
-    ----------
-    idx
-        Index for which to calculate the right-bound timestamps.
-
-    Returns
-    -------
-        Index with corresponding right-bound timestamps.
-    """
-    # HACK:
-    # Tried and rejected:
-    # . idx + pd.DateOffset(nanoseconds=i.freq.nanos)
-    #   This one breaks for non-fixed frequencies, like months and quarters, e.g.
-    #   idx = pd.date_range('2020', freq='MS', periods=5)
-    # . idx.shift()
-    #   This one breaks near DST transitions, e.g. it drops a value in this example:
-    #   idx = pd.date_range('2020-03-29', freq='D', periods=5, tz='Europe/Berlin')
-    # . idx + i.freq
-    #   Same example, different error: time is moved to 01:00 for first timestamp.
-    i2 = (idx + tools_freq.lefttoright_jump(idx.freq)).rename("right")
-    i2.freq = idx.freq
-    return i2
+    return idx
 
 
-def duration(idx: pd.DatetimeIndex) -> PintSeries:
-    """Duration of the delivery periods in a datetime index.
+check = tools_decorator.apply_validation(validate, "idx")
 
-    Parameters
-    ----------
-    idx
-        Index for which to calculate the durations.
-
-    Returns
-    -------
-        Series, with ``idx`` as index and durations as values.
-    """
-    jump = tools_freq.lefttoright_jump(idx.freq)
-    if isinstance(jump, pd.Timedelta):
-        tdelta = jump  # one timedelta
-    else:
-        tdelta = (idx + jump) - idx  # timedeltaindex
-    hours = tdelta.total_seconds() / 3600  # one value or index
-    return pd.Series(hours, idx, dtype="pint[h]")
+lefttoright = check()(tools_lefttoright.index)
+duration = check()(tools_duration.index)
 
 
+@tools_startofday.check()
 def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a daily-or-longer frequency, replace the time-part of each
     timestamp, so that the returned index has the specified start-of-day.
@@ -110,7 +74,6 @@ def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     This process changes the timestamps and must only be used as a correction to data
     that was recorded with the incorrect timestamps.
     """
-    tools_startofday.assert_valid(startofday)
 
     if tools_freq.is_shorter_than_daily(idx.freq):
         raise ValueError(
@@ -118,11 +81,12 @@ def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
             " shorter-than-daily frequency to a given start-of-day, use the `trim_to_startofday` method."
         )
 
-    # Daily or longer: change timepart of each. Minute and second must be zero, so specify directly.
+    # Daily or longer: change timepart of each.
     stamps = (tools_stamp.replace_time(stamp, startofday) for stamp in idx)
     return pd.DatetimeIndex(stamps, freq=idx.freq, tz=idx.tz)
 
 
+@tools_startofday.check()
 def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a shorter-than-daily frequency, drop timestamps from the index
     so that the returned index has the specified start-of-day.
@@ -142,8 +106,6 @@ def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     -----
     This process is lossy; timestamps are dropped.
     """
-    tools_startofday.assert_valid(startofday)
-
     if not tools_freq.is_shorter_than_daily(idx.freq):
         raise ValueError(
             "This function works on indices with a shorter-than-daily frequency. To replace the time-part"
@@ -169,6 +131,8 @@ def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     return idx[pos0:-pos1]
 
 
+@check()
+@tools_freq.check()
 def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     f"""Trim index to only keep full periods of certain frequency.
 
@@ -200,7 +164,7 @@ def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     return idx[mask_start & mask_end]
 
 
-def intersect(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:
+def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
     """Intersect several datetime indices.
 
     Parameters
@@ -227,7 +191,7 @@ def intersect(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:
     # If we land here, we have at least 2 indices.
 
     # Assert frequencies equivalent.
-    freqs = tools_freq.sorted(*set(idx.freq for idx in idxs))  # ensures compatible
+    freqs = tools_freq.sorted(set(idx.freq for idx in idxs))  # ensures compatible
     if tools_freq.up_or_down(freqs[0], freqs[-1]) != 0:
         raise ValueError(
             f"Indices must have equal (or equivalent) frequencies; got {freqs[0]} and {freqs[-1]}."
@@ -307,7 +271,7 @@ def intersect_flex(
     # Assert frequencies equivalent.
     # (Even if we want to ignore the frequency, the frequencies should be compatible,
     # which is (also) tested in the sorted method.)
-    short, *_, long = tools_freq.sorted(*set(idx.freq for idx in idxs))
+    short, *_, long = tools_freq.sorted(set(idx.freq for idx in idxs))
     all_equivalent_freq = tools_freq.up_or_down(short, long) == 0  # compare extremes
     if not ignore_freq and not all_equivalent_freq:
         raise ValueError(

@@ -1,7 +1,8 @@
-import portfolyo as pf
 import numpy as np
-import pytest
 import pandas as pd
+import pytest
+
+import portfolyo as pf
 
 idx = pd.date_range("2020", freq="MS", periods=3)
 idx2 = pd.date_range("2020-02", freq="MS", periods=3)

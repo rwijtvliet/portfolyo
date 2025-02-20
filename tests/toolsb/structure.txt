@@ -1,0 +1,6 @@
+
+Tests are split into "examplary" and "thorough" tests.
+
+The examplary test files contain functions that test one method each. They are easy to read, but not exhaustive; onyl a few cases are tested.
+
+The thorough tests are more complicated and use fixtures for their input parameters. 
