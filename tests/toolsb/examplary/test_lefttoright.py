@@ -33,14 +33,26 @@ LEFT_FREQ_RIGHT = [
 ]
 
 
-@pytest.mark.parametrize("left,freq,right", LEFT_FREQ_RIGHT)
-def test_stamp(left, freq, right):
-    left, right = pd.Timestamp(left), pd.Timestamp(right)
+@pytest.mark.parametrize(
+    "left,freq,right",
+    [
+        (pd.Timestamp(left), freq, pd.Timestamp(right))
+        for (left, freq, right) in LEFT_FREQ_RIGHT
+    ],
+)
+def test_lefttoright_stamp(left, freq, right):
     assert toolsb._lefttoright.stamp(left, freq) == right
 
 
-@pytest.mark.parametrize("left,freq,right", LEFT_FREQ_RIGHT)
-def test_index(left, freq, right):
-    left = pd.date_range(left, periods=3, freq=freq)
-    right = pd.date_range(right, periods=3, freq=freq)
+@pytest.mark.parametrize(
+    "left,right",
+    [
+        (
+            pd.date_range(left, periods=3, freq=freq),
+            pd.date_range(right, periods=3, freq=freq),
+        )
+        for (left, freq, right) in LEFT_FREQ_RIGHT
+    ],
+)
+def test_lefttoright_index(left, right):
     pd.testing.assert_index_equal(toolsb._lefttoright.index(left), right)

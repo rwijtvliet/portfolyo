@@ -5,6 +5,7 @@ from pint import Quantity
 
 from . import _lefttoright as tools_lefttoright
 from . import freq as tools_freq
+from . import index as tools_index
 from . import unit as tools_unit
 from .types import PintSeries
 
@@ -44,6 +45,7 @@ def stamp(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
     return tools_unit.Q_(hours, "h")
 
 
+@tools_index.check()
 def index(idx: pd.DatetimeIndex) -> PintSeries:
     """Duration of the delivery periods in a datetime index.
 

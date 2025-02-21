@@ -1,7 +1,7 @@
 """Module to work with indices."""
 
 import datetime as dt
-from typing import Iterable
+from typing import Collection
 
 import pandas as pd
 
@@ -15,25 +15,15 @@ from . import stamp as tools_stamp
 from . import startofday as tools_startofday
 
 
-def validate(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
-    f"""Validate if index has necessary properties to be used in portfolio lines.
-
-    Parameters
-    ----------
-    idx
-        Index to be checked. Frequency must be valid (one of {tools_freq.ALLOWED_FREQUENCIES_DOCS}), and
-        for shorter-than-daily frequencies, the index must contain entire days and start at a full
-        hour.
-
-    Returns
-    -------
-        Same index.
-    """
+def validate(idx: pd.DatetimeIndex) -> None:
+    """Validate if argument has necessary properties to be used in portfolio lines."""
     # Check on frequency.
-    freq = tools_freq.validate(idx.freq)
+    freq = idx.freq
+    tools_freq.validate(freq)  # conversion not necessary
 
     # Check on start_of_day.
-    startofday = tools_startofday.validate(idx[0].time())
+    startofday = idx[0].time()
+    tools_startofday.validate(startofday)  # conversion not necessary
 
     # Check on integer number of days.
     if tools_freq.is_shorter_than_daily(freq):
@@ -44,15 +34,14 @@ def validate(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
                 f"(here: {end_time}) must equal the start time of the first delivery period (here: {startofday})."
             )
 
-    return idx
+
+check = tools_decorator.create_checkdecorator(validation=validate, default_param="idx")
+
+lefttoright = tools_lefttoright.index
+duration = tools_duration.index
 
 
-check = tools_decorator.apply_validation(validate, "idx")
-
-lefttoright = check()(tools_lefttoright.index)
-duration = check()(tools_duration.index)
-
-
+@check()
 @tools_startofday.check()
 def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a daily-or-longer frequency, replace the time-part of each
@@ -86,6 +75,7 @@ def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     return pd.DatetimeIndex(stamps, freq=idx.freq, tz=idx.tz)
 
 
+@check(validate=False)
 @tools_startofday.check()
 def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a shorter-than-daily frequency, drop timestamps from the index
@@ -134,29 +124,28 @@ def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
 @check()
 @tools_freq.check()
 def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
-    f"""Trim index to only keep full periods of certain frequency.
+    """Trim index to only keep full periods of certain frequency.
 
     Parameters
     ----------
     idx
-        The (untrimmed) index.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
+        (Untrimmed) index.
+    freq
         Delivery period frequency to trim to. E.g. 'MS' to only keep full months.
 
     Returns
     -------
         Subset of ``idx``, with same frequency. If frequencies are incompatible (i.e., if
-        one is not a subset of the other), an empty datetimeindex is returned.
-    """
-    upordown = tools_freq.up_or_down(idx.freq, freq)
-    if upordown is None:
-        # Incompatible frequencies.
-        return pd.DatetimeIndex([], freq=idx.freq, tz=idx.tz)
-    elif upordown == 0:
-        # Same frequency, no trimming needed.
-        return idx
+        one is not a subset of the other), an error is raised.
 
-    # The frequencies are compatible, idx might have a longer or shorter frequency than ``freq``.
+    Notes
+    -----
+    Only if ``idx`` has shorter frequency than ``freq`` might actual trimming occur.
+    """
+    if tools_freq.up_or_down(idx.freq, freq) <= 0:
+        return idx  # no trimming needed
+
+    # The frequencies are compatible and ``idx`` has shorter than ``freq``.
     startofday = idx[0].time()
     mask_start = idx >= tools_stamp.ceil(idx[0], freq, startofday)
     i_right = lefttoright(idx)
@@ -164,23 +153,23 @@ def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     return idx[mask_start & mask_end]
 
 
-def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
+def intersect(idxs: Collection[pd.DatetimeIndex]) -> pd.DatetimeIndex:
     """Intersect several datetime indices.
 
     Parameters
     ----------
-    *idxs
-        The indices to intersect.
+    idxs
+        Indices to intersect.
 
     Returns
     -------
-        The intersection, i.e., datetimeindex with values that exist in each index.
+        Intersection, i.e., datetimeindex with values that exist in each index.
 
     Notes
     -----
-    The indices must have equivalent frequencies, equal timezones and equal
-    start-of-day. Otherwise, an error is raised. If there is no overlap, an empty
-    datetimeindex is returned.
+    Indices must have equivalent frequencies, equal timezones and equal start-of-day.
+    Otherwise, an error is raised. If there is no overlap, an empty datetimeindex is
+    returned.
     """
     if len(idxs) == 0:
         raise ValueError("Must specify at least one index.")
@@ -228,7 +217,7 @@ def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
 
 
 def intersect_flex(
-    *idxs: pd.DatetimeIndex,
+    idxs: Collection[pd.DatetimeIndex],
     ignore_freq: bool = False,
     ignore_tz: bool = False,
     ignore_startofday: bool = False,
@@ -238,23 +227,24 @@ def intersect_flex(
 
     Parameters
     ----------
-    *idxs
-        The indices to intersect.
+    idxs
+        Indices to intersect.
     ignore_freq, optional (default: False)
-        If True, do the intersection even if the frequencies do not match; drop the
-        time periods that do not (fully) exist in either of the frames. The frequencies
-        of the original indices are preserved.
+        If True, do intersection even if frequencies are not equivalent; drop time
+        periods that do not (fully) exist in either of the frames. The frequencies
+        of original indices are preserved. If frequencies are incompatible, an error is
+        raised.
     ignore_tz, optional (default: False)
-        If True, ignore the timezones; perform the intersection using 'wall time'. The
-        timezones of the original indices are preserved.
+        If True, ignore timezones; perform intersection using 'wall time'. The timezones
+        of original indices are preserved.
     ignore_startofday, optional (default: False)
-        If True, do the intersection even if the indices have a different start-of-day.
-        The start-of-day of the original indices are preserved (even if the frequency is
-        shorter than daily).
+        If True, do intersection even if indices have a different start-of-day. The
+        start-of-day of original indices are preserved (even if frequency is shorter
+        than daily).
 
     Returns
     -------
-        The intersection for each datetimeindex (in same order as input idxs).
+        Intersection for each datetimeindex (in same order as input idxs).
 
     See also
     --------

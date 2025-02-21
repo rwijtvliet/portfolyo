@@ -32,18 +32,8 @@ def _from_tdelta(tdelta: dt.timedelta) -> dt.time:
     return dt.time(hour, minute, second)
 
 
-def validate(startofday: dt.time | None) -> dt.time:
-    """Validate if the given start-of-day has the necessary properties to be used in portfolio lines.
-
-    Parameters
-    ----------
-    startofday
-        Time to be checked. Time must be 'at the hour'. If None: use midnight.
-
-    Returns
-    -------
-        Same time.
-    """
+def convert(startofday: dt.time | str | dt.timedelta | None) -> dt.time:
+    """Convert argument to correct/expected type."""
     # Convert to correct type.
     if startofday is None:
         startofday = dt.time(0, 0)  # midnight
@@ -51,17 +41,20 @@ def validate(startofday: dt.time | None) -> dt.time:
         startofday = _from_str(startofday)
     elif isinstance(startofday, dt.timedelta):
         startofday = _from_tdelta(startofday)
+    return startofday
 
-    # Validate.
+
+def validate(startofday: dt.time) -> None:
+    """Validate if argument has necessary properties to be used in portfolio lines."""
     if not startofday.minute == startofday.second == 0:
         raise ValueError(
             "Start-of-day must be at a full hour (not necessarily midnight)."
         )
 
-    return startofday
 
-
-check = tools_decorator.apply_validation(validate, "startofday")
+check = tools_decorator.create_checkdecorator(
+    conversion=convert, validation=validate, default_param="startofday"
+)
 
 
 @check()

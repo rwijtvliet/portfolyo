@@ -28,13 +28,13 @@ def replace_time(stamp: pd.Timestamp, startofday: dt.time) -> pd.Timestamp:
 def is_boundary(
     stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None
 ) -> bool:
-    f"""Check if timestamp is a valid delivery period start.
+    """Check if timestamp is a valid delivery period start.
 
     Parameters
     ----------
     stamp
         Timestamp to check.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
+    freq
         Frequency of delivery period.
     startofday, optional (default: midnight)
         Time of day at which daily-or-longer delivery periods start. E.g. if

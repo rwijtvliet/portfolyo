@@ -103,35 +103,27 @@ _DOWNSAMPLE_TARGETS: dict[BaseOffset, set[BaseOffset]] = {
     freq: _downsample_targets(freq) for freq in _FREQUENCIES
 }
 
-# Validation.
+# Conversion and validation.
 
 
-def validate(freq: Frequencylike) -> BaseOffset:
-    f"""Validate if frequency has necessary properties to be used in portfolio lines.
-
-    Parameters
-    ----------
-    freq
-        Frequency to be checked. Must be one of {ALLOWED_FREQUENCIES_DOCS}, or inter-
-        pretable as one.
-
-    Returns
-    -------
-        Same frequency but as pandas object.
-    """
-    if freq is None:
-        raise AssertionError("Frequency may not be None.")
-
+def convert(freq: Frequencylike) -> BaseOffset:
+    """Convert argument to correct/expected type."""
     if isinstance(freq, str):
         freq = to_offset(freq)
-
-    if freq not in _FREQUENCIES:
-        raise ValueError(f"Frequency must be one of {ALLOWED_FREQUENCIES_DOCS}.")
-
     return freq
 
 
-check = tools_decorator.apply_validation(validate, "freq")
+def validate(freq: BaseOffset | None) -> None:
+    """Validate if argument has necessary properties to be used in portfolio lines."""
+    if freq is None:
+        raise ValueError("Frequency may not be None.")
+    if freq not in _FREQUENCIES:
+        raise ValueError(f"Frequency must be one of {ALLOWED_FREQUENCIES_DOCS}.")
+
+
+check = tools_decorator.create_checkdecorator(
+    conversion=convert, validation=validate, default_param="freq"
+)
 
 
 @check()
