@@ -386,3 +386,26 @@ def do_test(
         expected = pd.DataFrame({"a": s_expected})
         result = fn(fr, freq_target)
         testing.assert_frame_equal(result, expected)
+
+
+TESTCASES = [  # period, freqs, result
+    (
+        ("2020-01-01", "2022-01-01"),
+        ("MS", "QS-APR"),
+        ("2020-01-20", "2023-01-01"),
+    ),
+]
+
+
+# @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+# @pytest.mark.parametrize(("period", "freq", "expected_result"), TESTCASES)
+# @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
+# def test_index_new_freq(
+#     period: Iterable[str],
+#     starttime: str,
+#     tz: str,
+#     freq: Iterable[str],
+#     expected_result: Iterable[str],
+# ):
+#     #index = pd.date_range(period[0], period[1], freq=freq[0], inclusive="left")
+#     # expected_result =
