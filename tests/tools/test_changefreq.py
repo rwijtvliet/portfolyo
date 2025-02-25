@@ -156,7 +156,7 @@ def startdate(freq):
         return "2019-12-15"
     if freq == "MS":
         return "2019-12-01"
-    if freq == "QS":
+    if freq == "QS" or freq == "QS-APR":
         return "2020-04-01"
     if freq == "YS":
         return "2020-01-01"
@@ -315,8 +315,10 @@ def test_upsample_avgable(
 @pytest.mark.parametrize("seriesordf", ["s", "s_unit", "df", "df_unit"])
 @pytest.mark.parametrize("complexity", ["ones", "allnumbers"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "YS"])
-@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "YS"])
+@pytest.mark.parametrize(
+    "freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"]
+)  # SOS!: freq 'QS' and 'QS-APR' are not converting into 1 another because they are treated as the same freq
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_upsample_summable(
     seriesordf: str,
     freq_long: str,
@@ -390,22 +392,41 @@ def do_test(
 
 TESTCASES = [  # period, freqs, result
     (
-        ("2020-01-01", "2022-01-01"),
+        ("2020-02-01", "2023-01-01"),
         ("MS", "QS-APR"),
-        ("2020-01-20", "2023-01-01"),
+        ("2020-04-01", "2022-10-01"),
+    ),
+    (
+        ("2020-01-01", "2023-01-01"),
+        ("MS", "QS-APR"),
+        ("2020-01-01", "2022-10-01"),
+    ),
+    (
+        ("2020-01-01", "2023-01-01"),
+        ("MS", "YS-APR"),
+        ("2020-04-01", "2021-04-01"),
+    ),
+    (
+        ("2020-04-01", "2022-04-01"),
+        ("YS-APR", "QS"),
+        ("2020-04-01", "2022-01-01"),
     ),
 ]
 
 
-# @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-# @pytest.mark.parametrize(("period", "freq", "expected_result"), TESTCASES)
-# @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
-# def test_index_new_freq(
-#     period: Iterable[str],
-#     starttime: str,
-#     tz: str,
-#     freq: Iterable[str],
-#     expected_result: Iterable[str],
-# ):
-#     #index = pd.date_range(period[0], period[1], freq=freq[0], inclusive="left")
-#     # expected_result =
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize(("period", "freq", "expected_result"), TESTCASES)
+@pytest.mark.parametrize("starttime", ["00:00", "06:00"])
+def test_index_new_freq(
+    period: Iterable[str],
+    starttime: str,
+    tz: str,
+    freq: Iterable[str],
+    expected_result: Iterable[str],
+):
+    index = pd.date_range(period[0], period[1], freq=freq[0], inclusive="left")
+    expected_result = pd.date_range(
+        expected_result[0], expected_result[1], freq=freq[1]
+    )
+    result = tools.changefreq.index(index, freq[1])
+    testing.assert_index_equal(result, expected_result)
