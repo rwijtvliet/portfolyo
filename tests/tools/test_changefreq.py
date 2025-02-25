@@ -26,7 +26,7 @@ def idfn_midnight(
         return lambda i: pd.Index(zip(i.year, i.month, i.day))
     if longestfreq == "MS":
         return lambda i: pd.Index(zip(i.year, i.month))
-    if longestfreq == "QS":
+    if longestfreq == "QS" or longestfreq == "QS-APR":
         return lambda i: pd.Index(zip(i.year, i.quarter))
     if longestfreq == "YS":
         return lambda i: i.year
@@ -69,7 +69,7 @@ def idfn_0600(longestfreq: str) -> Callable[[pd.DatetimeIndex], Iterable[Tuple[i
         return lambda i: pd.Index(zip(year(i), month(i), day(i)))
     if longestfreq == "MS":
         return lambda i: pd.Index(zip(year(i), month(i)))
-    if longestfreq == "QS":
+    if longestfreq == "QS" or longestfreq == "QS-APR":
         return lambda i: pd.Index(zip(year(i), quarter(i)))
     if longestfreq == "YS":
         return lambda i: year(i)
@@ -164,8 +164,8 @@ def startdate(freq):
 
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "YS"])
-@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "YS"])
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
+@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_downsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: str):
     """Test downsampling of indices."""
 
@@ -183,8 +183,8 @@ def test_downsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: st
 
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "YS"])
-@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "YS"])
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
+@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_upsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: str):
     """Test upsampling of indices."""
 
@@ -208,8 +208,8 @@ def test_upsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: str)
 @pytest.mark.parametrize("seriesordf", ["s", "s_unit", "df", "df_unit"])
 @pytest.mark.parametrize("complexity", ["ones", "allnumbers"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "YS"])
-@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "YS"])
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
+@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_downsample_summable(
     seriesordf: str,
     freq_shrt: str,
@@ -243,8 +243,8 @@ def test_downsample_summable(
 @pytest.mark.parametrize("seriesordf", ["s", "s_unit", "df", "df_unit"])
 @pytest.mark.parametrize("complexity", ["ones", "allnumbers"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "YS"])
-@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "YS"])
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
+@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_downsample_avgable(
     seriesordf: str,
     freq_shrt: str,
@@ -278,8 +278,8 @@ def test_downsample_avgable(
 @pytest.mark.parametrize("seriesordf", ["s", "s_unit", "df", "df_unit"])
 @pytest.mark.parametrize("complexity", ["ones", "allnumbers"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "YS"])
-@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "YS"])
+@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_upsample_avgable(
     seriesordf: str,
     freq_long: str,
