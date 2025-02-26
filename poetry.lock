@@ -860,20 +860,6 @@ unicode = ["unicodedata2 (>=15.1.0)"]
 woff = ["brotli (>=1.0.1)", "brotlicffi (>=0.8.0)", "zopfli (>=0.1.4)"]
 
 [[package]]
-name = "holidays"
-version = "0.32"
-description = "Generate and work with holidays in Python"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "holidays-0.32-py3-none-any.whl", hash = "sha256:4a28233488f0f3bf6c95fc01f92acddb103177b6c7a73b128b1c6878f622e268"},
-    {file = "holidays-0.32.tar.gz", hash = "sha256:7ff9b90dbf35085f31589050d6173ca44e98ab27551b29f7696ccfa5b13ef0e6"},
-]
-
-[package.dependencies]
-python-dateutil = "*"
-
-[[package]]
 name = "identify"
 version = "2.6.6"
 description = "File identification library for Python"
@@ -3106,4 +3092,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "3abc42547da09b4f16b593bf35f30d75bb5d47901bdaf637468bfa4126d4bacd"
+content-hash = "c59979bd85e1977a444a253ef6fb194702b1024d2c2cd7ae304e5013f58453f2"
