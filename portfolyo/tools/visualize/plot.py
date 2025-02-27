@@ -167,6 +167,10 @@ def plot_timeseries_as_step(
 
     splot = s.copy()  # modified with additional (repeated) datapoint
     splot[splot.index.right[-1]] = splot.values[-1]
+    # the case with all nan values
+    if all(pd.isna(s.magnitude) for s in splot.values):
+        for i in range(0, splot.size):
+            splot.values[i] = 0 * splot.values[i].u
 
     ax.step(splot.index, splot.values, where="mid", **kwargs)
     delta = s.index.right - s.index
@@ -187,17 +191,21 @@ def plot_timeseries_as_hline(
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
     categories = Categories(s)
+
+    height = categories.y()
+    if all(pd.isna(height)):
+        height = 0
     # Center around x-tick:
     ax.hlines(
         pd.Series(
-            categories.y(), categories.x()
+            height, categories.x()
         ),  # HACK: categories.y() no longer working after update of pint-pandas to 0.6
         categories.x() - 0.4,
         categories.x() + 0.4,
         **kwargs,
     )
     ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-    set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
+    set_data_labels(ax, categories.x(), height, labelfmt, True)
     ax.autoscale()
     # Adjust the margins around the plot
     ax.margins(x=0.2, y=0.2)
