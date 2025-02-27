@@ -13,6 +13,12 @@ from . import _decorator as tools_decorator
 # Assumptions:
 # . Times are not checked at a the below-second resolution.
 
+MIDNIGHT = dt.time(0, 0)  # midnight
+
+
+# Conversion and validation.
+# --------------------------
+
 
 def _from_str(timestr: str) -> dt.time:
     """Turn string into time."""
@@ -32,12 +38,10 @@ def _from_tdelta(tdelta: dt.timedelta) -> dt.time:
     return dt.time(hour, minute, second)
 
 
-def convert(startofday: dt.time | str | dt.timedelta | None) -> dt.time:
+def convert(startofday: dt.time | str | dt.timedelta) -> dt.time:
     """Convert argument to correct/expected type."""
     # Convert to correct type.
-    if startofday is None:
-        startofday = dt.time(0, 0)  # midnight
-    elif isinstance(startofday, str):
+    if isinstance(startofday, str):
         startofday = _from_str(startofday)
     elif isinstance(startofday, dt.timedelta):
         startofday = _from_tdelta(startofday)
@@ -55,6 +59,9 @@ def validate(startofday: dt.time) -> None:
 check = tools_decorator.create_checkdecorator(
     conversion=convert, validation=validate, default_param="startofday"
 )
+
+
+# --------------------------
 
 
 @check()

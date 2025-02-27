@@ -1,0 +1,82 @@
+
+freq
+----
+x freq-upordown(freq1, freq2)
+x freq-sorted(freqs)
+x freq-longes(freqs)
+x freq-shortest(freqs)
+x freq-dailyorlonger(freqs)
+
+stamp
+-----
+x stamp-to-right(stamp, freq)
+x stamp-duration(stamp, freq)
+
+anystamp
+--------
+x anystamp-ceil
+x anystamp-floor
+x anystamp-isboundary
+
+index
+-----
+x index-duration(idx)
+x index-to-right(idx)
+x indices-intersect(idxs)
+x indices-intersect_flex(idxs, ignore-freq, ignore-tz, ignore-sod)
+x index-trim-tofreq(idx, freq)
+x index-replace-startofday(idx>=daily, startofday)
+x index-trim-tostartofday(idx<daily, startofday)
+
+frame
+-----
+frame-add-header(fr, header, axis)
+frames-concat(frso axis)
+
+changefreq
+----------
+summableframe-changefreq(fr, freq)
+avgableframe-changefreq(fr, freq)
+
+Wavg
+----
+wavg-frames etc.
+
+Testing
+-------
+series_allclose(s1, s2)
+assert-index-standardized(idx)
+assert-frame-standardized(fr)
+assert-value-equal(v1, v2)
+assert-index-equal(idx1, idx2)
+assert-series-equal(s1, s2)
+assert-frames-equal(df1, df2)
+
+
+Units
+-----
+
+data-prep
+---------
+rightstamp-to-left(stamp, freq)
+rightindex-to-left(idx, how)
+frame-standardize(fr, ...)
+timezone-tools (A-to-A, etc.)
+
+
+Energyrelated
+-------------
+hedge-one(prices, volumes, how)
+hedge-at-frequency(prices, volumes, how, freq)
+peakconvert: bpoframes etc.
+peakfn-factory(peakhours, peakdays, etc.)
+delivery-period(tradestamp, periodtype, frontcount, startofday) 
+
+Remove
+------
+(frames-intersect)
+(index-changefreq(idx, freq))
+(frame-trim-tofreq(fr,freq))
+(stamps-leftandright(left, right, tz, startofday))
+(frame-fill-gaps(fr))
+(frame-duration(fr))

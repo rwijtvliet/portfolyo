@@ -72,7 +72,7 @@ def test_freq_upordown_0(sourcefreq, targetfreq):
         ("YS", "YS-APR"),
     ],
 )
-def test_freq_upordown_None(sourcefreq, targetfreq):
+def test_freq_upordown_error(sourcefreq, targetfreq):
     with pytest.raises(ValueError):
         _ = toolsb.freq.up_or_down(sourcefreq, targetfreq)
 

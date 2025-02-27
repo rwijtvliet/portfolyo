@@ -8,7 +8,6 @@ import pandas as pd
 
 from portfolyo.tools.types import Series_or_DataFrame
 
-from . import freq as tools_freq
 from . import index as tools_index
 
 
@@ -100,38 +99,38 @@ def series_allclose(s1: pd.Series, s2: pd.Series, *args, **kwargs) -> bool:
 
 
 @overload
-def trim(frame: pd.Series, freq: str) -> pd.Series:
+def trim(fr: pd.Series, freq: str) -> pd.Series:
     ...
 
 
 @overload
-def trim(frame: pd.DataFrame, freq: str) -> pd.DataFrame:
+def trim(fr: pd.DataFrame, freq: str) -> pd.DataFrame:
     ...
 
 
-def trim(frame: pd.Series | pd.DataFrame, freq: str) -> pd.Series | pd.DataFrame:
-    f"""Trim index of series or dataframe to only keep full periods of certain frequency.
+def trim(fr: pd.Series | pd.DataFrame, freq: str) -> pd.Series | pd.DataFrame:
+    """Trim index of series or dataframe to only keep full periods of certain frequency.
 
     Parameters
     ----------
-    frame
+    fr
         The series or dataframe to trim.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
+    freq
         Delivery period frequency to trim to. E.g. 'MS' to only keep full months.
 
     Returns
     -------
-        Subset of ``frame``, with same frequency.
+        Subset of ``fr``, with same frequency.
     """
-    return frame.loc[tools_index.trim(frame.index, freq)]
+    return fr.loc[tools_index.trim(fr.index, freq)]
 
 
-def intersect(*frames: Series_or_DataFrame) -> tuple[Series_or_DataFrame, ...]:
+def intersect(frs: Iterable[Series_or_DataFrame]) -> tuple[Series_or_DataFrame, ...]:
     """Intersect several dataframes and/or series.
 
     Parameters
     ----------
-    *frames
+    frs
         The series or dataframes to intersect.
 
     Returns
@@ -144,12 +143,13 @@ def intersect(*frames: Series_or_DataFrame) -> tuple[Series_or_DataFrame, ...]:
     start-of-day. Otherwise, an error is raised. If there is no overlap, empty
     frames are returned.
     """
-    intersected_idx = tools_index.intersect(*(frame.index for frame in frames))
-    return tuple([frame.loc[intersected_idx] for frame in frames])
+    intersected_idx = tools_index.intersect(fr.index for fr in frs)
+    return tuple([fr.loc[intersected_idx] for fr in frs])
 
 
 def intersect_flex(
-    *frames: Series_or_DataFrame,
+    frs: Series_or_DataFrame,
+    *,
     ignore_freq: bool = False,
     ignore_tz: bool = False,
     ignore_startofday: bool = False,
@@ -159,19 +159,20 @@ def intersect_flex(
 
     Parameters
     ----------
-    *frames
-        The series or dataframes to intersect.
+    frs
+        Series or dataframes to intersect.
     ignore_freq, optional (default: False)
-        If True, do the intersection even if the frequencies do not match; drop the
-        time periods that do not (fully) exist in either of the frames. The frequencies
-        of the original indices are preserved.
+        If True, do intersection even if frequencies are not equivalent; drop time
+        periods that do not (fully) exist in either of the frame indices. The frequencies
+        of original frames are preserved. If frequencies are incompatible, an error is
+        raised.
     ignore_tz, optional (default: False)
-        If True, ignore the timezones; perform the intersection using 'wall time'. The
-        timezones of the original indices are preserved.
+        If True, ignore timezones; perform intersection using 'wall time'. The timezones
+        of original frames are preserved.
     ignore_startofday, optional (default: False)
-        If True, do the intersection even if the indices have a different start-of-day.
-        The start-of-day of the original indices are preserved (even if the frequency is
-        shorter than daily).
+        If True, do intersection even if frame indices have a different start-of-day. The
+        start-of-day of original frames are preserved (even if frequency is shorter
+        than daily).
 
     Returns
     -------
@@ -182,9 +183,9 @@ def intersect_flex(
     .intersect()
     """
     intersected_idxs = tools_index.intersect_flex(
-        *(frame.index for frame in frames),
+        (fr.index for fr in frs),
         ignore_freq=ignore_freq,
         ignore_tz=ignore_tz,
         ignore_startofday=ignore_startofday,
     )
-    return tuple([frame.loc[idx] for frame, idx in zip(frames, intersected_idxs)])
+    return tuple([fr.loc[idx] for fr, idx in zip(frs, intersected_idxs)])

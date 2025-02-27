@@ -6,6 +6,7 @@ import builtins
 import functools
 from typing import Iterable
 
+import pandas as pd
 from pandas.tseries.frequencies import MONTHS, to_offset
 from pandas.tseries.offsets import BaseOffset
 
@@ -48,21 +49,13 @@ _FREQUENCIES: set[BaseOffset] = {
 
 ALLOWED_FREQUENCIES_DOCS = "'min', '5min', '15min', '30min', 'h', 'D', 'MS', 'QS' (or 'QS-FEB', 'QS-MAR', etc.), or 'YS' (or 'YS-FEB', 'YS-MAR', etc.)"
 
-# There are a few thing we might want to know about a SINGLE frequency:
-# - Is it shorter-than-daily? These are special, because an index with one of these frequencies is not automatically valid (must have integer number of days).
-# - What is the equivalent DateOffset or Timedelta that can be added to a left-bound timestamp to find the right-bound timestamp (i.e., the stort of the next timestamp).
 
-# Also, there are a few things we might want to know when COMPARING frequencies:
-# - Can we resample from one to the other?
-
-
+# Subsets of allowed frequencies.
+# . One subset.
 _SHORTERTHANDAILY: set[BaseOffset] = {
     to_offset(freq) for freq in ("min", "5min", "15min", "30min", "h")
 }
-
-
-# Each frequency is element of exactly one of the following containers.
-
+# . Three subsets that are mutually exclusive.
 _SORTED: tuple[BaseOffset, ...] = tuple(
     to_offset(freq) for freq in ("min", "5min", "15min", "30min", "h", "D", "MS")
 )
@@ -70,24 +63,22 @@ _QUARTERLY: set[BaseOffset] = set((to_offset(f"QS-{m}") for m in MONTHS))
 _YEARLY: set[BaseOffset] = set((to_offset(f"YS-{m}") for m in MONTHS))
 
 
-# Create maps to quickly find out which resampling is possible.
+# Mappings between frequencies.
 
 
+@functools.lru_cache()
 def _equivalent_freqs(freq: BaseOffset) -> set[BaseOffset]:
+    """Return all frequencies that are equivalent (or equal) to ``freq``."""
     if freq in _QUARTERLY:
         return {f for f in _QUARTERLY if f.startingMonth % 3 == freq.startingMonth % 3}
     elif freq in _FREQUENCIES:
         return {freq}
-    else:
-        raise ValueError("Unexpected frequency.")
+    raise ValueError("Unexpected frequency.")
 
 
-_EQUIVALENT_FREQS: dict[BaseOffset, set[BaseOffset]] = {
-    freq: _equivalent_freqs(freq) for freq in _FREQUENCIES
-}
-
-
+@functools.lru_cache()
 def _downsample_targets(freq: BaseOffset) -> set[BaseOffset]:
+    """Return all frequencies that ``freq`` can be downsampled to."""
     if freq in _SORTED:
         pos = _SORTED.index(freq)
         return set(_SORTED[pos + 1 :]) | _QUARTERLY | _YEARLY
@@ -95,15 +86,11 @@ def _downsample_targets(freq: BaseOffset) -> set[BaseOffset]:
         return set((f for f in _YEARLY if f.month % 3 == freq.startingMonth % 3))
     elif freq in _YEARLY:
         return set()
-    else:
-        raise ValueError("Unexpected frequency.")
+    raise ValueError("Unexpected frequency.")
 
-
-_DOWNSAMPLE_TARGETS: dict[BaseOffset, set[BaseOffset]] = {
-    freq: _downsample_targets(freq) for freq in _FREQUENCIES
-}
 
 # Conversion and validation.
+# --------------------------
 
 
 def convert(freq: Frequencylike) -> BaseOffset:
@@ -124,6 +111,9 @@ def validate(freq: BaseOffset | None) -> None:
 check = tools_decorator.create_checkdecorator(
     conversion=convert, validation=validate, default_param="freq"
 )
+
+
+# --------------------------
 
 
 @check()
@@ -157,11 +147,11 @@ def up_or_down(source_freq: BaseOffset, target_freq: BaseOffset) -> int:
     ------
     ValueError if resampling is not possible because frequencies are incompatible. E.g. 'QS-JAN' -> 'YS-FEB'.
     """
-    if target_freq in _DOWNSAMPLE_TARGETS[source_freq]:
+    if target_freq in _downsample_targets(source_freq):
         return -1
-    elif source_freq in _DOWNSAMPLE_TARGETS[target_freq]:
+    elif source_freq in _downsample_targets(target_freq):
         return 1
-    elif target_freq in _EQUIVALENT_FREQS[source_freq]:
+    elif target_freq in _equivalent_freqs(source_freq):
         return 0
     raise ValueError(f"Can't (directly) resample from {source_freq} to {target_freq}.")
 
@@ -254,98 +244,49 @@ def longest(freqs: Iterable[Frequencylike]) -> BaseOffset:
     return sorted(set(freqs))[-1]
 
 
-#
-# @accept_freqstr("freq")
-# def lefttoright_jump(freq: BaseOffset) -> pd.Timedelta | pd.DateOffset:
-#     """Jump object corresponding to a frequency. Can be added to a left-bound delivery
-#     period timestamp to get the right-bound timestamp of that delivery period (which
-#     is the left-bound timestamp of the following delivery period).
-#
-#     Parameters
-#     ----------
-#     freq
-#         Frequency of delivery period.
-#
-#     Returns
-#     -------
-#         Term that can be (repeatedly) added to / subtracted from a left-bound
-#         timestamp to find the next / previous left-bound timestamps.
-#
-#     Notes
-#     -----
-#     Only gives correct result if added to a valid left-bound stamp for the frequency.
-#
-#     Examples
-#     --------
-#     >>> freq.lefttoright_jump("h")
-#     Timedelta('0 days 01:00:00')
-#     >>> freq.lefttoright_jump("MS")
-#     <DateOffset: months=1>
-#     """
-#     # Custom handling for specific simple frequencies
-#     if isinstance(freq, pd.tseries.offsets.Minute) and freq.n in (1, 5, 15, 30):
-#         return pd.Timedelta(minutes=freq.n)
-#     elif isinstance(freq, pd.tseries.offsets.Hour) and freq.n == 1:
-#         return pd.Timedelta(hours=1)
-#     elif isinstance(freq, pd.tseries.offsets.Day) and freq.n == 1:
-#         return pd.DateOffset(days=1)
-#     elif isinstance(freq, pd.tseries.offsets.MonthBegin) and freq.n == 1:
-#         return pd.DateOffset(months=1)
-#     elif isinstance(freq, pd.tseries.offsets.QuarterBegin) and freq.n == 1:
-#         return pd.DateOffset(months=3)
-#     elif isinstance(freq, pd.tseries.offsets.YearBegin) and freq.n == 1:
-#         return pd.DateOffset(years=1)
-#     else:
-#         raise ValueError(
-#             f"Parameter ``freq`` must be one of {ALLOWED_FREQUENCIES_DOCS}; got '{freq}'."
-#         )
+@check()
+def to_jump(freq: BaseOffset) -> pd.Timedelta | pd.DateOffset:
+    """Jump object corresponding to a frequency. Can be added to a left-bound delivery
+    period timestamp to get the right-bound timestamp of that delivery period (which
+    is the left-bound timestamp of the following delivery period).
 
+    Parameters
+    ----------
+    freq
+        Frequency of delivery period.
 
-# @functools.lru_cache()
-# @accept_freqstr("freq")
-# def is_calendar_start_fn(freq: pd.DateOffset) -> Callable[[pd.Timestamp], bool]:
-#     """Returns function to check if a timestamp falls on the first day of a calendar
-#     month, quarter, or year.
-#
-#     Parameters
-#     ----------
-#     freq
-#         (Daily-or-longer) frequency of calendar period to check for.
-#
-#     Returns
-#     -------
-#          Check function.
-#
-#     Notes
-#     -----
-#     - Function does not consider start-of-day, so if e.g. freq=='MS', True is returned
-#     for any timestamp on the first day of the month.
-#     - Function considers starting month for quarterly and yearly frequencies, so if e.g.
-#     freq=='QS-FEB', True is returned for any timestamp on the first day of Feb, May,
-#     Aug, or Nov.
-#     - If freq=='D', function returns True always.
-#     """
-#     if is_shorter_than_daily(freq):
-#         raise ValueError(f"Parameter ``freq`` must be daily-or-longer; got '{freq}'.")
-#
-#     if freq == "D":
-#
-#         def is_start(stamp: pd.Timestamp) -> bool:
-#             return True
-#
-#     elif freq == "MS":
-#
-#         def is_start(stamp: pd.Timestamp) -> bool:
-#             return stamp.day == 1
-#
-#     elif freq in _QUARTERLY:
-#
-#         def is_start(stamp: pd.Timestamp) -> bool:
-#             return stamp.day == 1 and stamp.month % 3 == freq.startingMonth % 3
-#
-#     else:  # freq in _YEARLY:
-#
-#         def is_start(stamp: pd.Timestamp) -> bool:
-#             return stamp.day == 1 and stamp.month == freq.month
-#
-#     return is_start
+    Returns
+    -------
+        Term that can be (repeatedly) added to / subtracted from a left-bound
+        timestamp to find the next / previous left-bound timestamps.
+
+    Notes
+    -----
+    Only gives correct result if added to a valid left-bound stamp for the frequency.
+    If necessary, check if this is the case with `tools.stamp.is_boundary()`, or ensure
+    it is the case with `tools.stamp.floor()` or `tools.stamp.ceil()`.
+
+    Examples
+    --------
+    >>> freq.to_jump("h")
+    Timedelta('0 days 01:00:00')
+    >>> freq.to_jump("MS")
+    <DateOffset: months=1>
+    """
+    # Custom handling for specific simple frequencies
+    if isinstance(freq, pd.tseries.offsets.Minute) and freq.n in (1, 5, 15, 30):
+        return pd.Timedelta(minutes=freq.n)
+    elif isinstance(freq, pd.tseries.offsets.Hour) and freq.n == 1:
+        return pd.Timedelta(hours=1)
+    elif isinstance(freq, pd.tseries.offsets.Day) and freq.n == 1:
+        return pd.DateOffset(days=1)
+    elif isinstance(freq, pd.tseries.offsets.MonthBegin) and freq.n == 1:
+        return pd.DateOffset(months=1)
+    elif isinstance(freq, pd.tseries.offsets.QuarterBegin) and freq.n == 1:
+        return pd.DateOffset(months=3)
+    elif isinstance(freq, pd.tseries.offsets.YearBegin) and freq.n == 1:
+        return pd.DateOffset(years=1)
+    else:  # shouldn't occur due to check decorator
+        raise ValueError(
+            f"Parameter ``freq`` must be one of {ALLOWED_FREQUENCIES_DOCS}; got '{freq}'."
+        )

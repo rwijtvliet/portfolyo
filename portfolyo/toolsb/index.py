@@ -1,18 +1,21 @@
 """Module to work with indices."""
 
 import datetime as dt
-from typing import Collection
+from typing import Iterable
 
 import pandas as pd
 
 from portfolyo.toolsb.types import Frequencylike
 
 from . import _decorator as tools_decorator
-from . import _duration as tools_duration
-from . import _lefttoright as tools_lefttoright
 from . import freq as tools_freq
 from . import stamp as tools_stamp
 from . import startofday as tools_startofday
+from .types import PintSeries
+
+
+# Conversion and validation.
+# --------------------------
 
 
 def validate(idx: pd.DatetimeIndex) -> None:
@@ -27,7 +30,7 @@ def validate(idx: pd.DatetimeIndex) -> None:
 
     # Check on integer number of days.
     if tools_freq.is_shorter_than_daily(freq):
-        end_time = tools_stamp.lefttoright(idx[-1], freq).time()
+        end_time = tools_stamp.to_right(idx[-1], freq).time()
         if end_time != startofday:
             raise ValueError(
                 "Index must contain an integer number of days, i.e., the end time of the final delivery period "
@@ -37,10 +40,60 @@ def validate(idx: pd.DatetimeIndex) -> None:
 
 check = tools_decorator.create_checkdecorator(validation=validate, default_param="idx")
 
-lefttoright = tools_lefttoright.index
-duration = tools_duration.index
+
+# --------------------------
 
 
+@check()
+def to_right(idx: pd.DatetimeIndex) -> pd.Series:
+    """Right-bound timestamps, belonging to left-bound timestamps of delivery periods
+    in index.
+
+    Parameters
+    ----------
+    idx
+        Index for which to calculate the right-bound timestamps.
+
+    Returns
+    -------
+        Series, with ``idx`` as index and corresponding right-bound timestamps as values.
+    """
+    # HACK:
+    # Tried and rejected:
+    # . idx + pd.DateOffset(nanoseconds=i.freq.nanos)
+    #   This one breaks for non-fixed frequencies, like months and quarters, e.g.
+    #   idx = pd.date_range('2020', freq='MS', periods=5)
+    # . idx.shift()
+    #   This one breaks near DST transitions, e.g. it drops a value in this example:
+    #   idx = pd.date_range('2020-03-29', freq='D', periods=5, tz='Europe/Berlin')
+    # . idx + i.freq
+    #   Same example, different error: time is moved to 01:00 for first timestamp.
+    return pd.Series(idx + tools_freq.to_jump(idx.freq), idx)
+
+
+@check()
+def duration(idx: pd.DatetimeIndex) -> PintSeries:
+    """Duration of the delivery periods in a datetime index.
+
+    Parameters
+    ----------
+    idx
+        Index for which to calculate the durations.
+
+    Returns
+    -------
+        Series, with ``idx`` as index and durations as values.
+    """
+    jump = tools_freq.to_jump(idx.freq)
+    if isinstance(jump, pd.Timedelta):
+        tdelta = jump  # one timedelta
+    else:
+        tdelta = (idx + jump) - idx  # timedeltaindex
+    hours = tdelta.total_seconds() / 3600  # one value or index
+    return pd.Series(hours, idx, dtype="pint[h]")
+
+
+# TODO: move to `preprocess.py`?
 @check()
 @tools_startofday.check()
 def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
@@ -75,6 +128,7 @@ def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     return pd.DatetimeIndex(stamps, freq=idx.freq, tz=idx.tz)
 
 
+# TODO: move to `preprocess.py`?
 @check(validate=False)
 @tools_startofday.check()
 def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
@@ -142,18 +196,18 @@ def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     -----
     Only if ``idx`` has shorter frequency than ``freq`` might actual trimming occur.
     """
-    if tools_freq.up_or_down(idx.freq, freq) <= 0:
-        return idx  # no trimming needed
+    if tools_freq.up_or_down(idx.freq, freq) >= 0:
+        return idx  # no trimming needed when upsampling
 
     # The frequencies are compatible and ``idx`` has shorter than ``freq``.
     startofday = idx[0].time()
     mask_start = idx >= tools_stamp.ceil(idx[0], freq, startofday)
-    i_right = lefttoright(idx)
+    i_right = to_right(idx)
     mask_end = i_right <= tools_stamp.floor(i_right[-1], freq, startofday)
     return idx[mask_start & mask_end]
 
 
-def intersect(idxs: Collection[pd.DatetimeIndex]) -> pd.DatetimeIndex:
+def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
     """Intersect several datetime indices.
 
     Parameters
@@ -171,6 +225,8 @@ def intersect(idxs: Collection[pd.DatetimeIndex]) -> pd.DatetimeIndex:
     Otherwise, an error is raised. If there is no overlap, an empty datetimeindex is
     returned.
     """
+    idxs = list(idxs)  # Iterable does not (necessarily) have __len__. List does.
+
     if len(idxs) == 0:
         raise ValueError("Must specify at least one index.")
 
@@ -217,7 +273,8 @@ def intersect(idxs: Collection[pd.DatetimeIndex]) -> pd.DatetimeIndex:
 
 
 def intersect_flex(
-    idxs: Collection[pd.DatetimeIndex],
+    idxs: Iterable[pd.DatetimeIndex],
+    *,
     ignore_freq: bool = False,
     ignore_tz: bool = False,
     ignore_startofday: bool = False,
@@ -231,7 +288,7 @@ def intersect_flex(
         Indices to intersect.
     ignore_freq, optional (default: False)
         If True, do intersection even if frequencies are not equivalent; drop time
-        periods that do not (fully) exist in either of the frames. The frequencies
+        periods that do not (fully) exist in either of the indices. The frequencies
         of original indices are preserved. If frequencies are incompatible, an error is
         raised.
     ignore_tz, optional (default: False)
@@ -250,6 +307,8 @@ def intersect_flex(
     --------
     .intersect()
     """
+    idxs = list(idxs)  # Iterable does not (necessarily) have __len__. List does.
+
     if len(idxs) == 0:
         raise ValueError("Must specify at least one index.")
 
@@ -288,7 +347,7 @@ def intersect_flex(
     # If we land here, we have at least 2 indices, all not empty, with equivalent (or ignored) freq, equal (or ignored) tz, and equal (or ignored) start-of-day.
 
     # Prepare adjusted indices, for intersection.
-    l_and_r = [(idx, lefttoright(idx)) for idx in idxs]
+    l_and_r = [(idx, pd.DatetimeIndex(to_right(idx).values)) for idx in idxs]
     if not all_equal_sod:  # convert to wall time to ignore timezones
         l_and_r = [(le.tz_localize(None), ri.tz_localize(None)) for (le, ri) in l_and_r]
     if not all_equal_sod:  # remove time-part to ignore start-of-day

@@ -6,14 +6,71 @@ from typing import Literal
 import pandas as pd
 from pandas.core.dtypes.dtypes import BaseOffset
 
-
-from . import _duration as tools_duration
-from . import _lefttoright as tools_lefttoright
 from . import freq as tools_freq
 from . import startofday as tools_startofday
+from . import unit as tools_unit
+from pint import Quantity
 
-lefttoright = tools_lefttoright.stamp
-duration = tools_duration.stamp
+
+@tools_freq.check()
+def to_right(stamp: pd.Timestamp, freq: BaseOffset) -> pd.Timestamp:
+    """Right-bound timestamp belonging to left-bound timestamp.
+
+    Parameters
+    ----------
+    stamp
+        Left-bound (i.e., start) timestamp of a delivery period.
+    freq
+        Frequency of delivery period.
+
+    Returns
+    -------
+        Corresponding right-bound (i.e., end) timestamp.
+
+    Notes
+    -----
+    Does not verify that ``stamp`` is indeed a left-bound timestamp for the previded frequency.
+    """
+    return stamp + tools_freq.to_jump(freq)
+
+
+@tools_freq.check()
+def duration(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
+    """Duration of a delivery period.
+
+    Parameters
+    ----------
+    stamp
+        Left-bound (i.e., start) timestamp of delivery period for which to calculate the duration.
+    freq
+        Frequency of delivery period.
+
+    Returns
+    -------
+        Duration.
+
+    Notes
+    -----
+    Does not verify that ``stamp`` is indeed a left-bound timestamp for the previded frequency.
+
+    Example
+    -------
+    >>> duration(pd.Timestamp('2020-04-21'), 'D')
+    24.0 h
+    >>> duration(pd.Timestamp('2020-03-29'), 'D')
+    24.0 h
+    >>> duration(pd.Timestamp('2020-03-29', tz='Europe/Berlin'), 'D')
+    23.0 h
+    """
+    jump = tools_freq.to_jump(freq)
+
+    if isinstance(jump, pd.Timedelta):
+        tdelta = jump  # one timedelta
+    else:
+        assert freq.is_on_offset(stamp)
+        tdelta = (stamp + jump) - stamp  # one timedelta
+    hours = tdelta.total_seconds() / 3600
+    return tools_unit.Q_(hours, "h")
 
 
 def replace_time(stamp: pd.Timestamp, startofday: dt.time) -> pd.Timestamp:
@@ -71,9 +128,9 @@ def _round(
         is_part_of_prevday = stamp.time() < startofday
         rounded = replace_time(stamp, startofday)
         if is_part_of_prevday and fn == "floor":
-            rounded -= tools_lefttoright.jump("D")
+            rounded -= tools_freq.to_jump("D")
         elif not is_part_of_prevday and fn == "ceil":
-            rounded += tools_lefttoright.jump("D")
+            rounded += tools_freq.to_jump("D")
 
     # Correct for the day-of-X.
     return freq.rollback(rounded) if fn == "floor" else freq.rollforward(rounded)
@@ -82,16 +139,18 @@ def _round(
 @tools_freq.check()
 @tools_startofday.check()
 def floor(
-    stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None
+    stamp: pd.Timestamp,
+    freq: BaseOffset,
+    startofday: dt.time = tools_startofday.MIDNIGHT,
 ) -> pd.Timestamp:
-    f"""Floor timestamp to beginning of delivery period it's contained in.
+    """Floor timestamp to beginning of delivery period it's contained in.
     I.e., find (latest) delivery period start that is on or before the timestamp.
 
     Parameters
     ----------
     stamp
         Timestamp to floor.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
+    freq
         Frequency of delivery period.
     startofday, optional (default: midnight)
         Time of day at which daily-or-longer delivery periods start. E.g. if
@@ -127,16 +186,18 @@ def floor(
 @tools_freq.check()
 @tools_startofday.check()
 def ceil(
-    stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None
+    stamp: pd.Timestamp,
+    freq: BaseOffset,
+    startofday: dt.time = tools_startofday.MIDNIGHT,
 ) -> pd.Timestamp:
-    f"""Ceil timestamp to end of delivery period it's contained in.
+    """Ceil timestamp to end of delivery period it's contained in.
     I.e., find (earliest) delivery period start that is on or after the timestamp.
 
     Parameters
     ----------
     stamp
         Timestamp to ceil.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
+    freq
         Frequency of delivery period.
     startofday, optional (default: midnight)
         Time of day at which daily-or-longer delivery periods start. E.g. if

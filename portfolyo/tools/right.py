@@ -25,7 +25,7 @@ def stamp(ts: pd.Timestamp, freq: str) -> pd.Timestamp:
     return ts + tools_freq.to_offset(freq)
 
 
-def index(i: pd.DatetimeIndex) -> pd.DatetimeIndex:
+def index(i: pd.DatetimeIndex) -> pd.Series:
     """Right-bound timestamp belonging to left-bound timestamp.
 
     Parameters
