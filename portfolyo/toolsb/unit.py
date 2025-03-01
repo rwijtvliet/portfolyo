@@ -1,6 +1,4 @@
-"""
-Working with pint units.
-"""
+""" Working with pint units. """
 
 from pathlib import Path
 from typing import Tuple, overload
@@ -11,11 +9,11 @@ import pint_pandas
 
 from .types import Series_or_DataFrame
 
-path = Path(__file__).parent / "unitdefinitions.txt"
+_FILEPATH = Path(__file__).parent / "unitdefinitions.txt"
 
 
 ureg = pint_pandas.PintType.ureg = pint.UnitRegistry(
-    str(path),
+    str(_FILEPATH),
     system="powerbase",
     auto_reduce_dimensions=True,
     case_sensitive=False,
@@ -28,7 +26,7 @@ PA_ = pint_pandas.PintArray
 Q_ = ureg.Quantity
 Unit = ureg.Unit
 
-NAMES_AND_UNITS = {
+_DEFAULT_NAMES_AND_UNITS = {
     "w": ureg.MW,
     "q": ureg.MWh,
     "p": ureg.euro_per_MWh,
@@ -42,7 +40,7 @@ NAMES_AND_UNITS = {
 def to_name(unit: pint.Unit) -> str:
     """Find the standard column name belonging to unit `unit`. Checks on dimensionality,
     not exact unit."""
-    for name, u in NAMES_AND_UNITS.items():
+    for name, u in _DEFAULT_NAMES_AND_UNITS.items():
         if u.dimensionality == unit.dimensionality:
             return name
     raise pint.UndefinedUnitError(f"No standard name found for unit '{unit}'.")
@@ -50,8 +48,8 @@ def to_name(unit: pint.Unit) -> str:
 
 def from_name(name: str) -> pint.Unit:
     """Find standard unit belonging to a column name."""
-    if name in NAMES_AND_UNITS:
-        return NAMES_AND_UNITS[name]
+    if name in _DEFAULT_NAMES_AND_UNITS:
+        return _DEFAULT_NAMES_AND_UNITS[name]
     raise ValueError(f"No standard unit found for name '{name}'.")
 
 
