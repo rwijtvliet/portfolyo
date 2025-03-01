@@ -83,7 +83,7 @@ class TCase:  # testcase
     idx_source: pd.DatetimeIndex  # source index
     idx_target: pd.DatetimeIndex  # target index
     holiday_country: str
-    expected_mapping: (pd.Series)  # for every day in the target index, get position in source
+    expected_mapping: pd.Series  # for every day in the target index, get position in source
 
 
 def create_testcase_factory():

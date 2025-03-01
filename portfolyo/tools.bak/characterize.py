@@ -24,7 +24,6 @@ float, int, pint.Quantity, pandas.Series, pandas.DataFrame."""
 #     ---------
 #     DataFrame
 
-
 import pandas as pd
 import pint
 import pint_pandas
