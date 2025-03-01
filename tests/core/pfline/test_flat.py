@@ -78,9 +78,7 @@ def test_flatpfline_access(columns: str, available: str, constructor: type):
 
 series = {}
 for freq in ["MS", "D", "15min"]:
-    idx = pd.date_range(
-        "2020", "2020-04", freq=freq, inclusive="left", tz="Europe/Berlin"
-    )
+    idx = pd.date_range("2020", "2020-04", freq=freq, inclusive="left", tz="Europe/Berlin")
     p = pd.Series(50, idx)
     w = pd.Series(20, idx)
     q = w * tools.duration.index(w.index).pint.m
@@ -184,9 +182,7 @@ def test_asfreq_with_new_freq(
 @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
 def test_flatpfline_asfreqimpossible(freq, newfreq, kind):
     """Test if changing frequency raises error if it's impossible."""
-    i = pd.date_range(
-        "2020-04-06", "2020-04-16", freq=freq, inclusive="left", tz="Europe/Berlin"
-    )
+    i = pd.date_range("2020-04-06", "2020-04-16", freq=freq, inclusive="left", tz="Europe/Berlin")
     pfl = dev.get_flatpfline(i, kind)
     with pytest.raises((ValueError, TypeError)):
         _ = pfl.asfreq(newfreq)

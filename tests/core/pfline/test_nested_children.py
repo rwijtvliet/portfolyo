@@ -33,15 +33,9 @@ ref_children = {
         "childC": create.flatpfline({"r": ref_series["C"] * 1000}),
     },
     "all": {
-        "childA": create.flatpfline(
-            {"w": ref_series["A"], "r": ref_series["A"] * 1000}
-        ),
-        "childB": create.flatpfline(
-            {"w": ref_series["B"], "r": ref_series["B"] * 1000}
-        ),
-        "childC": create.flatpfline(
-            {"w": ref_series["C"], "r": ref_series["C"] * 1000}
-        ),
+        "childA": create.flatpfline({"w": ref_series["A"], "r": ref_series["A"] * 1000}),
+        "childB": create.flatpfline({"w": ref_series["B"], "r": ref_series["B"] * 1000}),
+        "childC": create.flatpfline({"w": ref_series["C"], "r": ref_series["C"] * 1000}),
     },
 }
 ref_pfl = {kind: create.nestedpfline(ref_children[kind]) for kind in ref_children}
@@ -61,9 +55,7 @@ children12_trimmed = {
     kind: {n: c.loc[i12] for n, c in {**ref_children[kind], **children2[kind]}.items()}
     for kind in ref_children
 }
-pfl12 = {
-    kind: create.nestedpfline(children12_trimmed[kind]) for kind in children12_trimmed
-}
+pfl12 = {kind: create.nestedpfline(children12_trimmed[kind]) for kind in children12_trimmed}
 
 # Child with no overlap.
 i3 = pd.date_range("2022", freq="MS", periods=3, tz=tz)

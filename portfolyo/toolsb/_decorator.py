@@ -129,9 +129,7 @@ def create_checkdecorator(
         # Guard clause.
         if not len(params):
             if not default_param:
-                raise ValueError(
-                    "Provide name(s) of parameter(s) that must be checked."
-                )
+                raise ValueError("Provide name(s) of parameter(s) that must be checked.")
             params = [default_param]
 
         # Create one-stop function.

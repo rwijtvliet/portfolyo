@@ -156,9 +156,7 @@ def peak_duration(i: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
             return tools_changefreq.summable(eval_duration, i.freq).rename("duration")
 
     # Couldn't determine the duration.
-    raise ValueError(
-        "Couldn't calculate the duration of the peak period for the provided index."
-    )
+    raise ValueError("Couldn't calculate the duration of the peak period for the provided index.")
 
 
 def offpeak_duration(i: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:

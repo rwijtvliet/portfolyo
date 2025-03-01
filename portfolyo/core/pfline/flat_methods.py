@@ -17,9 +17,7 @@ def flatten(self: FlatPfLine) -> FlatPfLine:
     return self
 
 
-def po(
-    self: PfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS"
-) -> pd.DataFrame:
+def po(self: PfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS") -> pd.DataFrame:
     df_dict = {}
 
     # Always include duration.
@@ -53,13 +51,9 @@ def hedge_with(
     freq: str = "MS",
 ) -> FlatPfLine:
     if self.kind not in [Kind.VOLUME, Kind.COMPLETE]:
-        raise ValueError(
-            "Cannot hedge a PfLine that does not contain volume information."
-        )
+        raise ValueError("Cannot hedge a PfLine that does not contain volume information.")
     if self.index.freq not in ["15min", "h", "D"]:
-        raise ValueError(
-            "Can only hedge a PfLine with daily or (quarter)hourly information."
-        )
+        raise ValueError("Can only hedge a PfLine with daily or (quarter)hourly information.")
 
     wout, pout = tools.hedge.hedge(self.w, prices.p, how, peak_fn, freq)
     df = pd.DataFrame({"w": wout, "p": pout})

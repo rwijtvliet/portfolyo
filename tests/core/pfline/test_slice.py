@@ -24,18 +24,12 @@ def get_idx(
 
 
 @pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-FEB", "D"])
-@pytest.mark.parametrize(
-    "slice_start", ["2021", "2022", "2022-01-02", "2022-05-23 14:34"]
-)
+@pytest.mark.parametrize("slice_start", ["2021", "2022", "2022-01-02", "2022-05-23 14:34"])
 @pytest.mark.parametrize("sod", ["00:00", "06:00"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("inclusive", ["left", "both"])
-def test_flat_slice_start(
-    slice_start: str, freq: str, tz: str, sod: str, inclusive: str
-):
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
-    )
+def test_flat_slice_start(slice_start: str, freq: str, tz: str, sod: str, inclusive: str):
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz)
     pfl1 = dev.get_flatpfline(index)
     assert pfl1.slice[slice_start:] == pfl1.loc[slice_start:]
 
@@ -55,9 +49,7 @@ def test_flat_slice_start(
 @pytest.mark.parametrize("sod", ["00:00", "06:00"])
 @pytest.mark.parametrize("inclusive", ["left", "both"])
 def test_flat_slice_end(slice_end: str, freq: str, tz: str, sod: str, inclusive: str):
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
-    )
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz)
     pfl1 = dev.get_flatpfline(index)
     assert pfl1.slice[: slice_end[0]] == pfl1.loc[: slice_end[1]]
 
@@ -74,9 +66,7 @@ def test_flat_slice_whole(where: str, freq: str, tz: str, sod: str, inclusive: s
     """Test that slicing splits the pfl in 2 non-overlapping pieces without gap
     (i.e., ensure that each original timestamp is in exactly one of the resulting pieces.)
     """
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
-    )
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz)
     pfl1 = dev.get_flatpfline(index)
     left, right = pfl1.slice[:where], pfl1.slice[where:]
     # Test that each timestamp is present at least once.
@@ -98,12 +88,8 @@ def test_flat_slice_whole(where: str, freq: str, tz: str, sod: str, inclusive: s
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("sod", ["00:00", "06:00"])
 @pytest.mark.parametrize("inclusive", ["left", "both"])
-def test_nested_slice_start(
-    slice_start: str, freq: str, tz: str, sod: str, inclusive: str
-):
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
-    )
+def test_nested_slice_start(slice_start: str, freq: str, tz: str, sod: str, inclusive: str):
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz)
     pfl1 = dev.get_nestedpfline(index)
     assert pfl1.slice[slice_start:] == pfl1.loc[slice_start:]
 
@@ -123,9 +109,7 @@ def test_nested_slice_start(
 @pytest.mark.parametrize("sod", ["00:00", "06:00"])
 @pytest.mark.parametrize("inclusive", ["left", "both"])
 def test_nested_slice_end(slice_end: str, freq: str, tz: str, sod: str, inclusive: str):
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
-    )
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz)
     pfl1 = dev.get_nestedpfline(index)
     assert pfl1.slice[: slice_end[0]] == pfl1.loc[: slice_end[1]]
 
@@ -142,9 +126,7 @@ def test_nested_slice_whole(where: str, freq: str, tz: str, sod: str, inclusive:
     """Test that slicing splits the pfl in 2 non-overlapping pieces without gap
     (i.e., ensure that each original timestamp is in exactly one of the resulting pieces.)
     """
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
-    )
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz)
     pfl1 = dev.get_nestedpfline(index)
     left, right = pfl1.slice[:where], pfl1.slice[where:]
     # Test that each timestamp is present at least once.
@@ -158,9 +140,7 @@ def test_nested_slice_whole(where: str, freq: str, tz: str, sod: str, inclusive:
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("startdate", ["2021", "2022", "2022-01-02"])
 def test__start_less_than_daily(startdate: str, freq: str, tz: str, sod: str):
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive="left", tz=tz
-    )
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive="left", tz=tz)
     pfl1 = dev.get_flatpfline(index)
     slice_start = f"{startdate} {sod}"
     assert pfl1.slice[slice_start:] == pfl1.loc[slice_start:]

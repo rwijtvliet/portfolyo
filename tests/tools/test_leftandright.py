@@ -78,9 +78,7 @@ def test_leftandright_onespecified_asstring(
     as a timestamp."""
     # One specified, but as string. So tz parameter and start_of_day should be used.
     # There should be no timezone errors and no swapping is necessary
-    start_of_day = {"06:00": dt.time(hour=6), "00:00": dt.time(hour=0), None: None}[
-        starttime
-    ]
+    start_of_day = {"06:00": dt.time(hour=6), "00:00": dt.time(hour=0), None: None}[starttime]
     expected = [pd.Timestamp(ts, tz=tz_param) for ts in expected_tss]
     result = tools.leftandright.stamps(*tss, tz_param, start_of_day)
 

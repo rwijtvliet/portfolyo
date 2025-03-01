@@ -55,9 +55,7 @@ def aggfreq(request):
 
 @pytest.fixture
 def dfin(freq: str, tz: str) -> pd.DataFrame:
-    df = pd.read_excel(
-        PATH, sheetname(freq, tz), header=6, index_col=0, usecols="A,B:C"
-    )
+    df = pd.read_excel(PATH, sheetname(freq, tz), header=6, index_col=0, usecols="A,B:C")
     if tz:
         df = df.tz_localize(tz, ambiguous="infer")
     df.index.freq = pd.infer_freq(df.index)
@@ -66,9 +64,7 @@ def dfin(freq: str, tz: str) -> pd.DataFrame:
 
 @pytest.fixture
 def dfexp(freq: str, tz: str) -> pd.DataFrame:
-    df = pd.read_excel(
-        PATH, f"{sheetname(freq, tz)}_out", header=[3, 4, 5, 6], index_col=0
-    )
+    df = pd.read_excel(PATH, f"{sheetname(freq, tz)}_out", header=[3, 4, 5, 6], index_col=0)
     if tz:
         df = df.tz_localize(tz, ambiguous="infer")
     df.index.freq = pd.infer_freq(df.index)

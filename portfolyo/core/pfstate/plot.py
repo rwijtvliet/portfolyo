@@ -41,9 +41,7 @@ class PfStatePlot:
         usv.plot_to_ax(volumeaxes[2], kind=Kind.VOLUME, labelfmt="")
         # Procurement Price.
         self.pnl_cost.plot_to_ax(priceaxes[0], kind=Kind.PRICE, labelfmt="")
-        self.sourced.plot_to_ax(
-            priceaxes[1], children=children, kind=Kind.PRICE, labelfmt=""
-        )
+        self.sourced.plot_to_ax(priceaxes[1], children=children, kind=Kind.PRICE, labelfmt="")
         # Unsourced price
         self.unsourced.plot_to_ax(priceaxes[2], kind=Kind.PRICE, labelfmt="")
         # Set titles.

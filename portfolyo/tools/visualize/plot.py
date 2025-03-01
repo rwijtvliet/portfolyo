@@ -95,18 +95,14 @@ def plot_timeseries_as_bar(
     """Plot timeseries ``s`` to axis ``ax``, as bars.
     On plots with categorical (i.e, non-continuous) time axis."""
     if not is_categorical(s):
-        raise ContinuousValuesNotSupported(
-            "This plot is not compatible with continous values"
-        )
+        raise ContinuousValuesNotSupported("This plot is not compatible with continous values")
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     categories = Categories(s)
     ax.bar(categories.x(), categories.y(), width=width, **kwargs)
     ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-    set_data_labels(
-        ax, categories.x(MAX_XLABELS), categories.y(MAX_XLABELS), labelfmt, True
-    )
+    set_data_labels(ax, categories.x(MAX_XLABELS), categories.y(MAX_XLABELS), labelfmt, True)
     ax.autoscale()
 
 
@@ -120,9 +116,7 @@ def plot_timeseries_as_area(
     """Plot timeseries ``s`` to axis ``ax``, as stepped area between 0 and value.
     On plots with continuous (i.e., non-categorical) time axis."""
     if is_categorical(s):
-        raise CategoricalValuesNotSupported(
-            "This plot is not compatible with categorical values"
-        )
+        raise CategoricalValuesNotSupported("This plot is not compatible with categorical values")
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
@@ -146,15 +140,11 @@ def plot_timeseries_as_area(
 
 
 @append_to_doc(docstringliteral_plotparameters)
-def plot_timeseries_as_step(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", **kwargs
-) -> None:
+def plot_timeseries_as_step(ax: plt.Axes, s: pd.Series, labelfmt: str = "", **kwargs) -> None:
     """Plot timeseries ``s`` to axis ``ax``, as stepped line (horizontal and vertical lines).
     On plots with continuous (i.e., non-categorical) time axis."""
     if is_categorical(s):
-        raise CategoricalValuesNotSupported(
-            "This plot is not compatible with categorical values"
-        )
+        raise CategoricalValuesNotSupported("This plot is not compatible with categorical values")
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
@@ -168,15 +158,11 @@ def plot_timeseries_as_step(
 
 
 @append_to_doc(docstringliteral_plotparameters)
-def plot_timeseries_as_hline(
-    ax: plt.Axes, s: pd.Series, labelfmt: str = "", **kwargs
-) -> None:
+def plot_timeseries_as_hline(ax: plt.Axes, s: pd.Series, labelfmt: str = "", **kwargs) -> None:
     """Plot timeseries ``s`` to axis ``ax``, as horizontal lines.
     On plots with categorical (i.e., non-continuous) time axis."""
     if not is_categorical(s):
-        raise ContinuousValuesNotSupported(
-            "This plot is not compatible with continous time axis"
-        )
+        raise ContinuousValuesNotSupported("This plot is not compatible with continous time axis")
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
     categories = Categories(s)
@@ -251,9 +237,7 @@ def prepare_ax_and_s(ax: plt.Axes, s: pd.Series, unit=None) -> pd.Series:
     if unit is not None:
         # Custom unit is provided. Convert series to that unit.
         if unit.dimensionality != s.pint.dimensionality:  # check compatibility
-            raise ValueError(
-                f"Cannot convert series with units {s.pint.units} to units {unit}."
-            )
+            raise ValueError(f"Cannot convert series with units {s.pint.units} to units {unit}.")
         s = s.astype(unit)
         set_portfolyo_attr(ax, "unit", unit)
     else:
@@ -292,14 +276,10 @@ def check_ax_s_compatible(ax: plt.Axes, s: pd.Series):
         set_portfolyo_attr(ax, "freq", series_freq)
     else:
         if get_portfolyo_attr(ax, "freq") != series_freq:
-            raise AttributeError(
-                "The frequency of PFLine is not compatible with current axes"
-            )
+            raise AttributeError("The frequency of PFLine is not compatible with current axes")
 
 
-def set_data_labels(
-    ax: plt.Axes, xx, yy, labelfmt, outside: bool = False, maxcount: int = 24
-):
+def set_data_labels(ax: plt.Axes, xx, yy, labelfmt, outside: bool = False, maxcount: int = 24):
     """Add labels to axis ``ax``, at locations (``xx``, ``yy``), formatted with
     ``labelfmt``. Don't add labels if more than ``maxcount`` datapoints. If ``outside``,
     put labels of negative values *below* the datapoint."""

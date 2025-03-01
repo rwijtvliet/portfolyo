@@ -44,9 +44,7 @@ def get_weights_df(weights: dict, index: Iterable, units: bool = False):
     """Get weights to test wavg with, if weightsas == 'dataframe'."""
     weights = pd.DataFrame(weights, index)
     if units:
-        weights = pd.DataFrame(
-            {c: s.astype("pint[Eur/MWh]") for c, s in weights.items()}
-        )
+        weights = pd.DataFrame({c: s.astype("pint[Eur/MWh]") for c, s in weights.items()})
     return weights
 
 
@@ -56,9 +54,7 @@ def get_index(number: int, indextype: str) -> Iterable:
     return pd.date_range("2020", freq="D", periods=number)
 
 
-def do_test_series(
-    values: pd.Series | pd.DataFrame, weights: Any, expected: Any, **kwargs
-):
+def do_test_series(values: pd.Series | pd.DataFrame, weights: Any, expected: Any, **kwargs):
     if isinstance(expected, type) and issubclass(expected, Exception):
         with pytest.raises(expected):
             tools.wavg.series(values, weights)
@@ -138,9 +134,7 @@ def test_wavg_series_surplusweights(weightsas: str, units: str, indextype: str):
 @pytest.mark.parametrize("units", ["", "val", "wei", "val&wei"])
 @pytest.mark.parametrize("indextype", ["int", "DatetimeIndex"])
 @pytest.mark.parametrize("zerovalues", ["allzero", "sumzero"])
-def test_wavg_series_0weights(
-    weightsas: str, units: str, indextype: str, zerovalues: str
-):
+def test_wavg_series_0weights(weightsas: str, units: str, indextype: str, zerovalues: str):
     """Test if weighted average of a series is correctly identified as error,
     when sum of weights is 0 but not all values are equal."""
     # Starting values.
@@ -160,9 +154,7 @@ def test_wavg_series_0weights(
 @pytest.mark.parametrize("units", ["", "val", "wei", "val&wei"])
 @pytest.mark.parametrize("indextype", ["int", "DatetimeIndex"])
 @pytest.mark.parametrize("zerovalues", ["allzero", "sumzero"])
-def test_wavg_onevalseries_0weights(
-    weightsas: str, units: str, indextype: str, zerovalues: str
-):
+def test_wavg_onevalseries_0weights(weightsas: str, units: str, indextype: str, zerovalues: str):
     """Test if weighted average of a series is correctly calculated,
     when sum of weights is 0 and all values are equal."""
     # Starting values.
@@ -244,9 +236,7 @@ def test_wavg_dataframe(weightsas: str, axis: int, units: str, indextype: str):
 @pytest.mark.parametrize("units", ["", "val", "wei", "val&wei"])
 @pytest.mark.parametrize("indextype", ["int", "DatetimeIndex"])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_wavg_dataframe_surplusvalues(
-    weightsas: str, axis: int, units: str, indextype: str
-):
+def test_wavg_dataframe_surplusvalues(weightsas: str, axis: int, units: str, indextype: str):
     """Test if weighted average of a dataframe is correctly calculated if we have more
     values than weights."""
     # Starting values.
@@ -284,9 +274,7 @@ def test_wavg_dataframe_surplusvalues(
 @pytest.mark.parametrize("units", ["", "val", "wei", "val&wei"])
 @pytest.mark.parametrize("indextype", ["int", "DatetimeIndex"])
 @pytest.mark.parametrize("axis", [0, 1])
-def test_wavg_dataframe_surplusweights(
-    weightsas: str, axis: int, units: str, indextype: str
-):
+def test_wavg_dataframe_surplusweights(weightsas: str, axis: int, units: str, indextype: str):
     """Test if error is correctly thrown if we have more weights than values."""
     # Starting values.
     i = get_index(5, indextype)
@@ -298,9 +286,7 @@ def test_wavg_dataframe_surplusweights(
         if axis == 0:
             weights = get_weights([10.0, 10, 10, 20, 9], weightsas, i, "wei" in units)
         else:
-            weights = get_weights(
-                [10.0, 30, 9], weightsas, ["a", "b", "c"], "wei" in units
-            )
+            weights = get_weights([10.0, 30, 9], weightsas, ["a", "b", "c"], "wei" in units)
     else:
         weights = get_weights_df(
             {"a": [10.0, 10, 10, 20, 9], "b": [10.0, 10, 30, 0, 9]}, i, "wei" in units
@@ -347,9 +333,7 @@ def test_wavg_dataframe_distinctunits(
             if weightsas == "none":
                 expected = pd.Series([100.0, 0, 300, -150], i).astype("pint[Eur/MWh]")
             else:
-                expected = pd.Series([100.0, -100, 300, -150], i).astype(
-                    "pint[Eur/MWh]"
-                )
+                expected = pd.Series([100.0, -100, 300, -150], i).astype("pint[Eur/MWh]")
     else:
         weights = get_weights_df(
             {"a": [10.0, 10, 10, 20], "b": [10.0, 10, 30, 0]}, i, "wei" in units

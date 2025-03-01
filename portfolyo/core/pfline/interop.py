@@ -116,9 +116,7 @@ class InOp:
         # Volumes.
         if w is not None and q is not None:
             try:
-                tools.testing.assert_series_equal(
-                    w, q / q.index.duration, check_names=False
-                )
+                tools.testing.assert_series_equal(w, q / q.index.duration, check_names=False)
             except AssertionError as e:
                 raise ValueError("Values for w and q are not consistent.") from e
         elif w is not None and q is None:
@@ -188,9 +186,7 @@ class InOp:
     def _assert_noagn_and_all_timeseries(self):
         """Raise Error if object (still) has agnostic data or if not all data are timeseries."""
         if self.agn is not None:
-            raise ValueError(
-                "Object contains agnostic data; first use `.assign_agn()`."
-            )
+            raise ValueError("Object contains agnostic data; first use `.assign_agn()`.")
 
         # Guard clause.
         errors = {}
@@ -202,9 +198,7 @@ class InOp:
                 continue
             errors[attr] = type(val)
         if errors:
-            raise ValueError(
-                "Object contains non-timeseries data; first use `.to_timeseries()`."
-            )
+            raise ValueError("Object contains non-timeseries data; first use `.to_timeseries()`.")
 
     def __bool__(self) -> bool:
         return not all(getattr(self, attr) is None for attr in _ATTRIBUTES)
@@ -240,9 +234,7 @@ def _set_unit(
                     f"dimensionless. Should be plain number values; found {v.pint.units}."
                 )
             return v
-        raise TypeError(
-            f"Value should be a number or timeseries of numbers; got {type(v)}."
-        )
+        raise TypeError(f"Value should be a number or timeseries of numbers; got {type(v)}.")
 
     else:  # should be unit-aware
         if isinstance(v, float):
@@ -254,9 +246,7 @@ def _set_unit(
         if isinstance(v, pd.Series) and isinstance(v.index, pd.DatetimeIndex):
             v = _timeseries_of_floats_or_pint(v)  # float-series or pint-series
             return v.astype(f"pint[{unit:P}]")
-        raise TypeError(
-            f"Value should be a number, Quantity, or timeseries; got {type(v)}."
-        )
+        raise TypeError(f"Value should be a number, Quantity, or timeseries; got {type(v)}.")
 
 
 def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
@@ -329,11 +319,7 @@ def _from_data(
         else:
             return InOp(**{_unit2attr(data.pint.units): data})
 
-    elif (
-        isinstance(data, pd.DataFrame)
-        or isinstance(data, pd.Series)
-        or isinstance(data, Mapping)
-    ):
+    elif isinstance(data, pd.DataFrame) or isinstance(data, pd.Series) or isinstance(data, Mapping):
 
         def dimabbr(key):  # following keys return 'w': 'w', ('w', 'pf1'), ('pf1', 'w')
             if key in _ATTRIBUTES:
@@ -449,6 +435,4 @@ def pfline_or_nodimseries(
         return inop.nodim
 
     else:
-        raise NotImplementedError(
-            "Found a mix of dimension-aware and dimensionless data."
-        )
+        raise NotImplementedError("Found a mix of dimension-aware and dimensionless data.")

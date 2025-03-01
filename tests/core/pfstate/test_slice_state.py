@@ -45,9 +45,7 @@ def test_slice_state(
     inclusive: str,
     tz: str,
 ):
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
-    )
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz)
     pfs = dev.get_pfstate(index)
 
     pfs_to_concat = [pfs.slice[: slice_end[0]], pfs.slice[slice_start:]]
@@ -75,9 +73,7 @@ def test_state_slice_start(
     inclusive: str,
     tz: str,
 ):
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
-    )
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz)
     pfs = dev.get_pfstate(index)
     assert pfs.slice[slice_start:] == pfs.loc[slice_start:]
 
@@ -97,9 +93,7 @@ def test_state_slice_start(
 @pytest.mark.parametrize("inclusive", ["left", "both"])
 @pytest.mark.parametrize("sod", ["00:00", "06:00"])
 def test_state_slice_end(slice_end: str, freq: str, sod: str, inclusive: str, tz: str):
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
-    )
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz)
     pfs = dev.get_pfstate(index)
     assert pfs.slice[: slice_end[0]] == pfs.loc[: slice_end[1]]
 
@@ -116,9 +110,7 @@ def test_state_slice_whole(where: str, freq: str, sod: str, inclusive: str, tz: 
     """Test that slicing splits the pfl in 2 non-overlapping pieces without gap
     (i.e., ensure that each original timestamp is in exactly one of the resulting pieces.)
     """
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
-    )
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz)
     pfs = dev.get_pfstate(index)
     left, right = pfs.slice[:where], pfs.slice[where:]
     # Test that each timestamp is present at least once.
@@ -132,9 +124,7 @@ def test_state_slice_whole(where: str, freq: str, sod: str, inclusive: str, tz: 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize("startdate", ["2021", "2022", "2022-01-02"])
 def test__start_less_than_daily(startdate: str, freq: str, tz: str, sod: str):
-    index = get_idx(
-        "2020", starttime=sod, enddate="2024", freq=freq, inclusive="left", tz=tz
-    )
+    index = get_idx("2020", starttime=sod, enddate="2024", freq=freq, inclusive="left", tz=tz)
     pfl1 = dev.get_pfstate(index)
     slice_start = f"{startdate} {sod}"
     assert pfl1.slice[slice_start:] == pfl1.loc[slice_start:]

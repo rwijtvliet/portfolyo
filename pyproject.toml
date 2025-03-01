@@ -66,11 +66,11 @@ pythonpath = ["./tests"]
 
 
 [tool.black]
-line-length = 88
+line-length = 100
 
 
 [tool.ruff]
-line-length = 88
+line-length = 100
 lint.select = ["E", "F", "W"] # Equivalent to flake8's built-in codes
 lint.ignore = [
     "E501",

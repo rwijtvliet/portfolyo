@@ -129,9 +129,7 @@ def test_conversionAtoA_fromexcel(aggfreq, tzt_in, tzt_out, seriesordf):
 
 @pytest.mark.parametrize("seriesordf", ["series", "df"])
 @pytest.mark.parametrize("aggfreq", ["15min", "h", "D", "MS"])
-@pytest.mark.parametrize(
-    ("tzt_in", "tzt_out"), [(TzType.A, TzType.B), (TzType.A_FLOAT, TzType.B)]
-)
+@pytest.mark.parametrize(("tzt_in", "tzt_out"), [(TzType.A, TzType.B), (TzType.A_FLOAT, TzType.B)])
 def test_conversionAtoB_fromexcel(aggfreq, tzt_in, tzt_out, seriesordf):
     """Test if frames can be correctly converted from type A to type B."""
 
@@ -170,10 +168,6 @@ def do_test_conversion(aggfreq, tzt_in, tzt_out, seriesordf, conversion_fn):
     expected = df_out if seriesordf == "df" else df_out["col1"]
     result = conversion_fn(fr_in)
     if seriesordf == "df":
-        testing.assert_frame_equal(
-            result, expected, check_names=False, check_freq=False
-        )
+        testing.assert_frame_equal(result, expected, check_names=False, check_freq=False)
     else:
-        testing.assert_series_equal(
-            result, expected, check_names=False, check_freq=False
-        )
+        testing.assert_series_equal(result, expected, check_names=False, check_freq=False)

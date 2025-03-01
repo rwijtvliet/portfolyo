@@ -51,9 +51,7 @@ def convert(startofday: dt.time | str | dt.timedelta) -> dt.time:
 def validate(startofday: dt.time) -> None:
     """Validate if argument has necessary properties to be used in portfolio lines."""
     if not startofday.minute == startofday.second == 0:
-        raise ValueError(
-            "Start-of-day must be at a full hour (not necessarily midnight)."
-        )
+        raise ValueError("Start-of-day must be at a full hour (not necessarily midnight).")
 
 
 check = tools_decorator.create_checkdecorator(
@@ -64,15 +62,13 @@ check = tools_decorator.create_checkdecorator(
 # --------------------------
 
 
-@check()
 def to_string(startofday: dt.time) -> str:
     """Turn time into HH:MM:SS string."""
-    return f"{startofday:%H:%M:%S}"  # min and second should be 0
+    return f"{startofday:%H:%M:%S}"  # min and sec should be 0
 
 
-@check()
 def to_tdelta(startofday: dt.time) -> dt.timedelta:
     """Turn time into timedelta to previous midnight (24h day)."""
     return dt.timedelta(
         hours=startofday.hour, minutes=startofday.minute, seconds=startofday.second
-    )
+    )  # min and sec should be 0

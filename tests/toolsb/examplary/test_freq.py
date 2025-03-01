@@ -111,9 +111,7 @@ def test_sortedshortedlongest_withequivalent(seed, nestedsorted):
                 assert r in subsorted
 
     np.random.seed(seed)
-    unsorted = np.random.default_rng().permutation(
-        [f for ff in nestedsorted for f in ff]
-    )
+    unsorted = np.random.default_rng().permutation([f for ff in nestedsorted for f in ff])
     assert_sorted(toolsb.freq.sorted(unsorted))
     assert toolsb.freq.shortest(unsorted) in nestedsorted[0]
     assert toolsb.freq.longest(unsorted) in nestedsorted[-1]

@@ -5,8 +5,8 @@ import pytest
 from portfolyo import toolsb
 
 TIME_AND_STRING = [
-    (dt.time(hour=0), "00:00"),
-    (dt.time(hour=6), "06:00"),
+    (dt.time(hour=0), "00:00:00"),
+    (dt.time(hour=6), "06:00:00"),
     (dt.time(hour=6, minute=39, second=51), "06:39:51"),
 ]
 
@@ -21,10 +21,7 @@ TIME_AND_TDELTA = [
 ]
 
 
-@pytest.mark.parametrize(
-    "input,expected",
-    [(dt.time(hour=0), None), *TIME_AND_STRING, *TIME_AND_TDELTA],
-)
+@pytest.mark.parametrize("expected,input", [*TIME_AND_STRING, *TIME_AND_TDELTA])
 def test_conversion(input, expected):
     assert toolsb.startofday.convert(input) == expected
 

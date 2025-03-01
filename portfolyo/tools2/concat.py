@@ -42,9 +42,7 @@ def general(pfl_or_pfs: Iterable[PfLine | PfState]) -> None:
     elif all(isinstance(item, PfState) for item in pfl_or_pfs):
         return concat_pfstates(pfl_or_pfs)
     else:
-        raise NotImplementedError(
-            "Concatenation is implemented only for PfState or PfLine."
-        )
+        raise NotImplementedError("Concatenation is implemented only for PfState or PfLine.")
 
 
 def concat_pflines(pfls: Iterable[PfLine]) -> PfLine:
@@ -72,9 +70,7 @@ def concat_pflines(pfls: Iterable[PfLine]) -> PfLine:
     Concatenation returns the same result regardless of input order.
     """
     if len(pfls) < 2:
-        raise NotImplementedError(
-            "Cannot perform operation with less than 2 portfolio lines."
-        )
+        raise NotImplementedError("Cannot perform operation with less than 2 portfolio lines.")
     if len({pfl.kind for pfl in pfls}) != 1:
         raise TypeError("Not possible to concatenate PfLines of different kinds.")
     if len({pfl.index.freq for pfl in pfls}) != 1:
@@ -82,9 +78,7 @@ def concat_pflines(pfls: Iterable[PfLine]) -> PfLine:
     if len({pfl.index.tz for pfl in pfls}) != 1:
         raise TypeError("Not possible to concatenate PfLines of different time zones.")
     if len({tools.startofday.get(pfl.index, "str") for pfl in pfls}) != 1:
-        raise TypeError(
-            "Not possible to concatenate PfLines of different start_of_day."
-        )
+        raise TypeError("Not possible to concatenate PfLines of different start_of_day.")
     # we can concatenate only pflines of the same type: nested of flat
     # with this test and check whether pfls are the same types and they have the same number of children
     if len({pfl.structure for pfl in pfls}) != 1:

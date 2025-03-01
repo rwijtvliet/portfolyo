@@ -460,22 +460,16 @@ def test_floorceil_dst(
 ):
     """Test flooring and ceiling with dst-transition."""
     if ts in ("2020-10-25 02:30+0200", "2020-10-25 02:50+0200") and function == "ceil":
-        pytest.skip(
-            "Error caused by pandas not correctly handling edge case. Not our fault."
-        )
+        pytest.skip("Error caused by pandas not correctly handling edge case. Not our fault.")
     try:
         do_test_stamp(function, ts, freq, 0, 0, tz, floored, ceiled)
     except AmbiguousTimeError:
-        pytest.skip(
-            "Pandas can't floor/ceil, even though all information is there. Not our fault."
-        )
+        pytest.skip("Pandas can't floor/ceil, even though all information is there. Not our fault.")
 
 
 @pytest.mark.parametrize("function", ["floor", "ceil"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize(
-    ("ts", "freq", "offset_hours", "floored", "ceiled"), TESTCASES_NONNATURAL
-)
+@pytest.mark.parametrize(("ts", "freq", "offset_hours", "floored", "ceiled"), TESTCASES_NONNATURAL)
 def test_floorceil_nonnatural(
     function: str,
     ts: str,

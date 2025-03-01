@@ -44,23 +44,17 @@ def create_start_of_day(hour, minute, returntype):
         # Midnight
         # . No timezone
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None),
             0,
             0,
         ),
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None),
             0,
             0,
         ),
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None),
             0,
             0,
         ),
@@ -183,25 +177,19 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
         # Midnight
         # . No timezone
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None),
             0,
             0,
             None,
         ),
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None),
             0,
             0,
             None,
         ),
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None),
             0,
             0,
             None,
@@ -246,9 +234,7 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
         # 06:00
         # . No timezone
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None),
             6,
             0,
             pd.date_range(
@@ -260,9 +246,7 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
             ),
         ),
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None),
             6,
             0,
             pd.date_range(
@@ -274,9 +258,7 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
             ),
         ),
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None),
             6,
             0,
             pd.date_range(
@@ -345,25 +327,19 @@ def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype:
         # 06:03
         # . No timezone
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None),
             6,
             3,
             Exception,
         ),
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None),
             6,
             3,
             Exception,
         ),
         (
-            pd.date_range(
-                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
-            ),
+            pd.date_range("2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None),
             6,
             3,
             Exception,

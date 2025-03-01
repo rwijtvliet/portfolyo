@@ -17,9 +17,7 @@ def flatten(self: NestedPfLine) -> FlatPfLine:
     return constructor(self.df)  # use flattened toplevel dataframe for initialisation
 
 
-def po(
-    self: NestedPfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS"
-) -> pd.DataFrame:
+def po(self: NestedPfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS") -> pd.DataFrame:
     return self.flatten().po(peak_fn, freq)
 
 

@@ -134,14 +134,10 @@ def test_righttoleft(
 
 
 @pytest.mark.parametrize("remove_freq", ["remove", "keep"])
-@pytest.mark.parametrize(
-    ("start", "periods", "freq", "expected_start"), TESTCASES_DST_AWARE
-)
+@pytest.mark.parametrize(("start", "periods", "freq", "expected_start"), TESTCASES_DST_AWARE)
 def test_righttoleft_dst_tzaware(start, periods, freq, expected_start, remove_freq):
     """Test if index of rightbound timestamps can be make leftbound, across DST changeover."""
-    i = pd.date_range(
-        pd.Timestamp(start, tz="Europe/Berlin"), periods=periods, freq=freq
-    )
+    i = pd.date_range(pd.Timestamp(start, tz="Europe/Berlin"), periods=periods, freq=freq)
     expected = pd.date_range(
         pd.Timestamp(expected_start, tz="Europe/Berlin"), periods=periods, freq=freq
     )

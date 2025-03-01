@@ -120,9 +120,7 @@ s1, s2, s3 = pd.Series(vals1, i), pd.Series(vals2, i), pd.Series(vals3, i)
 input_df_1simple = pd.DataFrame({"a": s1, "b": s2})
 input_df_2simple = pd.DataFrame({("a", "a1"): s1, ("a", "a2"): s2, ("b", "b1"): s3})
 input_df_2complicated = pd.DataFrame({(22, "a1"): s1, (22, 5): s2, ("b", "b1"): s3})
-input_df_3 = pd.concat(
-    [input_df_2simple, input_df_2complicated], axis=1, keys=["AA", "CC"]
-)
+input_df_3 = pd.concat([input_df_2simple, input_df_2complicated], axis=1, keys=["AA", "CC"])
 
 
 @pytest.mark.parametrize(

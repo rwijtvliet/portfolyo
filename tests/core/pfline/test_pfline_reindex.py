@@ -132,8 +132,6 @@ def expected(pfl_out):
     return pfl_out
 
 
-def test_reindex_flatpfline(
-    pfl: pf.PfLine, index: pd.DatetimeIndex, expected: pf.PfLine
-):
+def test_reindex_flatpfline(pfl: pf.PfLine, index: pd.DatetimeIndex, expected: pf.PfLine):
     result = pfl.reindex(index)
     assert result == expected

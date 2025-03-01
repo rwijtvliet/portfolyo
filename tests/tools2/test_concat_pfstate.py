@@ -41,9 +41,7 @@ TESTCASES3 = [  # whole idx, freq, where
 ]
 
 
-def get_idx(
-    startdate: str, starttime: str, tz: str, freq: str, enddate: str
-) -> pd.DatetimeIndex:
+def get_idx(startdate: str, starttime: str, tz: str, freq: str, enddate: str) -> pd.DatetimeIndex:
     # Empty index.
     if startdate is None:
         return pd.DatetimeIndex([], freq=freq, tz=tz)

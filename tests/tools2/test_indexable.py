@@ -20,9 +20,7 @@ def get_idx(
     return pd.date_range(ts_start, ts_end, freq=freq, inclusive="left")
 
 
-def create_obj(
-    series: pd.Series, name_obj: str
-) -> pd.DataFrame | pf.PfLine | pf.PfState:
+def create_obj(series: pd.Series, name_obj: str) -> pd.DataFrame | pf.PfLine | pf.PfState:
     if name_obj == "pfline":
         return pf.PfLine({"w": series})
     elif name_obj == "pfstate":
@@ -65,12 +63,8 @@ def test_intersect_freq_ignore(
     # Expected results
     expected_s1 = s1.iloc[:7]
     expected_s2 = s2.iloc[15:48]
-    output_1 = (
-        create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
-    )
-    output_2 = (
-        create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
-    )
+    output_1 = create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
+    output_2 = create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
     for a, b, objtype in zip([output_1, output_2], intersect, [first_obj, second_obj]):
         fn = t_function(objtype)
         fn(a, b)
@@ -97,12 +91,8 @@ def test_intersect_sod(
     # Expected results
     expected_s1 = s1.iloc[:7]
     expected_s2 = s2.iloc[5:12]
-    output_1 = (
-        create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
-    )
-    output_2 = (
-        create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
-    )
+    output_1 = create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
+    output_2 = create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
     for a, b, objtype in zip([output_1, output_2], intersect, [first_obj, second_obj]):
         fn = t_function(objtype)
         fn(a, b)
@@ -129,12 +119,8 @@ def test_intersect_tz(
     # Expected results
     expected_s1 = s1.iloc[:7]
     expected_s2 = s2.iloc[5:12]
-    output_1 = (
-        create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
-    )
-    output_2 = (
-        create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
-    )
+    output_1 = create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
+    output_2 = create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
     for a, b, objtype in zip([output_1, output_2], intersect, [first_obj, second_obj]):
         fn = t_function(objtype)
         fn(a, b)
@@ -163,12 +149,8 @@ def test_intersect_ignore_all(
     # Expected results
     expected_s1 = s1.iloc[:7]
     expected_s2 = s2.iloc[15:48]
-    output_1 = (
-        create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
-    )
-    output_2 = (
-        create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
-    )
+    output_1 = create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
+    output_2 = create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
     for a, b, objtype in zip([output_1, output_2], intersect, [first_obj, second_obj]):
         fn = t_function(objtype)
         fn(a, b)
@@ -205,15 +187,9 @@ def test_intersect_ignore_all_3obj(
     expected_s1 = s1.iloc[3:7]
     expected_s2 = s2.iloc[24:36]
     expected_s3 = s3.iloc[:1]
-    output_1 = (
-        create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
-    )
-    output_2 = (
-        create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
-    )
-    output_3 = (
-        create_obj(expected_s3, third_obj) if third_obj != "series" else expected_s3
-    )
+    output_1 = create_obj(expected_s1, first_obj) if first_obj != "series" else expected_s1
+    output_2 = create_obj(expected_s2, second_obj) if second_obj != "series" else expected_s2
+    output_3 = create_obj(expected_s3, third_obj) if third_obj != "series" else expected_s3
 
     for a, b, objtype in zip(
         [output_1, output_2, output_3], intersect, [first_obj, second_obj, third_obj]

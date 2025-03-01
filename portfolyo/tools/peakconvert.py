@@ -27,9 +27,7 @@ def group_index(
     elif freq == "YS":
         pass
     else:
-        raise ValueError(
-            f"Parameter ``freq`` must be one of 'MS', 'QS', 'YS'; got '{freq}'."
-        )
+        raise ValueError(f"Parameter ``freq`` must be one of 'MS', 'QS', 'YS'; got '{freq}'.")
 
     # Add grouping due to peak.
     if peak_fn is not None:
@@ -117,9 +115,7 @@ def complete_bpoframe(
     return df[BPO]  # correct order
 
 
-def _tseries2po(
-    s: pd.Series, peak_fn: tools_peakfn.PeakFunction, is_summable: bool
-) -> pd.Series:
+def _tseries2po(s: pd.Series, peak_fn: tools_peakfn.PeakFunction, is_summable: bool) -> pd.Series:
     """
     Aggregate timeseries with varying (float) values to a single base, peak and offpeak
     (float) value.
@@ -220,9 +216,7 @@ def tseries2poframe(
     sin, units = (s.pint.magnitude, s.pint.units) if hasattr(s, "pint") else (s, None)
 
     # Do calculations.
-    sout = sin.resample(freq, group_keys=True).apply(
-        lambda s: _tseries2po(s, peak_fn, is_summable)
-    )
+    sout = sin.resample(freq, group_keys=True).apply(lambda s: _tseries2po(s, peak_fn, is_summable))
 
     # Handle possible units.
     if units is not None:

@@ -146,9 +146,7 @@ def _fix_timezone(fr, force, tz, floating):
         return tools_tzone.force_aware(fr, tz, floating=floating)
     elif force == "agnostic" or force == "naive":
         return tools_tzone.force_agnostic(fr)
-    raise ValueError(
-        f"Parameter ``force`` must be None, 'aware' or 'agnostic'; got {force}."
-    )
+    raise ValueError(f"Parameter ``force`` must be None, 'aware' or 'agnostic'; got {force}.")
 
 
 def _standardize_index_name(fr: Series_or_DataFrame) -> Series_or_DataFrame:

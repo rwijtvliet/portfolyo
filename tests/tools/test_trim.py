@@ -211,9 +211,7 @@ TESTCASES_MIDYEAR = [  # start, end, freq, trimfreq, tr_start, tr_end
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize("freq", ["15min", "h", "D", "MS", "QS", "YS"])
 @pytest.mark.parametrize("trimfreq", ["15min", "h", "D", "MS", "QS", "YS"])
-def test_trim_notrimming(
-    indexorframe: str, freq: str, tz: str, trimfreq: str, starttime: str
-):
+def test_trim_notrimming(indexorframe: str, freq: str, tz: str, trimfreq: str, starttime: str):
     """Test if no trimming is done when it is not necessary."""
     start = tr_start = f"2020-01-01 {starttime}"
     end = tr_end = f"2022-01-01 {starttime}"
@@ -237,9 +235,7 @@ def test_trim_midyear(
 ):
     """Test if no trimming is done when it is not necessary."""
     if tr_start or tr_end:
-        start, end, tr_start, tr_end = (
-            f"{ts}:00" for ts in (start, end, tr_start, tr_end)
-        )
+        start, end, tr_start, tr_end = (f"{ts}:00" for ts in (start, end, tr_start, tr_end))
     else:
         start, end = (f"{ts}:00" for ts in (start, end))
     do_test_general(indexorframe, start, end, freq, tz, trimfreq, tr_start, tr_end)
@@ -262,9 +258,7 @@ def test_trim_almostfull(
 ):
     """Test if no trimming is done when it is not necessary."""
     if tr_start or tr_end:
-        start, end, tr_start, tr_end = (
-            f"{ts}:00" for ts in (start, end, tr_start, tr_end)
-        )
+        start, end, tr_start, tr_end = (f"{ts}:00" for ts in (start, end, tr_start, tr_end))
     else:
         start, end = (f"{ts}:00" for ts in (start, end))
     do_test_general(indexorframe, start, end, freq, tz, trimfreq, tr_start, tr_end)
@@ -424,6 +418,4 @@ def expected_series(i, i_expected, dtype):
             break
     else:
         raise ValueError
-    return pd.Series(range(num, num + len(i_expected)), i_expected, dtype=float).astype(
-        dtype
-    )
+    return pd.Series(range(num, num + len(i_expected)), i_expected, dtype=float).astype(dtype)

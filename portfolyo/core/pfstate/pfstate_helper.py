@@ -9,9 +9,7 @@ from ... import tools
 from ..pfline import Kind, PfLine, create
 
 
-def make_pflines(
-    offtakevolume: Any, unsourcedprice: Any, sourced: Any = None
-) -> Iterable[PfLine]:
+def make_pflines(offtakevolume: Any, unsourcedprice: Any, sourced: Any = None) -> Iterable[PfLine]:
     """Take offtake, unsourced, sourced information. Do some data massaging and return
     3 PfLines: for offtake volume, unsourced price, and sourced price and volume.
     """
@@ -79,7 +77,6 @@ def prepare_sourced(sourced: Any, ref_idx: pd.DatetimeIndex) -> PfLine:
     # HACK: Workaround for error in pandas intersection (#46702):
     if len(tools.intersect.indices(ref_idx, sourced.index)) < len(ref_idx):
         raise ValueError(
-            "Parameter ``sourced``: does not cover entire delivery period of"
-            " ``offtakevolume``."
+            "Parameter ``sourced``: does not cover entire delivery period of" " ``offtakevolume``."
         )
     return sourced.loc[ref_idx]

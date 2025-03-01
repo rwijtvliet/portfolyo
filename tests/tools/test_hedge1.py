@@ -91,9 +91,7 @@ def test_onehedge_uniformprices(w_vals, start, w_expected, how, tz):
         ),  # DST
     ],
 )
-def test_onehedge(
-    w_vals, p_vals, start, w_expected_val, w_expected_vol, p_expected, how, tz
-):
+def test_onehedge(w_vals, p_vals, start, w_expected_val, w_expected_vol, p_expected, how, tz):
     """Test value hedge."""
     i = pd.date_range(start, freq="MS", periods=len(w_vals), tz=tz)
     df = pd.DataFrame({"w": w_vals, "p": p_vals}, i)

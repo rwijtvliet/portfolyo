@@ -90,9 +90,7 @@ def test_deliveryperiod(
     else:
         start_of_day = dt.time(hour=0)
     expected_left = pd.Timestamp(f"{expected_left} {starttime}", tz=tz)
-    ts_deliv = tools.product.delivery_period(
-        ts_trade, period_type, period_start, start_of_day
-    )
+    ts_deliv = tools.product.delivery_period(ts_trade, period_type, period_start, start_of_day)
     assert ts_deliv[0] == expected_left
     try:
         add = {"m": 1, "q": 3, "s": 6, "y": 12}[period_type]

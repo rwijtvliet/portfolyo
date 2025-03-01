@@ -28,9 +28,7 @@ class ChildFunctionality(Mapping):
         try:
             tools.testing.assert_indices_compatible(self.index, child.index)
         except AssertionError as e:
-            raise ValueError(
-                "Index of new child is not compatible with the existing data."
-            ) from e
+            raise ValueError("Index of new child is not compatible with the existing data.") from e
         idx = tools.intersect.indices(self.index, child.index)
         if len(idx) == 0:
             raise ValueError(
@@ -72,9 +70,7 @@ class ChildFunctionality(Mapping):
     def __len__(self: NestedPfLine):
         return len(self.children)
 
-    def __getattr__(
-        self: NestedPfLine, name: str
-    ):  # allow access to children by attribute
+    def __getattr__(self: NestedPfLine, name: str):  # allow access to children by attribute
         if name not in self.children:
             raise AttributeError(f"No such attribute '{name}'.")
         return self.children[name]

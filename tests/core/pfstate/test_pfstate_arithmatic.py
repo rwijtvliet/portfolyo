@@ -53,15 +53,9 @@ i6 = pd.date_range("2022", freq="MS", periods=3, tz=None)
 pfs6 = dev.get_pfstate(i6)
 
 # Several expected results of arithmatic.
-mul_pfs1_2 = PfState(
-    dataset1["offtake"] * 2, dataset1["unsourcedprice"], dataset1["sourced"] * 2
-)
-mul_pfs1_0 = PfState(
-    dataset1["offtake"] * 0, dataset1["unsourcedprice"], dataset1["sourced"] * 0
-)
-div_pfs1_2 = PfState(
-    dataset1["offtake"] / 2, dataset1["unsourcedprice"], dataset1["sourced"] / 2
-)
+mul_pfs1_2 = PfState(dataset1["offtake"] * 2, dataset1["unsourcedprice"], dataset1["sourced"] * 2)
+mul_pfs1_0 = PfState(dataset1["offtake"] * 0, dataset1["unsourcedprice"], dataset1["sourced"] * 0)
+div_pfs1_2 = PfState(dataset1["offtake"] / 2, dataset1["unsourcedprice"], dataset1["sourced"] / 2)
 mul_pfs1_nodim1 = PfState(
     dataset1["offtake"] * dataset1["nodim"],
     dataset1["unsourcedprice"],
@@ -72,16 +66,12 @@ div_pfs1_nodim1 = PfState(
     dataset1["unsourcedprice"],
     dataset1["sourced"] / dataset1["nodim"],
 )
-neg_pfs1 = PfState(
-    -dataset1["offtake"], dataset1["unsourcedprice"], -dataset1["sourced"]
-)
+neg_pfs1 = PfState(-dataset1["offtake"], dataset1["unsourcedprice"], -dataset1["sourced"])
 i12 = pd.date_range("2020-02", freq="MS", periods=2, tz=tz)
 add_pfs1_pfs2 = PfState(
     create.flatpfline({"w": pd.Series([-20.0, -25], i12)}),
     create.flatpfline({"p": pd.Series([400, 53.125], i12)}),
-    create.flatpfline(
-        {"w": pd.Series([17.0, 9], i12), "p": pd.Series([100, 700 / 9], i12)}
-    ),
+    create.flatpfline({"w": pd.Series([17.0, 9], i12), "p": pd.Series([100, 700 / 9], i12)}),
 )
 div_pfs1_pfs2 = pd.DataFrame(
     {

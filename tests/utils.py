@@ -12,6 +12,8 @@ def id_fn(data: Any) -> str:
     """Readable id of test case"""
     if isinstance(data, Dict):
         return str({key: id_fn(val) for key, val in data.items()})
+    elif isinstance(data, pd.DatetimeIndex):
+        return f"idx[{data[0]}-{data[-1]}-{data.freq}-{data.tz}]"
     elif isinstance(data, pd.Series):
         typ = "Timeseries" if isinstance(data.index, pd.DatetimeIndex) else "Series"
         vals = ",".join([f"{v:.2f}" for v in data.values[:2]])  # max 2

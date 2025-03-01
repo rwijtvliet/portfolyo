@@ -42,9 +42,7 @@ def test_diff_sod():
 def test_slice_not_sod():
     """Test if concatenating of two flat PfLines with different sod raises error."""
     index = pd.date_range("2020-01-01 00:00", "2020-03-01", freq="h", inclusive="left")
-    index2 = pd.date_range(
-        "2020-02-01 06:00", "2020-04-01 06:00", freq="h", inclusive="left"
-    )
+    index2 = pd.date_range("2020-02-01 06:00", "2020-04-01 06:00", freq="h", inclusive="left")
     pfl_a = dev.get_flatpfline(index)
     pfl_b = dev.get_flatpfline(index2)
     with pytest.raises(TypeError):
@@ -53,9 +51,7 @@ def test_slice_not_sod():
 
 def test_diff_tz():
     """Test if concatenating of two flat PfLines with different tz raises error."""
-    index = pd.date_range(
-        "2020-01-01", "2024", freq="QS", tz="Europe/Berlin", inclusive="left"
-    )
+    index = pd.date_range("2020-01-01", "2024", freq="QS", tz="Europe/Berlin", inclusive="left")
     index2 = pd.date_range("2024-01-01", "2025", freq="QS", tz=None, inclusive="left")
     pfl = dev.get_flatpfline(index)
     pfl2 = dev.get_flatpfline(index2)

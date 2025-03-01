@@ -18,9 +18,7 @@ ALLOWED_CLASSES = [
     pd.tseries.offsets.Minute,
 ]
 TO_OFFSET = pd.tseries.frequencies.to_offset
-SHORTEST_TO_LONGEST = [
-    type(TO_OFFSET(freq)) for freq in ["15min", "h", "D", "MS", "QS", "YS"]
-]
+SHORTEST_TO_LONGEST = [type(TO_OFFSET(freq)) for freq in ["15min", "h", "D", "MS", "QS", "YS"]]
 
 quarter_matrix = [
     ["QS", "QS-APR", "QS-JUL", "QS-OCT"],

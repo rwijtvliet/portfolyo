@@ -54,9 +54,7 @@ It's therefore hard to determine, which it is.
 """
 
 
-def force_aware(
-    fr: Series_or_DataFrame, tz: str, *, floating: bool = True
-) -> Series_or_DataFrame:
+def force_aware(fr: Series_or_DataFrame, tz: str, *, floating: bool = True) -> Series_or_DataFrame:
     """Convert/set series or dataframe to a specific timezone.
 
     Parameters

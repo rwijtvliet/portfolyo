@@ -85,9 +85,7 @@ def benchmark_pfline(df):
                 pf.PfLine(pd.DataFrame({c: np.linspace(2, 2000, le) for c in cols}, i)),
             ]
             children = {f"child{c}": twochildren[c % 2] for c in range(10)}
-            df.loc[le, ("multi10", "creation", cols)] = timeit(
-                lambda: pf.PfLine(children), ru
-            )
+            df.loc[le, ("multi10", "creation", cols)] = timeit(lambda: pf.PfLine(children), ru)
             pfl = pf.PfLine(children)
             df.loc[le, ("multi10", "to_str", cols)] = timeit(lambda: str(pfl), ru)
             if pfl.kind is pf.Kind.VOLUME or pfl.kind is pf.Kind.COMPLETE:
@@ -118,9 +116,7 @@ def benchmark_pfstate(df):
         df.loc[le, ("pfstate", "pfs*const", "")] = timeit(lambda: pfs * 2, ru)
         df.loc[le, ("pfstate", "access_q", "")] = timeit(lambda: pfs.q, ru)
         df.loc[le, ("pfstate", "access_w", "")] = timeit(lambda: pfs.w, ru)
-        df.loc[le, ("pfstate", "access_unsourced", "")] = timeit(
-            lambda: pfs.unsourced, ru
-        )
+        df.loc[le, ("pfstate", "access_unsourced", "")] = timeit(lambda: pfs.unsourced, ru)
         df.loc[le, ("pfstate", "memory_use", "")] = total_size(pfs)
 
 
@@ -135,9 +131,7 @@ def timeit(f: Callable, runs: int):
     return (end - start).total_seconds() / runs
 
 
-df = pd.DataFrame(
-    columns=pd.MultiIndex.from_arrays([[], [], []]), index=LENGTHS, dtype=float
-)
+df = pd.DataFrame(columns=pd.MultiIndex.from_arrays([[], [], []]), index=LENGTHS, dtype=float)
 benchmark_pfline(df)
 benchmark_pfstate(df)
 

@@ -303,9 +303,7 @@ def test_freq_validity(freq: str, is_valid: bool):
         ("QS-APR", "YS-APR", False, True),
     ],
 )
-def test_freq_sufficiently_long(
-    freq1: str, freq2: str, strict: bool, is_supposed_to_fail: bool
-):
+def test_freq_sufficiently_long(freq1: str, freq2: str, strict: bool, is_supposed_to_fail: bool):
     if is_supposed_to_fail:
         with pytest.raises(AssertionError):
             _ = tools2.freq.assert_freq_sufficiently_long(freq1, freq2, strict)
@@ -356,9 +354,7 @@ def test_freq_equally_long(freq1: str, freq2: str, is_supposed_to_fail: bool):
         ("QS-APR", "YS-APR", False, False),
     ],
 )
-def test_freq_sufficiently_short(
-    freq1: str, freq2: str, strict: bool, is_supposed_to_fail: bool
-):
+def test_freq_sufficiently_short(freq1: str, freq2: str, strict: bool, is_supposed_to_fail: bool):
     if is_supposed_to_fail:
         with pytest.raises(AssertionError):
             _ = tools2.freq.assert_freq_sufficiently_short(freq1, freq2, strict)

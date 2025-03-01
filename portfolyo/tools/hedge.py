@@ -72,13 +72,8 @@ def hedge(
     if w.index.freq not in ["15min", "h", "D"]:
         raise ValueError("Can only hedge a timeseries with daily (or shorter) values.")
     # ATTN!: changed due to new freq
-    if not any(
-        tools_boundary.freq_to_string(freq).startswith(t)
-        for t in ["D", "MS", "QS", "YS"]
-    ):
-        raise ValueError(
-            f"Parameter ``freq`` must be one of 'D', 'MS', 'QS', 'YS'; got '{freq}'."
-        )
+    if not any(tools_boundary.freq_to_string(freq).startswith(t) for t in ["D", "MS", "QS", "YS"]):
+        raise ValueError(f"Parameter ``freq`` must be one of 'D', 'MS', 'QS', 'YS'; got '{freq}'.")
     if peak_fn is not None and not (w.index.freq in ["15min", "h"] and freq != "D"):
         raise ValueError(
             "Split into peak and offpeak only possible when (a) hedging with monthly (or "

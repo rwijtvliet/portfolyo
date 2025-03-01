@@ -259,9 +259,7 @@ STAMP_FREQ_STARTOFDAYS_FLOORED_CEILED = [
     ],
 )
 @pytest.mark.parametrize("testfn", ["floor", "ceil"])
-def test_stamp_floorceil_isnotboundary(
-    stamp, freq, startofday, testfn, floored, ceiled
-):
+def test_stamp_floorceil_isnotboundary(stamp, freq, startofday, testfn, floored, ceiled):
     if testfn == "floor":
         fn, expected = toolsb.stamp.floor, floored
     else:

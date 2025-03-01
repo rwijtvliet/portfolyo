@@ -60,9 +60,7 @@ def series_property_raising_typeerror(what: str) -> Callable[[PfLine], pd.Series
     return get_series
 
 
-class PfLine(
-    NDFrameLike, PfLineText, PfLinePlot, ExcelClipboardOutput, PfLineArithmatic
-):
+class PfLine(NDFrameLike, PfLineText, PfLinePlot, ExcelClipboardOutput, PfLineArithmatic):
     """Class to hold a related energy timeseries. This can be volume data (with q
     [MWh] and w [MW]), price data (with p [Eur/MWh]), revenue data (with r [Eur]), or
     a combination of all.
@@ -158,9 +156,7 @@ class PfLine(
         ...
 
     @abc.abstractmethod
-    def po(
-        self: PfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS"
-    ) -> pd.DataFrame:
+    def po(self: PfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS") -> pd.DataFrame:
         """Decompose the portfolio line into peak and offpeak values. Takes simple (duration-
         weighted) averages of volume [MW] and price [Eur/MWh] - does not hedge!
 

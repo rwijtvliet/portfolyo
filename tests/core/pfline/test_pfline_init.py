@@ -103,9 +103,7 @@ def get_testcase_A(
             othercol = columns.replace("p", "")
             df1 = df.mul({"p": 1, othercol: 0.4})
             df2 = df.mul({"p": 1, othercol: 0.6})
-        data_in = create.nestedpfline(
-            {"a": create.flatpfline(df1), "b": create.flatpfline(df2)}
-        )
+        data_in = create.nestedpfline({"a": create.flatpfline(df1), "b": create.flatpfline(df2)})
     else:
         raise ValueError("unknown inputtype")
 
@@ -120,9 +118,7 @@ def get_testcase_A(
     return InitTestcase(data_in, df_out, kind)
 
 
-def get_testcase_B(
-    i: pd.DatetimeIndex, kind: Kind, inputtype: InputTypeB
-) -> InitTestcase:
+def get_testcase_B(i: pd.DatetimeIndex, kind: Kind, inputtype: InputTypeB) -> InitTestcase:
     """Create test case that uses ``kind`` as parameter."""
 
     # Data.
@@ -191,9 +187,7 @@ def anyerror(*args):
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
 @pytest.mark.parametrize("inputtype", InputTypeA)
 @pytest.mark.parametrize("has_unit", [True, False])
-@pytest.mark.parametrize(
-    "constructor", [PfLine, create.flatpfline, create.nestedpfline]
-)
+@pytest.mark.parametrize("constructor", [PfLine, create.flatpfline, create.nestedpfline])
 def test_init_A(
     freq: str,
     tz: str,
@@ -230,9 +224,7 @@ def test_init_A(
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("kind", Kind)
 @pytest.mark.parametrize("inputtype", InputTypeB)
-@pytest.mark.parametrize(
-    "constructor", [PfLine, create.flatpfline, create.nestedpfline]
-)
+@pytest.mark.parametrize("constructor", [PfLine, create.flatpfline, create.nestedpfline])
 def test_init_B(
     freq: str,
     tz: str,

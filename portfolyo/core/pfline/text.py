@@ -46,18 +46,14 @@ def _flatdatablock(pfl: PfLine, cols: Iterable[str], num_of_ts: int) -> Iterable
     return df_str.split("\n")
 
 
-def _childrenlines(
-    pfl: PfLine, cols: Iterable[str], num_of_ts: int, depth: int
-) -> Iterable[str]:
+def _childrenlines(pfl: PfLine, cols: Iterable[str], num_of_ts: int, depth: int) -> Iterable[str]:
     """Treeview of only the children."""
     out = []
     if isinstance(pfl, classes.FlatPfLine):
         return out
     for c, (name, child) in enumerate(pfl.items()):
         is_last, is_only = (c == len(pfl) - 1), (len(pfl) == 1)
-        out.extend(
-            nestedtree(name, child, cols, num_of_ts, depth + 1, is_last, is_only)
-        )
+        out.extend(nestedtree(name, child, cols, num_of_ts, depth + 1, is_last, is_only))
     return out
 
 
@@ -113,9 +109,7 @@ class PfLineText:
     def __repr__(self):
         return pfl_as_string(self, True, 20, False)
 
-    def print(
-        self: PfLine, flatten: bool = False, num_of_ts: int = 5, color: bool = True
-    ) -> None:
+    def print(self: PfLine, flatten: bool = False, num_of_ts: int = 5, color: bool = True) -> None:
         """Treeview of the portfolio line.
 
         Parameters

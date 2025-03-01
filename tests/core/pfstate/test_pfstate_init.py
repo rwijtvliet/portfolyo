@@ -401,13 +401,9 @@ def test_pfstate_consistency_uniformfreq():
     testing.assert_series_equal(result.sourced.p.pint.m, rs / qs, check_names=False)
     testing.assert_series_equal(result.unsourced.p.pint.m, pu, check_names=False)
     testing.assert_series_equal(result.unsourced.q.pint.m, qo - qs, check_names=False)
-    testing.assert_series_equal(
-        result.unsourced.r.pint.m, pu * (qo - qs), check_names=False
-    )
+    testing.assert_series_equal(result.unsourced.r.pint.m, pu * (qo - qs), check_names=False)
     testing.assert_series_equal(result.pnl_cost.q.pint.m, qo, check_names=False)
-    testing.assert_series_equal(
-        result.pnl_cost.r.pint.m, rs + pu * (qo - qs), check_names=False
-    )
+    testing.assert_series_equal(result.pnl_cost.r.pint.m, rs + pu * (qo - qs), check_names=False)
     testing.assert_series_equal(
         result.sourcedfraction,
         (qs / qo).astype("pint[dimensionless]"),
@@ -440,9 +436,7 @@ def test_pfstate_consistency_unequalfreq():
     testing.assert_series_equal(result.sourced.q.pint.m, qs, check_names=False)
     testing.assert_series_equal(result.sourced.r.pint.m, rs, check_names=False)
     testing.assert_series_equal(result.sourced.p.pint.m, rs / qs, check_names=False)
-    testing.assert_series_equal(
-        result.unsourced.p.pint.m, pu.loc[i_less], check_names=False
-    )
+    testing.assert_series_equal(result.unsourced.p.pint.m, pu.loc[i_less], check_names=False)
     testing.assert_series_equal(result.unsourced.q.pint.m, qo - qs, check_names=False)
     testing.assert_series_equal(
         result.unsourced.r.pint.m, pu.loc[i_less] * (qo - qs), check_names=False
@@ -485,13 +479,9 @@ def test_pfstate_consistency_nosourcing():
     testing.assert_series_equal(
         result.sourced.p.pint.m, pd.Series(np.nan, i_ref), check_names=False
     )
-    testing.assert_series_equal(
-        result.unsourced.p.pint.m, pu.loc[i_ref], check_names=False
-    )
+    testing.assert_series_equal(result.unsourced.p.pint.m, pu.loc[i_ref], check_names=False)
     testing.assert_series_equal(result.unsourced.q.pint.m, qo, check_names=False)
-    testing.assert_series_equal(
-        result.unsourced.r.pint.m, pu.loc[i_ref] * qo, check_names=False
-    )
+    testing.assert_series_equal(result.unsourced.r.pint.m, pu.loc[i_ref] * qo, check_names=False)
     testing.assert_series_equal(result.pnl_cost.q.pint.m, qo, check_names=False)
     testing.assert_series_equal(
         result.pnl_cost.r.pint.m, rs + pu.loc[i_ref] * (qo - qs), check_names=False

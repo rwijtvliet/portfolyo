@@ -116,9 +116,7 @@ def test_functioncreation(
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(("end", "freq", "count", "stretch"), TESTCASES_GERMANPOWER)
-def test_peakfn_germanpower(
-    end: str, freq: str, tz: str, count: int, stretch: Iterable[int]
-):
+def test_peakfn_germanpower(end: str, freq: str, tz: str, count: int, stretch: Iterable[int]):
     """Test if the peak periods are correctly calculated."""
     # Not influenced by timezone, because dst change always during offpeak-hours.
     i = index("2020", end, freq, tz)
@@ -127,9 +125,7 @@ def test_peakfn_germanpower(
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(("end", "freq", "count", "stretch"), TESTCASES_13HALF)
-def test_peakfn_everyday13half(
-    end: str, freq: str, tz: str, count: int, stretch: Iterable[int]
-):
+def test_peakfn_everyday13half(end: str, freq: str, tz: str, count: int, stretch: Iterable[int]):
     """Test if the peak periods are correctly calculated."""
     # Not influenced by timezone, because dst change always during offpeak-hours.
     i = index("2020", end, freq, tz)
@@ -138,21 +134,15 @@ def test_peakfn_everyday13half(
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(("end", "freq", "count", "stretch"), TESTCASES_WORKINGDAYS)
-def test_peakfn_workingdaysfull(
-    end: str, freq: str, tz: str, count: int, stretch: Iterable[int]
-):
+def test_peakfn_workingdaysfull(end: str, freq: str, tz: str, count: int, stretch: Iterable[int]):
     """Test if the peak periods are correctly calculated."""
     # Not influenced by timezone, because dst change always during offpeak-hours.
     i = index("2020", end, freq, tz)
     do_test(i, f_workingdays_full, count, stretch)
 
 
-@pytest.mark.parametrize(
-    ("month", "freq", "tz", "count", "stretch"), TESTCASES_EVERYDAY6
-)
-def test_peakfn_everydayuntil6(
-    month: int, tz: str, freq: str, count: int, stretch: Iterable[int]
-):
+@pytest.mark.parametrize(("month", "freq", "tz", "count", "stretch"), TESTCASES_EVERYDAY6)
+def test_peakfn_everydayuntil6(month: int, tz: str, freq: str, count: int, stretch: Iterable[int]):
     """Test if the peak periods are correctly calculated."""
     i = index(f"2020-{month}", f"2020-{month+1}", freq, tz)
     do_test(i, f_everyday_until6, count, stretch)

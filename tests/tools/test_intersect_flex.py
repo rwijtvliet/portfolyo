@@ -187,9 +187,7 @@ def test_intersect_flex_ignore_start_of_day(
     do_test_intersect(
         "idx",
         idxs,
-        expected_startdate_1=(
-            ValueError if freq == "15min" or freq == "h" else expected_startdate
-        ),
+        expected_startdate_1=(ValueError if freq == "15min" or freq == "h" else expected_startdate),
         expected_startdate_2=expected_startdate,
         expected_tz=tz,
         expected_freq=freq,
@@ -303,10 +301,7 @@ def test_ignore_all(  # indexorframe: str,
         idxs,
         expected_startdate_1=(
             ValueError
-            if freq[0] == "15min"
-            or freq[0] == "h"
-            or freq[1] == "15min"
-            or freq[1] == "h"
+            if freq[0] == "15min" or freq[0] == "h" or freq[1] == "15min" or freq[1] == "h"
             else result1_dates[0]
         ),
         expected_startdate_2=result2_dates[0],
@@ -377,9 +372,7 @@ def do_test_intersect_index(
     ignore_freq: bool = False,
 ):
     # Error case.
-    if isinstance(expected_startdate_1, type) and issubclass(
-        expected_startdate_1, Exception
-    ):
+    if isinstance(expected_startdate_1, type) and issubclass(expected_startdate_1, Exception):
         with pytest.raises(expected_startdate_1):
             tools.intersect.indices_flex(
                 *idxs,

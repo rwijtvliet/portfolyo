@@ -67,9 +67,7 @@ def plot_pfstates(dic: Dict[str, PfState], freq: str = "MS") -> plt.Figure:
         vis.plot_timeseries(axes[1], s, **kwargs)
 
         # Sourced fraction.
-        vis.plot_timeseries(
-            axes[2], pfs.sourcedfraction, **defaultkwargs("f", is_category)
-        )
+        vis.plot_timeseries(axes[2], pfs.sourcedfraction, **defaultkwargs("f", is_category))
 
         # Empty.
         axes[3].axis("off")
@@ -83,9 +81,7 @@ def plot_pfstates(dic: Dict[str, PfState], freq: str = "MS") -> plt.Figure:
         # Tick formatting.
         axes[2].yaxis.set_major_formatter(matplotlib.ticker.PercentFormatter(1.0))
         axes[1].yaxis.set_major_formatter(
-            matplotlib.ticker.FuncFormatter(
-                lambda x, p: "{:,.0f}".format(x).replace(",", " ")
-            )
+            matplotlib.ticker.FuncFormatter(lambda x, p: "{:,.0f}".format(x).replace(",", " "))
         )
 
         for a, ax in enumerate(axes):
@@ -118,10 +114,7 @@ def draw_horizontal_lines(fig, axes):
     # Get the bounding boxes of the axes including text decorations
     r = fig.canvas.get_renderer()
     bboxes = np.array(
-        [
-            ax.get_tightbbox(r).transformed(fig.transFigure.inverted())
-            for ax in axes.flat
-        ],
+        [ax.get_tightbbox(r).transformed(fig.transFigure.inverted()) for ax in axes.flat],
         matplotlib.transforms.Bbox,
     ).reshape(axes.shape)
 
@@ -131,12 +124,8 @@ def draw_horizontal_lines(fig, axes):
     """
 
     # Get the minimum and maximum extent, get the coordinate half-way between those
-    ymax = (
-        np.array(list(map(lambda b: b.y1, bboxes.flat))).reshape(axes.shape).max(axis=1)
-    )
-    ymin = (
-        np.array(list(map(lambda b: b.y0, bboxes.flat))).reshape(axes.shape).min(axis=1)
-    )
+    ymax = np.array(list(map(lambda b: b.y1, bboxes.flat))).reshape(axes.shape).max(axis=1)
+    ymin = np.array(list(map(lambda b: b.y0, bboxes.flat))).reshape(axes.shape).min(axis=1)
     ys = np.c_[ymax[2:-1:2], ymin[1:-2:2]].mean(axis=1)
     ys = [ymax[0], *ys]
 

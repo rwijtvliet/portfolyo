@@ -202,17 +202,13 @@ def do_test_intersect_index(
     expected_freq: str = None,
 ):
     # Error case.
-    if isinstance(expected_startdate, type) and issubclass(
-        expected_startdate, Exception
-    ):
+    if isinstance(expected_startdate, type) and issubclass(expected_startdate, Exception):
         with pytest.raises(expected_startdate):
             tools.intersect.indices(*idxs)
         return
     # Normal case.
     result = tools.intersect.indices(*idxs)
-    expected = get_idx(
-        expected_startdate, expected_starttime, expected_tz, expected_freq
-    )
+    expected = get_idx(expected_startdate, expected_starttime, expected_tz, expected_freq)
     testing.assert_index_equal(result, expected)
 
 
@@ -247,9 +243,7 @@ def do_test_intersect_frame(
         ignore_start_of_day=ignore_start_of_day,
         ignore_tz=ignore_tz,
     )
-    expected_index = get_idx(
-        expected_startdate, expected_starttime, expected_tz, expected_freq
-    )
+    expected_index = get_idx(expected_startdate, expected_starttime, expected_tz, expected_freq)
     expected_frames = get_frames(idxs, expected_index)
 
     for result, expected in zip(result_frames, expected_frames):

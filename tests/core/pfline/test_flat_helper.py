@@ -160,9 +160,7 @@ def test_makedataframe_consistency(tz, freq, columns, inputtype):
     testing.assert_frame_equal(result, expected)
 
 
-@pytest.mark.parametrize(
-    "freq1", ["15min", "MS", "YS", "YS-MAR"]
-)  # don't do all - many!
+@pytest.mark.parametrize("freq1", ["15min", "MS", "YS", "YS-MAR"])  # don't do all - many!
 @pytest.mark.parametrize("freq2", ["h", "D", "QS", "QS-FEB"])
 @pytest.mark.parametrize("columns", ["rp", "wp", "pq", "qr", "wr"])
 def test_makedataframe_unequalfrequencies(freq1, freq2, columns):

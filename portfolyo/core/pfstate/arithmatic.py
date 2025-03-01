@@ -161,9 +161,7 @@ class Add:
         # . Therefore, use weighted average.
         values = pd.DataFrame({"s": pfs1.unsourcedprice.p, "o": pfs2.unsourcedprice.p})
         weights = pd.DataFrame({"s": pfs1.unsourced.q, "o": pfs2.unsourced.q})
-        unsourcedprice = create.flatpfline(
-            {"p": tools.wavg.dataframe(values, weights, axis=1)}
-        )
+        unsourcedprice = create.flatpfline({"p": tools.wavg.dataframe(values, weights, axis=1)})
 
         return pfstate.PfState(offtakevolume, unsourcedprice, sourced)
 
@@ -171,9 +169,7 @@ class Add:
 class Multiply:
     def pfstate_and_series(pfs: PfState, s: pd.Series) -> PfState:
         # Scale up volumes (and revenues), leave prices unchanged.
-        return pfstate.PfState(
-            pfs.offtakevolume * s, pfs.unsourcedprice, pfs.sourced * s
-        )
+        return pfstate.PfState(pfs.offtakevolume * s, pfs.unsourcedprice, pfs.sourced * s)
 
 
 class Divide:

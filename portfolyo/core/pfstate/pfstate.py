@@ -22,9 +22,7 @@ from .text import PfStateText
 
 
 @dataclasses.dataclass(frozen=True, repr=False)
-class PfState(
-    NDFrameLike, PfStateText, PfStatePlot, ExcelClipboardOutput, PfStateArithmatic
-):
+class PfState(NDFrameLike, PfStateText, PfStatePlot, ExcelClipboardOutput, PfStateArithmatic):
     """Class to hold timeseries information of an energy portfolio, at a specific moment.
 
     Parameters
@@ -138,9 +136,7 @@ class PfState(
 
     @property
     def pnl_cost(self):
-        return create.nestedpfline(
-            {"sourced": self.sourced, "unsourced": self.unsourced}
-        )
+        return create.nestedpfline({"sourced": self.sourced, "unsourced": self.unsourced})
 
     @property
     def sourcedfraction(self) -> pd.Series:
@@ -175,9 +171,7 @@ class PfState(
         dfs = []
         for part in ("offtakevolume", "pnl_cost", "sourced", "unsourced"):
             childlevels = 0 if part == "pnl_cost" else -1  # always flatten pnl_cost
-            dfin = self[part].dataframe(
-                cols, has_units=has_units, childlevels=childlevels
-            )
+            dfin = self[part].dataframe(cols, has_units=has_units, childlevels=childlevels)
             dfs.append(tools.frame.add_header(dfin, part))
         return tools.frame.concat(dfs, axis=1)
 
@@ -284,9 +278,7 @@ class PfState(
             which is fully hedged at time scales of ``freq`` or longer.
         """
         tosource = self.hedge_of_unsourced(how, peak_fn, freq)
-        return self.__class__(
-            self.offtakevolume, self.unsourcedprice, self.sourced + tosource
-        )
+        return self.__class__(self.offtakevolume, self.unsourcedprice, self.sourced + tosource)
 
     def mtm_of_sourced(self) -> PfLine:
         """Mark-to-Market value of sourced volume."""
@@ -301,9 +293,7 @@ class PfState(
     def __eq__(self, other):  # from ABC
         if not isinstance(other, PfState):
             return False
-        return all(
-            [self[part] == other[part] for part in ["offtake", "unsourced", "sourced"]]
-        )
+        return all([self[part] == other[part] for part in ["offtake", "unsourced", "sourced"]])
 
     def __bool__(self):
         return True

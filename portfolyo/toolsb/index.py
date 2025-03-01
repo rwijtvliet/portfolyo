@@ -45,7 +45,7 @@ check = tools_decorator.create_checkdecorator(validation=validate, default_param
 
 
 @check()
-def to_right(idx: pd.DatetimeIndex) -> pd.Series:
+def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     """Right-bound timestamps, belonging to left-bound timestamps of delivery periods
     in index.
 
@@ -56,7 +56,7 @@ def to_right(idx: pd.DatetimeIndex) -> pd.Series:
 
     Returns
     -------
-        Series, with ``idx`` as index and corresponding right-bound timestamps as values.
+        Right-bound timestamps.
     """
     # HACK:
     # Tried and rejected:
@@ -68,7 +68,8 @@ def to_right(idx: pd.DatetimeIndex) -> pd.Series:
     #   idx = pd.date_range('2020-03-29', freq='D', periods=5, tz='Europe/Berlin')
     # . idx + i.freq
     #   Same example, different error: time is moved to 01:00 for first timestamp.
-    return pd.Series(idx + tools_freq.to_jump(idx.freq), idx)
+    final_ts_right = idx[-1] + tools_freq.to_jump(idx.freq)
+    return pd.DatetimeIndex([*idx[1:], final_ts_right], freq=idx.freq)
 
 
 @check()
@@ -202,8 +203,8 @@ def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     # The frequencies are compatible and ``idx`` has shorter than ``freq``.
     startofday = idx[0].time()
     mask_start = idx >= tools_stamp.ceil(idx[0], freq, startofday)
-    i_right = to_right(idx)
-    mask_end = i_right <= tools_stamp.floor(i_right[-1], freq, startofday)
+    idx_right = to_right(idx)
+    mask_end = idx_right <= tools_stamp.floor(idx_right[-1], freq, startofday)
     return idx[mask_start & mask_end]
 
 
@@ -269,6 +270,10 @@ def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
     intersected_idx = idxs[0]
     for idx in idxs[1:]:
         intersected_idx = intersected_idx.intersection(idx)
+
+    # Finally: set frequency if frequencies equivalant (but not equal).
+    if len(freqs) != 1:
+        intersected_idx.freq = idxs[0].freq
     return intersected_idx
 
 
@@ -320,7 +325,7 @@ def intersect_flex(
     # Assert frequencies equivalent.
     # (Even if we want to ignore the frequency, the frequencies should be compatible,
     # which is (also) tested in the sorted method.)
-    short, *_, long = tools_freq.sorted(set(idx.freq for idx in idxs))
+    short, *_, long = tools_freq.sorted(idx.freq for idx in idxs)
     all_equivalent_freq = tools_freq.up_or_down(short, long) == 0  # compare extremes
     if not ignore_freq and not all_equivalent_freq:
         raise ValueError(
@@ -347,8 +352,8 @@ def intersect_flex(
     # If we land here, we have at least 2 indices, all not empty, with equivalent (or ignored) freq, equal (or ignored) tz, and equal (or ignored) start-of-day.
 
     # Prepare adjusted indices, for intersection.
-    l_and_r = [(idx, pd.DatetimeIndex(to_right(idx).values)) for idx in idxs]
-    if not all_equal_sod:  # convert to wall time to ignore timezones
+    l_and_r = [(idx, to_right(idx)) for idx in idxs]
+    if not all_equal_tz:  # convert to wall time to ignore timezones
         l_and_r = [(le.tz_localize(None), ri.tz_localize(None)) for (le, ri) in l_and_r]
     if not all_equal_sod:  # remove time-part to ignore start-of-day
         l_and_r = [(le.normalize(), ri.normalize()) for (le, ri) in l_and_r]

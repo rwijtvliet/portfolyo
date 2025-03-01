@@ -87,9 +87,7 @@ def test_standardize_DST(
         pd.testing.assert_series_equal(result, expected)
         # 2: Series.
         # series = pd.Series(in_vals, iin)
-        result = tools.standardize.frame(
-            pd.Series(in_vals, iin), force, bound=bound, **kw
-        )
+        result = tools.standardize.frame(pd.Series(in_vals, iin), force, bound=bound, **kw)
         pd.testing.assert_series_equal(result, expected)
     else:
         # 1: Using expected frame: should stay the same.

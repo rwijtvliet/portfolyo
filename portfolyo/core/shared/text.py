@@ -38,9 +38,7 @@ def df_with_strvalues(df: pd.DataFrame, units: Dict = _UNITS):
 
 def df_with_strindex(df: pd.DataFrame, num_of_ts: int):
     """Turn datetime index of dataframe into text, and reduce number of rows."""
-    df.index = df.index.map(
-        lambda ts: ts.strftime(DATETIMEFORMAT).ljust(COLWIDTHS["ts"])
-    )
+    df.index = df.index.map(lambda ts: ts.strftime(DATETIMEFORMAT).ljust(COLWIDTHS["ts"]))
     if len(df.index) > num_of_ts:
         i1, i2 = num_of_ts // 2, (num_of_ts - 1) // 2
         inter = pd.DataFrame([[".."] * len(df.columns)], [".."], df.columns)

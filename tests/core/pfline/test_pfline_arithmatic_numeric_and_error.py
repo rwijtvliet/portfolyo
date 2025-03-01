@@ -108,9 +108,7 @@ flatset_ref_plus_2 = {
     Kind.VOLUME: create.flatpfline({"q": series_ref_plus_2["q"]}),
     Kind.PRICE: create.flatpfline({"p": series_ref_plus_2["p"]}),
     Kind.REVENUE: create.flatpfline({"r": series_ref_plus_2["r"]}),
-    Kind.COMPLETE: create.flatpfline(
-        {"q": series_ref_plus_2["q"], "r": series_ref_plus_2["r"]}
-    ),
+    Kind.COMPLETE: create.flatpfline({"q": series_ref_plus_2["q"], "r": series_ref_plus_2["r"]}),
     "nodim": series_ref_plus_2["nodim"],
 }
 series_ref_minus_2 = {
@@ -123,9 +121,7 @@ flatset_ref_minus_2 = {
     Kind.VOLUME: create.flatpfline({"q": series_ref_minus_2["q"]}),
     Kind.PRICE: create.flatpfline({"p": series_ref_minus_2["p"]}),
     Kind.REVENUE: create.flatpfline({"r": series_ref_minus_2["r"]}),
-    Kind.COMPLETE: create.flatpfline(
-        {"q": series_ref_minus_2["q"], "r": series_ref_minus_2["r"]}
-    ),
+    Kind.COMPLETE: create.flatpfline({"q": series_ref_minus_2["q"], "r": series_ref_minus_2["r"]}),
     "nodim": series_ref_minus_2["nodim"],
 }
 series_ref_times_2 = {
@@ -138,17 +134,13 @@ flatset_ref_times_2 = {
     Kind.VOLUME: create.flatpfline({"q": series_ref_times_2["q"]}),
     Kind.PRICE: create.flatpfline({"p": series_ref_times_2["p"]}),
     Kind.REVENUE: create.flatpfline({"r": series_ref_times_2["r"]}),
-    Kind.COMPLETE: create.flatpfline(
-        {"q": series_ref_times_2["q"], "p": series_ref["p"]}
-    ),
+    Kind.COMPLETE: create.flatpfline({"q": series_ref_times_2["q"], "p": series_ref["p"]}),
     "nodim": series_ref_times_2["nodim"],
 }
 flatset_ref_dividedby_0 = {
     Kind.VOLUME: create.flatpfline({"q": pd.Series([-np.inf, np.inf, -np.inf], i_ref)}),
     Kind.PRICE: create.flatpfline({"p": pd.Series([np.inf, np.inf, np.inf], i_ref)}),
-    Kind.REVENUE: create.flatpfline(
-        {"r": pd.Series([-np.inf, np.inf, -np.inf], i_ref)}
-    ),
+    Kind.REVENUE: create.flatpfline({"r": pd.Series([-np.inf, np.inf, -np.inf], i_ref)}),
     Kind.COMPLETE: create.flatpfline(
         {"q": pd.Series([-np.inf, np.inf, -np.inf], i_ref), "p": series_ref["p"]}
     ),
@@ -163,9 +155,7 @@ flatset_ref_dividedby_2 = {
     Kind.VOLUME: create.flatpfline({"q": series_ref_dividedby_2["q"]}),
     Kind.PRICE: create.flatpfline({"p": series_ref_dividedby_2["p"]}),
     Kind.REVENUE: create.flatpfline({"r": series_ref_dividedby_2["r"]}),
-    Kind.COMPLETE: create.flatpfline(
-        {"q": series_ref_dividedby_2["q"], "p": series_ref["p"]}
-    ),
+    Kind.COMPLETE: create.flatpfline({"q": series_ref_dividedby_2["q"], "p": series_ref["p"]}),
     "nodim": series_ref_dividedby_2["nodim"],
 }
 flatset_ref_unionwith_2 = {
@@ -280,9 +270,7 @@ def additiontestcases():
         series = {c: series_ref[c] + series_a[c] for c in kind.summable}
         yield Case(pfl, "+", flatset_a[kind], pf.PfLine(series))
         # . ref + b
-        series = {
-            c: series_ref[c].loc[i_ab] + series_b[c].loc[i_ab] for c in kind.summable
-        }
+        series = {c: series_ref[c].loc[i_ab] + series_b[c].loc[i_ab] for c in kind.summable}
         yield Case(pfl, "+", flatset_b[kind], pf.PfLine(series))
     # . ref + other index
     yield Case(flatset_ref[Kind.VOLUME], "+", flatset_c[Kind.VOLUME], Exception)
@@ -314,9 +302,7 @@ def subtractiontestcases():
         series = {c: series_ref[c] - series_a[c] for c in kind.summable}
         yield Case(pfl, "-", flatset_a[kind], pf.PfLine(series))
         # . ref - b
-        series = {
-            c: series_ref[c].loc[i_ab] - series_b[c].loc[i_ab] for c in kind.summable
-        }
+        series = {c: series_ref[c].loc[i_ab] - series_b[c].loc[i_ab] for c in kind.summable}
         yield Case(pfl, "-", flatset_b[kind], pf.PfLine(series))
     # This one is the issue
     yield Case(flatset_ref[Kind.VOLUME], "-", flatset_c[Kind.VOLUME], Exception)
@@ -342,10 +328,7 @@ def multiplicationtestcases():
         series = {c: series_ref[c] * series_a["nodim"] for c in kind.summable}
         yield Case(pfl, "*", flatset_a["nodim"], pf.PfLine(series))
         # . ref * b
-        series = {
-            c: series_ref[c].loc[i_ab] * series_b["nodim"].loc[i_ab]
-            for c in kind.summable
-        }
+        series = {c: series_ref[c].loc[i_ab] * series_b["nodim"].loc[i_ab] for c in kind.summable}
         yield Case(pfl, "*", flatset_b["nodim"], pf.PfLine(series))
     yield Case(flatset_ref[Kind.VOLUME], "*", flatset_c["nodim"], Exception)
     yield Case(flatset_ref[Kind.VOLUME], "*", flatset_d["nodim"], Exception)
@@ -355,9 +338,7 @@ def multiplicationtestcases():
     series = {"r": series_ref["q"] * series_a["p"]}
     yield Case(flatset_ref[Kind.VOLUME], "*", flatset_a[Kind.PRICE], pf.PfLine(series))
     for val in values_0[Kind.PRICE]:
-        yield Case(
-            flatset_ref[Kind.VOLUME], "*", val, flatset_ref_times_0[Kind.REVENUE]
-        )
+        yield Case(flatset_ref[Kind.VOLUME], "*", val, flatset_ref_times_0[Kind.REVENUE])
     # kind * incompatible kind
     yield Case(flatset_ref[Kind.VOLUME], "*", None, Exception)
     yield Case(flatset_ref[Kind.VOLUME], "*", flatset_a[Kind.VOLUME], Exception)
@@ -379,10 +360,7 @@ def divisiontestcases():
         series = {c: series_ref[c] / series_a["nodim"] for c in kind.summable}
         yield Case(pfl, "/", flatset_a["nodim"], pf.PfLine(series))
         # . ref / b
-        series = {
-            c: series_ref[c].loc[i_ab] / series_b["nodim"].loc[i_ab]
-            for c in kind.summable
-        }
+        series = {c: series_ref[c].loc[i_ab] / series_b["nodim"].loc[i_ab] for c in kind.summable}
         yield Case(pfl, "/", flatset_b["nodim"], pf.PfLine(series))
     yield Case(flatset_ref[Kind.VOLUME], "/", flatset_c["nodim"], Exception)
     yield Case(flatset_ref[Kind.VOLUME], "/", flatset_d["nodim"], Exception)
@@ -409,13 +387,9 @@ def divisiontestcases():
     series = {"q": series_ref["r"] / series_a["p"]}
     yield Case(flatset_ref[Kind.REVENUE], "/", flatset_a[Kind.PRICE], pf.PfLine(series))
     series = {"p": series_ref["r"] / series_a["q"]}
-    yield Case(
-        flatset_ref[Kind.REVENUE], "/", flatset_a[Kind.VOLUME], pf.PfLine(series)
-    )
+    yield Case(flatset_ref[Kind.REVENUE], "/", flatset_a[Kind.VOLUME], pf.PfLine(series))
     for val in values_0[Kind.PRICE]:
-        yield Case(
-            flatset_ref[Kind.REVENUE], "/", val, flatset_ref_dividedby_0[Kind.VOLUME]
-        )
+        yield Case(flatset_ref[Kind.REVENUE], "/", val, flatset_ref_dividedby_0[Kind.VOLUME])
     # kind / incompatible value
     yield Case(flatset_ref[Kind.VOLUME], "/", None, Exception)
     yield Case(flatset_ref[Kind.VOLUME], "/", flatset_a[Kind.PRICE], Exception)

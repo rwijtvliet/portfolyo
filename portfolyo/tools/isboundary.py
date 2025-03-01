@@ -27,9 +27,7 @@ def is_year_start(i: pd.DatetimeIndex) -> np.ndarray:
     ...
 
 
-def is_year_start(
-    i: pd.Timestamp | pd.DatetimeIndex, start_month: int = 1
-) -> bool | np.ndarray:
+def is_year_start(i: pd.Timestamp | pd.DatetimeIndex, start_month: int = 1) -> bool | np.ndarray:
     return (i.day == 1) & (i.month == start_month)
 
 
@@ -43,9 +41,7 @@ def is_quarter_start(i: pd.DatetimeIndex) -> np.ndarray:
     ...
 
 
-def is_quarter_start(
-    i: pd.Timestamp | pd.DatetimeIndex, start_month: int = 1
-) -> bool | np.ndarray:
+def is_quarter_start(i: pd.Timestamp | pd.DatetimeIndex, start_month: int = 1) -> bool | np.ndarray:
     return (i.day == 1) & (i.month % 3 == start_month)
 
 

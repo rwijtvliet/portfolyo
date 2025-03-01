@@ -75,16 +75,12 @@ def duration(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
 
 def replace_time(stamp: pd.Timestamp, startofday: dt.time) -> pd.Timestamp:
     """Replace the time-part of ``stamp`` with ``startofday``."""
-    return stamp.replace(
-        hour=startofday.hour, minute=startofday.minute, second=startofday.second
-    )
+    return stamp.replace(hour=startofday.hour, minute=startofday.minute, second=startofday.second)
 
 
 @tools_freq.check()
 @tools_startofday.check()
-def is_boundary(
-    stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None
-) -> bool:
+def is_boundary(stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None) -> bool:
     """Check if timestamp is a valid delivery period start.
 
     Parameters

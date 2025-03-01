@@ -47,9 +47,7 @@ RESULT_IF_WEIGHTSUM0_VALUESNOTUNIFORM = np.nan
 
 
 @overload
-def general(
-    fr: pd.Series, weights: Iterable | Mapping | pd.Series = None, axis: int = 0
-) -> float:
+def general(fr: pd.Series, weights: Iterable | Mapping | pd.Series = None, axis: int = 0) -> float:
     ...
 
 
@@ -93,14 +91,10 @@ def general(
     elif isinstance(fr, pd.Series):
         return series(fr, weights)
     else:
-        raise TypeError(
-            f"Parameter ``fr`` must be Series or DataFrame; got {type(fr)}."
-        )
+        raise TypeError(f"Parameter ``fr`` must be Series or DataFrame; got {type(fr)}.")
 
 
-def series(
-    s: pd.Series, weights: Iterable | Mapping | pd.Series = None
-) -> float | tools_unit.Q_:
+def series(s: pd.Series, weights: Iterable | Mapping | pd.Series = None) -> float | tools_unit.Q_:
     """
     Weighted average of series.
 
@@ -263,17 +257,13 @@ def dataframe_columnwavg_with_weightsdataframe(
 
     if (mask := ~weights_sum0).any():
         series.extend(
-            _dataframe_columnwavg_with_weightssumnot0(
-                df[mask], weights[mask], weightssum[mask]
-            )
+            _dataframe_columnwavg_with_weightssumnot0(df[mask], weights[mask], weightssum[mask])
         )
 
     # Sum of weights == 0 but not all values are 0.
 
     if (mask := weights_sum0 & ~weights_all0).any():
-        series.extend(
-            _dataframe_columnwavg_with_weightssum0notall0(df[mask], weights[mask])
-        )
+        series.extend(_dataframe_columnwavg_with_weightssum0notall0(df[mask], weights[mask]))
 
     # Each weight has a value of 0.
 
@@ -284,9 +274,7 @@ def dataframe_columnwavg_with_weightsdataframe(
     return concatseries(series, originalindex)
 
 
-def dataframe_columnwavg_with_weightsseries(
-    df: pd.DataFrame, weights: pd.Series
-) -> pd.Series:
+def dataframe_columnwavg_with_weightsseries(df: pd.DataFrame, weights: pd.Series) -> pd.Series:
     originalindex = df.index
     # Keep only relevant section.
     try:

@@ -253,9 +253,7 @@ TESTCASES_LEADINGZERO = [  # date, i_freq, periods, freq, expected_repeat, leadi
 
 @pytest.mark.parametrize("start_time", ["00:00", "06:00"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize(
-    ("date", "i_freq", "periods", "freq", "expected_repeat"), TESTCASES
-)
+@pytest.mark.parametrize(("date", "i_freq", "periods", "freq", "expected_repeat"), TESTCASES)
 def test_isboundary_index(
     date: str,
     start_time: str,
@@ -270,9 +268,7 @@ def test_isboundary_index(
     do_test_index(ts, i_freq, periods, tz, freq, expected_repeat, 0)
 
 
-@pytest.mark.parametrize(
-    ("ts", "i_freq", "periods", "freq", "expected_repeat"), TESTCASES_DST
-)
+@pytest.mark.parametrize(("ts", "i_freq", "periods", "freq", "expected_repeat"), TESTCASES_DST)
 def test_isboundary_index_dst(
     ts: str,
     i_freq: str,
@@ -411,9 +407,7 @@ TESTCASES_STAMP = [  # ts, freq, offset_hours, expected
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(("ts", "freq", "offset_hours", "expected"), TESTCASES_STAMP)
-def test_isboundary_stamp(
-    ts: str, tz: str, freq: str, offset_hours: int, expected: bool
-):
+def test_isboundary_stamp(ts: str, tz: str, freq: str, offset_hours: int, expected: bool):
     """Test if boundary timestamps are correctly identified."""
     ts = pd.Timestamp(ts, tz=tz)
     start_of_day = dt.time(hour=offset_hours)

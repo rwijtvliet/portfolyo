@@ -332,9 +332,7 @@ def get_pfstate(i: pd.DatetimeIndex = None, avg=None, *, _seed: int = None) -> P
     return PfState.from_series(wo=wo, pu=pu, ws=ws, ps=ps)
 
 
-def get_pfstates(
-    i: pd.DatetimeIndex = None, num=3, *, _seed: int = None
-) -> Dict[str, PfState]:
+def get_pfstates(i: pd.DatetimeIndex = None, num=3, *, _seed: int = None) -> Dict[str, PfState]:
     """Get dictionary of portfolio states."""
     if i is None:
         i = get_index(_seed=_seed)

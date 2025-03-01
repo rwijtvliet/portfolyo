@@ -78,9 +78,7 @@ def nestedpfline(data: Any) -> NestedPfLine:
         return data
     elif isinstance(data, classes.PfLine):
         # The data is a PfLine, but not a nested one.
-        raise TypeError(
-            "Cannot create nested portfolio line from a flat portfolio line."
-        )
+        raise TypeError("Cannot create nested portfolio line from a flat portfolio line.")
 
     # Data must be processed to see, which descendent class we need to return.
     children, kind = nested_helper.children_and_kind(data)

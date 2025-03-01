@@ -14,9 +14,7 @@ from portfolyo import Kind, PfState
 @pytest.mark.parametrize("children", [True, False])
 @pytest.mark.parametrize("kind", [Kind.VOLUME, Kind.PRICE, Kind.REVENUE, Kind.COMPLETE])
 @pytest.mark.parametrize("freq", ["MS", "D"])
-def test_pfline_plot(
-    levels: int, childcount: int, children: bool, kind: Kind, freq: str
-):
+def test_pfline_plot(levels: int, childcount: int, children: bool, kind: Kind, freq: str):
     """Test if data can be plotted with plot() function."""
     index = pd.date_range("2020-01-01", "2021-01-01", freq=freq, tz=None)
     pfl = pf.dev.get_pfline(index, nlevels=levels, childcount=childcount, kind=kind)
@@ -36,13 +34,9 @@ def test_pfstate_plot(
     index = pd.date_range(
         "2022-06-01", "2024-02-01", freq=freq, tz="Europe/Berlin", inclusive="left"
     )
-    offtakevolume = pf.dev.get_nestedpfline(
-        index, kind=Kind.VOLUME, childcount=childcount
-    )
+    offtakevolume = pf.dev.get_nestedpfline(index, kind=Kind.VOLUME, childcount=childcount)
     sourced = pf.dev.get_nestedpfline(index, kind=Kind.COMPLETE, childcount=childcount)
-    unsourcedprice = pf.dev.get_nestedpfline(
-        index, kind=Kind.PRICE, childcount=childcount
-    )
+    unsourcedprice = pf.dev.get_nestedpfline(index, kind=Kind.PRICE, childcount=childcount)
     pfs = PfState(-1 * offtakevolume, unsourcedprice, sourced)
     pfs.plot(children=children)
     matplotlib.pyplot.close()
@@ -63,18 +57,10 @@ def test_flatpfline_plot(children: bool):
 def test_plot_to_ax(levels: int, childcount: int, children: bool, freq: str):
     """Test if frunction plot_to_ax works with every kind of pfline."""
     index = pd.date_range("2020-01-01", "2021-01-01", freq=freq, tz=None)
-    pfl_compl = pf.dev.get_pfline(
-        index, nlevels=levels, childcount=childcount, kind=Kind.COMPLETE
-    )
-    pfl_vol = pf.dev.get_pfline(
-        index, nlevels=levels, childcount=childcount, kind=Kind.VOLUME
-    )
-    pfl_price = pf.dev.get_pfline(
-        index, nlevels=levels, childcount=childcount, kind=Kind.PRICE
-    )
-    pfl_rev = pf.dev.get_pfline(
-        index, nlevels=levels, childcount=childcount, kind=Kind.REVENUE
-    )
+    pfl_compl = pf.dev.get_pfline(index, nlevels=levels, childcount=childcount, kind=Kind.COMPLETE)
+    pfl_vol = pf.dev.get_pfline(index, nlevels=levels, childcount=childcount, kind=Kind.VOLUME)
+    pfl_price = pf.dev.get_pfline(index, nlevels=levels, childcount=childcount, kind=Kind.PRICE)
+    pfl_rev = pf.dev.get_pfline(index, nlevels=levels, childcount=childcount, kind=Kind.REVENUE)
     _, axs = plt.subplots(2, 2)
     with pytest.raises(ValueError):
         _ = pfl_compl.plot_to_ax(axs[0][0], children=children, kind=Kind.COMPLETE)

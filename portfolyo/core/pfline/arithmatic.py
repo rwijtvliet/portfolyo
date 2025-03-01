@@ -74,9 +74,7 @@ class Prep:
         """Both must be flat; if not, raise Error (if STRICT) or else flatten the nested ones."""
 
         def wrapper(pfl1: PfLine, pfl2: PfLine):
-            if not isinstance(pfl1, classes.FlatPfLine) or not isinstance(
-                pfl2, classes.FlatPfLine
-            ):
+            if not isinstance(pfl1, classes.FlatPfLine) or not isinstance(pfl2, classes.FlatPfLine):
                 if STRICT:
                     raise NotImplementedError(
                         "Cannot do this operation if one or more of the portfolio lines"
@@ -256,9 +254,7 @@ class Multiply:
     def two_flatpflines(pfl1: FlatPfLine, pfl2: FlatPfLine) -> FlatPfLine:
         # Only relevant case is volume * price = revenue
         if set([pfl1.kind, pfl2.kind]) != {Kind.PRICE, Kind.VOLUME}:
-            raise NotImplementedError(
-                "Can only multiply volume with price information."
-            )
+            raise NotImplementedError("Can only multiply volume with price information.")
         q, p = (pfl2.q, pfl1.p) if pfl1.kind is Kind.PRICE else (pfl1.q, pfl2.p)
         q, p = tools.intersect.frames(q, p)
         r = (q * p).pint.to_base_units()

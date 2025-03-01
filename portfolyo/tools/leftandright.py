@@ -69,14 +69,10 @@ def stamps(
     # if we land here, we know left and right.
     zones = [None if ts.tz is None else ts.tz.zone for ts in [left, right]]
     if len(set(zones)) == 2:  # distinct timezones
-        raise ValueError(
-            f"The timestamps have distinct timezones: {left.tz} and {right.tz}."
-        )
+        raise ValueError(f"The timestamps have distinct timezones: {left.tz} and {right.tz}.")
     times = [ts.time() for ts in [left, right]]
     if len(set(times)) == 2:  # distinct times
-        raise ValueError(
-            f"The timestamps have distinct times: {left.time()} and {right.time()}."
-        )
+        raise ValueError(f"The timestamps have distinct times: {left.time()} and {right.time()}.")
 
     # if we land here, we know left and right, and both have same timezone.
     if left > right:
