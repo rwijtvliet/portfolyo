@@ -571,7 +571,7 @@ def test_flexintersect_ok(
         or mustignoresod
         and not ignoresod
         or mustignoretz
-        and not ignoretz
+        and not ignoresod
     ):
         with pytest.raises(ValueError):
             testfn()
