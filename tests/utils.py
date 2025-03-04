@@ -25,7 +25,7 @@ def _id_fn(data: Any) -> str:
             vals += "..."
         return f"{typ}[{vals}]"
     elif isinstance(data, pd.DataFrame):
-        return f"Df[{'|'.join(data.columns)}]"
+        return f"Df[{'|'.join(_id_fn(c) for c in data.columns)}]"
     elif isinstance(data, classes.PfLine):
         return f"{data.__class__.__name__}"
     elif isinstance(data, pf.PfState):

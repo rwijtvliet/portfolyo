@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-from portfolyo import toolsb
+from portfolyo import toolsb, tools
 
 LEFT_FREQ_RIGHT_DURATION = [
     ("2020", "min", "2020-01-01 00:01", 1 / 60),
@@ -47,7 +47,7 @@ def test_stamp_toright(stamp, freq, right):
 @pytest.mark.parametrize(
     "stamp,freq,duration",
     [
-        (pd.Timestamp(left), freq, toolsb.unit.Q_(duration, "h"))
+        (pd.Timestamp(left), freq, tools.unit.Q_(duration, "h"))
         for (left, freq, _, duration) in LEFT_FREQ_RIGHT_DURATION
     ],
 )

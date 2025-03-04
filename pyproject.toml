@@ -63,7 +63,7 @@ markers = [
     "only_on_pr: marks tests as slow (select with -m only_on_pr and deselect with -m 'not only_on_pr')",
 ]
 pythonpath = ["./tests"]
-testdirs = "./tests/toolsb/"
+testpaths = "./tests/toolsb/"
 # norecursedirs = ["./tests/tools", "./tests/tools2", "./tests/core", "./tests/dev", "./tests/general"]
 
 [tool.black]
