@@ -59,7 +59,7 @@ def assert_index_equal(left: pd.Index, right: pd.Index, *args, **kwargs):
         assert left.freq == right.freq
 
 
-def assert_indices_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
+def assert_index_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
     """Assert that indices are compatible, i.e., with equal frequency, start-of-day, and timezone."""
     if (lf := left.freq) != (r := right.freq):
         raise AssertionError(f"Indices have unequal frequency: {lf} and {r}.")

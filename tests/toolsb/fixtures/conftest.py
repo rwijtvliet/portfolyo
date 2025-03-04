@@ -26,6 +26,19 @@ def freq2_asstr(request) -> str:
     return request.param
 
 
+@pytest.fixture(scope="session")
+def equivalentfreq(freq_asstr, freq2_asstr) -> bool:
+    if freq_asstr == freq2_asstr:
+        return True  # same
+    elif freq_asstr.startswith("QS") and freq2_asstr.startswith("QS"):
+        month1, month2 = freq_asstr[-3:], freq2_asstr[-3:]
+        for group in [("JAN", "APR", "JUL", "OCT"), ("FEB", "MAY", "AUG", "NOV")]:
+            if month1 in group and month2 not in group:
+                return False  # both quarters but not equivalent
+        return True  # both quarters and equivalent
+    return False  # different length
+
+
 @pytest.fixture(scope="session", params=["2min", "4h", "7D", "3MS"])
 def freq_nok_asstr(request) -> str:
     return request.param
@@ -55,6 +68,7 @@ def freq_nok(freq_nok_asstr: str) -> pd.tseries.offsets.BaseOffset:
         (dt.time(hour=0), "00:00:00", dt.timedelta(seconds=0)),
         (dt.time(hour=6), "06:00:00", dt.timedelta(hours=6)),
     ],
+    ids=lambda t: t[1],
 )
 def _sod_time_str_tdelta(request) -> tuple[dt.time, str, dt.timedelta]:
     return request.param
@@ -77,6 +91,19 @@ def sod_astdelta(_sod_time_str_tdelta) -> dt.timedelta:
 
 @pytest.fixture(
     scope="session",
+    params=["00:00:00", "06:00:00"],
+)
+def sod2_asstr(request) -> str:
+    return request.param
+
+
+@pytest.fixture(scope="session")
+def equalsod(sod_asstr, sod2_asstr) -> bool:
+    return sod_asstr == sod2_asstr
+
+
+@pytest.fixture(
+    scope="session",
     params=[
         (
             dt.time(hour=6, minute=39, second=51),
@@ -85,8 +112,9 @@ def sod_astdelta(_sod_time_str_tdelta) -> dt.timedelta:
         ),
         (dt.time(hour=6, minute=30), "06:30:00", dt.timedelta(hours=6, minutes=30)),
     ],
+    ids=lambda t: t[1],
 )
-def _sod_time_str_tdelta_nok(request):
+def _sod_time_str_tdelta_nok(request) -> tuple[dt.time, str, dt.timedelta]:
     return request.param
 
 
@@ -108,14 +136,33 @@ def sod_nok_astdelta(_sod_time_str_tdelta_nok) -> dt.timedelta:
 # Timezone ---
 
 
-@pytest.fixture(scope="session", params=["Europe/Berlin", "Asia/Kolkata", None])
+@pytest.fixture(
+    scope="session",
+    params=[
+        pytest.param("Europe/Berlin", id="Berlin"),
+        pytest.param("Asia/Kolkata", id="Kolkata"),
+        None,
+    ],
+)
 def tz(request) -> str | None:
     return request.param
 
 
-@pytest.fixture(scope="session", params=["Europe/Berlin", "Asia/Kolkata", None])
+@pytest.fixture(
+    scope="session",
+    params=[
+        pytest.param("Europe/Berlin", id="Berlin"),
+        pytest.param("Asia/Kolkata", id="Kolkata"),
+        None,
+    ],
+)
 def tz2(request) -> str | None:
     return request.param
+
+
+@pytest.fixture(scope="session")
+def equaltz(tz, tz2) -> bool:
+    return tz == tz2
 
 
 # Year/month/day ---

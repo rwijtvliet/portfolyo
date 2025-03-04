@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 import dataclasses
+from utils import id_fn
 
 
 @dataclasses.dataclass
@@ -42,6 +43,7 @@ class _Case1:
         ("2020-04-21 15:00", "15min", 5 * 24 * 4, "2020-04-21 15:15", 15 / 60),
         ("2020-04-21 15:00", "h", 5 * 24, "2020-04-21 16:00", 1),
     ],
+    ids=id_fn,
 )
 def _case1(request) -> _Case1:
     return _Case1(*request.param)
@@ -81,28 +83,33 @@ class _Case2:
         ("2020-03-27 01:00", "D", 3, "2020-03-28 01:00", [24, 24, 23]),
         ("2020-03-27 03:00", "D", 3, "2020-03-28 03:00", [24, 23, 24]),
         ("2020-10-24", "D", 3, "2020-10-25", [24, 25, 24]),
-        ("2020-10-24 01:00", "D", "2020-10-25 01:00", [24, 25, 24]),
-        ("2020-10-24 03:00", "D", "2020-10-25 03:00", [24, 24, 25]),
+        ("2020-10-24 01:00", "D", 3, "2020-10-25 01:00", [24, 25, 24]),
+        ("2020-10-24 03:00", "D", 3, "2020-10-25 03:00", [24, 24, 25]),
         ("2020-02", "MS", 3, "2020-03", [29 * 24, 31 * 24 - 1, 30 * 24]),
-        ("2020-09", "MS", 3, "2020-10", [31 * 24, 31 * 24 + 1, 30 * 24]),
+        ("2020-09", "MS", 3, "2020-10", [30 * 24, 31 * 24 + 1, 30 * 24]),
         ("2020-01", "QS-JAN", 4, "2020-04", [91 * 24 - 1, 91 * 24, 92 * 24, 92 * 24 + 1]),
     ],
+    ids=id_fn,
 )
 def _case2(request) -> _Case2:
     return _Case2(*request.param)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", ids=id_fn)
 def case2_idx(_case2: _Case2) -> pd.DatetimeIndex:
-    return pd.date_range(_case2.stamp, freq=_case2.freqstr, periods=_case2.periods)
+    return pd.date_range(
+        _case2.stamp, freq=_case2.freqstr, periods=_case2.periods, tz="Europe/Berlin"
+    )
 
 
 @pytest.fixture(scope="session")
 def case2_rightidx(_case2: _Case2) -> pd.DatetimeIndex:
-    return pd.date_range(_case2.rightstamp, freq=_case2.freqstr, periods=_case2.periods)
+    return pd.date_range(
+        _case2.rightstamp, freq=_case2.freqstr, periods=_case2.periods, tz="Europe/Berlin"
+    )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="session", ids=id_fn)
 def case2_duration(case2_idx, _case2: _Case2) -> pd.Series:
     return pd.Series(_case2.duration, case2_idx, dtype=float).astype("pint[h]")
 
@@ -364,14 +371,15 @@ class _Case3:
         (("2020-04-21 15:00", "2021-08-21 15:00"), "h", "YS-JAN", None),
         (("2020-04-21 15:00", "2021-08-21 15:00"), "h", "YS-FEB", None),
     ],
+    ids=id_fn,
 )
 def _case3(request) -> _Case3:
     return _Case3(*request.param)
 
 
 @pytest.fixture(scope="session")
-def case3_idx(_case3: _Case3) -> pd.DatetimeIndex:
-    return pd.date_range(*_case3.leftright, freq=_case3.freq, inclusive="left")
+def case3_idx(_case3: _Case3, tz) -> pd.DatetimeIndex:
+    return pd.date_range(*_case3.leftright, freq=_case3.freq, inclusive="left", tz=tz)
 
 
 @pytest.fixture(scope="session")
@@ -380,10 +388,246 @@ def case3_trimfreq(_case3: _Case3) -> str:
 
 
 @pytest.fixture(scope="session")
-def case3_trimmedidx(_case3: _Case3) -> pd.DatetimeIndex | type:
-    if _case3.trimmedleftright is Exception:  # trim impossible
-        return Exception
-    elif _case3.trimmedleftright is None:  # empty trim
-        return pd.DatetimeIndex([], freq=_case3.freq)
+def case3_isok(_case3: _Case3) -> bool:
+    return _case3.trimmedleftright is not Exception
+
+
+@pytest.fixture(scope="session")
+def case3_trimmedidx(_case3: _Case3, tz, case3_isok) -> pd.DatetimeIndex:
+    if not case3_isok:
+        pytest.skip("Error case.")
+
+    if _case3.trimmedleftright is None:  # empty trim
+        return pd.DatetimeIndex([], freq=_case3.freq, tz=tz)
     else:
-        return pd.date_range(*_case3.trimmedleftright, freq=_case3.freq, inclusive="left")
+        return pd.date_range(*_case3.trimmedleftright, freq=_case3.freq, inclusive="left", tz=tz)
+
+
+# ---
+
+
+@dataclasses.dataclass
+class _Case4:
+    startendfreq1: tuple[str, str, str]
+    startendfreq2: tuple[str, str, str]
+    itsstartend: tuple[str, str]
+
+
+@pytest.fixture(
+    scope="session",
+    params=[
+        # startdate, enddate, freq of index1; startdate, enddate, freq of index2; startdate, enddate of intersection (if possible).
+        (("2020", "2023", "min"), ("2021-04-21", "2023-02", "min"), ("2021-04-21", "2023")),
+        (("2020", "2023", "min"), ("2021-04-21", "2023-02", "h"), ("2021-04-21", "2023")),
+        (("2020", "2023", "min"), ("2021-04-21", "2023-02", "D"), ("2021-04-21", "2023")),
+        (("2020", "2023", "min"), ("2021-04", "2023-02", "MS"), ("2021-04", "2023")),
+        (("2020", "2023", "min"), ("2021-04", "2023-04", "QS-JAN"), ("2021-04", "2023")),
+        (("2020", "2023", "min"), ("2021-04", "2023-04", "QS-APR"), ("2021-04", "2023")),
+        (("2020", "2023", "min"), ("2021", "2023", "YS-JAN"), ("2021", "2023")),
+        (("2020", "2023", "min"), ("2021-02", "2023-02", "QS-FEB"), ("2021-02", "2022-11")),
+        (("2020", "2023", "min"), ("2021-02", "2023-02", "YS-FEB"), ("2021-02", "2022-02")),
+        (("2020", "2023", "h"), ("2021-04-21", "2023-02", "min"), ("2021-04-21", "2023")),
+        (("2020", "2023", "h"), ("2021-04-21", "2023-02", "h"), ("2021-04-21", "2023")),
+        (("2020", "2023", "h"), ("2021-04-21", "2023-02", "D"), ("2021-04-21", "2023")),
+        (("2020", "2023", "h"), ("2021-04", "2023-02", "MS"), ("2021-04", "2023")),
+        (("2020", "2023", "h"), ("2021-04", "2023-04", "QS-JAN"), ("2021-04", "2023")),
+        (("2020", "2023", "h"), ("2021-04", "2023-04", "QS-APR"), ("2021-04", "2023")),
+        (("2020", "2023", "h"), ("2021", "2023", "YS-JAN"), ("2021", "2023")),
+        (("2020", "2023", "h"), ("2021-02", "2023-02", "QS-FEB"), ("2021-02", "2022-11")),
+        (("2020", "2023", "h"), ("2021-02", "2023-02", "YS-FEB"), ("2021-02", "2022-02")),
+        (("2020", "2023", "D"), ("2021-04-21", "2023-02", "min"), ("2021-04-21", "2023")),
+        (("2020", "2023", "D"), ("2021-04-21", "2023-02", "h"), ("2021-04-21", "2023")),
+        (("2020", "2023", "D"), ("2021-04-21", "2023-02", "D"), ("2021-04-21", "2023")),
+        (("2020", "2023", "D"), ("2021-04", "2023-02", "MS"), ("2021-04", "2023")),
+        (("2020", "2023", "D"), ("2021-04", "2023-04", "QS-JAN"), ("2021-04", "2023")),
+        (("2020", "2023", "D"), ("2021-04", "2023-04", "QS-APR"), ("2021-04", "2023")),
+        (("2020", "2023", "D"), ("2021", "2023", "YS-JAN"), ("2021", "2023")),
+        (("2020", "2023", "D"), ("2021-02", "2023-02", "QS-FEB"), ("2021-02", "2022-11")),
+        (("2020", "2023", "D"), ("2021-02", "2023-02", "YS-FEB"), ("2021-02", "2022-02")),
+        (("2020", "2023", "MS"), ("2021-04-21", "2023-02", "min"), ("2021-05", "2023")),
+        (("2020", "2023", "MS"), ("2021-04-21", "2023-02", "h"), ("2021-05", "2023")),
+        (("2020", "2023", "MS"), ("2021-04-21", "2023-02", "D"), ("2021-05", "2023")),
+        (("2020", "2023", "MS"), ("2021-04", "2023-02", "MS"), ("2021-04", "2023")),
+        (("2020", "2023", "MS"), ("2021-04", "2023-04", "QS-JAN"), ("2021-04", "2023")),
+        (("2020", "2023", "MS"), ("2021-04", "2023-04", "QS-APR"), ("2021-04", "2023")),
+        (("2020", "2023", "MS"), ("2021", "2023", "YS-JAN"), ("2021", "2023")),
+        (("2020", "2023", "MS"), ("2021-02", "2023-02", "QS-FEB"), ("2021-02", "2022-11")),
+        (("2020", "2023", "MS"), ("2021-02", "2023-02", "YS-FEB"), ("2021-02", "2022-02")),
+        (("2020", "2023", "QS-JAN"), ("2021-04-21", "2023-02", "min"), ("2021-07", "2023")),
+        (("2020", "2023", "QS-JAN"), ("2021-04-21", "2023-02", "h"), ("2021-07", "2023")),
+        (("2020", "2023", "QS-JAN"), ("2021-04-21", "2023-02", "D"), ("2021-07", "2023")),
+        (("2020", "2023", "QS-JAN"), ("2021-04", "2023-02", "MS"), ("2021-04", "2023")),
+        (("2020", "2023", "QS-JAN"), ("2021-04", "2023-04", "QS-JAN"), ("2021-04", "2023")),
+        (("2020", "2023", "QS-JAN"), ("2021-04", "2023-04", "QS-APR"), ("2021-04", "2023")),
+        (("2020", "2023", "QS-JAN"), ("2021", "2023", "YS-JAN"), ("2021", "2023")),
+        (("2020", "2023", "QS-JAN"), ("2021-02", "2023-02", "QS-FEB"), (Exception, Exception)),
+        (("2020", "2023", "QS-JAN"), ("2021-02", "2023-02", "YS-FEB"), (Exception, Exception)),
+        (("2020", "2023", "YS-JAN"), ("2021-04-21", "2023-02", "min"), ("2022", "2023")),
+        (("2020", "2023", "YS-JAN"), ("2021-04-21", "2023-02", "h"), ("2022", "2023")),
+        (("2020", "2023", "YS-JAN"), ("2021-04-21", "2023-02", "D"), ("2022", "2023")),
+        (("2020", "2023", "YS-JAN"), ("2021-04", "2023-02", "MS"), ("2022", "2023")),
+        (("2020", "2023", "YS-JAN"), ("2021-04", "2023-04", "QS-JAN"), ("2022", "2023")),
+        (("2020", "2023", "YS-JAN"), ("2021-04", "2023-04", "QS-APR"), ("2022", "2023")),
+        (("2020", "2023", "YS-JAN"), ("2021", "2023", "YS-JAN"), ("2021", "2023")),
+        (("2020", "2023", "YS-JAN"), ("2021-02", "2023-02", "QS-FEB"), (Exception, Exception)),
+        (("2020", "2023", "YS-JAN"), ("2021-02", "2023-02", "YS-FEB"), (Exception, Exception)),
+        (
+            ("2020-02", "2022-11", "QS-FEB"),
+            ("2021-04-21", "2023-02", "min"),
+            ("2021-05", "2022-11"),
+        ),
+        (("2020-02", "2022-11", "QS-FEB"), ("2021-04-21", "2023-02", "h"), ("2021-05", "2022-11")),
+        (("2020-02", "2022-11", "QS-FEB"), ("2021-04-21", "2023-02", "D"), ("2021-05", "2022-11")),
+        (("2020-02", "2022-11", "QS-FEB"), ("2021-04", "2023-02", "MS"), ("2021-05", "2022-11")),
+        (
+            ("2020-02", "2022-11", "QS-FEB"),
+            ("2021-04", "2023-04", "QS-JAN"),
+            (Exception, Exception),
+        ),
+        (
+            ("2020-02", "2022-11", "QS-FEB"),
+            ("2021-04", "2023-04", "QS-APR"),
+            (Exception, Exception),
+        ),
+        (("2020-02", "2022-11", "QS-FEB"), ("2021", "2023", "YS-JAN"), (Exception, Exception)),
+        (
+            ("2020-02", "2022-11", "QS-FEB"),
+            ("2021-02", "2023-02", "QS-FEB"),
+            ("2021-02", "2022-11"),
+        ),
+        (
+            ("2020-02", "2022-11", "QS-FEB"),
+            ("2021-02", "2023-02", "YS-FEB"),
+            ("2021-02", "2022-11"),
+        ),
+        (
+            ("2020-02", "2023-02", "YS-FEB"),
+            ("2021-04-21", "2023-02-15", "min"),
+            ("2022-02", "2023-02"),
+        ),
+        (
+            ("2020-02", "2023-02", "YS-FEB"),
+            ("2021-04-21", "2023-02-15", "h"),
+            ("2022-02", "2023-02"),
+        ),
+        (
+            ("2020-02", "2023-02", "YS-FEB"),
+            ("2021-04-21", "2023-02-15", "D"),
+            ("2022-02", "2023-02"),
+        ),
+        (("2020-02", "2023-02", "YS-FEB"), ("2021-04", "2023-03", "MS"), ("2022-02", "2023-02")),
+        (
+            ("2020-02", "2023-02", "YS-FEB"),
+            ("2021-04", "2023-04", "QS-JAN"),
+            (Exception, Exception),
+        ),
+        (
+            ("2020-02", "2023-02", "YS-FEB"),
+            ("2021-04", "2023-04", "QS-APR"),
+            (Exception, Exception),
+        ),
+        (("2020-02", "2023-02", "YS-FEB"), ("2021", "2023", "YS-JAN"), (Exception, Exception)),
+        (
+            ("2020-02", "2023-02", "YS-FEB"),
+            ("2021-05", "2023-05", "QS-FEB"),
+            ("2022-02", "2023-02"),
+        ),
+        (
+            ("2020-02", "2023-02", "YS-FEB"),
+            ("2021-02", "2024-02", "YS-FEB"),
+            ("2021-02", "2023-02"),
+        ),
+    ],
+    ids=id_fn,
+)
+def _case4(request) -> _Case4:
+    return _Case4(*request.param)
+
+
+def _index(startdate, enddate, freq, sodstr, tz) -> pd.DatetimeIndex:
+    return pd.date_range(
+        f"{startdate} {sodstr}", f"{enddate} {sodstr}", freq=freq, inclusive="left", tz=tz
+    )
+
+
+@pytest.fixture(scope="session")
+def case4_idx1(_case4: _Case4, sod_asstr, tz) -> pd.DatetimeIndex:
+    return _index(*_case4.startendfreq1, sod_asstr, tz)
+
+
+@pytest.fixture(scope="session")
+def case4_idx2(_case4: _Case4, sod2_asstr, tz2) -> pd.DatetimeIndex:
+    return _index(*_case4.startendfreq2, sod2_asstr, tz2)
+
+
+@pytest.fixture(scope="session")
+def _case4_equivalentfreq(_case4: _Case4) -> bool:
+    freqs = set([_case4.startendfreq1[-1], _case4.startendfreq2[-1]])
+    if len(freqs) != 1 and freqs != set(["QS-JAN", "QS-APR"]):
+        return False
+    return True
+
+
+@pytest.fixture(scope="session")
+def case4_normalintersect_isok(_case4_equivalentfreq, equalsod, equaltz) -> bool:
+    return _case4_equivalentfreq and equalsod and equaltz
+
+
+@pytest.fixture(scope="session")
+def case4_normalintersect_idx(
+    _case4: _Case4, sod_asstr, tz, case4_normalintersect_isok
+) -> pd.DatetimeIndex:
+    if not case4_normalintersect_isok:
+        pytest.skip("Error case.")
+
+    freq = _case4.startendfreq1[-1]
+    return _index(*_case4.itsstartend, freq, sod_asstr, tz)
+
+
+@pytest.fixture(
+    scope="session",
+    params=[pytest.param(True, id="ignorefreq"), pytest.param(False, id="dontignorefreq")],
+)
+def case4_ignorefreq(request) -> bool:
+    return request.param
+
+
+@pytest.fixture(
+    scope="session",
+    params=[pytest.param(True, id="ignoretz"), pytest.param(False, id="dontignoretz")],
+)
+def case4_ignoretz(request) -> bool:
+    return request.param
+
+
+@pytest.fixture(
+    scope="session",
+    params=[pytest.param(True, id="ignoresod"), pytest.param(False, id="dontignoresod")],
+)
+def case4_ignoresod(request) -> bool:
+    return request.param
+
+
+@pytest.fixture(scope="session")
+def case4_flexintersect_isok(
+    case4_ignorefreq, _case4_equivalentfreq, case4_ignoresod, equalsod, case4_ignoretz, equaltz
+) -> bool:
+    return (
+        (case4_ignorefreq or _case4_equivalentfreq)
+        and (case4_ignoresod or equalsod)
+        and (case4_ignoretz or equaltz)
+    )
+
+
+@pytest.fixture(scope="session")
+def case4_flexintersect_idxs(
+    _case4: _Case4, sod_asstr, sod2_asstr, tz, tz2, case4_flexintersect_isok
+) -> tuple[pd.DatetimeIndex, pd.DatetimeIndex]:
+    if not case4_flexintersect_isok:
+        pytest.skip("Error case.")
+
+    freq1, freq2 = _case4.startendfreq1[-1], _case4.startendfreq2[-1]
+    return (
+        _index(*_case4.itsstartend, freq1, sod_asstr, tz),
+        _index(*_case4.itsstartend, freq2, sod2_asstr, tz2),
+    )
