@@ -4,6 +4,7 @@ from pandas.tseries.frequencies import to_offset
 from pandas.tseries.offsets import BaseOffset
 import pytest
 from portfolyo import toolsb
+import dataclasses
 
 
 @pytest.fixture(scope="session")
@@ -47,6 +48,17 @@ def stamp_duration(year, monthday, freq_asstr, stamp_on_freqboundary, tz) -> pin
     raise ValueError()
 
 
+# ---
+
+
+@dataclasses.dataclass
+class _Case1:
+    stamp: str
+    freqstr: str
+    right: str
+    duration: float | int
+
+
 @pytest.fixture(
     scope="session",
     params=[
@@ -78,28 +90,39 @@ def stamp_duration(year, monthday, freq_asstr, stamp_on_freqboundary, tz) -> pin
         ("2020-04-21 15:00", "h", "2020-04-21 16:00", 1),
     ],
 )
-def _case1_stampfreqrightduration(request) -> tuple[str, str, str, float | int]:
-    return request.param
+def _case1(request) -> _Case1:
+    return _Case1(*request.param)
 
 
 @pytest.fixture(scope="session")
-def case1_stamp(_case1_stampfreqrightduration) -> pd.Timestamp:
-    return pd.Timestamp(_case1_stampfreqrightduration[0])
+def case1_stamp(_case1: _Case1) -> pd.Timestamp:
+    return pd.Timestamp(_case1.stamp)
 
 
 @pytest.fixture(scope="session")
-def case1_freq(_case1_stampfreqrightduration) -> BaseOffset:
-    return to_offset(_case1_stampfreqrightduration[1])
+def case1_freq(_case1: _Case1) -> BaseOffset:
+    return to_offset(_case1.freqstr)
 
 
 @pytest.fixture(scope="session")
-def case1_right(_case1_stampfreqrightduration) -> pd.Timestamp:
-    return pd.Timestamp(_case1_stampfreqrightduration[2])
+def case1_right(_case1: _Case1) -> pd.Timestamp:
+    return pd.Timestamp(_case1.right)
 
 
 @pytest.fixture(scope="session")
-def case1_duration(_case1_stampfreqrightduration) -> pint.Quantity:
-    return toolsb.unit.Q_(_case1_stampfreqrightduration[3], "h")
+def case1_duration(_case1: _Case1) -> pint.Quantity:
+    return toolsb.unit.Q_(_case1.duration, "h")
+
+
+# DST ---
+
+
+@dataclasses.dataclass
+class _Case2:
+    stamp: str
+    freqstr: str
+    right: str
+    duration: float | int
 
 
 @pytest.fixture(
@@ -120,25 +143,142 @@ def case1_duration(_case1_stampfreqrightduration) -> pint.Quantity:
         ("2020-10", "QS-JAN", "2021-01", 92 * 24 + 1),
     ],
 )
-def _case2_stampfreqrightduration(request) -> tuple[str, str, str, float | int]:
-    return request.param
+def _case2(request) -> _Case2:
+    return _Case2(*request.param)
 
 
 @pytest.fixture(scope="session")
-def case2_stamp(_case2_stampfreqrightduration) -> pd.Timestamp:
-    return pd.Timestamp(_case2_stampfreqrightduration[0], tz="Europe/Berlin")
+def case2_stamp(_case2: _Case2) -> pd.Timestamp:
+    return pd.Timestamp(_case2.stamp, tz="Europe/Berlin")
 
 
 @pytest.fixture(scope="session")
-def case2_freq(_case2_stampfreqrightduration) -> BaseOffset:
-    return to_offset(_case2_stampfreqrightduration[1])
+def case2_freq(_case2: _Case2) -> BaseOffset:
+    return to_offset(_case2.freqstr)
 
 
 @pytest.fixture(scope="session")
-def case2_right(_case2_stampfreqrightduration) -> pd.Timestamp:
-    return pd.Timestamp(_case2_stampfreqrightduration[2], tz="Europe/Berlin")
+def case2_right(_case2: _Case2) -> pd.Timestamp:
+    return pd.Timestamp(_case2.right, tz="Europe/Berlin")
 
 
 @pytest.fixture(scope="session")
-def case2_duration(_case2_stampfreqrightduration) -> pint.Quantity:
-    return toolsb.unit.Q_(_case2_stampfreqrightduration[3], "h")
+def case2_duration(_case2: _Case2) -> pint.Quantity:
+    return toolsb.unit.Q_(_case2.duration, "h")
+
+
+# ---
+
+
+@dataclasses.dataclass
+class _Case3:
+    stamp: str
+    freqstr: str
+    sodstr: str
+    floored: str
+    ceiled: str
+
+
+@pytest.fixture(
+    scope="session",
+    params=[
+        ("2020-04-21 12:34:56", "min", "00:00", "2020-04-21 12:34", "2020-04-21 12:35"),
+        ("2020-04-21 12:34:56", "min", "06:00", "2020-04-21 12:34", "2020-04-21 12:35"),
+        ("2020-04-21 12:34:56", "min", "15:00", "2020-04-21 12:34", "2020-04-21 12:35"),
+        ("2020-04-21 12:34:56", "15min", "00:00", "2020-04-21 12:30", "2020-04-21 12:45"),
+        ("2020-04-21 12:34:56", "15min", "06:00", "2020-04-21 12:30", "2020-04-21 12:45"),
+        ("2020-04-21 12:34:56", "15min", "15:00", "2020-04-21 12:30", "2020-04-21 12:45"),
+        ("2020-04-21 12:34:56", "h", "00:00", "2020-04-21 12:00", "2020-04-21 13:00"),
+        ("2020-04-21 12:34:56", "h", "06:00", "2020-04-21 12:00", "2020-04-21 13:00"),
+        ("2020-04-21 12:34:56", "h", "15:00", "2020-04-21 12:00", "2020-04-21 13:00"),
+        ("2020-04-21 12:34:56", "D", "00:00", "2020-04-21 00:00", "2020-04-22 00:00"),
+        ("2020-04-21 12:34:56", "D", "15:00", "2020-04-20 15:00", "2020-04-21 15:00"),
+        ("2020-04-21 12:34:56", "MS", "00:00", "2020-04-01 00:00", "2020-05-01 00:00"),
+        ("2020-04-21 12:34:56", "MS", "15:00", "2020-04-01 15:00", "2020-05-01 15:00"),
+        ("2020-04-21 12:34:56", "QS", "00:00", "2020-04-01 00:00", "2020-07-01 00:00"),
+        ("2020-04-21 12:34:56", "QS", "15:00", "2020-04-01 15:00", "2020-07-01 15:00"),
+        ("2020-04-21 12:34:56", "QS-FEB", "00:00", "2020-02-01 00:00", "2020-05-01 00:00"),
+        ("2020-04-21 12:34:56", "QS-FEB", "15:00", "2020-02-01 15:00", "2020-05-01 15:00"),
+        ("2020-04-21 12:34:56", "QS-APR", "00:00", "2020-04-01 00:00", "2020-07-01 00:00"),
+        ("2020-04-21 12:34:56", "QS-APR", "15:00", "2020-04-01 15:00", "2020-07-01 15:00"),
+        ("2020-04-21 12:34:56", "YS", "00:00", "2020-01-01 00:00", "2021-01-01 00:00"),
+        ("2020-04-21 12:34:56", "YS", "15:00", "2020-01-01 15:00", "2021-01-01 15:00"),
+        ("2020-04-21 12:34:56", "YS-FEB", "00:00", "2020-02-01 00:00", "2021-02-01 00:00"),
+        ("2020-04-21 12:34:56", "YS-FEB", "15:00", "2020-02-01 15:00", "2021-02-01 15:00"),
+    ],
+)
+def _case3(request) -> _Case3:
+    return _Case3(*request.param)
+
+
+@pytest.fixture(scope="session")
+def case3_stamp(_case3: _Case3, tz) -> pd.Timestamp:
+    return pd.Timestamp(_case3.stamp, tz=tz)
+
+
+@pytest.fixture(scope="session")
+def case3_freq(_case3: _Case3) -> BaseOffset:
+    return to_offset(_case3.freqstr)
+
+
+@pytest.fixture(scope="session")
+def case3_sodstr(_case3: _Case3) -> str:
+    return _case3.sodstr
+
+
+@pytest.fixture(scope="session")
+def case3_floored(_case3: _Case3, tz) -> pd.Timestamp:
+    return pd.Timestamp(_case3.floored, tz=tz)
+
+
+@pytest.fixture(scope="session")
+def case3_ceiled(_case3: _Case3, tz) -> pd.Timestamp:
+    return pd.Timestamp(_case3.ceiled, tz=tz)
+
+
+# ---
+
+
+@dataclasses.dataclass
+class _Case4:
+    date: str
+    time1: str
+    time2: str
+
+
+@pytest.fixture(
+    scope="session",
+    params=[
+        ("2020-01-01", "00:00", "00:00"),
+        ("2020-01-01", "00:00", "14:00"),
+        ("2020-01-01", "00:00", "14:35"),
+        ("2020-04-21", "21:34", "00:00"),
+        ("2020-04-21", "21:34", "14:00"),
+        ("2020-04-21", "21:34", "14:35"),
+        ("2020-03-29", "01:00", "00:00"),  # dst start in Europe
+        ("2020-03-29", "03:00", "00:00"),
+        ("2020-03-29", "01:00", "04:00"),
+        ("2020-03-29", "03:00", "04:00"),
+        ("2020-10-25", "01:00", "00:00"),  # dst end in Europe
+        ("2020-10-25", "03:00", "00:00"),
+        ("2020-10-25", "01:00", "04:00"),
+        ("2020-10-25", "03:00", "04:00"),
+    ],
+)
+def _case4(request) -> _Case4:
+    return _Case4(*request.param)
+
+
+@pytest.fixture(scope="session")
+def case4_stamp(_case4: _Case4, tz) -> pd.Timestamp:
+    return pd.Timestamp(f"{_case4.date} {_case4.time1}", tz=tz)
+
+
+@pytest.fixture(scope="session")
+def case4_newsodstr(_case4: _Case4) -> str:
+    return _case4.time2
+
+
+@pytest.fixture(scope="session")
+def case4_newstamp(_case4: _Case4, tz) -> pd.Timestamp:
+    return pd.Timestamp(f"{_case4.date} {_case4.time2}", tz=tz)

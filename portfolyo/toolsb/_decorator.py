@@ -77,7 +77,7 @@ from typing import Any, Callable
 #
 
 
-def create_checkdecorator(
+def create_coercedecorator(
     *,
     conversion: Callable[[Any], Any] | None = None,
     validation: Callable[[Any], None] | None = None,
@@ -116,13 +116,13 @@ def create_checkdecorator(
             return conversion(*args, **kwargs)
 
     def decorator_factory(*params, validate: bool = True) -> Callable:
-        """Create a check decorator which performs checks on certain parameters of wrapped
+        """Create a coerce decorator which performs checks on certain parameters of wrapped
         function.
 
         Parameters
         ----------
         *params
-            Names of parameters which check-function must be called on.
+            Names of parameters which coerce-function must be called on.
         validate, optional (default: True)
             False to skip parameter validation for wrapped function.
         """

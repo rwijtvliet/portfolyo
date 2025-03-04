@@ -143,7 +143,7 @@ def monthday(request) -> str:
 # @pytest.fixture(scope="session")
 # def date2022_othermonthday(other_monthday: str) -> str:
 #     return f"2022-{other_monthday}"
-#
+
 
 # Stamp ---
 
@@ -157,23 +157,38 @@ def stamp(year, monthday, sod_asstr, tz) -> pd.Timestamp:
 def stamp_on_freqboundary(monthday, freq_asstr) -> bool:
     if monthday == "01-01":
         if freq_asstr.startswith("YS"):
-            return freq_asstr[4:] == "JAN"
+            return freq_asstr[3:] == "JAN"
         elif freq_asstr.startswith("QS"):
-            return freq_asstr[4:] in ["JAN", "APR", "JUL", "OCT"]
+            return freq_asstr[3:] in ["JAN", "APR", "JUL", "OCT"]
         return True
     elif monthday == "02-01":
         if freq_asstr.startswith("YS"):
-            return freq_asstr[4:] == "FEB"
+            return freq_asstr[3:] == "FEB"
         elif freq_asstr.startswith("QS"):
-            return freq_asstr[4:] in ["FEB", "MAY", "AUG", "NOV"]
+            return freq_asstr[3:] in ["FEB", "MAY", "AUG", "NOV"]
         return True
     elif monthday == "04-21":
         return freq_asstr in ("min", "5min", "15min", "h", "D")
     raise ValueError()
 
 
-#
-#
+# Index ---
+
+
+@pytest.fixture(scope="session")
+def idx(stamp_on_freqboundary, monthday, sod_asstr, tz, freq) -> pd.DatetimeIndex:
+    if not stamp_on_freqboundary:
+        pytest.skip("Can't create index if first stamp does not fit the frequency.")
+
+    return pd.date_range(
+        f"2020-{monthday} {sod_asstr}",
+        f"2022-{monthday} {sod_asstr}",
+        freq=freq,
+        inclusive="left",
+        tz=tz,
+    )
+
+
 #
 #
 # def index2020to2022(date2020, date2022_other

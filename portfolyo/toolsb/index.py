@@ -38,13 +38,13 @@ def validate(idx: pd.DatetimeIndex) -> None:
             )
 
 
-check = tools_decorator.create_checkdecorator(validation=validate, default_param="idx")
+coerce = tools_decorator.create_coercedecorator(validation=validate, default_param="idx")
 
 
 # --------------------------
 
 
-@check()
+@coerce()
 def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     """Right-bound timestamps, belonging to left-bound timestamps of delivery periods
     in index.
@@ -72,7 +72,7 @@ def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     return pd.DatetimeIndex([*idx[1:], final_ts_right], freq=idx.freq)
 
 
-@check()
+@coerce()
 def duration(idx: pd.DatetimeIndex) -> PintSeries:
     """Duration of the delivery periods in a datetime index.
 
@@ -95,8 +95,8 @@ def duration(idx: pd.DatetimeIndex) -> PintSeries:
 
 
 # TODO: move to `preprocess.py`?
-@check()
-@tools_startofday.check()
+@coerce()
+@tools_startofday.coerce()
 def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a daily-or-longer frequency, replace the time-part of each
     timestamp, so that the returned index has the specified start-of-day.
@@ -130,8 +130,8 @@ def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
 
 
 # TODO: move to `preprocess.py`?
-@check(validate=False)
-@tools_startofday.check()
+@coerce(validate=False)
+@tools_startofday.coerce()
 def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a shorter-than-daily frequency, drop timestamps from the index
     so that the returned index has the specified start-of-day.
@@ -176,8 +176,8 @@ def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     return idx[pos0:-pos1]
 
 
-@check()
-@tools_freq.check()
+@coerce()
+@tools_freq.coerce()
 def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     """Trim index to only keep full periods of certain frequency.
 

@@ -108,7 +108,7 @@ def validate(freq: BaseOffset | None) -> None:
         raise ValueError(f"Frequency must be one of {ALLOWED_FREQUENCIES_DOCS}.")
 
 
-check = tools_decorator.create_checkdecorator(
+coerce = tools_decorator.create_coercedecorator(
     conversion=convert, validation=validate, default_param="freq"
 )
 
@@ -116,14 +116,14 @@ check = tools_decorator.create_checkdecorator(
 # --------------------------
 
 
-@check()
+@coerce()
 def is_shorter_than_daily(freq: BaseOffset) -> bool:
     """Return True if ``freq`` is shorter than daily, i.e., hourly or shorter. This
     also implies that the frequency is a fixed-length frequency."""
     return freq in _SHORTERTHANDAILY
 
 
-@check("source_freq", "target_freq")
+@coerce("source_freq", "target_freq")
 def up_or_down(source_freq: BaseOffset, target_freq: BaseOffset) -> int:
     """See if changing the frequency of an index requires up- or downsampling.
 
@@ -244,7 +244,7 @@ def longest(freqs: Iterable[Frequencylike]) -> BaseOffset:
     return sorted(set(freqs))[-1]
 
 
-@check()
+@coerce()
 def to_jump(freq: BaseOffset) -> pd.Timedelta | pd.DateOffset:
     """Jump object corresponding to a frequency. Can be added to a left-bound delivery
     period timestamp to get the right-bound timestamp of that delivery period (which
