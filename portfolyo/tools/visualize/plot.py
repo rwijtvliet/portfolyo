@@ -8,6 +8,7 @@ import matplotlib as mpl
 import pandas as pd
 from matplotlib import pyplot as plt
 
+
 from .. import freq as tools_freq
 from .. import unit as tools_unit
 from .categories import Categories
@@ -103,13 +104,13 @@ def plot_timeseries_as_bar(
 
     categories = Categories(s)
     height = categories.y()
-    if all((h is pd.NA for h in height.quantity.magnitude)):
-        height = 0
+    # if any((h is pd.NA for h in height.quantity.magnitude)):
+    #     height = 0
+    if any(pd.isna(h) for h in height.quantity.magnitude):
+        height = height.fillna(0)
     ax.bar(categories.x(), height, width=width, **kwargs)
     ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-    set_data_labels(
-        ax, categories.x(MAX_XLABELS), categories.y(MAX_XLABELS), labelfmt, True
-    )
+    set_data_labels(ax, categories.x(MAX_XLABELS), height, labelfmt, True)
     ax.autoscale()
 
 
@@ -193,8 +194,8 @@ def plot_timeseries_as_hline(
     categories = Categories(s)
 
     height = categories.y()
-    if all(pd.isna(height)):
-        height = 0
+    if any(pd.isna(h) for h in height.quantity.magnitude):
+        height = height.fillna(0)
     # Center around x-tick:
     ax.hlines(
         pd.Series(

@@ -92,8 +92,6 @@ def test_plot_to_ax(levels: int, childcount: int, children: bool, freq: str):
 )
 def test_plot_with_nan(freq: str, children: bool, kind: Kind, letter: str):
     index = pd.date_range("2020-01-01", "2021-01-01", freq=freq, tz=None)
-    # random_values = np.random.uniform(0, 1000, len(index))
-    # random_series = pd.Series(random_values, index=index)
     s = pf.dev.get_series(index, letter)
     s.iloc[:] = np.nan
     pfl = pf.PfLine(s)
@@ -101,5 +99,27 @@ def test_plot_with_nan(freq: str, children: bool, kind: Kind, letter: str):
         pfl2 = pf.dev.get_flatpfline(index, kind=kind)
         dict_of_children = {"southeast": pfl, "northwest": pfl2}
         pfl = pf.PfLine(dict_of_children)
+    pfl.plot(children=children)
+    matplotlib.pyplot.close()
+
+
+@pytest.mark.parametrize("freq", ["MS", "D"])
+@pytest.mark.parametrize("children", [True, False])
+@pytest.mark.parametrize(
+    "kind, letter", [(Kind.VOLUME, "w"), (Kind.PRICE, "p"), (Kind.REVENUE, "r")]
+)
+def test_plot_not_all_nan(freq: str, children: bool, kind: Kind, letter: str):
+    index = pd.date_range("2020-01-01", "2021-01-01", freq=freq, tz=None)
+    s = pf.dev.get_series(index, letter)
+
+    # Set the first 5 values to NaN
+    s.iloc[:5] = np.nan
+
+    pfl = pf.PfLine(s)
+    if children:
+        pfl2 = pf.dev.get_flatpfline(index, kind=kind)
+        dict_of_children = {"southeast": pfl, "northwest": pfl2}
+        pfl = pf.PfLine(dict_of_children)
+
     pfl.plot(children=children)
     matplotlib.pyplot.close()
