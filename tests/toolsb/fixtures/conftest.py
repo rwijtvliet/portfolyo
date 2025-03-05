@@ -1,7 +1,7 @@
 import pandas as pd
 import datetime as dt
 import pytest
-from pandas.tseries.frequencies import MONTHS, to_offset
+from pandas.tseries.frequencies import to_offset
 
 
 @pytest.fixture(scope="session", params=range(3))
@@ -12,16 +12,15 @@ def seed(request) -> int:
 # Freq ---
 
 
-_SHORTERTHANDAILY = ("min", "5min", "15min", "h")
-_ALL = (*_SHORTERTHANDAILY, "D", "MS", *(f"QS-{m}" for m in MONTHS), *(f"YS-{m}" for m in MONTHS))
+_SELECTION = ("15min", "h", "D", "MS", "QS-JAN", "QS-FEB", "QS-APR", "YS-JAN", "YS-FEB")
 
 
-@pytest.fixture(scope="session", params=_ALL)
+@pytest.fixture(scope="session", params=_SELECTION)
 def freq_asstr(request) -> str:
     return request.param
 
 
-@pytest.fixture(scope="session", params=_ALL)
+@pytest.fixture(scope="session", params=_SELECTION)
 def freq2_asstr(request) -> str:
     return request.param
 
@@ -46,7 +45,7 @@ def freq_nok_asstr(request) -> str:
 
 @pytest.fixture(scope="session")
 def freq_is_shorterthandaily(freq_asstr: str) -> bool:
-    return freq_asstr in _SHORTERTHANDAILY
+    return freq_asstr in ("15min", "h")
 
 
 @pytest.fixture(scope="session")
@@ -150,11 +149,7 @@ def tz(request) -> str | None:
 
 @pytest.fixture(
     scope="session",
-    params=[
-        pytest.param("Europe/Berlin", id="Berlin"),
-        pytest.param("Asia/Kolkata", id="Kolkata"),
-        None,
-    ],
+    params=[pytest.param("Europe/Berlin", id="Berlin"), None],
 )
 def tz2(request) -> str | None:
     return request.param

@@ -460,8 +460,8 @@ class _Case4:
         (("2020", "2023", "QS-JAN"), ("2021-04", "2023-04", "QS-JAN"), ("2021-04", "2023")),
         (("2020", "2023", "QS-JAN"), ("2021-04", "2023-04", "QS-APR"), ("2021-04", "2023")),
         (("2020", "2023", "QS-JAN"), ("2021", "2023", "YS-JAN"), ("2021", "2023")),
-        (("2020", "2023", "QS-JAN"), ("2021-02", "2023-02", "QS-FEB"), (Exception, Exception)),
-        (("2020", "2023", "QS-JAN"), ("2021-02", "2023-02", "YS-FEB"), (Exception, Exception)),
+        (("2020", "2023", "QS-JAN"), ("2021-02", "2023-02", "QS-FEB"), Exception),
+        (("2020", "2023", "QS-JAN"), ("2021-02", "2023-02", "YS-FEB"), Exception),
         (("2020", "2023", "YS-JAN"), ("2021-04-21", "2023-02", "min"), ("2022", "2023")),
         (("2020", "2023", "YS-JAN"), ("2021-04-21", "2023-02", "h"), ("2022", "2023")),
         (("2020", "2023", "YS-JAN"), ("2021-04-21", "2023-02", "D"), ("2022", "2023")),
@@ -469,8 +469,8 @@ class _Case4:
         (("2020", "2023", "YS-JAN"), ("2021-04", "2023-04", "QS-JAN"), ("2022", "2023")),
         (("2020", "2023", "YS-JAN"), ("2021-04", "2023-04", "QS-APR"), ("2022", "2023")),
         (("2020", "2023", "YS-JAN"), ("2021", "2023", "YS-JAN"), ("2021", "2023")),
-        (("2020", "2023", "YS-JAN"), ("2021-02", "2023-02", "QS-FEB"), (Exception, Exception)),
-        (("2020", "2023", "YS-JAN"), ("2021-02", "2023-02", "YS-FEB"), (Exception, Exception)),
+        (("2020", "2023", "YS-JAN"), ("2021-02", "2023-02", "QS-FEB"), Exception),
+        (("2020", "2023", "YS-JAN"), ("2021-02", "2023-02", "YS-FEB"), Exception),
         (
             ("2020-02", "2022-11", "QS-FEB"),
             ("2021-04-21", "2023-02", "min"),
@@ -479,17 +479,9 @@ class _Case4:
         (("2020-02", "2022-11", "QS-FEB"), ("2021-04-21", "2023-02", "h"), ("2021-05", "2022-11")),
         (("2020-02", "2022-11", "QS-FEB"), ("2021-04-21", "2023-02", "D"), ("2021-05", "2022-11")),
         (("2020-02", "2022-11", "QS-FEB"), ("2021-04", "2023-02", "MS"), ("2021-05", "2022-11")),
-        (
-            ("2020-02", "2022-11", "QS-FEB"),
-            ("2021-04", "2023-04", "QS-JAN"),
-            (Exception, Exception),
-        ),
-        (
-            ("2020-02", "2022-11", "QS-FEB"),
-            ("2021-04", "2023-04", "QS-APR"),
-            (Exception, Exception),
-        ),
-        (("2020-02", "2022-11", "QS-FEB"), ("2021", "2023", "YS-JAN"), (Exception, Exception)),
+        (("2020-02", "2022-11", "QS-FEB"), ("2021-04", "2023-04", "QS-JAN"), Exception),
+        (("2020-02", "2022-11", "QS-FEB"), ("2021-04", "2023-04", "QS-APR"), Exception),
+        (("2020-02", "2022-11", "QS-FEB"), ("2021", "2023", "YS-JAN"), Exception),
         (
             ("2020-02", "2022-11", "QS-FEB"),
             ("2021-02", "2023-02", "QS-FEB"),
@@ -516,17 +508,9 @@ class _Case4:
             ("2022-02", "2023-02"),
         ),
         (("2020-02", "2023-02", "YS-FEB"), ("2021-04", "2023-03", "MS"), ("2022-02", "2023-02")),
-        (
-            ("2020-02", "2023-02", "YS-FEB"),
-            ("2021-04", "2023-04", "QS-JAN"),
-            (Exception, Exception),
-        ),
-        (
-            ("2020-02", "2023-02", "YS-FEB"),
-            ("2021-04", "2023-04", "QS-APR"),
-            (Exception, Exception),
-        ),
-        (("2020-02", "2023-02", "YS-FEB"), ("2021", "2023", "YS-JAN"), (Exception, Exception)),
+        (("2020-02", "2023-02", "YS-FEB"), ("2021-04", "2023-04", "QS-JAN"), Exception),
+        (("2020-02", "2023-02", "YS-FEB"), ("2021-04", "2023-04", "QS-APR"), Exception),
+        (("2020-02", "2023-02", "YS-FEB"), ("2021", "2023", "YS-JAN"), Exception),
         (
             ("2020-02", "2023-02", "YS-FEB"),
             ("2021-05", "2023-05", "QS-FEB"),
@@ -537,6 +521,37 @@ class _Case4:
             ("2021-02", "2024-02", "YS-FEB"),
             ("2021-02", "2023-02"),
         ),
+        # No overlap.
+        (("2020", "2021", "min"), ("2022-04-21", "2023-02", "min"), None),
+        (("2020", "2021", "min"), ("2022-04-21", "2023-02", "h"), None),
+        (("2020", "2021", "min"), ("2022-04-21", "2023-02", "D"), None),
+        (("2020", "2021", "min"), ("2022-04", "2023-02", "MS"), None),
+        (("2020", "2021", "min"), ("2022-04", "2023-04", "QS-JAN"), None),
+        (("2020", "2021", "min"), ("2022-04", "2023-04", "QS-APR"), None),
+        (("2020", "2021", "min"), ("2022", "2023", "YS-JAN"), None),
+        (("2020", "2021", "min"), ("2022-02", "2023-02", "QS-FEB"), None),
+        (("2020", "2021", "min"), ("2022-02", "2023-02", "YS-FEB"), None),
+        (("2020", "2021", "QS-JAN"), ("2021-04", "2023-02", "MS"), None),
+        (("2020", "2021", "QS-JAN"), ("2021-04", "2023-04", "QS-JAN"), None),
+        (("2020", "2021", "QS-JAN"), ("2021-04", "2023-04", "QS-APR"), None),
+        (("2020", "2021", "QS-JAN"), ("2021", "2023", "YS-JAN"), None),
+        (("2020", "2021", "QS-JAN"), ("2021-02", "2023-02", "QS-FEB"), Exception),
+        (("2020", "2021", "QS-JAN"), ("2021-02", "2023-02", "YS-FEB"), Exception),
+        (("2020", "2021", "YS-JAN"), ("2021-04", "2023-04", "QS-JAN"), None),
+        (("2020", "2021", "YS-JAN"), ("2021-04", "2023-04", "QS-APR"), None),
+        (("2020", "2021", "YS-JAN"), ("2021", "2023", "YS-JAN"), None),
+        (("2020", "2021", "YS-JAN"), ("2021-02", "2023-02", "QS-FEB"), Exception),
+        (("2020", "2021", "YS-JAN"), ("2021-02", "2023-02", "YS-FEB"), Exception),
+        (("2020-02", "2020-11", "QS-FEB"), ("2021-04", "2023-04", "QS-JAN"), Exception),
+        (("2020-02", "2020-11", "QS-FEB"), ("2021-04", "2023-04", "QS-APR"), Exception),
+        (("2020-02", "2020-11", "QS-FEB"), ("2021", "2023", "YS-JAN"), Exception),
+        (("2020-02", "2020-11", "QS-FEB"), ("2021-02", "2022-02", "QS-FEB"), None),
+        (("2020-02", "2020-11", "QS-FEB"), ("2021-02", "2023-02", "YS-FEB"), None),
+        (("2020-02", "2021-02", "YS-FEB"), ("2021-04", "2023-04", "QS-JAN"), Exception),
+        (("2020-02", "2021-02", "YS-FEB"), ("2021-04", "2023-04", "QS-APR"), Exception),
+        (("2020-02", "2021-02", "YS-FEB"), ("2021", "2023", "YS-JAN"), Exception),
+        (("2020-02", "2021-02", "YS-FEB"), ("2021-05", "2023-05", "QS-FEB"), None),
+        (("2020-02", "2021-02", "YS-FEB"), ("2021-02", "2024-02", "YS-FEB"), None),
     ],
     ids=id_fn,
 )
@@ -569,19 +584,27 @@ def _case4_equivalentfreq(_case4: _Case4) -> bool:
 
 
 @pytest.fixture(scope="session")
+def _case4_itsidx_isempty(_case4: _Case4) -> bool:
+    return _case4.itsstartend is None
+
+
+@pytest.fixture(scope="session")
 def case4_normalintersect_isok(_case4_equivalentfreq, equalsod, equaltz) -> bool:
     return _case4_equivalentfreq and equalsod and equaltz
 
 
 @pytest.fixture(scope="session")
 def case4_normalintersect_idx(
-    _case4: _Case4, sod_asstr, tz, case4_normalintersect_isok
+    _case4: _Case4, sod_asstr, tz, case4_normalintersect_isok, _case4_itsidx_isempty
 ) -> pd.DatetimeIndex:
     if not case4_normalintersect_isok:
         pytest.skip("Error case.")
 
     freq = _case4.startendfreq1[-1]
-    return _index(*_case4.itsstartend, freq, sod_asstr, tz)
+    if _case4_itsidx_isempty:
+        return pd.DatetimeIndex([], freq=freq, tz=tz)
+    else:
+        return _index(*_case4.itsstartend, freq, sod_asstr, tz)
 
 
 @pytest.fixture(
@@ -610,10 +633,17 @@ def case4_ignoresod(request) -> bool:
 
 @pytest.fixture(scope="session")
 def case4_flexintersect_isok(
-    case4_ignorefreq, _case4_equivalentfreq, case4_ignoresod, equalsod, case4_ignoretz, equaltz
+    _case4: _Case4,
+    case4_ignorefreq,
+    _case4_equivalentfreq,
+    case4_ignoresod,
+    equalsod,
+    case4_ignoretz,
+    equaltz,
 ) -> bool:
     return (
-        (case4_ignorefreq or _case4_equivalentfreq)
+        _case4.itsstartend is not Exception
+        and (case4_ignorefreq or _case4_equivalentfreq)
         and (case4_ignoresod or equalsod)
         and (case4_ignoretz or equaltz)
     )
@@ -621,13 +651,16 @@ def case4_flexintersect_isok(
 
 @pytest.fixture(scope="session")
 def case4_flexintersect_idxs(
-    _case4: _Case4, sod_asstr, sod2_asstr, tz, tz2, case4_flexintersect_isok
+    _case4: _Case4, sod_asstr, sod2_asstr, tz, tz2, case4_flexintersect_isok, _case4_itsidx_isempty
 ) -> tuple[pd.DatetimeIndex, pd.DatetimeIndex]:
     if not case4_flexintersect_isok:
         pytest.skip("Error case.")
 
     freq1, freq2 = _case4.startendfreq1[-1], _case4.startendfreq2[-1]
-    return (
-        _index(*_case4.itsstartend, freq1, sod_asstr, tz),
-        _index(*_case4.itsstartend, freq2, sod2_asstr, tz2),
-    )
+    if _case4_itsidx_isempty:
+        return (pd.DatetimeIndex([], freq=freq1, tz=tz), pd.DatetimeIndex([], freq=freq2, tz=tz2))
+    else:
+        return (
+            _index(*_case4.itsstartend, freq1, sod_asstr, tz),
+            _index(*_case4.itsstartend, freq2, sod2_asstr, tz2),
+        )

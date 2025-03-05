@@ -1,4 +1,4 @@
-""" Working with pint units. """
+"""Working with pint units."""
 
 from pathlib import Path
 from typing import Tuple, overload
