@@ -98,51 +98,92 @@ def test_flatpfline_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
     assert pfl_out == expected_out
 
 
-# . check correct working of attributes .asfreq().
-@pytest.mark.only_on_pr
+# Note: expected means that it either works or expects an error
+@pytest.mark.parametrize(
+    ("source_freq", "ref_freq", "expected"),
+    [
+        # downsampling
+        ("15min", "h", True),
+        ("15min", "D", True),
+        ("h", "D", True),
+        ("h", "MS", True),
+        ("D", "MS", True),
+        ("MS", "QS", True),
+        ("MS", "QS-APR", True),
+        ("QS", "YS-APR", True),
+        ("QS", "YS", True),
+        # upsampling
+        ("D", "h", True),
+        ("MS", "D", True),
+        ("MS", "h", True),
+        ("QS", "D", True),
+        ("QS", "MS", True),
+        ("YS", "QS", True),
+        ("YS", "MS", True),
+        ("YS-APR", "QS", True),
+        # the same
+        ("D", "D", True),
+        ("MS", "MS", True),
+        ("QS", "QS", True),
+        ("QS", "QS-APR", True),
+        ("QS", "QS-JAN", True),
+        # ValueError
+        ("QS", "QS-FEB", ValueError),
+        ("QS", "YS-FEB", ValueError),
+        ("YS-APR", "YS", ValueError),
+        ("YS-FEB", "QS", ValueError),
+    ],
+)
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("freq", ["h", "D", "MS", "QS", "YS"])
-@pytest.mark.parametrize("newfreq", ["h", "D", "MS", "QS", "YS"])
 @pytest.mark.parametrize("columns", ["pr", "qr", "pq", "wp", "wr"])
-def test_flatpfline_asfreqcorrect2(freq, newfreq, columns, tz):
-    """Test if changing frequency is done correctly (when it's possible)."""
-
+def test_asfreq_with_new_freq(
+    source_freq: str,
+    ref_freq: str,
+    expected: int | Exception,
+    tz: str | None,
+    columns: str,
+):
+    # create pfl with original freq
     # Includes at least 2 full years
     a, m, d = np.array([2016, 1, 1]) + np.random.randint(0, 12, 3)  # each + 0..11
     start = f"{a}-{m}-{d}"
     a, (m, d) = a + 3, np.array([1, 1]) + np.random.randint(0, 12, 2)  # each + 0..11
     end = f"{a}-{m}-{d}"
 
-    i = pd.date_range(start, end, freq=freq, inclusive="left", tz=tz)
+    i = pd.date_range(start, end, freq=source_freq, inclusive="left", tz=tz)
     df = dev.get_dataframe(i, columns)
     pfl1 = create.flatpfline(df)
-    pfl2 = pfl1.asfreq(newfreq)
 
-    # Compare the dataframes, only keep time intervals that are in both objects.
-    if pfl1.kind is Kind.PRICE:
-        df1, df2 = pfl1.p * pfl1.index.duration, pfl2.p * pfl2.index.duration
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            _ = pfl1.asfreq(ref_freq)
     else:
-        cols = ["q"]
-        if pfl1.kind is Kind.COMPLETE:
-            cols.append("r")
-        df1, df2 = pfl1.df[cols], pfl2.df[cols]
+        pfl2 = pfl1.asfreq(ref_freq)
+        # Compare the dataframes, only keep time intervals that are in both objects.
+        if pfl1.kind is Kind.PRICE:
+            df1, df2 = pfl1.p * pfl1.index.duration, pfl2.p * pfl2.index.duration
+        else:
+            cols = ["q"]
+            if pfl1.kind is Kind.COMPLETE:
+                cols.append("r")
+            df1, df2 = pfl1.df[cols], pfl2.df[cols]
 
-    mask1 = (df1.index >= df2.index[0]) & (df1.index.right <= df2.index.right[-1])
-    mask2 = (df2.index >= df1.index[0]) & (df2.index.right <= df1.index.right[-1])
-    df1, df2 = df1[mask1], df2[mask2]
+        mask1 = (df1.index >= df2.index[0]) & (df1.index.right <= df2.index.right[-1])
+        mask2 = (df2.index >= df1.index[0]) & (df2.index.right <= df1.index.right[-1])
+        df1, df2 = df1[mask1], df2[mask2]
 
-    if df2.empty or df1.empty:
-        return
+        if df2.empty or df1.empty:
+            return
 
-    testing.assert_series_equal(df1.apply(np.sum), df2.apply(np.sum))
+        testing.assert_series_equal(df1.apply(np.sum), df2.apply(np.sum))
 
 
+# case when the given index is too small to change into other freq-->always impossible
 @pytest.mark.parametrize("freq", ["15min", "h", "D"])
 @pytest.mark.parametrize("newfreq", ["MS", "QS", "YS"])
 @pytest.mark.parametrize("kind", [Kind.COMPLETE, Kind.VOLUME, Kind.PRICE])
 def test_flatpfline_asfreqimpossible(freq, newfreq, kind):
     """Test if changing frequency raises error if it's impossible."""
-
     i = pd.date_range(
         "2020-04-06", "2020-04-16", freq=freq, inclusive="left", tz="Europe/Berlin"
     )
