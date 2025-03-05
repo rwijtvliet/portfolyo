@@ -68,8 +68,7 @@ def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     #   idx = pd.date_range('2020-03-29', freq='D', periods=5, tz='Europe/Berlin')
     # . idx + i.freq
     #   Same example, different error: time is moved to 01:00 for first timestamp.
-    final_ts_right = idx[-1] + tools_freq.to_jump(idx.freq)
-    return pd.DatetimeIndex([*idx[1:], final_ts_right], freq=idx.freq)
+    return idx + tools_freq.to_jump(idx.freq)
 
 
 @coerce()
@@ -244,9 +243,9 @@ def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
         )
 
     # Assert timezones equal.
-    unequal_tzs = set([idx.tz for idx in idxs])
-    if len(unequal_tzs) != 1:
-        raise ValueError(f"Indices must have equal timezones; got {unequal_tzs}.")
+    unique_tzs = set([idx.tz for idx in idxs])
+    if len(unique_tzs) != 1:
+        raise ValueError(f"Indices must have equal timezones; got {unique_tzs}.")
 
     # If we land here, we have at least 2 indices with equivalent freq and equal tz. But, one or more might be empty.
 
@@ -254,9 +253,9 @@ def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
         return idxs[:0]  # empty index
 
     # Assert start-of-day equal.
-    unequal_sod = set([idx[0].time() for idx in idxs])
-    if len(unequal_sod) != 1:
-        raise ValueError(f"Indices must have equal start-of-day; got {unequal_sod}.")
+    unique_sods = set([idx[0].time() for idx in idxs])
+    if len(unique_sods) != 1:
+        raise ValueError(f"Indices must have equal start-of-day; got {unique_sods}.")
 
     # If we land here, we have at least 2 indices, all not empty, with equivalent freq, equal tz, and equal start-of-day.
 
@@ -314,6 +313,11 @@ def intersect_flex(
     """
     idxs = list(idxs)  # Iterable does not (necessarily) have __len__. List does.
 
+    # Guard clause.
+    for idx in idxs:
+        validate(idx)
+
+    # Trivial cases.
     if len(idxs) == 0:
         raise ValueError("Must specify at least one index.")
 
@@ -353,10 +357,21 @@ def intersect_flex(
 
     # Prepare adjusted indices, for intersection.
     l_and_r = [(idx, to_right(idx)) for idx in idxs]
+    if not all_equal_sod:  # remove time-part to ignore start-of-day
+
+        def normalize(idx, sodhour):
+            normalized = idx.normalize()
+            if not tools_freq.is_shorter_than_daily(idx.freq):
+                return normalized
+            # Use previous midnight if time falls before start-of-day.
+            # HACK: Use .hour because much faster than .time. And should be full hour anyway.
+            return normalized.where(idx.time >= sodhour, normalized - pd.DateOffset(days=1))
+
+        l_and_r = [
+            (normalize(le, le[0].time()), normalize(ri, le[0].time())) for (le, ri) in l_and_r
+        ]
     if not all_equal_tz:  # convert to wall time to ignore timezones
         l_and_r = [(le.tz_localize(None), ri.tz_localize(None)) for (le, ri) in l_and_r]
-    if not all_equal_sod:  # remove time-part to ignore start-of-day
-        l_and_r = [(le.normalize(), ri.normalize()) for (le, ri) in l_and_r]
 
     # Do actual intersection.
     # Find stretch of time present in all indices.
@@ -370,6 +385,6 @@ def intersect_flex(
     first_left_stamp, last_right_stamp = min(common_l), max(common_r)
     intersected_idxs = []
     for idx, (le, ri) in zip(idxs, l_and_r):
-        keep = (le >= first_left_stamp) & (ri <= last_right_stamp)
+        keep = (le >= first_left_stamp) & (ri < last_right_stamp)
         intersected_idxs.append(idx[keep])
     return tuple(intersected_idxs)
