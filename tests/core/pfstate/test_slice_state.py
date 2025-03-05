@@ -23,7 +23,7 @@ def get_idx(
     return pd.date_range(ts_start, ts_end, freq=freq, inclusive=inclusive)
 
 
-@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-MAR", "D"])
+@pytest.mark.parametrize("freq", ["MS", "YS", "QS", "D"])
 @pytest.mark.parametrize("slice_start", ["2021", "2022", "2022-01-02"])
 @pytest.mark.parametrize(
     "slice_end",
@@ -55,7 +55,7 @@ def test_slice_state(
     assert pfs_to_concat == pfs_to_concat2
 
 
-@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-MAR", "D"])
+@pytest.mark.parametrize("freq", ["MS", "YS", "QS", "D"])
 @pytest.mark.parametrize(
     "slice_start",
     [
@@ -82,7 +82,7 @@ def test_state_slice_start(
     assert pfs.slice[slice_start:] == pfs.loc[slice_start:]
 
 
-@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-MAR", "D"])
+@pytest.mark.parametrize("freq", ["MS", "YS", "QS", "D"])
 @pytest.mark.parametrize(
     "slice_end",
     [
@@ -104,7 +104,7 @@ def test_state_slice_end(slice_end: str, freq: str, sod: str, inclusive: str, tz
     assert pfs.slice[: slice_end[0]] == pfs.loc[: slice_end[1]]
 
 
-@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-MAR", "D"])
+@pytest.mark.parametrize("freq", ["MS", "YS", "QS", "D"])
 @pytest.mark.parametrize(
     "where",
     ["2022", "2022-03", "2022-04-21", "2022-05-23 14:34"],

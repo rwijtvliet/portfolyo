@@ -4,7 +4,6 @@ import pytest
 
 from portfolyo import tools
 
-
 freqs_small_to_large = [
     "min",
     "5min",
@@ -27,7 +26,7 @@ freqs_small_to_large_valid = [
     "YS",
     "YS-APR",
 ]
-invalid_freq = ["min", "5min", "30min", "2h", "5D", "3MS"]
+invalid_freq = ["min", "5min", "2h", "5D", "3MS"]
 
 
 @pytest.mark.parametrize("count", range(1, 30))

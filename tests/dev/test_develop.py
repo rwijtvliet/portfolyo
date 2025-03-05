@@ -17,15 +17,11 @@ from portfolyo.core.pfline import classes
         ("D", "2020", None),
         ("MS", "2020", None),
         ("QS", "2020", None),
-        ("QS-MAR", "2020", None),
         ("YS", "2020", None),
-        ("YS-APR", "2020", None),
         ("h", "2020-04-21", dt.time(hour=15)),
         ("D", "2020-04-21", None),
         ("MS", "2020-04", None),
         ("QS", "2020-04", None),
-        ("QS-MAR", "2020-03", None),
-        ("YS-APR", "2020-04", None),
     ],
 )
 def test_index(freq, tz, startdate, start_of_day):
@@ -47,10 +43,7 @@ def test_index(freq, tz, startdate, start_of_day):
         ("D", "2020-04-21", None),
         ("MS", "2020-04", None),
         ("QS", "2020-04", None),
-        ("QS-MAR", "2020", None),
-        ("QS-MAR", "2020-03", None),
         ("YS", "2020", None),
-        ("YS-APR", "2020", None),
     ],
 )
 def test_series(freq, tz, startdate, name, name_has_unit, request_unit, start_of_day):
@@ -90,11 +83,7 @@ def test_series(freq, tz, startdate, name, name_has_unit, request_unit, start_of
         ("D", "2020-04-21", None),
         ("MS", "2020-04", None),
         ("QS", "2020-04", None),
-        ("QS-MAR", "2020", None),
-        ("QS-MAR", "2020-03", None),
         ("YS", "2020", None),
-        ("YS-APR", "2020", None),
-        ("YS-APR", "2020-04", None),
     ],
 )
 def test_dataframe(
@@ -124,11 +113,7 @@ def test_dataframe(
         ("D", "2020-04-21", None),
         ("MS", "2020-04", None),
         ("QS", "2020-04", None),
-        ("QS-MAR", "2020", None),
-        ("QS-MAR", "2020-03", None),
         ("YS", "2020", None),
-        ("YS-APR", "2020", None),
-        ("YS-APR", "2020-04", None),
     ],
 )
 def test_flatnestedpfline(freq, tz, startdate, kind, start_of_day):
@@ -153,10 +138,7 @@ def test_flatnestedpfline(freq, tz, startdate, kind, start_of_day):
         ("D", "2020-04-21", None),
         ("MS", "2020-04", None),
         ("QS", "2020-04", None),
-        ("QS-MAR", "2020-03", None),
         ("YS", "2020", None),
-        ("YS-APR", "2020", None),
-        ("YS-APR", "2020-04", None),
     ],
 )
 def test_pfline(freq, tz, startdate, kind, max_nlevels, start_of_day):

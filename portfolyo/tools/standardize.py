@@ -227,7 +227,6 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
     if tools_freq.up_or_down(freq, "D") > 0:
         if freq == "MS":
             period, not_ok = "month", ~i.is_month_start
-            # ATTN!: again, this now wouldn't work as expected
         elif freq == "QS":
             period, not_ok = "quarter", ~i.is_quarter_start
         elif freq == "YS":

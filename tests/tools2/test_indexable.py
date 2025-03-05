@@ -147,7 +147,7 @@ def test_intersect_ignore_all(
     second_obj: str,
 ):
     """Test that intersection works properly on PfLines and/or PfStates with ignore_all."""
-    idx1 = get_idx("2022-04-01", "00:00", "Europe/Berlin", "QS-APR", "2024-07-01")
+    idx1 = get_idx("2022-04-01", "00:00", "Europe/Berlin", "QS", "2024-07-01")
     s1 = pd.Series(range(len(idx1)), idx1)
 
     idx2 = get_idx("2021-01-01", "06:00", None, "MS", "2024-01-01")

@@ -161,15 +161,12 @@ def _offset(freq: str, future: int):
         return pd.Timedelta(hours=future)
     elif freq == "D":
         return pd.Timedelta(days=future)
-    # ATTN!:changed due to new frequencies
     elif freq == "MS":
         return pd.offsets.MonthBegin(future)
-    elif tools_isboundary.freq_to_string(freq).startswith("QS"):
-        start_month = pd.tseries.frequencies.to_offset(freq).startingMonth
-        return pd.offsets.QuarterBegin(future, startingMonth=start_month)
-    elif tools_isboundary.freq_to_string(freq).startswith("YS"):
-        start_month = pd.tseries.frequencies.to_offset(freq).month
-        return pd.offsets.YearBegin(future, month=start_month)
+    elif freq == "QS":
+        return pd.offsets.QuarterBegin(future, startingMonth=1)
+    elif freq == "YS":
+        return pd.offsets.YearBegin(future)
     else:
         raise ValueError(
             f"Parameter ``freq`` must be one of {tools_freq.ALLOWED_FREQUENCIES_DOCS}; got {freq}."

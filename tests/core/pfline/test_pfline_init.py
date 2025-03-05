@@ -290,7 +290,7 @@ def test_contain_whole_day(inclusive: str, freq: str):
             pfl = dev.get_flatpfline(index)
 
 
-@pytest.mark.parametrize("freq", ["D", "MS", "QS", "QS-MAY", "YS", "YS-APR"])
+@pytest.mark.parametrize("freq", ["D", "MS", "QS", "YS"])
 def test_equal_sod(freq: str):
     """In an index with daily-or-longer values, all timestamps (all periods) should start at the same time ."""
     i = pd.date_range("2024-03-28", freq=freq, periods=10, tz="Europe/Berlin")

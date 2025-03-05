@@ -6,11 +6,13 @@ from .core import suppresswarnings
 from .core.pfline import Kind, PfLine, Structure, create
 from .core.pfstate import PfState
 from .tools import testing
+from .tools2.changeyear import map_to_year
 from .tools2.concat import general as concat
 from .tools2.intersect import indexable as intersection
 from .tools2.plot import plot_pfstates
 from .tools.changefreq import averagable as asfreq_avg
 from .tools.changefreq import summable as asfreq_sum
+from .tools.changeyear import characterize_index, map_frame_to_year
 from .tools.freq import assert_freq_valid
 from .tools.hedge import hedge
 from .tools.peakfn import PeakFunction

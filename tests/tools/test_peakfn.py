@@ -27,7 +27,6 @@ TESTCASES_GERMANPOWER = [  # end, freq, count, stretch
     ("2021", "MS", ValueError, None),
     ("2021", "QS", ValueError, None),
     ("2021", "YS", ValueError, None),
-    ("2021", "YS-APR", ValueError, None),
 ]
 
 f_everyday_13half = tools.peakfn.factory(
@@ -42,7 +41,6 @@ TESTCASES_13HALF = [  # end, freq, count, stretch
     ("2021", "MS", ValueError, None),
     ("2021", "QS", ValueError, None),
     ("2021", "YS", ValueError, None),
-    ("2021", "YS-APR", ValueError, None),
 ]
 
 f_workingdays_full = tools.peakfn.factory(None, None, [1, 2, 3, 4, 5])
@@ -59,7 +57,6 @@ TESTCASES_WORKINGDAYS = [  # end, freq, count, stretch
     ("2021", "MS", ValueError, None),
     ("2021", "QS", ValueError, None),
     ("2021", "YS", ValueError, None),
-    ("2021", "YS-APR", ValueError, None),
 ]
 
 f_everyday_until6 = tools.peakfn.factory(None, dt.time(hour=6), [1, 2, 3, 4, 5, 6, 7])
@@ -82,9 +79,6 @@ TESTCASES_EVERYDAY6 = [  # month, freq, tz, count, stretch
     (1, "YS", None, ValueError, None),
     (1, "YS", "Europe/Berlin", ValueError, None),
     (1, "YS", "Asia/Kolkata", ValueError, None),
-    (4, "YS-APR", "Asia/Kolkata", ValueError, None),
-    (4, "YS-APR", "Europe/Berlin", ValueError, None),
-    (4, "YS-APR", None, ValueError, None),
     (3, "15min", None, 31 * 6 * 4, (-72 * 4, -66 * 4 - 1)),
     (3, "15min", "Europe/Berlin", (31 * 6 - 1) * 4, (-71 * 4, -66 * 4 - 1)),
     (3, "15min", "Asia/Kolkata", 31 * 6 * 4, (-72 * 4, -66 * 4 - 1)),

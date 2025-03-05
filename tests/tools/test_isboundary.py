@@ -47,8 +47,6 @@ TESTCASES = [  # date, i_freq, periods, freq, expected_repeat
     ("2020-01-01", "YS", 2, "MS", 1),
     ("2020-01-01", "YS", 2, "QS", 1),
     ("2020-01-01", "YS", 2, "YS", 1),
-    ("2020-02-01", "YS-FEB", 2, "YS-FEB", 1),
-    ("2020-02-01", "QS-FEB", 2 * 4, "YS-FEB", 4),
 ]
 
 TESTCASES_DST = [  # ts, i_freq, periods, freq, expected_repeat
@@ -217,8 +215,6 @@ TESTCASES_MIDYEAR = [  # date, i_freq, periods, freq, expected_repeat,
     ("2019-10-01", "QS", 2 * 4, "D", 1),
     ("2019-10-01", "QS", 2 * 4, "MS", 1),
     ("2019-10-01", "QS", 2 * 4, "QS", 1),
-    ("2019-02-01", "QS-FEB", 2 * 4, "QS-FEB", 1),
-    ("2019-10-01", "QS-OCT", 2 * 4, "MS", 1),
 ]
 
 TESTCASES_LEADINGZERO = [  # date, i_freq, periods, freq, expected_repeat, leading_zeros

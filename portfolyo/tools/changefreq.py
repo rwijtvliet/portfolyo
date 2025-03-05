@@ -148,7 +148,6 @@ def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
 
     # Nothing more needed; portfolio already in desired frequency.
     if up_or_down == 0:
-        s.index.freq = freq
         return s
 
     # Must downsample.

@@ -40,12 +40,6 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
         raise ValueError("Index ``i`` does not have a frequency.")
     # Use index to find start_of_day.
     start_of_day = tools_startofday.get(i)
-    # check if the freq are compatible
-    try:
-        tools_freq.up_or_down(i.freq, freq)
-    except ValueError:
-        # print(f"The passed frequency {i.freq} can't be aggregated to {freq}.")
-        return pd.DatetimeIndex([], freq=i.freq, tz=i.tz)
     # Trim on both sides.
     mask_start = i >= tools_ceil.stamp(i[0], freq, 0, start_of_day)
     i_right = tools_right.index(i)
