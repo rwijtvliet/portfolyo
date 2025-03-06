@@ -68,7 +68,7 @@ def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     #   idx = pd.date_range('2020-03-29', freq='D', periods=5, tz='Europe/Berlin')
     # . idx + i.freq
     #   Same example, different error: time is moved to 01:00 for first timestamp.
-    return idx + tools_freq.to_jump(idx.freq)
+    return pd.DatetimeIndex(idx + tools_freq.to_jump(idx.freq), idx.freq)
 
 
 @coerce()
@@ -243,17 +243,17 @@ def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
         )
 
     # Assert timezones equal.
-    unique_tzs = set([idx.tz for idx in idxs])
+    unique_tzs = set(idx.tz for idx in idxs)
     if len(unique_tzs) != 1:
         raise ValueError(f"Indices must have equal timezones; got {unique_tzs}.")
 
     # If we land here, we have at least 2 indices with equivalent freq and equal tz. But, one or more might be empty.
 
-    if any([len(idx) == 0 for idx in idxs]):
+    if any(idx.empty for idx in idxs):
         return idxs[:0]  # empty index
 
     # Assert start-of-day equal.
-    unique_sods = set([idx[0].time() for idx in idxs])
+    unique_sods = set(idx[0].time() for idx in idxs)
     if len(unique_sods) != 1:
         raise ValueError(f"Indices must have equal start-of-day; got {unique_sods}.")
 
@@ -333,58 +333,93 @@ def intersect_flex(
     all_equivalent_freq = tools_freq.up_or_down(short, long) == 0  # compare extremes
     if not ignore_freq and not all_equivalent_freq:
         raise ValueError(
-            f"Indices must have equal (or equivalent) frequencies; got {short} and {long}."
+            f"Indices do not have equal (or equivalent) frequencies; got {short} and {long}. Try setting `ignore_freq`."
         )
 
     # Assert timezones equal.
     unique_tzs = set([idx.tz for idx in idxs])
     all_equal_tz = len(unique_tzs) == 1
     if not ignore_tz and not all_equal_tz:
-        raise ValueError(f"Indices must have equal timezones; got {unique_tzs}.")
+        raise ValueError(
+            f"Indices do not have equal timezones; got {unique_tzs}. Try setting `ignore_tz`."
+        )
 
-    # If we land here, we have at least 2 indices with equivalent (or ignored) freq and equal (or ignored) tz. But, one or more might be empty.
+    # If we land here, we have at least 2 indices with equivalent or ignored freq and equal or ignored tz. But, one or more might be empty.
 
-    if any([len(idx) == 0 for idx in idxs]):
-        return tuple((idx[:0] for idx in idxs))
+    if any(idx.empty for idx in idxs):
+        return tuple(idx[:0] for idx in idxs)
 
     # Assert start-of-day equal.
-    unique_sods = set([idx[0].time() for idx in idxs])
+    unique_sods = set(idx[0].time() for idx in idxs)
     all_equal_sod = len(unique_sods) == 1
     if not ignore_startofday and not all_equal_sod:
-        raise ValueError(f"Indices must have equal start-of-day; got {unique_sods}.")
+        raise ValueError(
+            f"Indices must have equal start-of-day; got {unique_sods}. Try setting `ignore_startofday`."
+        )
 
-    # If we land here, we have at least 2 indices, all not empty, with equivalent (or ignored) freq, equal (or ignored) tz, and equal (or ignored) start-of-day.
+    # If we land here, we have at least 2 indices, all not empty, with equivalent or ignored freq, equal or ignored tz, and equal or ignored start-of-day.
 
-    # Prepare adjusted indices, for intersection.
-    l_and_r = [(idx, to_right(idx)) for idx in idxs]
-    if not all_equal_sod:  # remove time-part to ignore start-of-day
+    if all_equal_sod:
+        # If we land here, we have at least 2 indices, all not empty, with equivalent or ignored freq, equal or ignored tz, and EQUAL start-of-day.
 
-        def normalize(idx, sodhour):
-            normalized = idx.normalize()
-            if not tools_freq.is_shorter_than_daily(idx.freq):
-                return normalized
-            # Use previous midnight if time falls before start-of-day.
-            # HACK: Use .hour because much faster than .time. And should be full hour anyway.
-            return normalized.where(idx.time >= sodhour, normalized - pd.DateOffset(days=1))
+        le_and_ri = [(idx, to_right(idx)) for idx in idxs]  # do conversion before removing .freq
 
-        l_and_r = [
-            (normalize(le, le[0].time()), normalize(ri, le[0].time())) for (le, ri) in l_and_r
-        ]
-    if not all_equal_tz:  # convert to wall time to ignore timezones
-        l_and_r = [(le.tz_localize(None), ri.tz_localize(None)) for (le, ri) in l_and_r]
+        # Convert to wall time to ignore timezones. NB destroys .freq !
+        if not all_equal_tz:
+            le_and_ri = [(le.tz_localize(None), ri.tz_localize(None)) for (le, ri) in le_and_ri]
 
-    # Do actual intersection.
-    # Find stretch of time present in all indices.
-    common_l, common_r = l_and_r[0]
-    for le, ri in l_and_r[1:]:
-        common_l, common_r = common_l.intersection(le), common_r.intersection(ri)
-    # If empty: return empty indices.
-    if len(common_l) == 0 or len(common_r) == 0:
-        return tuple([idx[:0] for idx in idxs])
-    # If not empty: return overlapping part in all indices.
-    first_left_stamp, last_right_stamp = min(common_l), max(common_r)
-    intersected_idxs = []
-    for idx, (le, ri) in zip(idxs, l_and_r):
-        keep = (le >= first_left_stamp) & (ri < last_right_stamp)
-        intersected_idxs.append(idx[keep])
-    return tuple(intersected_idxs)
+        # If we land here, we have at least 2 indices, all not empty, with (possibly) no frequency, EQUAL tz, and EQUAL start-of-day.
+
+        # Do actual intersection.
+        # Find stretch of time present in all indices.
+        common_le, common_ri = le_and_ri[0]
+        for le, ri in le_and_ri[1:]:
+            common_le, common_ri = common_le.intersection(le), common_ri.intersection(ri)
+        # If empty: return empty indices.
+        if common_le.empty or common_ri.empty:
+            return tuple(idx[:0] for idx in idxs)
+        # If not empty: return overlapping part in all indices.
+        first_left_stamp, last_right_stamp = min(common_le), max(common_ri)
+        return tuple(
+            idx[(le >= first_left_stamp) & (ri <= last_right_stamp)]
+            for idx, (le, ri) in zip(idxs, le_and_ri)
+        )
+
+    # If we land here, we have at least 2 indices, all not empty, with equivalent or ignored freq, equal or ignored tz, and UNEQUAL start-of-day.
+
+    # Approach:
+    # - Remove time-part to ignore start-of-day.
+    # - Call 'self' but with all idxs in daily-or-longer frequency with midnight time-part.
+
+    def to_dailymidnight(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
+        if tools_freq.is_shorter_than_daily(idx.freq):
+            # HACK: Can't .asfreq on index, so take round-trip via Series.
+            idx = idx.to_frame().asfreq("D").index
+        return idx.normalize()
+
+    dailymidnight_idxs = [to_dailymidnight(idx) for idx in idxs]  # all same sod
+
+    partialits_idxs = intersect_flex(
+        dailymidnight_idxs, ignore_freq=True, ignore_startofday=False, ignore_tz=ignore_tz
+    )
+
+    # Map back to original idx.
+
+    def from_dailymidnight(
+        idx: pd.DatetimeIndex, partialits_idx: pd.DatetimeIndex
+    ) -> pd.DatetimeIndex:
+        # Create mapping.
+        normalized = idx.normalize()
+        if not tools_freq.is_shorter_than_daily(idx.freq):
+            map = pd.Series(normalized, idx)
+        else:
+            to_prev_day = idx.time >= idx[0].time()
+            dailymidnight = normalized.where(to_prev_day, normalized - pd.DateOffset(days=1))
+            map = pd.Series(dailymidnight, idx)
+        # Trim.
+        return map[map.isin(partialits_idx)].index
+
+    return tuple(
+        from_dailymidnight(idx, partialits_idx)
+        for idx, partialits_idx in zip(idxs, partialits_idxs)
+    )
