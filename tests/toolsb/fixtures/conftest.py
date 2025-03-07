@@ -217,7 +217,7 @@ def stamp_on_freqboundary(monthday, freq_asstr) -> bool:
 # Index ---
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def idx(stamp_on_freqboundary, monthday, sod_asstr, tz, freq) -> pd.DatetimeIndex:
     if not stamp_on_freqboundary:
         pytest.skip("Can't create index if first stamp does not fit the frequency.")

@@ -2,7 +2,7 @@
 
 import functools
 import inspect
-from typing import Any, Callable
+from typing import Any, Callable, Hashable
 
 # def convert_if_type(additional_type: type, conversion_fn: Callable):
 #     """Create a decorator factory.
@@ -77,6 +77,18 @@ from typing import Any, Callable
 #
 
 
+def _cache_if_possible(fn):
+    """Like lru_cache, but skips cache if argument is not hashable."""
+    cached_fn = functools.lru_cache()(fn)
+
+    def wrapper(arg):
+        if isinstance(arg, Hashable):
+            return cached_fn(arg)
+        return fn(arg)
+
+    return wrapper
+
+
 def create_coercedecorator(
     *,
     conversion: Callable[[Any], Any] | None = None,
@@ -109,11 +121,7 @@ def create_coercedecorator(
 
     # Cache conversion to use across all decorators created from decorator_factory.
     if conversion:
-
-        @functools.lru_cache()
-        def cached_conversion(*args, **kwargs):
-            print(f"Applying conversion for args {args} and kwargs {kwargs}.")
-            return conversion(*args, **kwargs)
+        cached_conversion = _cache_if_possible(conversion)
 
     def decorator_factory(*params, validate: bool = True) -> Callable:
         """Create a coerce decorator which performs checks on certain parameters of wrapped

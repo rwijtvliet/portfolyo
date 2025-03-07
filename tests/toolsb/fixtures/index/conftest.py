@@ -1,6 +1,7 @@
-import pytest
-import pandas as pd
 import dataclasses
+
+import pandas as pd
+import pytest
 from utils import id_fn
 
 
@@ -14,7 +15,7 @@ class _Case1:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="class",
     params=[
         ("2020", "min", 5 * 24 * 60, "2020-01-01 00:01", 1 / 60),
         ("2020", "5min", 5 * 24 * 12, "2020-01-01 00:05", 5 / 60),
@@ -49,17 +50,17 @@ def _case1(request) -> _Case1:
     return _Case1(*request.param)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case1_idx(_case1: _Case1) -> pd.DatetimeIndex:
     return pd.date_range(_case1.stamp, freq=_case1.freqstr, periods=_case1.periods)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case1_rightidx(_case1: _Case1) -> pd.DatetimeIndex:
     return pd.date_range(_case1.rightstamp, freq=_case1.freqstr, periods=_case1.periods)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case1_duration(case1_idx, _case1: _Case1) -> pd.Series:
     return pd.Series(_case1.duration, case1_idx, dtype=float).astype("pint[h]")
 
@@ -77,7 +78,7 @@ class _Case2:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="class",
     params=[
         ("2020-03-27", "D", 3, "2020-03-28", [24, 24, 23]),
         ("2020-03-27 01:00", "D", 3, "2020-03-28 01:00", [24, 24, 23]),
@@ -95,21 +96,21 @@ def _case2(request) -> _Case2:
     return _Case2(*request.param)
 
 
-@pytest.fixture(scope="session", ids=id_fn)
+@pytest.fixture(scope="class", ids=id_fn)
 def case2_idx(_case2: _Case2) -> pd.DatetimeIndex:
     return pd.date_range(
         _case2.stamp, freq=_case2.freqstr, periods=_case2.periods, tz="Europe/Berlin"
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case2_rightidx(_case2: _Case2) -> pd.DatetimeIndex:
     return pd.date_range(
         _case2.rightstamp, freq=_case2.freqstr, periods=_case2.periods, tz="Europe/Berlin"
     )
 
 
-@pytest.fixture(scope="session", ids=id_fn)
+@pytest.fixture(scope="class", ids=id_fn)
 def case2_duration(case2_idx, _case2: _Case2) -> pd.Series:
     return pd.Series(_case2.duration, case2_idx, dtype=float).astype("pint[h]")
 
@@ -126,7 +127,7 @@ class _Case3:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="class",
     params=[
         # 2020
         # . 15min -> other
@@ -377,22 +378,22 @@ def _case3(request) -> _Case3:
     return _Case3(*request.param)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case3_idx(_case3: _Case3, tz) -> pd.DatetimeIndex:
     return pd.date_range(*_case3.leftright, freq=_case3.freq, inclusive="left", tz=tz)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case3_trimfreq(_case3: _Case3) -> str:
     return _case3.trimfreq
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case3_isok(_case3: _Case3) -> bool:
     return _case3.trimmedleftright is not Exception
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case3_trimmedidx(_case3: _Case3, tz, case3_isok) -> pd.DatetimeIndex:
     if not case3_isok:
         pytest.skip("Error case.")
@@ -414,7 +415,7 @@ class _Case4:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="class",
     params=[
         # startdate, enddate, freq of index1; startdate, enddate, freq of index2; startdate, enddate of intersection (if possible).
         (("2020", "2023", "min"), ("2021-04-21", "2023-02", "min"), ("2021-04-21", "2023")),
@@ -565,17 +566,17 @@ def _index(startdate, enddate, freq, sodstr, tz) -> pd.DatetimeIndex:
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case4_idx1(_case4: _Case4, sod_asstr, tz) -> pd.DatetimeIndex:
     return _index(*_case4.startendfreq1, sod_asstr, tz)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case4_idx2(_case4: _Case4, sod2_asstr, tz2) -> pd.DatetimeIndex:
     return _index(*_case4.startendfreq2, sod2_asstr, tz2)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def _case4_equivalentfreq(_case4: _Case4) -> bool:
     freqs = set([_case4.startendfreq1[-1], _case4.startendfreq2[-1]])
     if len(freqs) != 1 and freqs != set(["QS-JAN", "QS-APR"]):
@@ -583,17 +584,17 @@ def _case4_equivalentfreq(_case4: _Case4) -> bool:
     return True
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def _case4_itsidx_isempty(_case4: _Case4) -> bool:
     return _case4.itsstartend is None
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case4_normalintersect_isok(_case4_equivalentfreq, equalsod, equaltz) -> bool:
     return _case4_equivalentfreq and equalsod and equaltz
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case4_normalintersect_idx(
     _case4: _Case4, sod_asstr, tz, case4_normalintersect_isok, _case4_itsidx_isempty
 ) -> pd.DatetimeIndex:
@@ -608,7 +609,7 @@ def case4_normalintersect_idx(
 
 
 @pytest.fixture(
-    scope="session",
+    scope="class",
     params=[pytest.param(True, id="ignorefreq"), pytest.param(False, id="dontignorefreq")],
 )
 def case4_ignorefreq(request) -> bool:
@@ -616,7 +617,7 @@ def case4_ignorefreq(request) -> bool:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="class",
     params=[pytest.param(True, id="ignoretz"), pytest.param(False, id="dontignoretz")],
 )
 def case4_ignoretz(request) -> bool:
@@ -624,14 +625,14 @@ def case4_ignoretz(request) -> bool:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="class",
     params=[pytest.param(True, id="ignoresod"), pytest.param(False, id="dontignoresod")],
 )
 def case4_ignoresod(request) -> bool:
     return request.param
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case4_flexintersect_isok(
     _case4: _Case4,
     case4_ignorefreq,
@@ -649,7 +650,7 @@ def case4_flexintersect_isok(
     )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="class")
 def case4_flexintersect_idxs(
     _case4: _Case4, sod_asstr, sod2_asstr, tz, tz2, case4_flexintersect_isok, _case4_itsidx_isempty
 ) -> tuple[pd.DatetimeIndex, pd.DatetimeIndex]:

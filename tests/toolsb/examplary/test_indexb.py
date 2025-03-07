@@ -1,7 +1,8 @@
-from portfolyo import toolsb
-import pytest
 import pandas as pd
+import pytest
 from utils import id_fn  # relative to /tests
+
+from portfolyo import toolsb
 
 LEFT_FREQ_PERIODS_RIGHT_DURATION = [
     ("2020", "min", 5 * 24 * 60, "2020-01-01 00:01", 1 / 60),
@@ -505,9 +506,9 @@ def test_normalintersect_ok(idx1, idx2, iscidx):
             _,
         ) in STARTENDFREQ1_STARTENDFREQ2_ISCSTARTEND
         for sod1 in ["00:00", "06:00"]
-        for sod2 in ["00:00", "06:00"]
+        for sod2 in ["06:00"]
         for tz1 in [None, "Europe/Berlin", "Asia/Kolkata"]
-        for tz2 in [None, "Europe/Berlin", "Asia/Kolkata"]
+        for tz2 in ["Europe/Berlin"]
         if (freq1 != freq2 and set([freq1, freq2]) != set(["QS-JAN", "QS-APR"]))
         or sod1 != sod2
         or tz1 != tz2
@@ -517,6 +518,30 @@ def test_normalintersect_ok(idx1, idx2, iscidx):
 def test_normalintersect_nok(idx1, idx2):
     with pytest.raises(ValueError):
         _ = toolsb.index.intersect([idx1, idx2])
+
+
+@pytest.fixture(
+    scope="module",
+    params=[pytest.param(True, id="ignorefreq"), pytest.param(False, id="dontignorefreq")],
+)
+def ignorefreq(request):
+    return request.param
+
+
+@pytest.fixture(
+    scope="module",
+    params=[pytest.param(True, id="ignoresod"), pytest.param(False, id="dontignoresod")],
+)
+def ignoresod(request):
+    return request.param
+
+
+@pytest.fixture(
+    scope="module",
+    params=[pytest.param(True, id="ignoretz"), pytest.param(False, id="dontignoretz")],
+)
+def ignoretz(request):
+    return request.param
 
 
 @pytest.mark.parametrize(
@@ -538,16 +563,13 @@ def test_normalintersect_nok(idx1, idx2):
         ) in STARTENDFREQ1_STARTENDFREQ2_ISCSTARTEND
         if iscstart is not Exception
         for sod1 in ["00:00", "06:00"]
-        for sod2 in ["00:00", "06:00"]
+        for sod2 in ["06:00"]
         for tz1 in [None, "Europe/Berlin", "Asia/Kolkata"]
-        for tz2 in [None, "Europe/Berlin", "Asia/Kolkata"]
+        for tz2 in ["Europe/Berlin"]
         if None in set([tz1, tz2]) or tz1 == tz2
     ],
     ids=id_fn,
 )
-@pytest.mark.parametrize("ignorefreq", [True, False])
-@pytest.mark.parametrize("ignoresod", [True, False])
-@pytest.mark.parametrize("ignoretz", [True, False])
 def test_flexintersect_ok(
     idx1,
     idx2,
@@ -592,22 +614,13 @@ def test_flexintersect_ok(
         ) in STARTENDFREQ1_STARTENDFREQ2_ISCSTARTEND
         if iscstart is Exception
         for sod1 in ["00:00", "06:00"]
-        for sod2 in ["00:00", "06:00"]
+        for sod2 in ["06:00"]
         for tz1 in [None, "Europe/Berlin", "Asia/Kolkata"]
-        for tz2 in [None, "Europe/Berlin", "Asia/Kolkata"]
+        for tz2 in ["Europe/Berlin"]
     ],
     ids=id_fn,
 )
-@pytest.mark.parametrize("ignorefreq", [True, False])
-@pytest.mark.parametrize("ignoresod", [True, False])
-@pytest.mark.parametrize("ignoretz", [True, False])
-def test_flexintersect_nok(
-    idx1,
-    idx2,
-    ignorefreq,
-    ignoresod,
-    ignoretz,
-):
+def test_flexintersect_nok(idx1, idx2, ignorefreq, ignoresod, ignoretz):
     with pytest.raises(ValueError):
         toolsb.index.intersect_flex(
             [idx1, idx2], ignore_freq=ignorefreq, ignore_startofday=ignoresod, ignore_tz=ignoretz

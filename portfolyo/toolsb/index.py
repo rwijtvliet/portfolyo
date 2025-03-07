@@ -13,9 +13,15 @@ from . import stamp as tools_stamp
 from . import startofday as tools_startofday
 from .types import PintSeries
 
-
 # Conversion and validation.
 # --------------------------
+
+
+def convert(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    """Convert argument to correct/expected type."""
+    if idx.freq is None:
+        idx = pd.DatetimeIndex(idx, freq=idx.inferred_freq)
+    return idx
 
 
 def validate(idx: pd.DatetimeIndex) -> None:
@@ -38,7 +44,9 @@ def validate(idx: pd.DatetimeIndex) -> None:
             )
 
 
-coerce = tools_decorator.create_coercedecorator(validation=validate, default_param="idx")
+coerce = tools_decorator.create_coercedecorator(
+    conversion=convert, validation=validate, default_param="idx"
+)
 
 
 # --------------------------

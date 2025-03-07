@@ -3,7 +3,7 @@ import pytest
 
 
 @pytest.fixture(
-    scope="session",
+    scope="module",
     params=[
         ("min", "5min"),
         ("min", "D"),
@@ -24,7 +24,7 @@ def freqs_shortlong_asstr(request) -> tuple[str, str]:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="module",
     params=[
         ("QS-JAN", "QS-APR"),
         ("QS-JAN", "QS-JUL"),
@@ -40,7 +40,7 @@ def freqs_equivalent_asstr(request) -> tuple[str, str]:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="module",
     params=[
         ("QS-JAN", "QS-FEB"),
         ("QS-JAN", "QS-MAR"),
@@ -60,7 +60,7 @@ def freqs_incompatible_asstr(request) -> tuple[str, str]:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="module",
     params=[
         ("min", "5min", "D", "MS", "QS-JAN", "YS-JAN"),
         ("15min", "h", "QS-JAN", "YS-APR"),
@@ -72,13 +72,13 @@ def freqs_sorted_asstr(request) -> tuple[str, ...]:
     return request.param
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def freqs_unsorted_asstr(freqs_sorted_asstr, seed) -> tuple[str, ...]:
     np.random.seed(seed)
     return tuple(np.random.default_rng().permutation(freqs_sorted_asstr))
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def freqs_unsortable_asstr(freqs_incompatible_asstr, seed) -> tuple[str, ...]:
     np.random.seed(seed)
     freqs_unsortable = ["min", "5min", "D", "MS", *freqs_incompatible_asstr]
@@ -86,7 +86,7 @@ def freqs_unsortable_asstr(freqs_incompatible_asstr, seed) -> tuple[str, ...]:
 
 
 @pytest.fixture(
-    scope="session",
+    scope="module",
     params=[
         (
             ("min", "5min", "D", "MS", "QS-JAN", "QS-APR"),
@@ -106,7 +106,7 @@ def freqs_sorted_inclcompatible_asstr(request) -> tuple[tuple[str, ...]]:
     return request.param
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def freqs_unsorted_inclcompatible_asstr(freqs_sorted_inclcompatible_asstr, seed) -> tuple[str, ...]:
     np.random.seed(seed)
     return tuple(np.random.default_rng().permutation(freqs_sorted_inclcompatible_asstr[0]))
