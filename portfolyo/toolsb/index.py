@@ -297,7 +297,11 @@ def _convert_to_dailymidnight(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
         return idx.to_frame().asfreq("D").index.normalize()  # will be with freq == 'D'
     else:
         # HACK: .normalize() loses frequency, so explicitly set again.
-        return pd.DatetimeIndex(idx.normalize(), freq=idx.freq)
+        # --> Won't always work for Quarters
+        # return pd.DatetimeIndex(idx.normalize(), freq=idx.freq)
+        return pd.date_range(
+            idx[0].normalize(), freq=idx.freq, tz=idx.tz, name=idx.name, periods=len(idx)
+        )
 
 
 def _trim_with_dailymidnight(
