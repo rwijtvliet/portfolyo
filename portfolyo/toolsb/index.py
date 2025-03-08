@@ -44,6 +44,12 @@ def validate(idx: pd.DatetimeIndex) -> None:
             )
 
 
+def convert_and_validate(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    idx = convert(idx)
+    validate(idx)
+    return idx
+
+
 coerce = tools_decorator.create_coercedecorator(
     conversion=convert, validation=validate, default_param="idx"
 )
@@ -319,11 +325,8 @@ def intersect_flex(
     --------
     .intersect()
     """
-    idxs = list(idxs)  # Iterable does not (necessarily) have __len__. List does.
-
-    # Guard clause.
-    for idx in idxs:
-        validate(idx)
+    # Coerce and turn into list (iterable does not necessarily have __len__; list does)
+    idxs = [convert_and_validate(idx) for idx in idxs]
 
     # Trivial cases.
     if len(idxs) == 0:

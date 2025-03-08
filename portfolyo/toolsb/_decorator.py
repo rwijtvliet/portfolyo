@@ -77,10 +77,11 @@ from typing import Any, Callable, Hashable
 #
 
 
-def _cache_if_possible(fn):
+def _cache_hashable_arguments(fn):
     """Like lru_cache, but skips cache if argument is not hashable."""
     cached_fn = functools.lru_cache()(fn)
 
+    @functools.wraps(fn)
     def wrapper(arg):
         if isinstance(arg, Hashable):
             return cached_fn(arg)
@@ -121,7 +122,7 @@ def create_coercedecorator(
 
     # Cache conversion to use across all decorators created from decorator_factory.
     if conversion:
-        cached_conversion = _cache_if_possible(conversion)
+        conversion = _cache_hashable_arguments(conversion)
 
     def decorator_factory(*params, validate: bool = True) -> Callable:
         """Create a coerce decorator which performs checks on certain parameters of wrapped
@@ -143,7 +144,7 @@ def create_coercedecorator(
         # Create one-stop function.
         def convert_and_validate(arg):
             if conversion:
-                arg = cached_conversion(arg)
+                arg = conversion(arg)
             if validation and validate:
                 validation(arg)  # may raise error
             return arg
