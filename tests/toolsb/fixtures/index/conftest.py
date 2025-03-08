@@ -612,24 +612,33 @@ def case4_normalintersect_idx(
     scope="class",
     params=[pytest.param(True, id="ignorefreq"), pytest.param(False, id="dontignorefreq")],
 )
-def case4_ignorefreq(request) -> bool:
-    return request.param
+def case4_ignorefreq(request, _case4_equivalentfreq) -> bool:
+    ignore = request.param
+    if _case4_equivalentfreq and ignore:
+        pytest.skip("Don't test ignoring if values equal.")
+    return ignore
 
 
 @pytest.fixture(
     scope="class",
     params=[pytest.param(True, id="ignoretz"), pytest.param(False, id="dontignoretz")],
 )
-def case4_ignoretz(request) -> bool:
-    return request.param
+def case4_ignoretz(request, equaltz) -> bool:
+    ignore = request.param
+    if equaltz and ignore:
+        pytest.skip("Don't test ignoring if values equal.")
+    return ignore
 
 
 @pytest.fixture(
     scope="class",
     params=[pytest.param(True, id="ignoresod"), pytest.param(False, id="dontignoresod")],
 )
-def case4_ignoresod(request) -> bool:
-    return request.param
+def case4_ignoresod(request, equalsod) -> bool:
+    ignore = request.param
+    if equalsod and ignore:
+        pytest.skip("Don't test ignoring if values equal.")
+    return ignore
 
 
 @pytest.fixture(scope="class")
