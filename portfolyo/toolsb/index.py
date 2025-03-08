@@ -290,6 +290,32 @@ def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
     return intersected_idx
 
 
+def _convert_to_dailymidnight(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    # Helper function for intersect_flex.
+    if tools_freq.is_shorter_than_daily(idx.freq):
+        # HACK: Can't .asfreq on index, so take round-trip via Series.
+        return idx.to_frame().asfreq("D").index.normalize()  # will be with freq == 'D'
+    else:
+        # HACK: .normalize() loses frequency, so explicitly set again.
+        return pd.DatetimeIndex(idx.normalize(), freq=idx.freq)
+
+
+def _trim_with_dailymidnight(
+    idx: pd.DatetimeIndex, partialits_idx: pd.DatetimeIndex
+) -> pd.DatetimeIndex:
+    # Helper function for intersect_flex.
+    # Create mapping.
+    normalized = idx.normalize()
+    if not tools_freq.is_shorter_than_daily(idx.freq):
+        idxmap = pd.Series(normalized, idx)
+    else:
+        to_prev_day = idx.time >= idx[0].time()
+        dailymidnight = normalized.where(to_prev_day, normalized - pd.DateOffset(days=1))
+        idxmap = pd.Series(dailymidnight, idx)
+    # Trim.
+    return idxmap[idxmap.isin(partialits_idx)].index
+
+
 def intersect_flex(
     idxs: Iterable[pd.DatetimeIndex],
     *,
@@ -401,36 +427,10 @@ def intersect_flex(
     # Approach:
     # - Remove time-part to ignore start-of-day.
     # - Call 'self' but with all idxs in daily-or-longer frequency with midnight time-part.
+    # - Map back to original idx.
 
-    def to_dailymidnight(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
-        if tools_freq.is_shorter_than_daily(idx.freq):
-            # HACK: Can't .asfreq on index, so take round-trip via Series.
-            idx = idx.to_frame().asfreq("D").index
-        return idx.normalize()
-
-    dailymidnight_idxs = [to_dailymidnight(idx) for idx in idxs]  # all same sod
-
-    partialits_idxs = intersect_flex(
-        dailymidnight_idxs, ignore_freq=True, ignore_startofday=False, ignore_tz=ignore_tz
+    dailymidnights = [_convert_to_dailymidnight(idx) for idx in idxs]  # all same sod
+    partials = intersect_flex(
+        dailymidnights, ignore_freq=True, ignore_startofday=False, ignore_tz=ignore_tz
     )
-
-    # Map back to original idx.
-
-    def from_dailymidnight(
-        idx: pd.DatetimeIndex, partialits_idx: pd.DatetimeIndex
-    ) -> pd.DatetimeIndex:
-        # Create mapping.
-        normalized = idx.normalize()
-        if not tools_freq.is_shorter_than_daily(idx.freq):
-            map = pd.Series(normalized, idx)
-        else:
-            to_prev_day = idx.time >= idx[0].time()
-            dailymidnight = normalized.where(to_prev_day, normalized - pd.DateOffset(days=1))
-            map = pd.Series(dailymidnight, idx)
-        # Trim.
-        return map[map.isin(partialits_idx)].index
-
-    return tuple(
-        from_dailymidnight(idx, partialits_idx)
-        for idx, partialits_idx in zip(idxs, partialits_idxs)
-    )
+    return tuple(_trim_with_dailymidnight(idx, partial) for idx, partial in zip(idxs, partials))
