@@ -17,7 +17,7 @@ def _id_fn(data: Any) -> str:
     elif isinstance(data, dict):
         return "{" + "|".join(f"{k}:{_id_fn(v)}" for k, v in data.items()) + "}"
     elif isinstance(data, pd.DatetimeIndex):
-        return f"idx[{data[0]}-{data[-1]}-{data.freq}-{data.tz}]"
+        return f"idx[{data[0]}..{data[-1]};{data.freqstr};{data.tz}]"
     elif isinstance(data, pd.Series):
         typ = "Timeseries" if isinstance(data.index, pd.DatetimeIndex) else "Series"
         vals = "|".join([f"{v:.2f}" for v in data.values[:2]])  # max 2
