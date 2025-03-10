@@ -3,8 +3,8 @@ Working with pint units.
 """
 
 from pathlib import Path
-from typing import Tuple, Union
-
+from typing import Tuple, overload
+from .types import Series_or_DataFrame
 import pandas as pd
 import pint
 import pint_pandas
@@ -18,7 +18,7 @@ ureg = pint_pandas.PintType.ureg = pint.UnitRegistry(
     auto_reduce_dimensions=True,
     case_sensitive=False,
 )
-ureg.default_format = "~P"  # short by default
+ureg.formatter.default_format = "~P"  # short by default
 ureg.setup_matplotlib()
 
 # Set for export.
@@ -53,9 +53,29 @@ def from_name(name: str) -> pint.Unit:
     raise ValueError(f"No standard unit found for name '{name}'.")
 
 
+@overload
+def defaultunit(val: int | float) -> float:
+    ...
+
+
+@overload
+def defaultunit(val: pint.Quantity) -> pint.Quantity:
+    ...
+
+
+@overload
+def defaultunit(val: pd.Series) -> pd.Series:
+    ...
+
+
+@overload
+def defaultunit(val: pd.DataFrame) -> pd.DataFrame:
+    ...
+
+
 def defaultunit(
-    val: Union[int, float, pint.Quantity, pd.Series, pd.DataFrame],
-) -> Union[float, pint.Quantity, pd.Series, pd.DataFrame]:
+    val: int | float | pint.Quantity | pd.Series | pd.DataFrame,
+) -> float | pint.Quantity | pd.Series | pd.DataFrame:
     """Convert ``val`` to base units. Also turns dimensionless values into floats.
 
     Parameters
@@ -101,15 +121,26 @@ def defaultunit(
     raise TypeError("``val`` must be an int, float, Quantity, Series, or DataFrame.")
 
 
+@overload
+def split_magn_unit(val: int | float) -> Tuple[float, None]:
+    ...
+
+
+@overload
+def split_magn_unit(val: pint.Quantity) -> Tuple[float, None | pint.Unit]:
+    ...
+
+
+@overload
 def split_magn_unit(
-    val: Union[int, float, pint.Quantity, pd.Series]
-) -> Union[
-    Tuple[float, None],
-    Tuple[float, pint.Unit],
-    Tuple[pd.Series, None],
-    Tuple[pd.Series, pint.Unit],
-    Tuple[pd.Series, pd.Series],
-]:
+    val: pd.Series,
+) -> Tuple[pd.Series, None | pint.Unit | pd.Series]:
+    ...
+
+
+def split_magn_unit(
+    val: int | float | pint.Quantity | pd.Series,
+) -> Tuple[float, None | pint.Unit] | Tuple[pd.Series, None | pint.Unit | pd.Series]:
     """Split ``val`` into magnitude and units. If ``val`` is a Series with uniform
     dimension, the unit is returned as a pint Unit. If not, it is returned as a Series.
     """
@@ -129,3 +160,46 @@ def split_magn_unit(
         raise TypeError("For dataframes, handle the series seperately.")
     else:  # int, float, bool, timestamp, ...
         return val, None
+
+
+def avoid_frame_of_objects(fr: Series_or_DataFrame) -> Series_or_DataFrame:
+    """Ensure a Series or Dataframe does not have objects as its values,
+    if possible.
+
+    Parameters:
+    -----------
+    fr : Series_or_DataFrame
+        The input data structure, which can be either a pandas Series or DataFrame.
+        Expected int-Series, float-Series, pint-Series, or Series of pint quantities (of equal dimensionality).
+
+    Returns:
+    --------
+    Series_or_DataFrame
+        The transformed data structure.
+
+
+    """
+
+    if isinstance(fr, pd.DataFrame):
+        return pd.DataFrame({col: avoid_frame_of_objects(s) for col, s in fr.items()})
+
+    # fr is now a Series.
+
+    if pd.api.types.is_integer_dtype(fr):
+        return fr.astype(float)
+    if pd.api.types.is_float_dtype(fr):
+        return fr
+    if hasattr(fr, "pint"):
+        if isinstance(fr.dtype, pint_pandas.PintType):
+            return fr
+        # We may have a series of pint quantities. Convert to pint-series, if possible.
+        try:
+            return fr.astype(f"pint[{fr.iloc[0].units}]")
+        except pint.DimensionalityError as e:
+            dimensions = {v.dimensionality for v in fr.values}
+            raise pint.DimensionalityError(
+                f"Expected a Series with quantities of the same dimension; got {dimensions}."
+            ) from e
+    raise TypeError(
+        "Expected int-Series, float-Series, pint-Series, or Series of pint quantities (of equal dimensionality)."
+    )

@@ -1,9 +1,13 @@
-import pytest
 import datetime as dt
-from portfolyo import tools, testing, dev
 
+import pandas as pd
+import pytest
+
+from portfolyo import testing, tools
 
 ERROR_SOD_DICT = {"hour": 6, "minute": 1}  # error
+SOD_STRS = ["00:00", "06:00", "15:30"]
+SODS = [(0, 0), (6, 0), (15, 30)]
 SOD_DICTS = [
     {"hour": 0, "minute": 0},
     {"hour": 6, "minute": 0},
@@ -15,7 +19,7 @@ SEED = 3
 
 
 STARTDATE_AND_FREQ = [
-    ("2020-01-01", "H"),
+    ("2020-01-01", "h"),
     ("2020-01-01", "D"),
     ("2020-01-01", "MS"),
     ("2020-03-28", "D"),
@@ -34,38 +38,390 @@ def create_start_of_day(hour, minute, returntype):
         return dt.timedelta(hours=hour, minutes=minute)
 
 
-@pytest.mark.parametrize("startdate,freq", STARTDATE_AND_FREQ)
-@pytest.mark.parametrize("sod_dict", SOD_DICTS)
-@pytest.mark.parametrize("returntype", ["time", "str", "timedelta"])
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-def test_get_startofday(startdate, freq, tz, sod_dict, returntype):
+@pytest.mark.parametrize(
+    "i,hour,minute",
+    [
+        # Midnight
+        # . No timezone
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None
+            ),
+            0,
+            0,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None
+            ),
+            0,
+            0,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
+            ),
+            0,
+            0,
+        ),
+        # . Europe/Berlin
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="MS",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            0,
+            0,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="D",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            0,
+            0,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="h",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            0,
+            0,
+        ),
+        # 06:00
+        # . No timezone
+        (
+            pd.date_range(
+                "2020-01-01 06:00",
+                "2021-01-01 06:00",
+                freq="MS",
+                inclusive="left",
+                tz=None,
+            ),
+            6,
+            0,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01 06:00",
+                "2021-01-01 06:00",
+                freq="D",
+                inclusive="left",
+                tz=None,
+            ),
+            6,
+            0,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01 06:00",
+                "2021-01-01 06:00",
+                freq="h",
+                inclusive="left",
+                tz=None,
+            ),
+            6,
+            0,
+        ),
+        # . Europe/Berlin
+        (
+            pd.date_range(
+                "2020-01-01 06:00",
+                "2021-01-01 06:00",
+                freq="MS",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            6,
+            0,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01 06:30",
+                "2021-01-01 06:30",
+                freq="D",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            6,
+            30,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01 06:30",
+                "2021-01-01 06:30",
+                freq="h",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            6,
+            30,
+        ),
+    ],
+)
+@pytest.mark.parametrize("returntype", ["time", "timedelta", "str"])
+def test_get_startofday(i: pd.DatetimeIndex, hour: int, minute: int, returntype: str):
     """Test if start-of-day can be correctly gotten from index."""
-    i = dev.get_index(freq, tz, startdate, 10, dt.time(**sod_dict), _seed=SEED)
+    expected = create_start_of_day(hour, minute, returntype)
     result = tools.startofday.get(i, returntype)
-    expected = create_start_of_day(**sod_dict, returntype=returntype)
     assert result == expected
 
 
-@pytest.mark.parametrize("startdate,freq", STARTDATE_AND_FREQ)
-@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("sod_dict_in", SOD_DICTS)
-@pytest.mark.parametrize("sod_dict_out", SOD_DICTS)
-def test_set_startofday(startdate, freq, tz, sod_dict_in, sod_dict_out):
-    """Test if start of day can be correctly set to an index."""
-    periods = {"H": 240, "D": 10, "MS": 3}[freq]
-    start_of_day_in = create_start_of_day(**sod_dict_in, returntype="time")
-    start_of_day_out = create_start_of_day(**sod_dict_out, returntype="time")
-    i = dev.get_index(freq, tz, startdate, periods, start_of_day_in, _seed=SEED)
-    if freq == "H" or sod_dict_out == ERROR_SOD_DICT:
-        with pytest.raises(ValueError):
-            _ = tools.startofday.set(i, start_of_day_out)
-        return
-
-    result = tools.startofday.set(i, start_of_day_out)
-    if start_of_day_in == start_of_day_out:
+@pytest.mark.parametrize(
+    "i,hour,minute,expected",
+    [
+        # Midnight
+        # . No timezone
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None
+            ),
+            0,
+            0,
+            None,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None
+            ),
+            0,
+            0,
+            None,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
+            ),
+            0,
+            0,
+            None,
+        ),
+        # . Europe/Berlin
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="MS",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            0,
+            0,
+            None,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="D",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            0,
+            0,
+            None,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="h",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            0,
+            0,
+            None,
+        ),
+        # 06:00
+        # . No timezone
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None
+            ),
+            6,
+            0,
+            pd.date_range(
+                "2020-01-01 06:00",
+                "2021-01-01 06:00",
+                freq="MS",
+                inclusive="left",
+                tz=None,
+            ),
+        ),
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None
+            ),
+            6,
+            0,
+            pd.date_range(
+                "2020-01-01 06:00",
+                "2021-01-01 06:00",
+                freq="D",
+                inclusive="left",
+                tz=None,
+            ),
+        ),
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
+            ),
+            6,
+            0,
+            pd.date_range(
+                "2020-01-01 06:00",
+                "2020-12-31 06:00",
+                freq="h",
+                inclusive="left",
+                tz=None,
+            ),
+        ),
+        # . Europe/Berlin
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="MS",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            6,
+            0,
+            pd.date_range(
+                "2020-01-01 06:00",
+                "2021-01-01 06:00",
+                freq="MS",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+        ),
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="D",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            6,
+            0,
+            pd.date_range(
+                "2020-01-01 06:00",
+                "2021-01-01 06:00",
+                freq="D",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+        ),
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="h",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            6,
+            0,
+            pd.date_range(
+                "2020-01-01 06:00",
+                "2020-12-31 06:00",
+                freq="h",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+        ),
+        # 06:03
+        # . No timezone
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="MS", inclusive="left", tz=None
+            ),
+            6,
+            3,
+            Exception,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="D", inclusive="left", tz=None
+            ),
+            6,
+            3,
+            Exception,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01", "2021-01-01", freq="h", inclusive="left", tz=None
+            ),
+            6,
+            3,
+            Exception,
+        ),
+        # . Europe/Berlin
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="MS",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            6,
+            3,
+            Exception,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="D",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            6,
+            3,
+            Exception,
+        ),
+        (
+            pd.date_range(
+                "2020-01-01",
+                "2021-01-01",
+                freq="h",
+                inclusive="left",
+                tz="Europe/Berlin",
+            ),
+            6,
+            3,
+            Exception,
+        ),
+    ],
+)
+def test_set_startofday(
+    i: pd.DatetimeIndex,
+    hour: int,
+    minute: int,
+    expected: pd.DatetimeIndex,
+):
+    """Test if start-of-day can be correctly set to index."""
+    if expected is None:
         expected = i
-    else:
-        expected = dev.get_index(
-            freq, tz, startdate, periods, start_of_day_out, _seed=SEED
-        )
+    sod = dt.time(hour=hour, minute=minute)
+    # Error case.
+    if isinstance(expected, type) and issubclass(expected, Exception):
+        with pytest.raises(expected):
+            _ = tools.startofday.set(i, sod)
+        return
+    # Normal case.
+    result = tools.startofday.set(i, sod)
     testing.assert_index_equal(result, expected)

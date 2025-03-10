@@ -1,0 +1,143 @@
+import functools
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import pytest
+
+from portfolyo import testing
+from portfolyo.prices import convert
+from portfolyo.tools import nits
+
+
+@functools.lru_cache()
+def get_df_fromexcel(tz, aggfreq) -> pd.DataFrame:
+    path = Path(__file__).parent / "test_convert_data.xlsx"
+    sheetname = f'{aggfreq}_{"None" if tz is None else tz.replace("/", "")}'
+    df = pd.read_excel(path, sheetname, header=6, index_col=0)
+    df = df.tz_localize(tz, ambiguous="infer")
+    df.index.freq = aggfreq
+    return df
+
+
+@pytest.mark.parametrize("withunit", [True, False])
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_pbaseppeakpoffpeak_fromexcel(tz: str, aggfreq: str, withunit: bool):
+    """Test if base, peak and offpeak value for a period can be calculated from the other two."""
+
+    # Pick random row.
+    row = get_df_fromexcel(tz, aggfreq).sample().iloc[0, :]
+    ts_left, b, p, o = row.name, row.base, row.peak, row.offpeak
+
+    # Adjust input values.
+    if withunit:
+        b, p, o = nits.Q_(b, "MW"), nits.Q_(p, "MW"), nits.Q_(o, "MW")
+
+    # Get result and test.
+    assert np.isclose(convert.peak(b, o, ts_left, aggfreq), p)
+    assert np.isclose(convert.offpeak(b, p, ts_left, aggfreq), o)
+    assert np.isclose(convert.base(p, o, ts_left, aggfreq), b)
+
+
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_completebpoframe_fromexcel(tz: str, aggfreq: str):
+    """Test if a partial bpoframe can be completed to a full bpoframe."""
+    bpoframe = get_df_fromexcel(tz, aggfreq)[["base", "peak", "offpeak"]]
+
+    for key in bpoframe:
+        partial = bpoframe.drop(columns=key)
+        bpoframe_result = convert.complete_bpoframe(partial)
+        testing.assert_frame_equal(bpoframe_result, bpoframe)
+
+
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_tseries2singlebpo_fromexcel(tz, freq, aggfreq):
+    """Test if a timeseries can be converted into single base, peak and offpeak values."""
+    tseries = get_df_fromexcel(tz, freq)["var"]
+    bpoframe = get_df_fromexcel(tz, aggfreq)[["base", "peak", "offpeak"]]
+
+    ts = np.random.choice(bpoframe.index)
+    values_expected = bpoframe.loc[ts, :]
+
+    s_source = tseries[(tseries.index >= ts) & (tseries.index.ts_right < ts.ts_right)]
+    values_result = convert.tseries2singlebpo(s_source)
+
+    for key in ["base", "peak", "offpeak"]:
+        assert np.isclose(values_result[key], values_expected[key])
+
+
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_tseries2bpoframe_fromexcel(tz, freq, aggfreq):
+    """Test if a timeseries (i.e., long) can be converted into a bpo-frame (i.e., wide)."""
+    tseries = get_df_fromexcel(tz, freq)["var"]
+    bpoframe_result = convert.tseries2bpoframe(tseries, aggfreq)
+
+    bpoframe_expected = get_df_fromexcel(tz, aggfreq)[["base", "peak", "offpeak"]]
+
+    testing.assert_frame_equal(bpoframe_result, bpoframe_expected)
+
+
+@pytest.mark.parametrize("aggfreq", ["MS", "QS", "YS"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_bpoframe2timeseries_fromexcel(tz, freq, aggfreq, drop):
+    """Test if a bpoframe (i.e., wide) can be converted into a timeseries (i.e., long)."""
+    bpoframe = get_df_fromexcel(tz, aggfreq)[["base", "peak", "offpeak"]]
+    tseries_result = convert.bpoframe2tseries(bpoframe, freq)
+
+    tseries_expected = get_df_fromexcel(tz, freq)[f"{aggfreq}_TRUE"]
+    testing.assert_series_equal(tseries_result, tseries_expected)
+
+
+@pytest.mark.parametrize(
+    ("short_aggfreq", "long_aggfreq"),
+    [
+        ("MS", "MS"),
+        ("MS", "QS"),
+        ("MS", "YS"),
+        ("QS", "QS"),
+        ("QS", "YS"),
+        ("YS", "YS"),
+    ],
+)
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_bpoframe2bpoframe_fromexcel(tz, short_aggfreq, long_aggfreq):
+    """Test if a bpoframe with a short frequency (e.g., months) can correctly be
+    downsampled, to a bpoframe with a longer frequency (e.g., quarters)."""
+
+    bpoframe_source = get_df_fromexcel(tz, short_aggfreq)[["base", "peak", "offpeak"]]
+    bpoframe_result = convert.bpoframe2bpoframe(bpoframe_source, long_aggfreq)
+
+    bpoframe_expected = get_df_fromexcel(tz, long_aggfreq)[["base", "peak", "offpeak"]]
+    testing.assert_frame_equal(bpoframe_result, bpoframe_expected)
+
+
+@pytest.mark.parametrize("po", [True, False])
+@pytest.mark.parametrize(
+    ("short_aggfreq", "long_aggfreq"),
+    [
+        ("MS", "MS"),
+        ("MS", "QS"),
+        ("MS", "YS"),
+        ("QS", "QS"),
+        ("QS", "YS"),
+        ("YS", "YS"),
+    ],
+)
+@pytest.mark.parametrize("freq", ["15min", "h"])
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+def test_tseries2tseries_fromexcel(tz, freq, short_aggfreq, long_aggfreq, po):
+    """Test if a (e.g., hourly) timeseries with a short aggregation frequency (e.g., months)
+    can correctly be converted into another hourly timeseries with a longer aggregation
+    frequency (e.g., quarters)."""
+    tseries_source = get_df_fromexcel(tz, freq)[f"{short_aggfreq}_{str(po).upper()}"]
+    tseries_result = convert.tseries2tseries(tseries_source, long_aggfreq)
+
+    tseries_expected = get_df_fromexcel(tz, freq)[f"{long_aggfreq}_{str(po).upper()}"]
+    testing.assert_series_equal(tseries_result, tseries_expected, check_names=False)

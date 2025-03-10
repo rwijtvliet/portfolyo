@@ -4,12 +4,12 @@ dimensionless values/timeseries from data."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping, Union
+from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
 
-from ... import testing, tools
+from ... import tools
 from . import classes, create
 
 if TYPE_CHECKING:  # needed to avoid circular imports
@@ -44,12 +44,12 @@ class InOp:
         inop = inop.to_df()
     """
 
-    w: Union[tools.unit.Q_, pd.Series] = None
-    q: Union[tools.unit.Q_, pd.Series] = None
-    p: Union[tools.unit.Q_, pd.Series] = None
-    r: Union[tools.unit.Q_, pd.Series] = None
-    nodim: Union[tools.unit.Q_, pd.Series] = None  # explicitly dimensionless
-    agn: Union[float, pd.Series] = None  # agnostic
+    w: tools.unit.Q_ | pd.Series = None
+    q: tools.unit.Q_ | pd.Series = None
+    p: tools.unit.Q_ | pd.Series = None
+    r: tools.unit.Q_ | pd.Series = None
+    nodim: tools.unit.Q_ | pd.Series = None  # explicitly dimensionless
+    agn: float | pd.Series = None  # agnostic
 
     def __post_init__(self):
         # Add correct units and check type.
@@ -116,7 +116,9 @@ class InOp:
         # Volumes.
         if w is not None and q is not None:
             try:
-                testing.assert_series_equal(w, q / q.index.duration, check_names=False)
+                tools.testing.assert_series_equal(
+                    w, q / q.index.duration, check_names=False
+                )
             except AssertionError as e:
                 raise ValueError("Values for w and q are not consistent.") from e
         elif w is not None and q is None:
@@ -157,7 +159,7 @@ class InOp:
             ign2 = np.isclose(p.pint.m, 0) & (q.isna() | np.isinf(q.pint.m))
             ignore = ign1 | ign2
             try:
-                testing.assert_series_equal(
+                tools.testing.assert_series_equal(
                     r[~ignore], p[~ignore] * q[~ignore], check_names=False
                 )
             except AssertionError as e:
@@ -217,8 +219,8 @@ class InOp:
 
 
 def _set_unit(
-    v: Union[float, int, tools.unit.Q_, pd.Series], attr: str
-) -> Union[float, tools.unit.Q, pd.Series]:
+    v: float | int | tools.unit.Q_ | pd.Series, attr: str
+) -> float | tools.unit.Q | pd.Series:
     """Set unit (if none set yet) or convert to unit."""
     if v is None:
         return None
@@ -303,15 +305,17 @@ def _unit2attr(unit) -> str:
 
 
 def _from_data(
-    data: Union[float, tools.unit.Q_, pd.Series, Dict, pd.DataFrame, Iterable, Mapping]
+    data: float | tools.unit.Q_ | pd.Series | Dict | pd.DataFrame | Iterable | Mapping,
 ) -> InOp:
     """Turn ``data`` into a InterOp object."""
 
     if data is None:
         return InOp()
 
-    elif isinstance(data, int) or isinstance(data, float):
-        # TODO: if int, change to float?
+    elif isinstance(data, int):
+        return InOp(agn=float(data))
+
+    elif isinstance(data, float):
         return InOp(agn=data)
 
     elif isinstance(data, tools.unit.Q_):
@@ -319,14 +323,11 @@ def _from_data(
 
     elif isinstance(data, pd.Series) and isinstance(data.index, pd.DatetimeIndex):
         # timeseries
-        if hasattr(data, "pint"):  # pint timeseries
-            return InOp(**{_unit2attr(data.pint.units): data})
-        elif data.dtype == object:  # timeeries of objects -> maybe Quantities?
-            if len(data) and isinstance(val := data.values[0], tools.unit.Q_):
-                # use unit of first value to find dimension
-                return InOp(**{_unit2attr(val.u): data})
-        else:  # assume float or int
+        data = tools.unit.avoid_frame_of_objects(data)
+        if data.dtype in [float, int]:
             return InOp(agn=data)
+        else:
+            return InOp(**{_unit2attr(data.pint.units): data})
 
     elif (
         isinstance(data, pd.DataFrame)
@@ -399,7 +400,7 @@ def _equal(inop1: InOp, inop2: InOp) -> InOp:
             return False
         if isinstance(val1, pd.Series):
             try:
-                testing.assert_series_equal(val1, val2, check_names=False)
+                tools.testing.assert_series_equal(val1, val2, check_names=False)
             except AssertionError:
                 return False
         elif val1 != val2:
@@ -409,7 +410,7 @@ def _equal(inop1: InOp, inop2: InOp) -> InOp:
 
 def pfline_or_nodimseries(
     data: Any, ref_index: pd.DatetimeIndex, agn_default: str = None
-) -> Union[None, pd.Series, FlatPfLine]:
+) -> None | pd.Series | FlatPfLine:
     """Turn ``data`` into PfLine if dimension-aware. If not, turn into Series."""
 
     # Already a PfLine.

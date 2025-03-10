@@ -1,7 +1,4 @@
-"""
-Duration of delivery periods.
-"""
-
+"""Duration of delivery periods."""
 
 import pandas as pd
 
@@ -17,7 +14,7 @@ def stamp(ts: pd.Timestamp, freq: str) -> tools_unit.Q_:
     ----------
     ts : pd.Timestamp
         Timestamp for which to calculate the duration.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency to use in determining the duration.
 
     Returns
@@ -33,19 +30,19 @@ def stamp(ts: pd.Timestamp, freq: str) -> tools_unit.Q_:
     >>> duration.stamp(pd.Timestamp('2020-03-29', tz='Europe/Berlin'), 'D')
     23.0 h
     """
-    if freq in ["15T", "H"]:
-        h = 1.0 if freq == "H" else 0.25
+    if freq in ["15min", "h"]:
+        h = 1.0 if freq == "h" else 0.25
     else:
         h = (tools_right.stamp(ts, freq) - ts).total_seconds() / 3600
     return tools_unit.Q_(h, "h")
 
 
 def index(i: pd.DatetimeIndex) -> pd.Series:
-    """Duration of a timestamp.
+    """Duration of the timestamps in an index.
 
     Parameters
     ----------
-    i : pd.DatetimeIndex
+    i : DatetimeIndex
         Index for which to calculate the duration.
 
     Returns
@@ -53,11 +50,27 @@ def index(i: pd.DatetimeIndex) -> pd.Series:
     pint-Series
         With ``i`` as its index, and the corresponding duration as the values.
     """
-    if i.freq in ["15T", "H"]:
+    if i.freq in ["15min", "h"]:
         # Speed-up things for fixed-duration frequencies.
-        h = 1.0 if i.freq == "H" else 0.25
+        h = 1.0 if i.freq == "h" else 0.25
     else:
         # Individual calculations for non-fixed-duration frequencies.
         h = (tools_right.index(i) - i).map(lambda td: td.total_seconds() / 3600)
 
-    return pd.Series(h, i).astype("pint[h]").rename("duration")
+    return pd.Series(h, i, dtype="pint[h]").rename("duration")
+
+
+def frame(fr: pd.Series | pd.DataFrame) -> pd.Series:
+    """Duration of the timestamps in the index of a Series or DataFrame.
+
+    Parameters
+    ----------
+    fr : Series or DataFrame
+        Object with index for which to calculate the duration.
+
+    Returns
+    -------
+    pint-Series
+        With ``i`` as its index, and the corresponding duration as the values.
+    """
+    return index(fr.index)

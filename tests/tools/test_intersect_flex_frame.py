@@ -91,11 +91,11 @@ def test_frames_ignore_freq(types: str, ignore_freq: bool):
     idx_a = pd.date_range("2022-04-01", "2024-07-01", freq="QS", inclusive="left")
     a = pd.Series(range(0, 9), idx_a)
 
-    idx_b = pd.date_range("2021-01-01", "2024-01-01", freq="AS", inclusive="left")
+    idx_b = pd.date_range("2021-01-01", "2024-01-01", freq="YS", inclusive="left")
     b = pd.Series(range(0, 3), idx_b)
 
     exp_idx_a = pd.date_range("2023-01-01", "2024-01-01", freq="QS", inclusive="left")
-    exp_idx_b = pd.date_range("2023-01-01", "2024-01-01", freq="AS", inclusive="left")
+    exp_idx_b = pd.date_range("2023-01-01", "2024-01-01", freq="YS", inclusive="left")
     exp_a = pd.Series(range(3, 7), exp_idx_a)
     exp_b = pd.Series(range(2, 3), exp_idx_b)
     if types == "series":
@@ -131,7 +131,7 @@ def test_frames_ignore_all(types: str, ignore_all: bool):
     a = pd.Series(range(0, 9), idx_a)
 
     idx_b = pd.date_range(
-        "2021-01-01 06:00", "2024-01-01 06:00", freq="AS", inclusive="left"
+        "2021-01-01 06:00", "2024-01-01 06:00", freq="YS", inclusive="left"
     )
     b = pd.Series(range(0, 3), idx_b)
 
@@ -143,7 +143,7 @@ def test_frames_ignore_all(types: str, ignore_all: bool):
         inclusive="left",
     )
     exp_idx_b = pd.date_range(
-        "2023-01-01 06:00", "2024-01-01 06:00", freq="AS", inclusive="left"
+        "2023-01-01 06:00", "2024-01-01 06:00", freq="YS", inclusive="left"
     )
     exp_a = pd.Series(range(3, 7), exp_idx_a)
     exp_b = pd.Series(range(2, 3), exp_idx_b)

@@ -1,9 +1,12 @@
-from typing import List, Union, Tuple
+from datetime import datetime
+from typing import List, Tuple
 
 import pandas as pd
 
-from portfolyo.tools.freq import longest
-from datetime import datetime
+from . import freq as tools_freq
+from . import right as tools_right
+from . import trim as tools_trim
+from .types import Series_or_DataFrame
 
 
 def indices(*idxs: pd.DatetimeIndex) -> pd.DatetimeIndex:
@@ -109,66 +112,64 @@ def indices_flex(
     if len(distinct_tzs) != 1 and ignore_tz is False:
         raise ValueError(f"Indices must have equal timezones; got {distinct_tzs}.")
 
+    empty_idx = [len(i) == 0 for i in idxs]
+    if any(empty_idx):
+        return pd.DatetimeIndex([])
+
+    # If we land here, we have at least 2 indices, all are not empty.
+
+    distinct_sod = set([i[0].time() for i in idxs])
+    if len(distinct_sod) != 1 and ignore_start_of_day is False:
+        raise ValueError(f"Indices must have equal start-of-day; got {distinct_sod}.")
+    for i in range(len(idxs)):
+        if len(distinct_sod) != 1 and tools_freq.up_or_down(idxs[i].freq, "D") == -1:
+            raise ValueError(
+                "Downsample all indices to daily-or-longer, or trim them so they have the same start-of-day, before attempting to calculate the intersection"
+            )
+
     freq, name, tz = [], [], []
     for i in range(len(idxs)):
         freq.append(idxs[i].freq)
         name.append(idxs[i].name)
         tz.append(idxs[i].tz)
 
-    empty_idx = [len(i) == 0 for i in idxs]
-    if any(empty_idx):
-        return pd.DatetimeIndex([])
-
-    # If we land here, we have at least 2 indices, all are not empty, with equal tz and freq.
-
-    distinct_sod = set([i[0].time() for i in idxs])
-    if len(distinct_sod) != 1 and ignore_start_of_day is False:
-        raise ValueError(f"Indices must have equal start-of-day; got {distinct_sod}.")
-
-    # add one interval of the respective freq to each index (this way, a given date-range from A-B that was exclusive
-    # of B is now inclusive of B - this helps when we need to convert frequencies or times-of-day without loosing
-    # data. At the end, we exclude the end-date of the final result again.)
-    idxs = [
-        idx.append(
-            pd.DatetimeIndex([idx[-1] + pd.tseries.frequencies.to_offset(idx.freq)])
-        )
-        for idx in idxs
-    ]
-
-    if ignore_freq is True:
-        # Find the smallest frequency
-        biggest_freq = longest(*freq)
-        # change bigger freq into small one
+    longest_freq = freq[0]
+    if ignore_freq is True and len(distinct_freqs) != 1:
+        # Find the longest frequency
+        longest_freq = tools_freq.longest(*freq)
+        # trim datetimeindex
         for i in range(len(idxs)):
-            start = idxs[i].min()
-            end = idxs[i].max()
-            idxs[i] = pd.date_range(start, end, freq=biggest_freq, inclusive="both")
+            # if idxs[i].freq is not the same as longest freq, we trim idxs[i]
+            if idxs[i].freq != longest_freq:
+                idxs[i] = tools_trim.index(idxs[i], longest_freq)
 
-    if ignore_tz is True:
+    if ignore_tz is True and len(distinct_tzs) != 1:
         # set timezone to none for all values
         for i in range(len(idxs)):
             idxs[i] = idxs[i].tz_localize(None)
 
-    if ignore_start_of_day is True:
+    if ignore_start_of_day is True and len(distinct_sod) != 1:
         # Save a copy of the original hours and minutes
         start_of_day = [x[0].time() for x in idxs]
-        # Set the time components to midnight for each timestamp in the list
-        idxs = [timestamp.normalize() for timestamp in idxs]
+        # Set the time components to midnight for each index in the list
+        idxs = [index.normalize() for index in idxs]
 
     # Calculation is cumbersome: pandas DatetimeIndex.intersection not working correctly on timezone-aware indices (#46702)
     values = set(idxs[0])
+    # intersection is not working on datetimeindex with different freq->we need to use mask
     for i in idxs[1:]:
         values = values.intersection(set(i))
     values = sorted(values)
 
     if len(values) == 0:
-        return tuple([pd.DatetimeIndex([]) for _i in idxs])
+        return tuple([pd.DatetimeIndex([]) for _ in idxs])
 
     idxs_out = []
     for i in range(len(idxs)):
         start = min(values)
+        # end = stamp(start, longest_freq._prefix)
         end = max(values)
-        inclusive = "left"
+        end = tools_right.stamp(end, longest_freq)
 
         if ignore_start_of_day is True:
             start = datetime.combine(pd.to_datetime(start).date(), start_of_day[i])
@@ -182,7 +183,7 @@ def indices_flex(
                 freq=freq[i],
                 name=name[i],
                 tz=tz[i],
-                inclusive=inclusive,
+                inclusive="left",
             )
         )
 
@@ -190,11 +191,11 @@ def indices_flex(
 
 
 def frames(
-    *frames: Union[pd.Series, pd.DataFrame],
+    *frames: Series_or_DataFrame,
     ignore_freq: bool = False,
     ignore_tz: bool = False,
     ignore_start_of_day: bool = False,
-) -> List[Union[pd.Series, pd.DataFrame]]:
+) -> List[Series_or_DataFrame]:
     """Intersect several dataframes and/or series.
 
     Parameters
@@ -213,8 +214,7 @@ def frames(
 
     Returns
     -------
-    list of series and/or dataframes
-        As input, but trimmed to their intersection.
+    As input, but trimmed to their intersection.
 
     Notes
     -----
@@ -227,4 +227,4 @@ def frames(
         ignore_tz=ignore_tz,
         ignore_start_of_day=ignore_start_of_day,
     )
-    return [fr.loc[idx] for idx, fr in zip(new_idxs, frames)]
+    return [fr.loc[i] for i, fr in zip(new_idxs, frames)]

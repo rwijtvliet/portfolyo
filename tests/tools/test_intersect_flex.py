@@ -1,4 +1,4 @@
-from typing import Iterable, Union
+from typing import Iterable
 
 import pandas as pd
 import pytest
@@ -9,41 +9,132 @@ COMMON_END = "2022-02-02"
 
 TESTCASES = [  # startdates, freq, expected_startdate
     # One starts at first day of year.
-    (("2020-01-01", "2020-01-20"), "15T", "2020-01-20"),
-    (("2020-01-01", "2020-01-20"), "15T", "2020-01-20"),
-    (("2020-01-01", "2020-01-20"), "H", "2020-01-20"),
-    (("2020-01-01", "2020-01-20"), "H", "2020-01-20"),
+    (("2020-01-01", "2020-01-20"), "15min", "2020-01-20"),
+    (("2020-01-01", "2020-01-20"), "15min", "2020-01-20"),
+    (("2020-01-01", "2020-01-20"), "h", "2020-01-20"),
+    (("2020-01-01", "2020-01-20"), "h", "2020-01-20"),
     (("2020-01-01", "2020-01-20"), "D", "2020-01-20"),
     (("2020-01-01", "2020-01-20"), "D", "2020-01-20"),
     (("2020-01-01", "2020-03-01"), "MS", "2020-03-01"),
     (("2020-01-01", "2020-03-01"), "MS", "2020-03-01"),
     (("2020-01-01", "2020-04-01"), "QS", "2020-04-01"),
     (("2020-01-01", "2020-04-01"), "QS", "2020-04-01"),
-    (("2020-01-01", "2021-01-01"), "AS", "2021-01-01"),
-    (("2020-01-01", "2021-01-01"), "AS", "2021-01-01"),
+    (("2020-01-01", "2021-01-01"), "YS", "2021-01-01"),
+    (("2020-01-01", "2021-01-01"), "YS", "2021-01-01"),
     # Both start in middle of year.
-    (("2020-04-21", "2020-06-20"), "15T", "2020-06-20"),
-    (("2020-04-21", "2020-06-20"), "15T", "2020-06-20"),
-    (("2020-04-21", "2020-06-20"), "H", "2020-06-20"),
-    (("2020-04-21", "2020-06-20"), "H", "2020-06-20"),
+    (("2020-04-21", "2020-06-20"), "15min", "2020-06-20"),
+    (("2020-04-21", "2020-06-20"), "15min", "2020-06-20"),
+    (("2020-04-21", "2020-06-20"), "h", "2020-06-20"),
+    (("2020-04-21", "2020-06-20"), "h", "2020-06-20"),
     (("2020-04-21", "2020-06-20"), "D", "2020-06-20"),
     (("2020-04-21", "2020-06-20"), "D", "2020-06-20"),
+    (("2020-03-01", "2021-06-01"), "QS-MAR", "2021-06-01"),
+    (("2020-04-01", "2021-04-01"), "YS-APR", "2021-04-01"),
 ]
 
-COMMON_END_2 = "2023-01-01"
-TESTCASES_2 = [  # startdates, freq, expected_dates
+TESTCASES_3 = [  # first_period, second_period, freqs, result1, result2
     # One starts at first day of year.
-    (("2020-01-01", "2020-01-20"), ("15T", "H"), "2020-01-20"),
-    (("2020-01-01", "2020-01-20"), ("15T", "D"), "2020-01-20"),
-    (("2022-04-01", "2021-02-01"), ("H", "MS"), "2022-04-01"),
-    (("2020-01-01", "2020-04-01"), ("H", "QS"), "2020-04-01"),
-    (("2020-01-01", "2021-01-01"), ("D", "AS"), "2021-01-01"),
+    (
+        ("2020-01-01", "2023-01-01"),
+        ("2020-01-20", "2023-01-01"),
+        ("15min", "h"),
+        ("2020-01-20", "2023-01-01"),
+        ("2020-01-20", "2023-01-01"),
+    ),
+    (
+        ("2020-01-01", "2023-01-01"),
+        ("2020-01-20", "2023-01-01"),
+        ("15min", "D"),
+        ("2020-01-20", "2023-01-01"),
+        ("2020-01-20", "2023-01-01"),
+    ),
+    (
+        ("2022-04-01", "2023-01-01"),
+        ("2021-02-01", "2023-01-01"),
+        ("h", "MS"),
+        ("2022-04-01", "2023-01-01"),
+        ("2022-04-01", "2023-01-01"),
+    ),
+    (
+        ("2020-01-01", "2023-01-01"),
+        ("2020-04-01", "2023-01-01"),
+        ("h", "QS"),
+        ("2020-04-01", "2023-01-01"),
+        ("2020-04-01", "2023-01-01"),
+    ),
+    (
+        ("2020-01-01", "2023-01-01"),
+        ("2021-01-01", "2023-01-01"),
+        ("D", "YS"),
+        ("2021-01-01", "2023-01-01"),
+        ("2021-01-01", "2023-01-01"),
+    ),
     # Both start in middle of year.
-    (("2020-04-21", "2020-06-20"), ("15T", "H"), "2020-06-20"),
-    (("2020-04-21", "2020-06-20"), ("15T", "D"), "2020-06-20"),
-    (("2020-04-21", "2020-07-01"), ("H", "MS"), "2020-07-01"),
-    (("2020-04-21", "2020-07-01"), ("H", "QS"), "2020-07-01"),
-    (("2020-04-21", "2021-01-01"), ("D", "AS"), "2021-01-01"),
+    (
+        ("2020-04-21", "2023-01-01"),
+        ("2020-06-20", "2023-01-01"),
+        ("15min", "h"),
+        ("2020-06-20", "2023-01-01"),
+        ("2020-06-20", "2023-01-01"),
+    ),
+    (
+        ("2020-04-21", "2023-01-01"),
+        ("2020-06-20", "2023-01-01"),
+        ("15min", "D"),
+        ("2020-06-20", "2023-01-01"),
+        ("2020-06-20", "2023-01-01"),
+    ),
+    (
+        ("2020-04-21", "2023-01-01"),
+        ("2020-07-01", "2023-01-01"),
+        ("h", "MS"),
+        ("2020-07-01", "2023-01-01"),
+        ("2020-07-01", "2023-01-01"),
+    ),
+    (
+        ("2020-04-21", "2023-01-01"),
+        ("2020-07-01", "2023-01-01"),
+        ("h", "QS"),
+        ("2020-07-01", "2023-01-01"),
+        ("2020-07-01", "2023-01-01"),
+    ),
+    (
+        ("2020-04-21", "2023-01-01"),
+        ("2021-01-01", "2023-01-01"),
+        ("D", "YS"),
+        ("2021-01-01", "2023-01-01"),
+        ("2021-01-01", "2023-01-01"),
+    ),
+    (
+        ("2020-03-21", "2022-04-01"),
+        ("2020-04-01", "2022-04-01"),
+        ("D", "YS-APR"),
+        ("2020-04-01", "2022-04-01"),
+        ("2020-04-01", "2022-04-01"),
+    ),
+    # the start and end dates of the resulting intersection are not the same for first and second index
+    (
+        ("2020-03-01", "2021-02-01"),
+        ("2020-05-01", "2021-02-01"),
+        ("MS", "QS-MAY"),
+        ("2020-05-01", "2021-02-01"),
+        ("2020-05-01", "2021-02-01"),
+    ),
+    (
+        ("2020-03-01", "2021-04-01"),
+        ("2020-04-01", "2021-03-01"),
+        ("MS", "YS-APR"),
+        ("2020-04-01", "2021-04-01"),
+        ("2020-04-01", "2021-03-01"),
+    ),
+    (
+        ("2020-01-01", "2021-04-01"),
+        ("2020-04-01", "2021-03-01"),
+        ("QS", "YS-APR"),
+        ("2020-04-01", "2021-02-01"),
+        ("2020-04-01", "2021-03-01"),
+    ),
+    # add test case with empty index
 ]
 
 
@@ -63,6 +154,7 @@ def get_idx(
     return pd.date_range(ts_start, ts_end, freq=freq, inclusive="left")
 
 
+# NOTE: ignore_start_of_day gives ValueError if we have freq == "15min" or freq == "h"
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
 @pytest.mark.parametrize(("startdates", "freq", "expected_startdate"), TESTCASES)
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
@@ -95,14 +187,18 @@ def test_intersect_flex_ignore_start_of_day(
     do_test_intersect(
         "idx",
         idxs,
-        expected_startdate,
+        expected_startdate_1=(
+            ValueError if freq == "15min" or freq == "h" else expected_startdate
+        ),
+        expected_startdate_2=expected_startdate,
         expected_tz=tz,
         expected_freq=freq,
         expected_starttime=starttime,
         expected_otherstarttime=otherstarttime,
         expected_othertz=tz,
         expected_otherfreq=freq,
-        enddate=COMMON_END,
+        enddate_1=COMMON_END,
+        enddate_2=COMMON_END,
         ignore_start_of_day=True,
     )
 
@@ -127,77 +223,101 @@ def test_intersect_flex_ignore_tz(
     do_test_intersect(
         "idx",
         idxs,
-        expected_startdate,
+        expected_startdate_1=expected_startdate,
+        expected_startdate_2=expected_startdate,
         expected_tz=tz,
         expected_freq=freq,
         expected_starttime=starttime,
         expected_otherstarttime=starttime,
         expected_othertz=othertz,
         expected_otherfreq=freq,
-        enddate=COMMON_END,
+        enddate_1=COMMON_END,
+        enddate_2=COMMON_END,
         ignore_tz=True,
     )
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize(("startdates", "freq", "expected_startdate"), TESTCASES_2)
+@pytest.mark.parametrize(
+    ("first_period", "second_period", "freq", "result1_dates", "result2_dates"),
+    TESTCASES_3,
+)
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 def test_intersect_flex_ignore_freq(
     # indexorframe: str,
-    startdates: Iterable[str],
+    first_period: Iterable[str],
+    second_period: Iterable[str],
     starttime: str,
     tz: str,
     freq: Iterable[str],
-    expected_startdate: str,
+    result1_dates: Iterable[str],
+    result2_dates: Iterable[str],
 ):
     """Test if intersection of indices with distinct frequencies gives correct result."""
 
     idxs = [
-        get_idx(startdates[0], starttime, tz, freq[0], COMMON_END_2),
-        get_idx(startdates[1], starttime, tz, freq[1], COMMON_END_2),
+        get_idx(first_period[0], starttime, tz, freq[0], first_period[1]),
+        get_idx(second_period[0], starttime, tz, freq[1], second_period[1]),
     ]
     do_test_intersect(
         "idx",
         idxs,
-        expected_startdate,
+        expected_startdate_1=result1_dates[0],
+        expected_startdate_2=result2_dates[0],
         expected_tz=tz,
         expected_freq=freq[0],
         expected_starttime=starttime,
         expected_otherstarttime=starttime,
         expected_othertz=tz,
         expected_otherfreq=freq[1],
-        enddate=COMMON_END_2,
+        enddate_1=result1_dates[1],
+        enddate_2=result2_dates[1],
         ignore_freq=True,
     )
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize(("startdates", "freq", "expected_startdate"), TESTCASES_2)
+@pytest.mark.parametrize(
+    ("first_period", "second_period", "freq", "result1_dates", "result2_dates"),
+    TESTCASES_3,
+)
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 def test_ignore_all(  # indexorframe: str,
-    startdates: Iterable[str],
+    # indexorframe: str,
+    first_period: Iterable[str],
+    second_period: Iterable[str],
     starttime: str,
     tz: str,
     freq: Iterable[str],
-    expected_startdate: str,
+    result1_dates: Iterable[str],
+    result2_dates: Iterable[str],
 ):
     otherstarttime = "00:00" if starttime == "06:00" else "06:00"
     othertz = None if tz == "Europe/Berlin" else "Europe/Berlin"
     idxs = [
-        get_idx(startdates[0], starttime, tz, freq[0], COMMON_END_2),
-        get_idx(startdates[1], otherstarttime, othertz, freq[1], COMMON_END_2),
+        get_idx(first_period[0], starttime, tz, freq[0], first_period[1]),
+        get_idx(second_period[0], otherstarttime, othertz, freq[1], second_period[1]),
     ]
     do_test_intersect(
         "idx",
         idxs,
-        expected_startdate,
+        expected_startdate_1=(
+            ValueError
+            if freq[0] == "15min"
+            or freq[0] == "h"
+            or freq[1] == "15min"
+            or freq[1] == "h"
+            else result1_dates[0]
+        ),
+        expected_startdate_2=result2_dates[0],
         expected_tz=tz,
         expected_freq=freq[0],
         expected_starttime=starttime,
         expected_otherstarttime=otherstarttime,
         expected_othertz=othertz,
         expected_otherfreq=freq[1],
-        enddate=COMMON_END_2,
+        enddate_1=result1_dates[1],
+        enddate_2=result2_dates[1],
         ignore_freq=True,
         ignore_start_of_day=True,
         ignore_tz=True,
@@ -207,14 +327,16 @@ def test_ignore_all(  # indexorframe: str,
 def do_test_intersect(
     indexorframe: str,
     idxs: Iterable[pd.DatetimeIndex],
-    expected_startdate: Union[str, Exception],
+    expected_startdate_1: str | Exception,
+    expected_startdate_2: str,
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,
     expected_otherstarttime: str = None,
     expected_othertz: str = None,
     expected_otherfreq: str = None,
-    enddate: str = None,
+    enddate_1: str = None,
+    enddate_2: str = None,
     ignore_start_of_day: bool = False,
     ignore_tz: bool = False,
     ignore_freq: bool = False,
@@ -222,14 +344,16 @@ def do_test_intersect(
     if indexorframe == "idx":
         do_test_intersect_index(
             idxs,
-            expected_startdate,
+            expected_startdate_1,
+            expected_startdate_2,
             expected_starttime,
             expected_tz,
             expected_freq,
             expected_otherstarttime,
             expected_othertz,
             expected_otherfreq,
-            enddate,
+            enddate_1,
+            enddate_2,
             ignore_start_of_day,
             ignore_tz,
             ignore_freq,
@@ -238,23 +362,25 @@ def do_test_intersect(
 
 def do_test_intersect_index(
     idxs: Iterable[pd.DatetimeIndex],
-    expected_startdate: Union[str, Exception],
+    expected_startdate_1: str,
+    expected_startdate_2: str,
     expected_starttime: str = None,
     expected_tz: str = None,
     expected_freq: str = None,
     expected_otherstarttime: str = None,
     expected_othertz: str = None,
     expected_otherfreq: str = None,
-    enddate: str = None,
+    enddate_1: str = None,
+    enddate_2: str = None,
     ignore_start_of_day: bool = False,
     ignore_tz: bool = False,
     ignore_freq: bool = False,
 ):
     # Error case.
-    if isinstance(expected_startdate, type) and issubclass(
-        expected_startdate, Exception
+    if isinstance(expected_startdate_1, type) and issubclass(
+        expected_startdate_1, Exception
     ):
-        with pytest.raises(expected_startdate):
+        with pytest.raises(expected_startdate_1):
             tools.intersect.indices_flex(
                 *idxs,
                 ignore_start_of_day=False,
@@ -270,18 +396,18 @@ def do_test_intersect_index(
         ignore_freq=ignore_freq,
     )
     expected_a = get_idx(
-        expected_startdate,
+        expected_startdate_1,
         expected_starttime,
         expected_tz,
         expected_freq,
-        enddate,
+        enddate_1,
     )
     expected_b = get_idx(
-        expected_startdate,
+        expected_startdate_2,
         expected_otherstarttime,
         expected_othertz,
         expected_otherfreq,
-        enddate,
+        enddate_2,
     )
     testing.assert_index_equal(out_a, expected_a)
     testing.assert_index_equal(out_b, expected_b)

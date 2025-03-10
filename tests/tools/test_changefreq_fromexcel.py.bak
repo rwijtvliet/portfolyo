@@ -1,26 +1,26 @@
 import functools
 from pathlib import Path
-from typing import Tuple, Union
+from typing import Tuple
 
 import pandas as pd
 import pytest
 
 from portfolyo import testing, tools
 
-freqs_small_to_large = ["T", "5T", "15T", "30T", "H", "2H", "D", "MS", "QS", "AS"]
+freqs_small_to_large = ["min", "5min", "15min", "30min", "h", "2h", "D", "MS", "QS", "YS"]
 
 # No timezone.
 
-i1 = pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="H", inclusive="left")
+i1 = pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="h", inclusive="left")
 s1 = pd.Series(range(len(i1)), i1)
 
 s1_15t_sum = pd.Series(
     [v2 for v in range(len(i1)) for v2 in [v / 4.0] * 4],
-    pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="15T", inclusive="left"),
+    pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="15min", inclusive="left"),
 )
 s1_15t_avg = pd.Series(
     [v2 for v in range(len(i1)) for v2 in [v * 1.0] * 4],
-    pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="15T", inclusive="left"),
+    pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="15min", inclusive="left"),
 )
 
 s1_d_sum = pd.Series([564.0, 1140], pd.date_range("2020-01-16", freq="D", periods=2))
@@ -33,7 +33,7 @@ s1_q_sum = s1_q_avg = pd.Series(
     [], pd.date_range("2020", periods=0, freq="QS"), dtype=float
 )
 s1_a_sum = s1_a_avg = pd.Series(
-    [], pd.date_range("2020", periods=0, freq="AS"), dtype=float
+    [], pd.date_range("2020", periods=0, freq="YS"), dtype=float
 )
 
 # Timezone, no DST.
@@ -78,16 +78,16 @@ def withtz(sin):
 
 i3_start, i3_end = "2020-03-28 12:00", "2020-03-31 12:00"
 tz = "Europe/Berlin"
-i3 = pd.date_range(i3_start, i3_end, freq="H", inclusive="left", tz=tz)
+i3 = pd.date_range(i3_start, i3_end, freq="h", inclusive="left", tz=tz)
 s3 = pd.Series(range(len(i3)), i3)
 
 s3_15t_sum = pd.Series(
     [v2 for v in range(len(i3)) for v2 in [v / 4.0] * 4],
-    pd.date_range(i3_start, i3_end, freq="15T", inclusive="left", tz=tz),
+    pd.date_range(i3_start, i3_end, freq="15min", inclusive="left", tz=tz),
 )
 s3_15t_avg = pd.Series(
     [v2 for v in range(len(i3)) for v2 in [v * 1.0] * 4],
-    pd.date_range(i3_start, i3_end, freq="15T", inclusive="left", tz=tz),
+    pd.date_range(i3_start, i3_end, freq="15min", inclusive="left", tz=tz),
 )
 
 s3_d_sum = pd.Series(
@@ -104,22 +104,22 @@ s3_q_sum = s3_q_avg = pd.Series(
     [], pd.date_range("2020", periods=0, freq="QS", tz=tz), dtype=float
 )
 s3_a_sum = s3_a_avg = pd.Series(
-    [], pd.date_range("2020", periods=0, freq="AS", tz=tz), dtype=float
+    [], pd.date_range("2020", periods=0, freq="YS", tz=tz), dtype=float
 )
 
 # Timezone, end of DST.
 
 i4_start, i4_end = "2020-10-24 12:00", "2020-10-27 12:00"
-i4 = pd.date_range(i4_start, i4_end, freq="H", inclusive="left", tz=tz)
+i4 = pd.date_range(i4_start, i4_end, freq="h", inclusive="left", tz=tz)
 s4 = pd.Series(range(len(i4)), i4)
 
 s4_15t_sum = pd.Series(
     [v2 for v in range(len(i4)) for v2 in [v / 4.0] * 4],
-    pd.date_range(i4_start, i4_end, freq="15T", inclusive="left", tz=tz),
+    pd.date_range(i4_start, i4_end, freq="15min", inclusive="left", tz=tz),
 )
 s4_15t_avg = pd.Series(
     [v2 for v in range(len(i4)) for v2 in [v * 1.0] * 4],
-    pd.date_range(i4_start, i4_end, freq="15T", inclusive="left", tz=tz),
+    pd.date_range(i4_start, i4_end, freq="15min", inclusive="left", tz=tz),
 )
 
 s4_d_sum = pd.Series(
@@ -136,7 +136,7 @@ s4_q_sum = s4_q_avg = pd.Series(
     [], pd.date_range("2020", periods=0, freq="QS", tz=tz), dtype=float
 )
 s4_a_sum = s4_a_avg = pd.Series(
-    [], pd.date_range("2020", periods=0, freq="AS", tz=tz), dtype=float
+    [], pd.date_range("2020", periods=0, freq="YS", tz=tz), dtype=float
 )
 
 # Months (= unequal lengths) as starting point.
@@ -166,7 +166,7 @@ s5_q_avg = pd.Series(
 )
 
 s5_a_sum = s5_a_avg = pd.Series(
-    [], pd.date_range("2020", periods=0, freq="AS"), dtype=float
+    [], pd.date_range("2020", periods=0, freq="YS"), dtype=float
 )
 
 # Months (= unequal lengths) as starting point, with DST
@@ -206,39 +206,39 @@ s6_q_avg = pd.Series(
 )
 
 s6_a_sum = s6_a_avg = pd.Series(
-    [], pd.date_range("2020", periods=0, freq="AS", tz=tz), dtype=float
+    [], pd.date_range("2020", periods=0, freq="YS", tz=tz), dtype=float
 )
 
 
 @pytest.mark.parametrize(
     ("s", "freq", "expected"),
     [
-        (s1, "15T", s1_15t_sum),
+        (s1, "15min", s1_15t_sum),
         (s1, "D", s1_d_sum),
         (s1, "MS", s1_m_sum),
         (s1, "QS", s1_q_sum),
-        (s1, "AS", s1_a_sum),
-        (s2, "15T", s2_15t_sum),
+        (s1, "YS", s1_a_sum),
+        (s2, "15min", s2_15t_sum),
         (s2, "D", s2_d_sum),
         (s2, "MS", s2_m_sum),
         (s2, "QS", s2_q_sum),
-        (s2, "AS", s2_a_sum),
-        (s3, "15T", s3_15t_sum),
+        (s2, "YS", s2_a_sum),
+        (s3, "15min", s3_15t_sum),
         (s3, "D", s3_d_sum),
         (s3, "MS", s3_m_sum),
         (s3, "QS", s3_q_sum),
-        (s3, "AS", s3_a_sum),
-        (s4, "15T", s4_15t_sum),
+        (s3, "YS", s3_a_sum),
+        (s4, "15min", s4_15t_sum),
         (s4, "D", s4_d_sum),
         (s4, "MS", s4_m_sum),
         (s4, "QS", s4_q_sum),
-        (s4, "AS", s4_a_sum),
+        (s4, "YS", s4_a_sum),
         (s5, "D", s5_d_sum),
         (s5, "QS", s5_q_sum),
-        (s5, "AS", s5_a_sum),
+        (s5, "YS", s5_a_sum),
         (s6, "D", s6_d_sum),
         (s6, "QS", s6_q_sum),
-        (s6, "AS", s6_a_sum),
+        (s6, "YS", s6_a_sum),
     ],
 )
 def test_resample_summable(s, freq, expected):
@@ -250,32 +250,32 @@ def test_resample_summable(s, freq, expected):
 @pytest.mark.parametrize(
     ("s", "freq", "expected"),
     [
-        (s1, "15T", s1_15t_avg),
+        (s1, "15min", s1_15t_avg),
         (s1, "D", s1_d_avg),
         (s1, "MS", s1_m_avg),
         (s1, "QS", s1_q_avg),
-        (s1, "AS", s1_a_avg),
-        (s2, "15T", s2_15t_avg),
+        (s1, "YS", s1_a_avg),
+        (s2, "15min", s2_15t_avg),
         (s2, "D", s2_d_avg),
         (s2, "MS", s2_m_avg),
         (s2, "QS", s2_q_avg),
-        (s2, "AS", s2_a_avg),
-        (s3, "15T", s3_15t_avg),
+        (s2, "YS", s2_a_avg),
+        (s3, "15min", s3_15t_avg),
         (s3, "D", s3_d_avg),
         (s3, "MS", s3_m_avg),
         (s3, "QS", s3_q_avg),
-        (s3, "AS", s3_a_avg),
-        (s4, "15T", s4_15t_avg),
+        (s3, "YS", s3_a_avg),
+        (s4, "15min", s4_15t_avg),
         (s4, "D", s4_d_avg),
         (s4, "MS", s4_m_avg),
         (s4, "QS", s4_q_avg),
-        (s4, "AS", s4_a_avg),
+        (s4, "YS", s4_a_avg),
         (s5, "D", s5_d_avg),
         (s5, "QS", s5_q_avg),
-        (s5, "AS", s5_a_avg),
+        (s5, "YS", s5_a_avg),
         (s6, "D", s6_d_avg),
         (s6, "QS", s6_q_avg),
-        (s6, "AS", s6_a_avg),
+        (s6, "YS", s6_a_avg),
     ],
 )
 def test_resample_avgable(s, freq, expected):
@@ -287,14 +287,14 @@ def test_resample_avgable(s, freq, expected):
 # Using gas days instead of calendar days.
 
 # . no tz
-i7 = pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="H", inclusive="left")
+i7 = pd.date_range("2020-01-15 12:00", "2020-01-18 12:00", freq="h", inclusive="left")
 s7 = pd.Series(range(len(i7)), i7)
 s7_d_sum = pd.Series([708.0, 1284], pd.date_range("2020-01-16", freq="D", periods=2))
 s7_d_avg = pd.Series([29.5, 53.5], pd.date_range("2020-01-16", freq="D", periods=2))
 
 # . start of dst
 i8 = pd.date_range(
-    "2020-03-26 12:00", "2020-03-30 12:00", freq="H", inclusive="left", tz=tz
+    "2020-03-26 12:00", "2020-03-30 12:00", freq="h", inclusive="left", tz=tz
 )
 s8 = pd.Series(range(len(i8)), i8)
 s8_d_sum = pd.Series(
@@ -306,7 +306,7 @@ s8_d_avg = pd.Series(
 
 # . end of dst
 i9 = pd.date_range(
-    "2020-10-22 12:00", "2020-10-26 12:00", freq="H", inclusive="left", tz=tz
+    "2020-10-22 12:00", "2020-10-26 12:00", freq="h", inclusive="left", tz=tz
 )
 s9 = pd.Series(range(len(i9)), i9)
 s9_d_sum = pd.Series(
@@ -357,7 +357,7 @@ s9_d_avg = pd.Series(
 # def aggdata():
 #     # Sample data
 #     i_15T = pd.date_range(
-#         "2020", "2022", freq="15T", tz="Europe/Berlin", inclusive="left"
+#         "2020", "2022", freq="15min", tz="Europe/Berlin", inclusive="left"
 #     )
 
 #     def value_func(mean, ampl_a, ampl_m, ampl_d):
@@ -381,7 +381,7 @@ s9_d_avg = pd.Series(
 
 #     # Seperate the values in bins for later aggregation.
 #     def isstart_f(freq):
-#         if freq == "AS":
+#         if freq == "YS":
 #             return lambda ts: ts.floor("D") == ts and ts.is_year_start
 #         if freq == "QS":
 #             return lambda ts: ts.floor("D") == ts and ts.is_quarter_start
@@ -389,7 +389,7 @@ s9_d_avg = pd.Series(
 #             return lambda ts: ts.floor("D") == ts and ts.is_month_start
 #         if freq == "D":
 #             return lambda ts: ts.floor("D") == ts
-#         if freq == "H":
+#         if freq == "h":
 #             return lambda ts: ts.minute == 0
 #         raise ValueError("Invalid value for `freq`.")
 
@@ -401,7 +401,7 @@ s9_d_avg = pd.Series(
 #             "hours": [],
 #             "new": isstart_f(freq),
 #         }
-#         for freq in ["H", "D", "MS", "QS", "AS"]
+#         for freq in ["h", "D", "MS", "QS", "YS"]
 #     }
 #     for ts, val, dur in zip(source.index, source.values, source.index.duration):
 #         for freq, dic in agg_data.items():
@@ -413,7 +413,7 @@ s9_d_avg = pd.Series(
 #             dic["values"][-1].append(val)
 #             dic["durations"][-1].append(dur)
 #             dic["hours"][-1].append(dur.magnitude)
-#     agg_data["15T"] = {
+#     agg_data["15min"] = {
 #         "values": [[v] for v in source.values],
 #         "durations": [[d] for d in source.index.duration],
 #         "hours": [[d.magnitude] for d in source.index.duration],
@@ -578,7 +578,7 @@ def get_testframes(
     avg_or_sum: str,
     series_or_df: str,
     with_units: str,
-) -> Tuple[Union[pd.DataFrame, pd.Series]]:
+) -> Tuple[pd.DataFrame | pd.Series]:
     source_s = get_df_from_excel(source_freq, tz)[source_freq]
     if target_freq is None:
         target_s = source_s

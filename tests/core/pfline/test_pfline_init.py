@@ -3,7 +3,7 @@
 import random
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Iterable, Union
+from typing import Any, Callable, Iterable
 
 import pandas as pd
 import pytest
@@ -11,6 +11,19 @@ import pytest
 import portfolyo as pf
 from portfolyo import Kind, PfLine, create, dev
 from portfolyo.core.pfline import classes
+
+TEST_FREQUENCIES = [
+    "15min",
+    "h",
+    "D",
+    "MS",
+    "QS",
+    "QS-FEB",
+    "QS-APR",
+    "YS",
+    "YS-FEB",
+    "YS-APR",
+]
 
 
 @dataclass
@@ -173,7 +186,7 @@ def anyerror(*args):
 
 
 @pytest.mark.only_on_pr
-@pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES[::2])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("columns", ["w", "q", "p", "pr", "qr", "pq", "wp", "wr"])
 @pytest.mark.parametrize("inputtype", InputTypeA)
@@ -187,7 +200,7 @@ def test_init_A(
     columns: Iterable[str],
     inputtype: InputTypeA,
     has_unit: bool,
-    constructor: Union[Callable, type],
+    constructor: Callable | type,
 ):
     """Test if pfline can be initialized correctly from a flat testcase."""
 
@@ -213,7 +226,7 @@ def test_init_A(
 
 
 @pytest.mark.only_on_pr
-@pytest.mark.parametrize("freq", pf.FREQUENCIES[::2])
+@pytest.mark.parametrize("freq", TEST_FREQUENCIES[::2])
 @pytest.mark.parametrize("tz", ["Europe/Berlin", None])
 @pytest.mark.parametrize("kind", Kind)
 @pytest.mark.parametrize("inputtype", InputTypeB)
@@ -253,3 +266,36 @@ def test_init_with_integers(col: str):
     pfl = pf.PfLine(s)
     for dtype in pfl.df.pint.dequantify().dtypes.values:
         assert not pd.api.types.is_integer_dtype(dtype)
+
+
+@pytest.mark.parametrize("inclusive", ["left", "both"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
+def test_contain_whole_day(inclusive: str, freq: str):
+    """An index must contain full days.
+    For hourly-or-shorter values, this means that the start time of the first period must equal the end time of the last period.
+    """
+    index = pd.date_range(
+        "2020-01-01", "2020-02-01", freq=freq, tz="Europe/Berlin", inclusive=inclusive
+    )
+    if inclusive == "left":
+        # This should work without any error
+        pfl = dev.get_flatpfline(index)
+        assert isinstance(pfl, PfLine)
+        pf.testing.assert_index_equal(pfl.index, index)
+        assert pfl.start == index[0]
+        assert pfl.end not in index  # because exclusive
+    else:
+        # For "both" inclusive, it should raise an error
+        with pytest.raises(ValueError):
+            pfl = dev.get_flatpfline(index)
+
+
+@pytest.mark.parametrize("freq", ["D", "MS", "QS", "QS-MAY", "YS", "YS-APR"])
+def test_equal_sod(freq: str):
+    """In an index with daily-or-longer values, all timestamps (all periods) should start at the same time ."""
+    i = pd.date_range("2024-03-28", freq=freq, periods=10, tz="Europe/Berlin")
+    s = pd.Series(range(len(i)), i)
+    s = s.tz_convert(None)
+    s_pint = s.astype("pint[MW]")
+    with pytest.raises(ValueError):
+        pf.PfLine(s_pint)

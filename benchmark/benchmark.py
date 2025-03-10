@@ -65,7 +65,7 @@ def total_size(o, handlers={}, verbose=False):
 
 def benchmark_pfline(df):
     for le, ru in tqdm.tqdm(zip(LENGTHS, RUNS)):
-        i = pd.date_range("2020", periods=le, freq="15T")
+        i = pd.date_range("2020", periods=le, freq="15min")
         for cols in ["q", "p", "qr", "wp"]:
             print(f"{le=} {cols=}")
             data = pd.DataFrame({c: np.linspace(1, 1000, le) for c in cols}, i)
@@ -99,7 +99,7 @@ def benchmark_pfline(df):
 def benchmark_pfstate(df):
     for le, ru in tqdm.tqdm(zip(LENGTHS, RUNS)):
         print(f"{le=}")
-        i = pd.date_range("2020", periods=le, freq="15T")
+        i = pd.date_range("2020", periods=le, freq="15min")
         w_offtake = pf.dev.w_offtake(i)
         offtake = pf.PfLine(w_offtake)
         unsourced = pf.PfLine(pf.dev.p_marketprices(i))

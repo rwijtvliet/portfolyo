@@ -1,12 +1,11 @@
 """Prepare/verify input data for PfState initialisation."""
 
-
 import warnings
 from typing import Any, Iterable
 
 import pandas as pd
 
-from ... import testing, tools
+from ... import tools
 from ..pfline import Kind, PfLine, create
 
 
@@ -55,7 +54,7 @@ def prepare_unsourcedprice(unsourcedprice: Any, ref_idx: pd.DatetimeIndex) -> Pf
         )
         unsourcedprice = unsourcedprice.price
     try:
-        testing.assert_indices_compatible(ref_idx, unsourcedprice.index)
+        tools.testing.assert_indices_compatible(ref_idx, unsourcedprice.index)
     except AssertionError as e:
         raise ValueError from e
     if len(tools.intersect.indices(ref_idx, unsourcedprice.index)) < len(ref_idx):
@@ -74,7 +73,7 @@ def prepare_sourced(sourced: Any, ref_idx: pd.DatetimeIndex) -> PfLine:
     if sourced.kind is not Kind.COMPLETE:
         raise ValueError("Parameter ``sourced`` does not contain price and volume.")
     try:
-        testing.assert_indices_compatible(ref_idx, sourced.index)
+        tools.testing.assert_indices_compatible(ref_idx, sourced.index)
     except AssertionError as e:
         raise ValueError from e
     # HACK: Workaround for error in pandas intersection (#46702):

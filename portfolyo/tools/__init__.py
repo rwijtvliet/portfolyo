@@ -1,24 +1,30 @@
 """General tools; mainly to use on pandas objects."""
 
-# Unsure why this is needed, but remove and can no longer import portfolyo
+# Unsure why this is needed.
 from . import (
     ceil,
     changefreq,
-    changeyear,
     duration,
     floor,
     frame,
     freq,
+    hedge,
     intersect,
     isboundary,
     leftandright,
-    peakperiod,
+    peakconvert,
+    peakfn,
+    product,
     right,
     righttoleft,
+    round,
+    stamp,
     standardize,
+    startofday,
     trim,
+    types,
     tzone,
     unit,
+    visualize,
     wavg,
-    startofday,
 )

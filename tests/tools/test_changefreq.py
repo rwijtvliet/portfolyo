@@ -18,17 +18,17 @@ def idfn_midnight(
         else:
             return [ts.utcoffset().total_seconds() for ts in i]
 
-    if longestfreq == "15T":
+    if longestfreq == "15min":
         return lambda i: pd.Index(zip(i.year, i.month, i.day, i.hour, i.minute, utc(i)))
-    if longestfreq == "H":
+    if longestfreq == "h":
         return lambda i: pd.Index(zip(i.year, i.month, i.day, i.hour, utc(i)))
     if longestfreq == "D":
         return lambda i: pd.Index(zip(i.year, i.month, i.day))
     if longestfreq == "MS":
         return lambda i: pd.Index(zip(i.year, i.month))
-    if longestfreq == "QS":
+    if longestfreq == "QS" or longestfreq == "QS-APR":
         return lambda i: pd.Index(zip(i.year, i.quarter))
-    if longestfreq == "AS":
+    if longestfreq == "YS":
         return lambda i: i.year
 
 
@@ -61,17 +61,17 @@ def idfn_0600(longestfreq: str) -> Callable[[pd.DatetimeIndex], Iterable[Tuple[i
         mask = d == 0
         return d + mask * numofdaysinprevmonth(i)
 
-    if longestfreq == "15T":
+    if longestfreq == "15min":
         return lambda i: pd.Index(zip(i.year, i.month, i.day, i.hour, i.minute, utc(i)))
-    if longestfreq == "H":
+    if longestfreq == "h":
         return lambda i: pd.Index(zip(i.year, i.month, i.day, i.hour, utc(i)))
     if longestfreq == "D":
         return lambda i: pd.Index(zip(year(i), month(i), day(i)))
     if longestfreq == "MS":
         return lambda i: pd.Index(zip(year(i), month(i)))
-    if longestfreq == "QS":
+    if longestfreq == "QS" or longestfreq == "QS-APR":
         return lambda i: pd.Index(zip(year(i), quarter(i)))
-    if longestfreq == "AS":
+    if longestfreq == "YS":
         return lambda i: year(i)
 
 
@@ -152,20 +152,20 @@ def idxs_and_mapping(
 
 
 def startdate(freq):
-    if freq == "15T" or freq == "H" or freq == "D":
+    if freq == "15min" or freq == "h" or freq == "D":
         return "2019-12-15"
     if freq == "MS":
         return "2019-12-01"
-    if freq == "QS":
+    if freq == "QS" or freq == "QS-APR":
         return "2020-04-01"
-    if freq == "AS":
+    if freq == "YS":
         return "2020-01-01"
 
 
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_long", ["15T", "H", "D", "MS", "QS", "AS"])
-@pytest.mark.parametrize("freq_shrt", ["15T", "H", "D", "MS", "QS", "AS"])
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
+@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_downsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: str):
     """Test downsampling of indices."""
 
@@ -183,8 +183,8 @@ def test_downsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: st
 
 @pytest.mark.parametrize("starttime", ["00:00", "06:00"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_long", ["15T", "H", "D", "MS", "QS", "AS"])
-@pytest.mark.parametrize("freq_shrt", ["15T", "H", "D", "MS", "QS", "AS"])
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
+@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_upsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: str):
     """Test upsampling of indices."""
 
@@ -208,8 +208,8 @@ def test_upsample_index(freq_shrt: str, tz: str, freq_long: str, starttime: str)
 @pytest.mark.parametrize("seriesordf", ["s", "s_unit", "df", "df_unit"])
 @pytest.mark.parametrize("complexity", ["ones", "allnumbers"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_long", ["15T", "H", "D", "MS", "QS", "AS"])
-@pytest.mark.parametrize("freq_shrt", ["15T", "H", "D", "MS", "QS", "AS"])
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
+@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_downsample_summable(
     seriesordf: str,
     freq_shrt: str,
@@ -243,8 +243,8 @@ def test_downsample_summable(
 @pytest.mark.parametrize("seriesordf", ["s", "s_unit", "df", "df_unit"])
 @pytest.mark.parametrize("complexity", ["ones", "allnumbers"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_long", ["15T", "H", "D", "MS", "QS", "AS"])
-@pytest.mark.parametrize("freq_shrt", ["15T", "H", "D", "MS", "QS", "AS"])
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
+@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_downsample_avgable(
     seriesordf: str,
     freq_shrt: str,
@@ -278,8 +278,8 @@ def test_downsample_avgable(
 @pytest.mark.parametrize("seriesordf", ["s", "s_unit", "df", "df_unit"])
 @pytest.mark.parametrize("complexity", ["ones", "allnumbers"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_shrt", ["15T", "H", "D", "MS", "QS", "AS"])
-@pytest.mark.parametrize("freq_long", ["15T", "H", "D", "MS", "QS", "AS"])
+@pytest.mark.parametrize("freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_upsample_avgable(
     seriesordf: str,
     freq_long: str,
@@ -315,8 +315,10 @@ def test_upsample_avgable(
 @pytest.mark.parametrize("seriesordf", ["s", "s_unit", "df", "df_unit"])
 @pytest.mark.parametrize("complexity", ["ones", "allnumbers"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
-@pytest.mark.parametrize("freq_shrt", ["15T", "H", "D", "MS", "QS", "AS"])
-@pytest.mark.parametrize("freq_long", ["15T", "H", "D", "MS", "QS", "AS"])
+@pytest.mark.parametrize(
+    "freq_shrt", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"]
+)  # SOS!: freq 'QS' and 'QS-APR' are not converting into 1 another because they are treated as the same freq
+@pytest.mark.parametrize("freq_long", ["15min", "h", "D", "MS", "QS", "QS-APR", "YS"])
 def test_upsample_summable(
     seriesordf: str,
     freq_long: str,
@@ -386,3 +388,45 @@ def do_test(
         expected = pd.DataFrame({"a": s_expected})
         result = fn(fr, freq_target)
         testing.assert_frame_equal(result, expected)
+
+
+TESTCASES = [  # period, freqs, result
+    (
+        ("2020-02-01", "2023-01-01"),
+        ("MS", "QS-APR"),
+        ("2020-04-01", "2022-10-01"),
+    ),
+    (
+        ("2020-01-01", "2023-01-01"),
+        ("MS", "QS-APR"),
+        ("2020-01-01", "2022-10-01"),
+    ),
+    (
+        ("2020-01-01", "2023-01-01"),
+        ("MS", "YS-APR"),
+        ("2020-04-01", "2021-04-01"),
+    ),
+    (
+        ("2020-04-01", "2022-04-01"),
+        ("YS-APR", "QS"),
+        ("2020-04-01", "2022-01-01"),
+    ),
+]
+
+
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin", "Asia/Kolkata"])
+@pytest.mark.parametrize(("period", "freq", "expected_result"), TESTCASES)
+@pytest.mark.parametrize("starttime", ["00:00", "06:00"])
+def test_index_new_freq(
+    period: Iterable[str],
+    starttime: str,
+    tz: str,
+    freq: Iterable[str],
+    expected_result: Iterable[str],
+):
+    index = pd.date_range(period[0], period[1], freq=freq[0], inclusive="left")
+    expected_result = pd.date_range(
+        expected_result[0], expected_result[1], freq=freq[1]
+    )
+    result = tools.changefreq.index(index, freq[1])
+    testing.assert_index_equal(result, expected_result)

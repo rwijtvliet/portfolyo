@@ -3,7 +3,7 @@ Code to quickly get objects for testing.
 """
 
 import datetime as dt
-from typing import Dict, Union, Callable, Tuple
+from typing import Callable, Dict, Tuple
 
 import numpy as np
 import pandas as pd
@@ -15,7 +15,7 @@ from . import mockup
 
 OK_COL_COMBOS = ["w", "q", "p", "pr", "qr", "qp", "wp", "wr"]
 
-INDEX_LEN = {"AS": 4, "QS": 5, "MS": 14, "D": 400, "H": 10_000, "15T": 50_000}
+INDEX_LEN = {"YS": 4, "QS": 5, "MS": 14, "D": 400, "h": 10_000, "15min": 50_000}
 
 
 def get_index(
@@ -28,35 +28,47 @@ def get_index(
     _seed: int = None,
 ) -> pd.DatetimeIndex:
     """Get index."""
+    # Prepare values.
     if _seed:
         np.random.seed(_seed)
     if not periods:
         standard_len = INDEX_LEN.get(freq, 10)
         periods = np.random.randint(standard_len // 2, standard_len * 2)
-        if tools.freq.up_or_down(freq, "H") <= 0 and tz is None:
-            # Shorten index to not include timestamp that do not exist in Europe/Berlin.
-            periods = min(periods, 4000)
     if not startdate:
-        a, m, d = 2020, 1, 1
-        a += np.random.randint(-4, 4) if _seed else (periods % 20 - 10)
+        a, m, d = 2016, 1, 1  # earliest possible
+        a += np.random.randint(0, 8) if _seed else (periods % 8)
         if tools.freq.up_or_down(freq, "MS") <= 0:
             m += np.random.randint(0, 12) if _seed else (periods % 12)
         if tools.freq.up_or_down(freq, "D") <= 0:
             d += np.random.randint(0, 28) if _seed else (periods % 28)
-        if tools.freq.up_or_down(freq, "H") <= 0 and tz is None:
-            # Start index after DST-start to not include timestamps that do not exist in Europe/Berlin.
-            m, d = 4, 2
         startdate = f"{a}-{m}-{d}"
     if not start_of_day:
         start_of_day = dt.time(hour=0, minute=0)
-    starttime = f"{start_of_day.hour:02}:{start_of_day.minute:02}:00"
-    start = f"{startdate} {starttime}"
-    return pd.date_range(start, freq=freq, periods=periods, tz=tz)
+    # Create index.
+    start = tools.stamp.create(startdate, tz, start_of_day)
+    i = pd.date_range(start, periods=periods, freq=freq)  # tz included in start
+    # Some checks.
+    if tools.freq.up_or_down(freq, "h") <= 0:
+        i = _shorten_index_if_necessary(i, start_of_day)
+    return i
+
+
+def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:
+    """Shorten index with (quarter)hourly values if necessary to ensure that an integer
+    number of calendar days is included."""
+    if (i[-1] - i[0]).total_seconds() < 23 * 3600:
+        raise ValueError("Index must contain at least one full day")
+    # Must ensure that index is integer number of days.
+    for _ in range(0, 100):  # max 100 quarterhours in a day (@ end of DST)
+        if tools.right.stamp(i[-1], i.freq).time() == start_of_day:
+            return i
+        i = i[:-1]
+    raise ValueError("Can't find timestamp to end index on.")
 
 
 def get_value(
     name: str = None, has_unit: bool = True, magn: float = None, *, _seed: int = None
-) -> Union[float, tools.unit.Q_]:
+) -> float | tools.unit.Q_:
     """Get a single value."""
     if _seed:
         np.random.seed(_seed)
@@ -198,7 +210,7 @@ def get_pfline(
     childcount : int, optional (default: 2)
         Number of children on each level. (Ignored if `nlevels` == 1)
     positive : bool, optional (default: False)
-        If True, return only positive values. If False, make 1/3 of pflines negative.
+        If True, return only positive values. If False, make 1/2 of pflines negative.
     _ancestornames : Tuple[str], optional (default: ())
         Text to start the childrens' names with (concatenated with '-')
     _seed : int, optional (default: no seed value)
@@ -222,7 +234,7 @@ def get_pfline(
             Kind.COMPLETE: "qr",
         }[kind]
         df = get_dataframe(i, columns, _seed=_seed)
-        if not positive and np.random.rand() < 0.33:
+        if not positive and np.random.randint(1, 4) == 1:
             df = -1 * df  # HACK: `-df` leads to error in pint. Maybe fixed in future
         return create.flatpfline(df)
     # Create nested PfLine.

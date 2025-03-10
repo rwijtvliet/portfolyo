@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
@@ -13,8 +13,6 @@ from . import pfstate
 if TYPE_CHECKING:  # needed to avoid circular imports
     from . import PfState
 
-from ... import testing
-
 
 class Prep:
     def assert_objects_indexcompatibility(fn):
@@ -22,7 +20,7 @@ class Prep:
 
         def wrapper(o1, o2, *args, **kwargs):
             try:
-                testing.assert_indices_compatible(o1.index, o2.index)
+                tools.testing.assert_indices_compatible(o1.index, o2.index)
             except AssertionError as e:
                 raise NotImplementedError from e
             return fn(o1, o2, *args, **kwargs)
@@ -38,9 +36,7 @@ class Prep:
 
         return wrapper
 
-    def _prep_data(
-        value, refindex: pd.DatetimeIndex
-    ) -> Union[pd.Series, PfLine, PfState]:
+    def _prep_data(value, refindex: pd.DatetimeIndex) -> pd.Series | PfLine | PfState:
         """Turn ``value`` into PfLine or PfState if possible. If not, turn into (normal or unit-aware) Series."""
 
         # None.

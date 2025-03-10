@@ -1,11 +1,10 @@
 """Tools to deal with timezones."""
 
-from typing import Union
-
 import pandas as pd
 import pytz
 
 from . import freq as tools_freq
+from .types import Series_or_DataFrame
 
 """
 (hourly means: hourly or shorter)
@@ -18,7 +17,7 @@ C: tz-naive indices for a location with DST. There is a problem if an index incl
 DST-transition:
 - When representing hourly values, there are (correctly) skipped or doubled timestamps.
 However, the freq cannot be inferred.
-- When represinging daily values, all timestamps are present and a freq can be inferred.
+- When representing daily values, all timestamps are present and a freq can be inferred.
 However, not all timestamps have the correct duration (e.g., 24h when day actually has
 23h or 25h).
 
@@ -56,8 +55,8 @@ It's therefore hard to determine, which it is.
 
 
 def force_aware(
-    fr: Union[pd.Series, pd.DataFrame], tz: str, *, floating: bool = True
-) -> Union[pd.Series, pd.DataFrame]:
+    fr: Series_or_DataFrame, tz: str, *, floating: bool = True
+) -> Series_or_DataFrame:
     """Convert/set series or dataframe to a specific timezone.
 
     Parameters
@@ -115,7 +114,7 @@ def force_aware(
         )
 
     # Copy, try to set freq, and store original attributes.
-    fr = tools_freq.set_to_frame(fr)
+    fr = tools_freq.guess_to_frame(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
     if not freq_input:
@@ -136,9 +135,7 @@ def force_aware(
     return fr_out
 
 
-def force_agnostic(
-    fr: Union[pd.Series, pd.DataFrame]
-) -> Union[pd.Series, pd.DataFrame]:
+def force_agnostic(fr: Series_or_DataFrame) -> Series_or_DataFrame:
     """Turn a frame (series or dataframe) into timezone-agnostic frame.
 
     Parameters
@@ -174,7 +171,7 @@ def force_agnostic(
       this conversion is probably what we want, regardless of the unit.
     """
     # Copy, try to set freq, and store original attributes.
-    fr = tools_freq.set_to_frame(fr)
+    fr = tools_freq.guess_to_frame(fr)
     freq_input, tz_input = fr.index.freq, fr.index.tz
 
     if not freq_input:
@@ -195,9 +192,7 @@ def force_agnostic(
     return fr_out
 
 
-def _A_to_A(
-    fr: Union[pd.Series, pd.DataFrame], *, tz, floating
-) -> Union[pd.Series, pd.DataFrame]:
+def _A_to_A(fr: Series_or_DataFrame, *, tz: str, floating: bool) -> Series_or_DataFrame:
     if isinstance(tz, str):  # convert to make comparison (below) possible
         tz = pytz.timezone(tz)
 
@@ -215,18 +210,16 @@ def _A_to_A(
         return _B_to_A(_A_to_B(fr), tz=tz)
 
 
-def _A_to_B(fr: Union[pd.Series, pd.DataFrame]) -> Union[pd.Series, pd.DataFrame]:
+def _A_to_B(fr: Series_or_DataFrame) -> Series_or_DataFrame:
     return _aware_to_agnostic(fr)
 
 
-def _B_to_A(
-    fr: Union[pd.Series, pd.DataFrame], *, tz
-) -> Union[pd.Series, pd.DataFrame]:
+def _B_to_A(fr: Series_or_DataFrame, *, tz) -> Series_or_DataFrame:
     return _agnostic_to_aware(fr, tz)
 
 
-def _idx_after_conversion(fr: Union[pd.Series, pd.DataFrame], tz) -> pd.DatetimeIndex:
-    fr = tools_freq.set_to_frame(fr)
+def _idx_after_conversion(fr: Series_or_DataFrame, tz) -> pd.DatetimeIndex:
+    fr = tools_freq.guess_to_frame(fr)
     freq_input = fr.index.freq
     if not freq_input:
         raise ValueError("Cannot recalculate values if frequency is not known.")
@@ -238,9 +231,7 @@ def _idx_after_conversion(fr: Union[pd.Series, pd.DataFrame], tz) -> pd.Datetime
     return idx
 
 
-def _agnostic_to_aware(
-    fr: Union[pd.Series, pd.DataFrame], tz: str
-) -> Union[pd.Series, pd.DataFrame]:
+def _agnostic_to_aware(fr: Series_or_DataFrame, tz: str) -> Series_or_DataFrame:
     """Recalculate values in tz-agnostic series or dataframe, to get a tz-aware one.
     (i.e., B to A)."""
     if tz_input := fr.index.tz:
@@ -263,9 +254,7 @@ def _agnostic_to_aware(
     return fr.loc[mapping_onto_input_index].set_axis(idx_out)
 
 
-def _aware_to_agnostic(
-    fr: Union[pd.Series, pd.DataFrame]
-) -> Union[pd.Series, pd.DataFrame]:
+def _aware_to_agnostic(fr: Series_or_DataFrame) -> Series_or_DataFrame:
     """Recalculate values in tz-aware series or dataframe, to get a tz-agnostic one.
     (i.e., A to B)."""
     if not fr.index.tz:

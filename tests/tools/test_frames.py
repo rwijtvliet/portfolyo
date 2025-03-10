@@ -26,7 +26,7 @@ from portfolyo import dev, testing, tools
         (range(7), 0),
         (range(-3, 4), 0),
         (pd.date_range("2020", periods=7, freq="D"), 0),
-        (pd.date_range("2020", periods=7, freq="M", tz="Europe/Berlin"), 0.04),
+        (pd.date_range("2020", periods=7, freq="ME", tz="Europe/Berlin"), 0.04),
     ],
 )
 def test_fill_gaps(values, index, maxgap, gapvalues, tol):
@@ -72,7 +72,7 @@ def test_addheader_tocolumns(df_columns, header, expected_columns):
 # TODO: put in ... fixture (?)
 test_index_D = dev.get_index("D")
 test_index_D_deconstructed = test_index_D.map(lambda ts: (ts.year, ts.month, ts.day))
-test_index_H = dev.get_index("H")
+test_index_H = dev.get_index("h")
 test_index_H_deconstructed = test_index_H.map(lambda ts: (ts.year, ts.month, ts.day))
 
 

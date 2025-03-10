@@ -7,14 +7,14 @@ import pandas as pd
 from . import freq as tools_freq
 
 
-def stamp(ts: pd.Timestamp, freq: str = None) -> pd.Timestamp:
+def stamp(ts: pd.Timestamp, freq: str) -> pd.Timestamp:
     f"""Right-bound timestamp belonging to left-bound timestamp.
 
     Parameters
     ----------
     ts : pd.Timestamp
         Timestamp for which to calculate the right-bound timestamp.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency to use in determining the right-bound timestamp.
 
     Returns

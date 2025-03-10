@@ -2,15 +2,15 @@
 Trim objects to only contain 'full' delivery periods.
 """
 
-from typing import Union
+from typing import overload
 
 import pandas as pd
 
 from . import ceil as tools_ceil
 from . import floor as tools_floor
 from . import freq as tools_freq
-from . import startofday as tools_startofday
 from . import right as tools_right
+from . import startofday as tools_startofday
 
 
 def index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
@@ -20,7 +20,7 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
     ----------
     i : pd.DatetimeIndex
         The (untrimmed) DatetimeIndex
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency to trim to. E.g. 'MS' to only keep full months.
 
     Returns
@@ -40,6 +40,12 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
         raise ValueError("Index ``i`` does not have a frequency.")
     # Use index to find start_of_day.
     start_of_day = tools_startofday.get(i)
+    # check if the freq are compatible
+    try:
+        tools_freq.up_or_down(i.freq, freq)
+    except ValueError:
+        # print(f"The passed frequency {i.freq} can't be aggregated to {freq}.")
+        return pd.DatetimeIndex([], freq=i.freq, tz=i.tz)
     # Trim on both sides.
     mask_start = i >= tools_ceil.stamp(i[0], freq, 0, start_of_day)
     i_right = tools_right.index(i)
@@ -47,21 +53,29 @@ def index(i: pd.DatetimeIndex, freq: str) -> pd.DatetimeIndex:
     return i[mask_start & mask_end]
 
 
-def frame(
-    fr: Union[pd.Series, pd.DataFrame], freq: str
-) -> Union[pd.Series, pd.DataFrame]:
+@overload
+def frame(fr: pd.Series, freq: str) -> pd.Series:
+    ...
+
+
+@overload
+def frame(fr: pd.DataFrame, freq: str) -> pd.DataFrame:
+    ...
+
+
+def frame(fr: pd.Series | pd.DataFrame, freq: str) -> pd.Series | pd.DataFrame:
     f"""Trim index of series or dataframe to only keep full periods of certain frequency.
 
     Parameters
     ----------
-    fr : Union[pd.Series, pd.DataFrame]
+    fr : Series or DataFrame
         The (untrimmed) pandas series or dataframe.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Frequency to trim to. E.g. 'MS' to only keep full months.
 
     Returns
     -------
-    Union[pd.Series, pd.DataFrame]
+    Series or DataFrame
         Subset of ``fr``, with same frequency.
 
     Notes

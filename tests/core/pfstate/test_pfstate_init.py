@@ -18,7 +18,7 @@ i_less = pd.date_range("2020-01-15", freq="D", periods=60)
 s_less = dev.get_series(i_less, "")
 i_more = pd.date_range("2019-12-15", freq="D", periods=100)
 s_more = dev.get_series(i_more, "")
-i_difffreq = pd.date_range("2020", freq="H", periods=80)
+i_difffreq = pd.date_range("2020", freq="h", periods=24 * 5)
 s_difffreq = dev.get_series(i_difffreq, "")
 
 
@@ -506,3 +506,22 @@ def test_pfstate_consistency_nosourcing():
         pd.Series(1.0, i_ref, "pint[dimensionless]"),
         check_names=False,
     )
+
+
+@pytest.mark.parametrize("inclusive", ["left", "both"])
+@pytest.mark.parametrize("freq", ["15min", "h"])
+def test_contain_whole_day(inclusive: str, freq: str):
+    """An index must contain full days.
+    For hourly-or-shorter values, this means that the start time of the first period () must equal the end time of the
+    last period (), which is not the case."""
+    index = pd.date_range(
+        "2020-01-01", "2020-02-01", freq=freq, tz="Europe/Berlin", inclusive=inclusive
+    )
+    if inclusive == "left":
+        # This should work without any error
+        pfs = dev.get_pfstate(index)
+        assert isinstance(pfs, PfState)
+    else:
+        # For "both" inclusive, it should raise an error
+        with pytest.raises(ValueError):
+            pfs = dev.get_pfstate(index)

@@ -1,21 +1,22 @@
 """Functions to change frequency of a pandas dataframe."""
 
-from typing import Any, Union
+from typing import Any
 
 import pandas as pd
 
-
-from . import startofday as tools_startofday
+from . import duration as tools_duration
 from . import freq as tools_freq
 from . import right as tools_right
+from . import startofday as tools_startofday
 from . import trim as tools_trim
+from .types import Series_or_DataFrame
 
 
 def _astype(s: pd.Series, dtype: Any) -> pd.Series:
     """Convert dtype of series ``s`` to ``dtype``."""
     # HACK: s.astype(float) results in incorrect datatype (see https://github.com/hgrecco/pint-pandas/issues/203).
     # therefore: workaround taking the magnitude if wanted dtype is float (in this case, s.dtype should be 'pint[dimensionless]')
-    if dtype == float and s.dtype == "pint[dimensionless]":
+    if dtype is float and s.dtype == "pint[dimensionless]":
         return s.pint.magnitude
     return s.astype(dtype)
 
@@ -28,9 +29,11 @@ def _emptyseries(s_ref: pd.Series, freq) -> pd.Series:
 def _downsample_avgable(s: pd.Series, freq: str) -> pd.Series:
     """Downsample averagble series."""
     # For averagable series: first make summable.
-    summable = s.mul(s.index.duration, axis=0)  # now has a pint dtype
+    duration = tools_duration.frame(s)
+    summable = s.mul(duration, axis=0)  # now has a pint dtype
     summable2 = _downsample_summable(summable, freq)
-    s2 = summable2.div(summable2.index.duration, axis=0)
+    duration2 = tools_duration.frame(summable2)
+    s2 = summable2.div(duration2, axis=0)
     s2 = _astype(s2, s.dtype)
     return s2.rename(s.name)
 
@@ -69,9 +72,11 @@ def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
 def _upsample_summable(s: pd.Series, freq: str) -> pd.Series:
     """Upsample summable series."""
     # For summable series: first make averagable.
-    avgable = s.div(s.index.duration, axis=0)  # now has a pint dtype
+    duration = tools_duration.frame(s)
+    avgable = s.div(duration, axis=0)  # now has a pint dtype
     avgable2 = _upsample_avgable(avgable, freq)
-    s2 = avgable2.mul(avgable2.index.duration, axis=0)
+    duration2 = tools_duration.frame(avgable2)
+    s2 = avgable2.mul(duration2, axis=0)
     s2 = _astype(s2, s.dtype)
     return s2.rename(s.name)
 
@@ -122,7 +127,7 @@ def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
         True if data is summable, False if it is averagable.
     s : pd.Series
         Series that needs to be resampled.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}, optional (default: 'MS')
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
         Target frequency.
 
     Returns
@@ -143,6 +148,7 @@ def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
 
     # Nothing more needed; portfolio already in desired frequency.
     if up_or_down == 0:
+        s.index.freq = freq
         return s
 
     # Must downsample.
@@ -167,7 +173,7 @@ def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
     ----------
     i : pd.DatetimeIndex
         Index to resample.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
         Target frequency.
 
     Returns
@@ -190,22 +196,20 @@ def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
         return _upsample_avgable(pd.Series(0, i), freq).index
 
 
-def summable(
-    fr: Union[pd.Series, pd.DataFrame], freq: str = "MS"
-) -> Union[pd.Series, pd.DataFrame]:
+def summable(fr: Series_or_DataFrame, freq: str = "MS") -> Series_or_DataFrame:
     f"""
     Resample and aggregate a DataFrame or Series with 'time-summable' quantities.
 
     Parameters
     ----------
-    fr : pd.Series or pd.DataFrame
+    fr : Series or DataFrame
         Pandas Series or DataFrame to be resampled.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}, optional (default: 'MS')
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
         Target frequency.
 
     Returns
     -------
-    DataFrame or Series
+    Series or DataFrame
 
     Notes
     -----
@@ -228,22 +232,20 @@ def summable(
     return _general(True, fr, freq)
 
 
-def averagable(
-    fr: Union[pd.Series, pd.DataFrame], freq: str = "MS"
-) -> Union[pd.Series, pd.DataFrame]:
+def averagable(fr: Series_or_DataFrame, freq: str = "MS") -> Series_or_DataFrame:
     f"""
     Resample and aggregate a DataFrame or Series with 'time-averagable' quantities.
 
     Parameters
     ----------
-    fr : pd.Series or pd.DataFrame
+    fr : Series or DataFrame
         Pandas Series or DataFrame to be resampled.
-    freq : {{{', '.join(tools_freq.FREQUENCIES)}}}, optional (default: 'MS')
+    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
         Target frequency.
 
     Returns
     -------
-    DataFrame or Series
+    Series or DataFrame
 
     Notes
     -----
