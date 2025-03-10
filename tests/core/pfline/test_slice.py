@@ -23,7 +23,7 @@ def get_idx(
     return pd.date_range(ts_start, ts_end, freq=freq, inclusive=inclusive)
 
 
-@pytest.mark.parametrize("freq", ["MS", "YS", "QS", "D"])
+@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-FEB", "D"])
 @pytest.mark.parametrize(
     "slice_start", ["2021", "2022", "2022-01-02", "2022-05-23 14:34"]
 )
@@ -41,7 +41,7 @@ def test_flat_slice_start(
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
-@pytest.mark.parametrize("freq", ["MS", "YS", "QS", "D"])
+@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-MAR", "D"])
 @pytest.mark.parametrize(
     "slice_end",
     [
@@ -62,7 +62,7 @@ def test_flat_slice_end(slice_end: str, freq: str, tz: str, sod: str, inclusive:
     assert pfl1.slice[: slice_end[0]] == pfl1.loc[: slice_end[1]]
 
 
-@pytest.mark.parametrize("freq", ["MS", "YS", "QS", "D"])
+@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-MAR", "D"])
 @pytest.mark.parametrize(
     "where",
     ["2022", "2022-03", "2022-04-21", "2022-05-23 14:34"],
@@ -85,7 +85,7 @@ def test_flat_slice_whole(where: str, freq: str, tz: str, sod: str, inclusive: s
     assert len(left.index.intersection(right.index)) == 0
 
 
-@pytest.mark.parametrize("freq", ["MS", "YS", "QS", "D"])
+@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-MAR", "D"])
 @pytest.mark.parametrize(
     "slice_start",
     [
@@ -108,7 +108,7 @@ def test_nested_slice_start(
     assert pfl1.slice[slice_start:] == pfl1.loc[slice_start:]
 
 
-@pytest.mark.parametrize("freq", ["MS", "YS", "QS", "D"])
+@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-MAR", "D"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize(
     "slice_end",
@@ -130,7 +130,7 @@ def test_nested_slice_end(slice_end: str, freq: str, tz: str, sod: str, inclusiv
     assert pfl1.slice[: slice_end[0]] == pfl1.loc[: slice_end[1]]
 
 
-@pytest.mark.parametrize("freq", ["MS", "YS", "QS", "D"])
+@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-MAR", "D"])
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
 @pytest.mark.parametrize(
     "where",

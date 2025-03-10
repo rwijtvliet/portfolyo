@@ -28,7 +28,7 @@ KIND_AND_UNITS = {
 }
 
 
-@pytest.fixture(scope="session", params=["h", "15min", "D", "MS", "QS", "YS"])
+@pytest.fixture(scope="session", params=["h", "15min", "D", "MS", "QS", "YS", "YS-APR"])
 def freq(request):
     return request.param
 
