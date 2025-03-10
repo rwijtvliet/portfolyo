@@ -271,6 +271,6 @@ Examples of this are shown in the :doc:`tutorial<../tutorial/part3>`.
 API
 ---
 
-.. autoclass:: portfolyo.PfState
-   :members:
-   :inherited-members:
+.. .. autoclass:: portfolyo.PfState
+..    :members:
+..    :inherited-members:
