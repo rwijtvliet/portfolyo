@@ -11,6 +11,16 @@ from .types import Series_or_DataFrame
 
 _FILEPATH = Path(__file__).parent / "unitdefinitions.txt"
 
+# Prepare the unit registry.
+
+
+# User-defined units.
+
+# -- wrapper around pint methods for adding units.
+
+
+# Split for comparison.
+
 
 ureg = pint_pandas.PintType.ureg = pint.UnitRegistry(
     str(_FILEPATH),
