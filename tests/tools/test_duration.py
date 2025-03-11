@@ -2,6 +2,12 @@ import pandas as pd
 import pytest
 from portfolyo import testing, tools
 
+
+@pytest.fixture(params=["2020-01-01", "2020-04-01"])
+def startdate(request) -> str:
+    return request.param
+
+
 TESTCASES = [  # ts, freq, expected_hours
     # First day of X and start of day.
     ("2020-01-01", "15min", (0.25, 0.25)),
