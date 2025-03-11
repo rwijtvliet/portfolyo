@@ -4,6 +4,11 @@ import datetime as dt
 from portfolyo import testing, tools
 
 
+@pytest.fixture(params=["2020-01-01", "2020-04-01"])
+def startdate(request) -> str:
+    return request.param
+
+
 TESTCASES = [  # ts, freq, expected_ts_right
     # First day of X and start of day.
     ("2020-01-01", "15min", "2020-01-01 00:15"),
