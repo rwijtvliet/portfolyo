@@ -1,5 +1,6 @@
 """Working with pint units."""
 
+import dataclasses
 from pathlib import Path
 from typing import Tuple, overload
 
@@ -10,41 +11,69 @@ import pint_pandas
 from .types import Series_or_DataFrame
 
 _FILEPATH = Path(__file__).parent / "unitdefinitions.txt"
+pint_pandas.DEFAULT_SUBDTYPE = float
 
 # Prepare the unit registry.
 
-
-# User-defined units.
-
-# -- wrapper around pint methods for adding units.
-
-
-# Split for comparison.
-
-
-ureg = pint_pandas.PintType.ureg = pint.UnitRegistry(
+ureg = pint.UnitRegistry(
     str(_FILEPATH),
-    system="powerbase",
     auto_reduce_dimensions=True,
     case_sensitive=False,
 )
 ureg.formatter.default_format = "~P"  # short by default
 ureg.setup_matplotlib()
+pint.set_application_registry(ureg)
 
 # Set for export.
 PA_ = pint_pandas.PintArray
 Q_ = ureg.Quantity
 Unit = ureg.Unit
 
-_DEFAULT_NAMES_AND_UNITS = {
-    "w": ureg.MW,
-    "q": ureg.MWh,
-    "p": ureg.euro_per_MWh,
-    "r": ureg.euro,
-    "duration": ureg.hour,
-    "t": ureg.degC,
-    "nodim": ureg.dimensionless,
-}
+_DEFAULT_NAMES_AND_UNITS = {"a": "b"}
+
+
+@dataclasses.dataclass(frozen=True)
+class WqprUnits:
+    """Units to use when converting or printing physical quantities.
+
+    Parameters
+    ----------
+    q
+        Unit for quantity, i.e., unit for energy (e.g. MWh) or for emissions (e.g. tCO2).
+    r
+        Unit for revenue, i.e., unit for currency (e.g. EUR or USD).
+    w, optional
+        Unit for quantity per unit of time, i.e., power (if q is unit of energy) or emissions rate
+        (if q is unit of emissions). Default: unit specified for q per hour.
+    p, optional
+        Unit for price, i.e., unit for revenue per unit of energy (if q is unit of energy) or unit
+        for revenue per unit of emissions (if q is unit of emissions). Default: unit specified for
+        r divided by unit specified for q.
+
+    Notes
+    -----
+    Units specified for ``r`` and ``p`` must use same currency unit.
+    """
+
+    q: str
+    r: str
+    w: str = None
+    p: str = None
+
+    def __post_init__(self):
+        # Verify units for q and r.
+        # . Verify unit is (a) KNOWN and (b) of correct dimensionality.
+        try:
+            unit = Unit(self.q)
+        except pint.UndefinedUnitError as e:
+            raise ValueError(
+                f"'{self.q}' is not defined. Add it to the unit registry as a unit to 'energy' or "
+                f"'emissions' dimension, by relating it to an existing unit. E.g. with 'ureg.define('{self.q} = 3 MWh')' or 'ureg.define('{self.q} = 3 tCO2')'."
+            ) from e
+        if unit.dimensionality not in ["[energy]", "[emissions]"]:
+            raise ValueError("")
+        # Verify (if specified) or calculate (if not specified) units for w and p.
+        pass
 
 
 def to_name(unit: pint.Unit) -> str:

@@ -11,43 +11,45 @@ terra- = 1e12 = T-
 fraction = []
 
 # Duration (Time)
+[time]
 hour = [time] = h = hr
 minute = hour / 60 = min
 second = minute / 60 = s = sec
 
 # Energy
+[energy]
 watthour = [energy] = Wh
 joule = watt * second = J
 tonne_oil_equiv = 11.63 * MWh = toe
 tonne_coal_equiv = 6.978 * MWh = tce
 
 # Emissions
+[emissions]
 tonne_co2 = [emisisons] = tCO2
 
 # Revenue (Currency)
-euro = [currency] = Eur = €
-eurocent = Eur / 100 = cEur = cent = ct = c€ = ct€ = ctEur
+[currency]
+dollar = [currency] = Usd = USD = $
+dollarcent = Usd / 100 = cUsd = c$ = ctUsd = ct$
+euro = [currency] = Eur = EUR = €
+eurocent = Eur / 100 = cEur = c€ = ctEur = ct€ 
 
 # Temperature
+[temperature]
 degC = [temperature] = degC
 
 
 ### Derived dimensions and their units. ###
 
-# Power
+# Rate of using energy
 [power] = [energy] / [time]
 watt = watthour / hour = W
 
-# Price
-[price] = [currency] / [energy]
-euro_per_MWh = euro / (1_000_000 * watthour)  = Eur/MWh
-cent_per_kWh = (euro / 100) / (1000 * watthour)
+# Price of energy
+[energyprice] = [currency] / [energy]
 
+# Rate of emissions
+[emissionsrate] = [emissions] / [time]
 
-@system energybase
-    megawatthour
-@end
-
-@system powerbase
-    megawatt:watthour
-@end
+# Price of emissions
+[emissionsprice] = [currency] / [emissions]
