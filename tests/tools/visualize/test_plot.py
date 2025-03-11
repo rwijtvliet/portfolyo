@@ -109,11 +109,14 @@ def test_plot_with_nan(freq: str, children: bool, kind: Kind, letter: str):
     "kind, letter", [(Kind.VOLUME, "w"), (Kind.PRICE, "p"), (Kind.REVENUE, "r")]
 )
 def test_plot_not_all_nan(freq: str, children: bool, kind: Kind, letter: str):
-    index = pd.date_range("2020-01-01", "2021-01-01", freq=freq, tz=None)
+    index = pd.date_range("2020-01-01", "2022-01-01", freq=freq, tz=None)
     s = pf.dev.get_series(index, letter)
 
-    # Set the first 5 values to NaN
-    s.iloc[:5] = np.nan
+    if freq == "MS":
+        # Set the first 5 values to NaN
+        s.iloc[:5] = np.nan
+    else:
+        s.iloc[:500] = np.nan
 
     pfl = pf.PfLine(s)
     if children:
@@ -122,4 +125,5 @@ def test_plot_not_all_nan(freq: str, children: bool, kind: Kind, letter: str):
         pfl = pf.PfLine(dict_of_children)
 
     pfl.plot(children=children)
+    # plt.show()
     matplotlib.pyplot.close()
