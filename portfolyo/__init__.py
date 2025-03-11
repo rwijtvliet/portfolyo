@@ -18,11 +18,11 @@ from .tools.peakfn import factory as create_peakfn
 from .tools.product import germanpower_peakfn, is_peak_hour
 from .tools.standardize import frame as standardize
 from .tools.tzone import force_agnostic, force_aware
+from .tools.right import index as right_index, stamp as right_stamp
 from .tools.unit import Q_, Unit, ureg
+from .tools.unit import normalize_frame as pintframe
 from .tools.wavg import general as wavg
-
-import tomli
-from pathlib import Path
+import importlib
 
 VOLUME = Kind.VOLUME
 PRICE = Kind.PRICE
@@ -33,15 +33,5 @@ extendpandas.apply()
 suppresswarnings.apply()
 
 
-def get_version():
-    # Find the pyproject.toml file relative to this file
-    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
-
-    # Open and read the pyproject.toml file using tomli
-    with pyproject_path.open("rb") as f:
-        pyproject_data = tomli.load(f)
-        return pyproject_data["tool"]["poetry"]["version"]
-
-
-__version__ = get_version()
+__version__ = importlib.metadata.version(__name__)
 __all__ = ["tools", "dev", "PfLine", "PfState"]

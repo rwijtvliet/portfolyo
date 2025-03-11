@@ -30,15 +30,9 @@ def _dataframe(data: Any) -> pd.DataFrame:
         inop = interop.InOp.from_data(data)
 
     # Check data types.
-    if inop.agn is not None or inop.nodim is not None:
-        err = []
-        if inop.nodim is not None:
-            err.append(f"explicityly dimensionless ({inop.nodim})")
-        if inop.agn is not None:
-            err.append(f"dimension-agnostic ({inop.agn})")
+    if inop.nodim is not None:
         raise ValueError(
-            f"Found {' and '.join(err)} data. Use 'w', 'q', 'p', 'r' (e.g. as dictionary"
-            " keys), or explicitly pass values with a ``pint`` unit, to indicate dimensionality."
+            f"Found explicitly dimensionless ({inop.nodim}) data. Add a ``pint`` unit to indicate dimensionality."
         )
 
     # Make actual dataframe.

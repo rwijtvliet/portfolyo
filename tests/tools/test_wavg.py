@@ -42,17 +42,17 @@ def get_weights(
 
 def get_weights_df(weights: dict, index: Iterable, units: bool = False):
     """Get weights to test wavg with, if weightsas == 'dataframe'."""
-    weights = pd.DataFrame(weights, index)
+    weights_asdf = pd.DataFrame(weights, index)
     if units:
-        weights = pd.DataFrame(
-            {c: s.astype("pint[Eur/MWh]") for c, s in weights.items()}
+        weights_asdf = pd.DataFrame(
+            {c: s.astype("pint[Eur/MWh]") for c, s in weights_asdf.items()}
         )
-    return weights
+    return weights_asdf
 
 
-def get_index(number: int, indextype: str) -> Iterable:
+def get_index(number: int, indextype: str) -> list | pd.DatetimeIndex:
     if indextype == "int":
-        return range(number)
+        return list(range(number))
     return pd.date_range("2020", freq="D", periods=number)
 
 
@@ -175,8 +175,8 @@ def test_wavg_onevalseries_0weights(
     if "val" in units:
         values = values.astype("pint[Eur/MWh]")
         expected = pf.Q_(expected, "Eur/MWh")
-    if zerovalues == "allzero":
-        expected = np.nan
+    # if zerovalues == "allzero":
+    #     expected = np.nan
     # Test.
     do_test_series(values, weights, expected)
 

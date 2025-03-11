@@ -1,7 +1,10 @@
 import numpy as np
 import pytest
+import pint
 
 from portfolyo import tools
+import pandas as pd
+from portfolyo.tools.testing import assert_series_equal
 from portfolyo.tools.unit import Q_, ureg
 
 UNIT_IDENTITIES = [
@@ -71,3 +74,205 @@ QUANTITY_IDENTITIES = [
 def test_extended_identities(quants):
     for q in quants:
         assert np.isclose(q, quants[0])
+
+
+# Normalize.
+
+
+@pytest.fixture(params=[10, 10.0, -15, -15.0])
+def intfloat(request):
+    return request.param
+
+
+@pytest.fixture(params=[[10, 10, -15], [-15.0, 200, -18]])
+def intfloats(request):
+    return request.param
+
+
+@pytest.fixture(params=["Eur/MWh", "MWh", "tce/h"])
+def units(request):
+    return request.param
+
+
+@pytest.fixture(params=[["Eur/MWh", "MWh", "tce/h"]])
+def units_mixeddim(request):
+    return request.param
+
+
+@pytest.fixture(params=[[("MWh", 1), ("GWh", 1000), ("TWh", 1e6)]])
+def units_onedim(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(pd.date_range("2020", freq="h", periods=3), id="hourlyindex"),
+        pytest.param(pd.date_range("2020", freq="MS", periods=3), id="monthlyindex"),
+        pytest.param([0, 1, 2], id="integerindex"),
+    ]
+)
+def index(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(tools.unit.normalize_value, id="normalize_value"),
+        pytest.param(tools.unit.normalize, id="normalize"),
+    ]
+)
+def fn_to_test_value(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[pytest.param(True, id="strict"), pytest.param(False, id="notstrict")]
+)
+def strict(request):
+    return request.param
+
+
+@pytest.fixture(
+    params=[
+        pytest.param(tools.unit.normalize_frame, id="normalize_frame"),
+        pytest.param(tools.unit.normalize, id="normalize"),
+    ]
+)
+def fn_to_test_frame_part1(request):
+    return request.param
+
+
+@pytest.fixture
+def fn_to_test_frame(fn_to_test_frame_part1, strict):
+    def partial(fr):
+        return fn_to_test_frame_part1(fr, strict)
+
+    return partial
+
+
+@pytest.fixture
+def floatt(intfloat):
+    return float(intfloat)
+
+
+@pytest.fixture
+def floatts(intfloats):
+    return [float(v) for v in intfloats]
+
+
+@pytest.fixture
+def intfloat_quantity(intfloat, units):
+    return Q_(intfloat, units)
+
+
+@pytest.fixture
+def float_quantity(floatt, units):
+    return Q_(floatt, units)
+
+
+@pytest.fixture
+def intfloat_series(intfloats, index):
+    return pd.Series(intfloats, index)
+
+
+@pytest.fixture
+def float_series(floatts, index):
+    return pd.Series(floatts, index)
+
+
+@pytest.fixture
+def quantity_series(intfloats, index, units):
+    return pd.Series([Q_(v, units) for v in intfloats], index)
+
+
+@pytest.fixture
+def dimensionless_quantity_series(intfloats, index):
+    return pd.Series([Q_(v, "") for v in intfloats], index)
+
+
+@pytest.fixture
+def pint_series(floatts, index, units):
+    return pd.Series(floatts, index).astype(f"pint[{units}]")
+
+
+@pytest.fixture
+def onedim_quantity_series(intfloats, index, units_onedim):
+    return pd.Series([Q_(v, u[0]) for v, u in zip(intfloats, units_onedim)], index)
+
+
+@pytest.fixture
+def onedim_pint_series(floatts, index, units_onedim):
+    return pd.Series([v * u[1] for v, u in zip(floatts, units_onedim)], index).astype(
+        f"pint[{units_onedim[0][0]}]"
+    )
+
+
+@pytest.fixture
+def mixeddim_quantity_series(intfloats, index, units_mixeddim):
+    return pd.Series([Q_(v, u) for v, u in zip(intfloats, units_mixeddim)], index)
+
+
+def test_normalize_value_intfloat(intfloat, floatt, fn_to_test_value):
+    result = fn_to_test_value(intfloat)
+    expected = floatt
+
+    assert result == expected
+
+
+def test_normalize_value_quantity(intfloat_quantity, float_quantity, fn_to_test_value):
+    result = fn_to_test_value(intfloat_quantity)
+    expected = float_quantity
+
+    assert result == expected
+    assert result.magnitude == expected.magnitude
+    assert result.units == expected.units
+
+
+def test_normalize_series_intfloat(intfloat_series, float_series, fn_to_test_frame):
+    result = fn_to_test_frame(intfloat_series)
+    expected = float_series
+
+    assert_series_equal(result, expected)
+
+
+def test_normalize_series_quantities(quantity_series, pint_series, fn_to_test_frame):
+    result = fn_to_test_frame(quantity_series)
+    expected = pint_series
+
+    assert_series_equal(result, expected)
+
+
+def test_normalize_series_dimensionlessquantities(
+    dimensionless_quantity_series, float_series, fn_to_test_frame
+):
+    result = fn_to_test_frame(dimensionless_quantity_series)
+    expected = float_series
+
+    assert_series_equal(result, expected)
+
+
+def test_normalize_series_onedimquantities(
+    onedim_quantity_series, onedim_pint_series, fn_to_test_frame
+):
+    result = fn_to_test_frame(onedim_quantity_series)
+    expected = onedim_pint_series
+
+    assert_series_equal(result, expected)
+
+
+def test_normalize_series_mixeddimquantities(
+    mixeddim_quantity_series, fn_to_test_frame, strict
+):
+    if strict:
+        with pytest.raises(pint.DimensionalityError):
+            _ = fn_to_test_frame(mixeddim_quantity_series)
+        return
+
+    result = fn_to_test_frame(mixeddim_quantity_series)
+    expected = mixeddim_quantity_series
+
+    assert_series_equal(result, expected)
+
+
+# TODO: add dataframe tests.
+# TODO: add nanvalus

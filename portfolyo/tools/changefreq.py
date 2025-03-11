@@ -51,7 +51,7 @@ def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
     source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
     target_vs_daily = tools_freq.up_or_down(freq, "D")
 
-    # We cannot simply `.resample()`, e.g. from hourly to monthly, because in that
+    # HACK: We cannot simply `.resample()`, e.g. from hourly to monthly, because in that
     # case the start-of-day is lost. We need to do it in two steps.
 
     # Downsample to days.

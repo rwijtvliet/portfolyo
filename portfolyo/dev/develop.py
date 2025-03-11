@@ -8,12 +8,25 @@ from typing import Callable, Dict, Tuple
 import numpy as np
 import pandas as pd
 
+from portfolyo.tools.unit import Q_
+
 from .. import tools
 from ..core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine, create
 from ..core.pfstate import PfState
 from . import mockup
 
 OK_COL_COMBOS = ["w", "q", "p", "pr", "qr", "qp", "wp", "wr"]
+
+NAMES_AND_UNITS = {
+    "w": tools.unit.ureg.MW,
+    "q": tools.unit.ureg.MWh,
+    "p": tools.unit.ureg.euro_per_MWh,
+    "r": tools.unit.ureg.euro,
+    "duration": tools.unit.ureg.hour,
+    "t": tools.unit.ureg.degC,
+    "nodim": tools.unit.ureg.dimensionless,
+}
+
 
 INDEX_LEN = {"YS": 4, "QS": 5, "MS": 14, "D": 400, "h": 10_000, "15min": 50_000}
 
@@ -53,6 +66,20 @@ def get_index(
     return i
 
 
+def get_value(
+    name: str = None, has_unit: bool = True, magn: float = None, *, _seed: int = None
+) -> float | Q_:
+    """Get a single value."""
+    if _seed:
+        np.random.seed(_seed)
+    if magn is None:
+        magn = np.random.random() * 200
+    if not has_unit:
+        return magn
+    else:
+        return Q_(magn, NAMES_AND_UNITS[name])
+
+
 def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:
     """Shorten index with (quarter)hourly values if necessary to ensure that an integer
     number of calendar days is included."""
@@ -64,21 +91,6 @@ def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:
             return i
         i = i[:-1]
     raise ValueError("Can't find timestamp to end index on.")
-
-
-def get_value(
-    name: str = None, has_unit: bool = True, magn: float = None, *, _seed: int = None
-) -> float | tools.unit.Q_:
-    """Get a single value."""
-    if _seed:
-        np.random.seed(_seed)
-    if magn is None:
-        magn = np.random.random() * 200
-    if not has_unit:
-        return magn
-    else:
-        unit = tools.unit.from_name(name)
-        return tools.unit.Q_(magn, unit)
 
 
 def get_series(

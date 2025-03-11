@@ -50,7 +50,7 @@ def test_completebpoframe_averagable(bpoframe, testcol: str, withunits: str):
         bpoframe = bpoframe.astype("pint[Eur/MWh]")
     df = bpoframe.drop(columns=testcol)
     result = tools.peakconvert.complete_bpoframe(df, f_germanpower, is_summable=False)
-    tools.testing.assert_frame_equal(result, bpoframe)
+    tools.testing.assert_dataframe_equal(result, bpoframe)
 
 
 @pytest.mark.parametrize("withunits", ["units", "nounits"])
@@ -62,7 +62,7 @@ def test_completebpoframe_averagable(bpoframe, testcol: str, withunits: str):
             {
                 "peak": [100.0, 100, 100, 100],
                 "base": [280.0, 180, 80, 380],
-                "offpeak": [180, 80, -20, 280],
+                "offpeak": [180.0, 80, -20, 280],
             },
             pd.date_range("2020", periods=4, freq="MS", tz="Europe/Berlin"),
         ),
@@ -70,7 +70,7 @@ def test_completebpoframe_averagable(bpoframe, testcol: str, withunits: str):
             {
                 "peak": [100.0, 100, 100, 100],
                 "base": [280.0, 180, 80, 380],
-                "offpeak": [180, 80, -20, 280],
+                "offpeak": [180.0, 80, -20, 280],
             },
             pd.date_range("2020", periods=4, freq="YS", tz="Europe/Berlin"),
         ),
@@ -78,7 +78,7 @@ def test_completebpoframe_averagable(bpoframe, testcol: str, withunits: str):
             {
                 "peak": [100.0, 100, 100, 100],
                 "base": [280.0, 180, 80, 380],
-                "offpeak": [180, 80, -20, 280],
+                "offpeak": [180.0, 80, -20, 280],
             },
             pd.date_range("2020-04-01", periods=4, freq="YS-APR", tz="Europe/Berlin"),
         ),
@@ -90,7 +90,7 @@ def test_completebpoframe_summable(bpoframe, testcol: str, withunits: str):
         bpoframe = bpoframe.astype("pint[Eur/MWh]")
     df = bpoframe.drop(columns=testcol)
     result = tools.peakconvert.complete_bpoframe(df, f_germanpower, is_summable=True)
-    tools.testing.assert_frame_equal(result, bpoframe)
+    tools.testing.assert_dataframe_equal(result, bpoframe)
 
 
 @pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
@@ -137,4 +137,4 @@ def test_moreconversions_averagable(
 
     # Do testing.
     result = tools.peakconvert.complete_bpoframe(df, f_germanpower, is_summable=False)
-    tools.testing.assert_frame_equal(result, expected)
+    tools.testing.assert_dataframe_equal(result, expected)

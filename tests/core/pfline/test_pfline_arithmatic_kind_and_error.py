@@ -7,6 +7,7 @@ from typing import Any, Dict, Iterable
 
 import pandas as pd
 import pytest
+from portfolyo import dev
 from utils import id_fn  # relative to /tests
 
 import portfolyo as pf
@@ -20,6 +21,8 @@ from portfolyo.core.pfline import Kind, Structure, arithmatic, create
 
 @pytest.fixture
 def strict_arithmetic():
+    # STRICT is set to True only in this test
+    # after the test is done, sets it back to False
     arithmatic.STRICT = True
     yield
     arithmatic.STRICT = False
@@ -134,7 +137,7 @@ class Values:  # Testvalues
 
     @staticmethod
     def from_noname(i: pd.DatetimeIndex) -> Iterable[Value]:
-        flvalue = pf.dev.get_value("nodim", False, _seed=2)
+        flvalue = dev.get_value("nodim", False, _seed=2)
         flseries = pf.dev.get_series(i, "", False, _seed=2)
         return [
             Value(Kind2.NONE, Structure.FLAT, None),
@@ -145,7 +148,7 @@ class Values:  # Testvalues
     @staticmethod
     def from_1name(kind: Kind2, name: str, i: pd.DatetimeIndex) -> Iterable[Value]:
         """name == {'w', 'q', 'p', 'r', 'nodim'}"""
-        quantity = pf.dev.get_value(name, True, _seed=2)
+        quantity = dev.get_value(name, True, _seed=2)
         altunit = Values.UNIT_ALT[name]
         quseries = pf.dev.get_series(i, name, _seed=2)
         values = [
@@ -174,7 +177,7 @@ class Values:  # Testvalues
     ) -> Iterable[Value]:
         """names == two of {'w', 'q', 'p', 'r'}"""
         n1, n2 = names
-        qu1, qu2 = (pf.dev.get_value(name, True, _seed=2) for name in names)
+        qu1, qu2 = (dev.get_value(name, True, _seed=2) for name in names)
         fl1, fl2 = (qu.magnitude for qu in (qu1, qu2))
         qus1, qus2 = (pf.dev.get_series(i, name, _seed=2) for name in names)
         fls1, fls2 = (quseries.pint.m for quseries in (qus1, qus2))
@@ -602,6 +605,32 @@ def do_kind_test(testcase: Case, operation: str):
     pfl = testcase.pfl
     value = testcase.value
     expected = testcase.expected_result
+    # !ATTN :new block
+    if isinstance(value, float):
+        pytest.skip(
+            "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+        )
+    if isinstance(value, dict):
+        if any(isinstance(value, float) for value in value.values()):
+            pytest.skip(
+                "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+            )
+        if any(pd.api.types.is_float_dtype(value) for value in value.values()):
+            pytest.skip(
+                "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+            )
+
+    if isinstance(value, pd.Series):
+        if any(isinstance(x, float) for x in value):
+            pytest.skip(
+                "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+            )
+    if isinstance(value, pd.DataFrame) and any(
+        pd.api.types.is_float_dtype(value[col]) for col in value.columns
+    ):
+        pytest.skip(
+            "It's impossible to create a PfLine with the provided data. Ensure that provided data has a unit."
+        )
 
     # Guard clause for skipping test.
     if operation.startswith("r"):

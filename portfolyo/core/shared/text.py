@@ -9,11 +9,27 @@ from ... import tools
 
 COLORS = ["WHITE", "YELLOW", "CYAN", "GREEN", "RED", "BLUE", "MAGENTA", "BLACK"]
 TREECOLORS = [colorama.Style.BRIGHT + getattr(colorama.Fore, f) for f in COLORS]
-_UNITS = {"w": "MW", "q": "MWh", "p": "Eur/MWh", "r": "Eur"}
+FALLBACKUNITS = {
+    c: tools.unit.Unit(u)
+    for c, u in {"w": "MW", "q": "MWh", "p": "Eur/MWh", "r": "Eur"}.items()
+}
 VALUEFORMAT = {"w": "{:,.1f}", "q": "{:,.0f}", "p": "{:,.2f}", "r": "{:,.0f}"}
 DATETIMEFORMAT = "%Y-%m-%d %H:%M:%S %z"
 COLWIDTHS = {"ts": 25, "w": 12, "q": 11, "p": 11, "r": 13}
 MAX_DEPTH = 6
+
+
+def cols_and_units(*objs) -> dict[str, tools.unit.Unit]:
+    """Return dictionary with all columns found in the .df property of the objects, plus their units."""
+    units = {}
+    for obj in objs:
+        for c, pu in obj.df.dtypes.items():
+            units[c] = (
+                tools.unit.ureg.Eur
+                if pu.units.dimensionality == "[currency]"
+                else pu.units
+            )
+    return units
 
 
 def remove_color(text: str) -> str:
@@ -23,14 +39,14 @@ def remove_color(text: str) -> str:
     return text
 
 
-def df_with_strvalues(df: pd.DataFrame, units: Dict = _UNITS):
+def df_with_strvalues(df: pd.DataFrame, cols_and_units: dict[str, tools.unit.Unit]):
     """Turn dataframe with single column names ('w', 'p', etc) into text strings."""
     if isinstance(df.columns, pd.MultiIndex):
         raise ValueError("Dataframe must have single column index; has MultiIndex.")
     str_series = {}
     for name, s in df.items():
-        sin = s.pint.to(units.get(name)).pint.magnitude
-        formt = VALUEFORMAT.get(name).format
+        sin = s.pint.to(cols_and_units[str(name)]).pint.magnitude
+        formt = VALUEFORMAT[str(name)].format
         sout = sin.apply(formt).str.replace(",", " ", regex=False)
         str_series[name] = sout.mask(s.isna(), "")
     return pd.DataFrame(str_series)
@@ -50,9 +66,10 @@ def df_with_strindex(df: pd.DataFrame, num_of_ts: int):
 
 def index_info(i: pd.DatetimeIndex) -> Iterable[str]:
     """Info about the index."""
+    end = tools.right.stamp(i[-1], i.freq)
     return [
-        f". Start: {i[0]                    } (incl)    . Timezone    : {i.tz or 'none'}  ",
-        f". End  : {tools.right.index(i)[-1]} (excl)    . Start-of-day: {i[0].time()}  ",
+        f". Start: {i[0]  } (incl)    . Timezone    : {i.tz or 'none'}  ",
+        f". End  : {end   } (excl)    . Start-of-day: {i[0].time()}  ",
         f". Freq : {i.freq} ({len(i)} datapoints)",
     ]
 
@@ -75,10 +92,10 @@ def treedict(depth: int, is_last_child: bool, has_children: bool) -> Dict[str, s
     return tree
 
 
-def dataheader(cols: Iterable[str] = "wqpr", units: Dict = _UNITS) -> Iterable[str]:
-    out = [" " * 25] * 2  # width of timestamps
-    for c in cols:
+def dataheader(cols_and_units: Dict[str, tools.unit.Unit]) -> Iterable[str]:
+    out = [" " * COLWIDTHS["ts"]] * 2  # width of timestamps
+    for c, units in cols_and_units.items():
         width = COLWIDTHS[c] + 1
         out[0] += f"{c:>{width}}"
-        out[1] += f"{units[c]:>{width}}"
+        out[1] += f"{f'{units:~P}':>{width}}"  # ~P for compact
     return out

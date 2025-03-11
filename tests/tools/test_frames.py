@@ -6,10 +6,25 @@ from numpy import nan
 from portfolyo import dev, testing, tools
 
 
+@pytest.fixture(
+    params=[
+        [1, 2, 3, 4, 25, 7, 8],
+        [1, 2, 3, 4, nan, 7, 8],
+        [1, 2, 3, 4, nan, 7, 8],
+        [1, 2, 3, 4, nan, 7, 8],
+        [3, 2, 1, nan, nan, 7, 8],
+        [3, 2, 1, nan, nan, 7, 8],
+        [3, 2, 1, nan, nan, 7, 8],
+    ]
+)
+def values(request):
+    return request.param
+
+
 @pytest.mark.parametrize(
     ("values", "maxgap", "gapvalues"),
     [
-        ([1, 2, 3, 4, 25, 7, 8], 1, []),
+        ([1, 2, 3, 4, 25, 7, 8], 1, None),
         ([1, 2, 3, 4, nan, 7, 8], 1, [5.5]),
         ([1, 2, 3, 4, nan, 7, 8], 2, [5.5]),
         ([1, 2, 3, 4, nan, 7, 8], 3, [5.5]),
@@ -121,7 +136,7 @@ expect_concat_13 = pd.DataFrame(
 def test_concat(dfs, axis, expected):
     """Test if concatenation works as expected."""
     result = tools.frame.concat(dfs, axis)
-    testing.assert_frame_equal(result, expected)
+    testing.assert_dataframe_equal(result, expected)
 
 
 vals1 = np.array([1, 2.0, -4.1234, 0])
