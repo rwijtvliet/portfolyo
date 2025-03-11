@@ -78,7 +78,7 @@ def test_completebpoframe_averagable(bpoframe, testcol: str, withunits: str):
             {
                 "peak": [100.0, 100, 100, 100],
                 "base": [280.0, 180, 80, 380],
-                "offpeak": [180, 80, -20, 280],
+                "offpeak": [180.0, 80, -20, 280],
             },
             pd.date_range("2020-04-01", periods=4, freq="YS-APR", tz="Europe/Berlin"),
         ),
