@@ -32,6 +32,49 @@ Unit = ureg.Unit
 _DEFAULT_NAMES_AND_UNITS = {"a": "b"}
 
 
+def _energyunits() -> str:
+    return (
+        "Currently defined units for energy are "
+        + ", ".join(str(u) for u in ureg.get_compatible_units("[energy]"))
+        + "."
+    )
+
+
+def _emissionsunits() -> str:
+    return (
+        "Currently defined units for emissions are "
+        + ", ".join(str(u) for u in ureg.get_compatible_units("[emissions]"))
+        + "."
+    )
+
+
+def _currencyunits() -> str:
+    currencydimensions = [dim for dim in ureg._dimensions.keys() if dim.startswith("[currency")]
+    return (
+        "Currently defined units for currency are "
+        + ", ".join(str(u) for dim in currencydimensions for u in ureg.get_compatible_units(dim))
+        + "."
+    )
+
+
+def _assert_valid_quantity_unit(unit: str) -> None:
+    if not isinstance(unit, Unit):
+        try:
+            unit = Unit(unit)
+        except pint.UndefinedUnitError as e:
+            raise ValueError(
+                f"Unit '{unit}' not defined. Add to unit registry as unit to 'energy' or"
+                " 'emissions' dimension, by relating to existing unit. E.g. with"
+                " 'ureg.define('BTU = 0.293071 Wh')' or 'ureg.define('gCO2 = 1e-6 tCO2')'."
+                f" {_energyunits()} {_emissionsunits()}"
+            ) from e
+
+        if (dim := unit.dimensionality) not in ["[energy]", "[emissions]"]:
+            raise ValueError(
+                f"``q`` must be a unit with dimension [energy] or [emissions]; got {dim}. ({_energyunits()} {_emissionsunits()})"
+            )
+
+
 @dataclasses.dataclass(frozen=True)
 class WqprUnits:
     """Units to use when converting or printing physical quantities.
@@ -43,12 +86,14 @@ class WqprUnits:
     r
         Unit for revenue, i.e., unit for currency (e.g. EUR or USD).
     w, optional
-        Unit for quantity per unit of time, i.e., power (if q is unit of energy) or emissions rate
-        (if q is unit of emissions). Default: unit specified for q per hour.
+        Unit for 'quantity per time'.
+        If q is unit of energy: power, e.g. kW; if q is unit of emissions: emissions rate. e.g. kgCO2/h.
+        Default: unit specified for q per hour.
     p, optional
-        Unit for price, i.e., unit for revenue per unit of energy (if q is unit of energy) or unit
-        for revenue per unit of emissions (if q is unit of emissions). Default: unit specified for
-        r divided by unit specified for q.
+        Unit for price, i.e., for 'currency per quantity'.
+        If q is unit of energy: energy price, e.g., Eur/MWh; if q is unit of emissions: emissions
+        price, e.g. Eur/tCO2.
+        Default: unit specified for r divided by unit specified for q.
 
     Notes
     -----
@@ -57,21 +102,45 @@ class WqprUnits:
 
     q: str
     r: str
-    w: str = None
-    p: str = None
+    w: str | None = None
+    p: str | None = None
 
     def __post_init__(self):
-        # Verify units for q and r.
-        # . Verify unit is (a) KNOWN and (b) of correct dimensionality.
+        # Verify units for q and r. Verify unit is (a) KNOWN and (b) of correct dimensionality.
+        # . q
         try:
             unit = Unit(self.q)
         except pint.UndefinedUnitError as e:
             raise ValueError(
-                f"'{self.q}' is not defined. Add it to the unit registry as a unit to 'energy' or "
-                f"'emissions' dimension, by relating it to an existing unit. E.g. with 'ureg.define('{self.q} = 3 MWh')' or 'ureg.define('{self.q} = 3 tCO2')'."
+                f"Unit '{self.q}' not defined. Add to unit registry as unit to 'energy' or"
+                " 'emissions' dimension, by relating to existing unit. E.g. with"
+                " 'ureg.define('BTU = 0.293071 Wh')' or 'ureg.define('gCO2 = 1e-6 tCO2')'."
+                f" {_energyunits()} {_emissionsunits()}"
             ) from e
-        if unit.dimensionality not in ["[energy]", "[emissions]"]:
-            raise ValueError("")
+        if (dim := unit.dimensionality) not in ["[energy]", "[emissions]"]:
+            raise ValueError(
+                f"``q`` must be a unit with dimension [energy] or [emissions]; got {dim}. ({_energyunits()} {_emissionsunits()})"
+            )
+        # . r
+        try:
+            unit = Unit(self.r)
+        except pint.UndefinedUnitError as e:
+            raise ValueError(
+                f"Unit '{self.r}' not defined. Add to unit registry as a unit to existing currency"
+                " by relating to an existing unit of that currency, e.g. with 'ureg.define('pence = 0.01 GBP')'."
+                " Or add as new currency, e.g. with 'ureg.define('THB = [currency_Thai]')'. The dimension"
+                " name must start with 'currency', and units must not collide with existing ones."
+            ) from e
+        if len(unit.dimensionality) == 0:
+            raise ValueError(f"Unit '{self.r}' is dimensionless. Specify a currency unit.")
+        if len(dim := unit.dimensionality) > 1:
+            raise ValueError(f"Unit '{self.r}' is not a currency unit; got dimension {dim}.")
+        dim, exp = next(iter(unit.dimensionality.items()))
+        if not dim.startswith("[currency") or exp != 1:
+            raise ValueError(
+                f"Unit '{self.r}' is not a currency unit; got dimension {unit.dimensionality}. ({_currencyunits()})"
+            )
+
         # Verify (if specified) or calculate (if not specified) units for w and p.
         pass
 

@@ -25,14 +25,19 @@ tonne_coal_equiv = 6.978 * MWh = tce
 
 # Emissions
 [emissions]
-tonne_co2 = [emisisons] = tCO2
+tonne_co2 = [emissions] = tCO2
 
 # Revenue (Currency)
-[currency]
-dollar = [currency] = Usd = USD = $
-dollarcent = Usd / 100 = cUsd = c$ = ctUsd = ct$
-euro = [currency] = Eur = EUR = €
+[currency_usd]
+dollar = [currency_usd] = Usd = USD
+dollarcent = Usd / 100 = cUsd = ctUsd
+[currency_eur]
+euro = [currency_eur] = Eur = EUR = €
 eurocent = Eur / 100 = cEur = c€ = ctEur = ct€ 
+[currency_gbp]
+pound = [currency_gpb] = Gbp = GBP
+pence = pound / 100
+
 
 # Temperature
 [temperature]
