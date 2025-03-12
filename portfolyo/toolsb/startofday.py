@@ -1,7 +1,7 @@
 """Tools for start-of-day."""
 
 import datetime as dt
-
+import functools
 from . import _decorator as tools_decorator
 
 # Developer notes:
@@ -38,6 +38,7 @@ def _from_tdelta(tdelta: dt.timedelta) -> dt.time:
     return dt.time(hour, minute, second)
 
 
+@functools.lru_cache()
 def convert(startofday: dt.time | str | dt.timedelta) -> dt.time:
     """Convert argument to correct/expected type."""
     # Convert to correct type.
@@ -48,6 +49,7 @@ def convert(startofday: dt.time | str | dt.timedelta) -> dt.time:
     return startofday
 
 
+@functools.lru_cache()
 def validate(startofday: dt.time) -> None:
     """Validate if argument has necessary properties to be used in portfolio lines."""
     if not startofday.minute == startofday.second == 0:

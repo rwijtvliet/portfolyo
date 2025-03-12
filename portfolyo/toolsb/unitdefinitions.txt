@@ -47,7 +47,7 @@ degC = [temperature] = degC
 ### Derived dimensions and their units. ###
 
 # Rate of using energy
-[power] = [energy] / [time]
+[energyrate] = [energy] / [time]
 watt = watthour / hour = W
 
 # Price of energy

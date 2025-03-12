@@ -77,7 +77,7 @@ from typing import Any, Callable, Hashable
 #
 
 
-def _cache_hashable_arguments(fn):
+def cache_hashable_arguments(fn):
     """Like lru_cache, but skips cache if argument is not hashable."""
     cached_fn = functools.lru_cache()(fn)
 
@@ -101,8 +101,7 @@ def create_coercedecorator(
     Decorators created by factory perform (a) conversion and (b) validation one or more
     parameters of wrapped function.
     * The conversion function is applied to specified parameters and wrapped function is
-      called with output of conversion function instead of with original parameter
-      value. The output is cached to avoid repeated conversions.
+      called with output of conversion function instead of with original parameter value.
     * The validation function shall raise an Exception to alert caller if necessary.
 
     Parameters
@@ -119,10 +118,6 @@ def create_coercedecorator(
     # Guard clause.
     if conversion is validation is None:
         raise ValueError("Specify at least ``conversion`` or ``validation``.")
-
-    # Cache conversion to use across all decorators created from decorator_factory.
-    if conversion:
-        conversion = _cache_hashable_arguments(conversion)
 
     def decorator_factory(*params, validate: bool = True) -> Callable:
         """Create a coerce decorator which performs checks on certain parameters of wrapped
@@ -166,8 +161,7 @@ def create_coercedecorator(
 
                 # Check the argument.
                 for param in params:
-                    arg = bound_args.arguments[param]
-                    bound_args.arguments[param] = convert_and_validate(arg)
+                    bound_args.arguments[param] = convert_and_validate(bound_args.arguments[param])
 
                 # Execute function as normal.
                 return fn(*bound_args.args, **bound_args.kwargs)

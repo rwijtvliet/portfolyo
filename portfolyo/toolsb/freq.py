@@ -93,6 +93,7 @@ def _downsample_targets(freq: BaseOffset) -> set[BaseOffset]:
 # --------------------------
 
 
+@functools.lru_cache()
 def convert(freq: Frequencylike) -> BaseOffset:
     """Convert argument to correct/expected type."""
     if isinstance(freq, str):
@@ -100,6 +101,7 @@ def convert(freq: Frequencylike) -> BaseOffset:
     return freq
 
 
+@functools.lru_cache()
 def validate(freq: BaseOffset | None) -> None:
     """Validate if argument has necessary properties to be used in portfolio lines."""
     if freq is None:
