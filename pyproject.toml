@@ -9,6 +9,7 @@ authors = [
 ]
 license = "BSD-3"
 readme = "README.rst"
+include = ["pyproject.toml"]
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -87,3 +88,5 @@ checks = [
     "SA01",
     "ES01",
 ]
+
+
