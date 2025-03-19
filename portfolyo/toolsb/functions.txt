@@ -55,6 +55,33 @@ assert-frames-equal(df1, df2)
 
 Units
 -----
+# ureg and units
+convert_unit
+validate_unit
+coerce_unit
+# units, dimensions, quantities, series
+to_base_dimensions(obj)
+validate_is_dimensionless(obj)
+validate_is_energy(obj)
+validate_is_emissions(obj)
+validate_is_quantity(obj)
+validate_is_energyrate(obj)
+validate_is_emissionsrate(obj)
+validate_is_quantityrate(obj)
+validate_is_currency(obj)
+validate_is_energyprice(obj)
+validate_is_emissionsprice(obj)
+validate_is_quantityprice(obj)
+_validate_compatible(obj1, obj2)
+validate_compatible(objs) 
+# wqpr
+col_to_dim
+dim_to_col
+PreferredUnits
+coerce_obj_to_preferredunits(obj, preferred)
+
+
+
 
 data-prep
 ---------

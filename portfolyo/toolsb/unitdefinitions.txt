@@ -50,11 +50,5 @@ degC = [temperature] = degC
 [energyrate] = [energy] / [time]
 watt = watthour / hour = W
 
-# Price of energy
-[energyprice] = [currency] / [energy]
-
 # Rate of emissions
 [emissionsrate] = [emissions] / [time]
-
-# Price of emissions
-[emissionsprice] = [currency] / [emissions]

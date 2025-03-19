@@ -92,8 +92,8 @@ def cache_hashable_arguments(fn):
 
 def create_coercedecorator(
     *,
-    conversion: Callable[[Any], Any] | None = None,
-    validation: Callable[[Any], None] | None = None,
+    conversion: Callable[[Any], Any] | None,
+    validation: Callable[[Any], None] | None,
     default_param: str | None = None,
 ):
     """Create decorator factory.
@@ -106,11 +106,11 @@ def create_coercedecorator(
 
     Parameters
     ----------
-    conversion, optional (default: no conversion)
-        One-argument function that returns a single value.
-    validation, optional (default: no validation)
+    conversion
+        One-argument function that returns a single value. None to do no conversion.
+    validation
         One-argument function without return value that raises Exception if input not
-        valid.
+        valid. None to do no validation.
     default_param, optional (default: no default parameters)
         Default parameter to check (i.e., if no other parameters are specified in
         decorator factory).
