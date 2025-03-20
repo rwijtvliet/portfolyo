@@ -33,14 +33,26 @@ extendpandas.apply()
 suppresswarnings.apply()
 
 
-def get_version():
-    # Find the pyproject.toml file relative to this file
-    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+# def get_version():
+#     # Find the pyproject.toml file relative to this file
+#     pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
 
-    # Open and read the pyproject.toml file using tomli
-    with pyproject_path.open("rb") as f:
-        pyproject_data = tomli.load(f)
-        return pyproject_data["tool"]["poetry"]["version"]
+#     # Open and read the pyproject.toml file using tomli
+#     with pyproject_path.open("rb") as f:
+#         pyproject_data = tomli.load(f)
+#         return pyproject_data["tool"]["poetry"]["version"]
+
+
+def get_version():
+    # Find the __version__.py file in the same directory as this script
+    version_file = Path(__file__).parent / "__version__.py"
+
+    # Read the file and extract the version number
+    version_globals = {}
+    with version_file.open("r", encoding="utf-8") as f:
+        exec(f.read(), version_globals)  # Execute the file to get __version__
+
+    return version_globals["__version__"]  # Return the extracted version
 
 
 __version__ = get_version()
