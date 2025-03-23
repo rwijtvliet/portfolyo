@@ -3,7 +3,7 @@
 import dataclasses
 import functools
 from pathlib import Path
-from typing import overload, Iterable
+from typing import overload, Iterable, Any
 from typing_extensions import Self
 
 import pandas as pd
@@ -39,7 +39,7 @@ Unit = ureg.Unit
 
 
 @functools.lru_cache()
-def convert(unit: pint.Unit | str | None) -> pint.Unit:
+def convert_unit(unit: pint.Unit | str | None) -> pint.Unit:
     """Convert argument to correct/expected type."""
     if unit is None:
         unit = Unit("")  # intepret as dimensionless
@@ -56,8 +56,82 @@ def convert(unit: pint.Unit | str | None) -> pint.Unit:
     return unit
 
 
-coerce = tools_decorator.create_coercedecorator(
-    conversion=convert, validation=None, default_param="unit"
+apply_coercion_unit = tools_decorator.create_coerciondecorator(
+    convert_unit, None, default_param="unit"
+)
+
+
+def convert_quantity(val: int | float | pint.Quantity) -> pint.Quantity:
+    """If possible, turn `val` into Quantity."""
+    if isinstance(val, int):
+        return Q_(float(val), "")
+    elif isinstance(val, float):
+        return Q_(val, "")
+    return val
+
+
+def validate_quantity(val: Any) -> None:
+    if not isinstance(val, pint.Quantity):
+        raise ValueError(f"This is not a Quantity: {val}.")
+
+
+coerce_quantity = tools_decorator.coerce_fn(convert_quantity, validate_quantity)
+
+
+apply_coercion_quantity = tools_decorator.create_coerciondecorator(
+    convert_quantity, validate_quantity, default_param="unit"
+)
+
+
+@overload
+def convert_pintframe(fr: pd.Series) -> pd.Series:
+    ...
+
+
+@overload
+def convert_pintframe(fr: pd.DataFrame) -> pd.DataFrame:
+    ...
+
+
+def convert_pintframe(fr: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
+    """If possible, turn Series of quantities into pintseries."""
+    if isinstance(fr, pd.DataFrame):
+        return pd.DataFrame({c: convert_pintframe(s) for c, s in fr.items()})
+
+    # If we are here, `fr` is a series.
+
+    # NOTE: Can't use `.is_numeric_dtype`, because also true for pint dtype.
+    if pd.api.types.is_integer_dtype(fr.dtype):
+        return fr.astype(float).astype("pint[]")
+    elif pd.api.types.is_float_dtype(fr.dtype):
+        return fr.astype("pint[]")
+
+    elif pd.api.types.is_object_dtype(fr.dtype) and isinstance(fr.iloc[0], pint.Quantity):
+        units = fr.iloc[0].units
+        try:
+            return fr.astype(f"pint[{units}]")
+        except pint.DimensionalityError:
+            return fr  # series of quantities with distince dimension; keep as-is
+
+    return fr  # bools, timestamps, ...
+
+
+def validate_pintframe(fr: pd.Series | pd.DataFrame) -> None:
+    if isinstance(fr, pd.DataFrame):
+        for _, s in fr.items():
+            validate_pintframe(s)
+        return
+
+    # If we are here, `fr` is a series.
+
+    if not isinstance(fr.dtype, pint_pandas.PintType):
+        raise ValueError(f"This is not a pintseries: {fr}.")
+
+
+coerce_pintframe = tools_decorator.coerce_fn(convert_pintframe, validate_pintframe)
+
+apply_coercion_pintframe = tools_decorator.create_coerciondecorator(
+    convert_pintframe, validate_pintframe, default_param="unit"
 )
 
 # =====================================
@@ -70,7 +144,9 @@ def get_basedimty(
 ) -> pint.util.UnitsContainer:
     """Get base dimensionality of ``obj``."""
     if isinstance(obj, pd.DataFrame):
-        raise TypeError("Can't get dimensionality of DataFrame; apply to individual Series.")
+        raise TypeError(
+            "Can't get dimensionality of DataFrame; call function for individual Series."
+        )
 
     if isinstance(obj, pd.Series):
         if pd.api.types.is_numeric_dtype(obj.dtype):
@@ -290,26 +366,26 @@ class PreferredUnits:
     def __post_init__(self):
         # Verify units for q and r. Verify unit is (a) KNOWN and (b) of correct dimensionality.
         # . q
-        object.__setattr__(self, "q", convert(self.q))
+        object.__setattr__(self, "q", convert_unit(self.q))
         validate_is_quantity(self.q)
         # . r
-        object.__setattr__(self, "r", convert(self.r))
+        object.__setattr__(self, "r", convert_unit(self.r))
         validate_is_currency(self.r)
         # Verify (if specified) or calculate (if not specified) units for w and p.
         # . w
         if self.w is None:
             object.__setattr__(self, "w", self.q / Unit("h"))  # no additional checks needed
         else:
-            object.__setattr__(self, "w", convert(self.w))
+            object.__setattr__(self, "w", convert_unit(self.w))
             validate_is_quantityrate(self.w)
         # . p
         if self.p is None:
             object.__setattr__(self, "p", self.r / self.q)
         else:
-            object.__setattr__(self, "p", convert(self.p))
+            object.__setattr__(self, "p", convert_unit(self.p))
             validate_is_quantityprice(self.p)
 
-        # If we land here, each unit individually has the correct dimensionality.
+        # If we are here, each unit individually has the correct dimensionality.
 
         # Check if all units are compatible with eachother.
         validate_compatible([self.q, self.r, self.w, self.p])
@@ -318,16 +394,23 @@ class PreferredUnits:
         map = {(unit := getattr(self, col)).dimensionality: unit for col in COLS}
         object.__setattr__(self, "_map", map)
 
+    # def __or__(self, other) -> Self:
+    #     if not isinstance(other, Self):
+    #         raise TypeError(f"Can only do union on PreferredUnit instances; got {type(other)}.")
+
     @classmethod
     def from_units(cls, units: Iterable[pint.Unit]) -> Self:
         """Create preferred units from iterable. Match unit to correct column."""
         found_units = {}
         for unit in units:
             col = valid_col(unit)
-            if found_units.get(col) in [None, unit]:
+            found_unit = found_units.get(col)
+            if found_unit is None:
                 found_units[col] = unit
-            else:
-                raise ValueError("Found multiple units for same dimension.")
+            elif found_unit is not unit:
+                raise ValueError(
+                    f"Found multiple units for same dimension ({col}): {unit} and {found_unit}."
+                )
         return cls(**found_units)
 
     def get_units(

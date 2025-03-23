@@ -45,21 +45,22 @@ def validate(idx: pd.DatetimeIndex) -> None:
             )
 
 
-def convert_and_validate(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
-    idx = convert(idx)
-    validate(idx)
-    return idx
+coerce = tools_decorator.coerce_fn(convert, validate)
 
 
-coerce = tools_decorator.create_coercedecorator(
-    conversion=convert, validation=validate, default_param="idx"
-)
+# def coerce(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
+#     idx = convert(idx)
+#     validate(idx)
+#     return idx
+
+
+apply_coercion = tools_decorator.create_coerciondecorator(convert, validate, default_param="idx")
 
 
 # --------------------------
 
 
-@coerce()
+@apply_coercion()
 def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     """Right-bound timestamps, belonging to left-bound timestamps of delivery periods
     in index.
@@ -86,7 +87,7 @@ def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     return pd.DatetimeIndex(idx + tools_freq.to_jump(idx.freq), idx.freq)
 
 
-@coerce()
+@apply_coercion()
 def duration(idx: pd.DatetimeIndex) -> PintSeries:
     """Duration of the delivery periods in a datetime index.
 
@@ -109,8 +110,8 @@ def duration(idx: pd.DatetimeIndex) -> PintSeries:
 
 
 # TODO: move to `preprocess.py`?
-@coerce()
-@tools_startofday.coerce()
+@apply_coercion()
+@tools_startofday.apply_coercion()
 def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a daily-or-longer frequency, replace the time-part of each
     timestamp, so that the returned index has the specified start-of-day.
@@ -144,8 +145,8 @@ def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
 
 
 # TODO: move to `preprocess.py`?
-@coerce(validate=False)
-@tools_startofday.coerce()
+@apply_coercion(validation=False)
+@tools_startofday.apply_coercion()
 def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a shorter-than-daily frequency, drop timestamps from the index
     so that the returned index has the specified start-of-day.
@@ -190,8 +191,8 @@ def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     return idx[pos0:-pos1]
 
 
-@coerce()
-@tools_freq.coerce()
+@apply_coercion()
+@tools_freq.apply_coercion()
 def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     """Trim index to only keep full periods of certain frequency.
 
@@ -248,7 +249,7 @@ def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
     if len(idxs) == 1:
         return idxs[0]
 
-    # If we land here, we have at least 2 indices.
+    # If we are here, we have at least 2 indices.
 
     # Assert frequencies equivalent.
     freqs = tools_freq.sorted(set(idx.freq for idx in idxs))  # ensures compatible
@@ -262,7 +263,7 @@ def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
     if len(unique_tzs) != 1:
         raise ValueError(f"Indices must have equal timezones; got {unique_tzs}.")
 
-    # If we land here, we have at least 2 indices with equivalent freq and equal tz. But, one or more might be empty.
+    # If we are here, we have at least 2 indices with equivalent freq and equal tz. But, one or more might be empty.
 
     if any(idx.empty for idx in idxs):
         return idxs[:0]  # empty index
@@ -272,7 +273,7 @@ def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
     if len(unique_sods) != 1:
         raise ValueError(f"Indices must have equal start-of-day; got {unique_sods}.")
 
-    # If we land here, we have at least 2 indices, all not empty, with equivalent freq, equal tz, and equal start-of-day.
+    # If we are here, we have at least 2 indices, all not empty, with equivalent freq, equal tz, and equal start-of-day.
 
     # Do actual intersection.
     # TODO: remove this comment after verification that indeed fixed
@@ -357,7 +358,7 @@ def intersect_flex(
     .intersect()
     """
     # Coerce and turn into list (iterable does not necessarily have __len__; list does)
-    idxs = [convert_and_validate(idx) for idx in idxs]
+    idxs = [coerce(idx) for idx in idxs]
 
     # Trivial cases.
     if len(idxs) == 0:
@@ -366,7 +367,7 @@ def intersect_flex(
     if len(idxs) == 1:
         return (idxs[0],)
 
-    # If we land here, we have at least 2 indices.
+    # If we are here, we have at least 2 indices.
 
     # Assert frequencies equivalent.
     # (Even if we want to ignore the frequency, the frequencies should be compatible,
@@ -386,7 +387,7 @@ def intersect_flex(
             f"Indices do not have equal timezones; got {unique_tzs}. Try setting `ignore_tz`."
         )
 
-    # If we land here, we have at least 2 indices with equivalent or ignored freq and equal or ignored tz. But, one or more might be empty.
+    # If we are here, we have at least 2 indices with equivalent or ignored freq and equal or ignored tz. But, one or more might be empty.
 
     if any(idx.empty for idx in idxs):
         return tuple(idx[:0] for idx in idxs)
@@ -399,10 +400,10 @@ def intersect_flex(
             f"Indices must have equal start-of-day; got {unique_sods}. Try setting `ignore_startofday`."
         )
 
-    # If we land here, we have at least 2 indices, all not empty, with equivalent or ignored freq, equal or ignored tz, and equal or ignored start-of-day.
+    # If we are here, we have at least 2 indices, all not empty, with equivalent or ignored freq, equal or ignored tz, and equal or ignored start-of-day.
 
     if all_equal_sod:
-        # If we land here, we have at least 2 indices, all not empty, with equivalent or ignored freq, equal or ignored tz, and EQUAL start-of-day.
+        # If we are here, we have at least 2 indices, all not empty, with equivalent or ignored freq, equal or ignored tz, and EQUAL start-of-day.
 
         le_and_ri = [(idx, to_right(idx)) for idx in idxs]  # do conversion before removing .freq
 
@@ -410,7 +411,7 @@ def intersect_flex(
         if not all_equal_tz:
             le_and_ri = [(le.tz_localize(None), ri.tz_localize(None)) for (le, ri) in le_and_ri]
 
-        # If we land here, we have at least 2 indices, all not empty, with (possibly) no frequency, EQUAL tz, and EQUAL start-of-day.
+        # If we are here, we have at least 2 indices, all not empty, with (possibly) no frequency, EQUAL tz, and EQUAL start-of-day.
 
         # Do actual intersection.
         # Find stretch of time present in all indices.
@@ -427,7 +428,7 @@ def intersect_flex(
             for idx, (le, ri) in zip(idxs, le_and_ri)
         )
 
-    # If we land here, we have at least 2 indices, all not empty, with equivalent or ignored freq, equal or ignored tz, and UNEQUAL start-of-day.
+    # If we are here, we have at least 2 indices, all not empty, with equivalent or ignored freq, equal or ignored tz, and UNEQUAL start-of-day.
 
     # Approach:
     # - Remove time-part to ignore start-of-day.

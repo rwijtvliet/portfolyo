@@ -56,7 +56,7 @@ def stamps(
             left = tools_floor.stamp(pd.Timestamp.now(tz=tz), "YS", 1, start_of_day)
         right = tools_floor.stamp(left, "YS", 1, left.time())
 
-    # if we land here, we at least know right.
+    # if we are here, we at least know right.
     if left is pd.NaT:
         start_of_day = right.time()
         # ATTN!: this one is also no longer working, i suspect, since we don't do it only for YS now

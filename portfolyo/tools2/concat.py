@@ -91,7 +91,7 @@ def concat_pflines(pfls: Iterable[PfLine]) -> PfLine:
                 raise TypeError(
                     "Not possible to concatenate PfLines with different children names."
                 )
-    # If we reach here, all pfls have same kind, same number and names of children.
+    # If we are here, all pfls have same kind, same number and names of children.
 
     # concat(a,b) and concat(b,a) should give the same result:
     sorted_pfls = sorted(pfls, key=lambda pfl: pfl.index[0])

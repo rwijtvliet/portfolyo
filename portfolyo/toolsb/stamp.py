@@ -12,7 +12,7 @@ from . import unit as tools_unit
 from pint import Quantity
 
 
-@tools_freq.coerce()
+@tools_freq.apply_coercion()
 def to_right(stamp: pd.Timestamp, freq: BaseOffset) -> pd.Timestamp:
     """Right-bound timestamp belonging to left-bound timestamp.
 
@@ -34,7 +34,7 @@ def to_right(stamp: pd.Timestamp, freq: BaseOffset) -> pd.Timestamp:
     return stamp + tools_freq.to_jump(freq)
 
 
-@tools_freq.coerce()
+@tools_freq.apply_coercion()
 def duration(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
     """Duration of a delivery period.
 
@@ -73,14 +73,14 @@ def duration(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
     return tools_unit.Q_(hours, "h")
 
 
-@tools_startofday.coerce(validate=False)
+@tools_startofday.apply_coercion(validation=False)
 def replace_time(stamp: pd.Timestamp, startofday: dt.time) -> pd.Timestamp:
     """Replace the time-part of ``stamp`` with ``startofday``."""
     return stamp.replace(hour=startofday.hour, minute=startofday.minute, second=startofday.second)
 
 
-@tools_freq.coerce()
-@tools_startofday.coerce()
+@tools_freq.apply_coercion()
+@tools_startofday.apply_coercion()
 def is_boundary(stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None) -> bool:
     """Check if timestamp is a valid delivery period start.
 
@@ -116,7 +116,7 @@ def _round(
     if tools_freq.is_shorter_than_daily(freq):
         return stamp.floor(freq) if fn == "floor" else stamp.ceil(freq)
 
-    # If we reach here, we have daily-or-longer frequency.
+    # If we are hre, we have daily-or-longer frequency.
 
     # Correct for the time-of-day.
     if stamp.time() == startofday:
@@ -133,8 +133,8 @@ def _round(
     return freq.rollback(rounded) if fn == "floor" else freq.rollforward(rounded)
 
 
-@tools_freq.coerce()
-@tools_startofday.coerce()
+@tools_freq.apply_coercion()
+@tools_startofday.apply_coercion()
 def floor(
     stamp: pd.Timestamp,
     freq: BaseOffset,
@@ -180,8 +180,8 @@ def floor(
     return _round(stamp, freq, startofday, "floor")
 
 
-@tools_freq.coerce()
-@tools_startofday.coerce()
+@tools_freq.apply_coercion()
+@tools_startofday.apply_coercion()
 def ceil(
     stamp: pd.Timestamp,
     freq: BaseOffset,
