@@ -22,7 +22,8 @@ from .tools.right import index as right_index, stamp as right_stamp
 from .tools.unit import Q_, Unit, ureg
 from .tools.unit import normalize_frame as pintframe
 from .tools.wavg import general as wavg
-import importlib
+from .__version__ import __version__
+
 
 VOLUME = Kind.VOLUME
 PRICE = Kind.PRICE
@@ -33,5 +34,4 @@ extendpandas.apply()
 suppresswarnings.apply()
 
 
-__version__ = importlib.metadata.version(__name__)
 __all__ = ["tools", "dev", "PfLine", "PfState"]

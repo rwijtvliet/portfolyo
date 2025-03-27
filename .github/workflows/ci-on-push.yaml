@@ -26,9 +26,27 @@ jobs:
           pip install poetry
           poetry install --with dev,test
 
+      - name: Verify version consistency
+        run: |
+          PYPROJECT_VERSION=$(grep -Po '(?<=^version = ")[^"]+' pyproject.toml)
+          VERSION_PY=$(grep -Po '(?<=^__version__ = ")[^"]+' portfolyo/__version__.py)
+
+          echo "pyproject.toml version: $PYPROJECT_VERSION"
+          echo "__version__.py version: $VERSION_PY"
+
+          if [ "$PYPROJECT_VERSION" != "$VERSION_PY" ]; then
+            echo "Version mismatch detected!"
+            exit 1
+          else
+            echo "Versions match!"
+          fi
+
       - name: Run tests
         run: |
           poetry run python -B -m pytest -m "not only_on_pr"
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v1
+
+
+            

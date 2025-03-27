@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "portfolyo"
-version = "0.6.5"
+version = "0.6.7"
 description = "Analyse and manipulate timeseries related to power and gas offtake portfolios"
 authors = [
     "Ruud Wijtvliet <rwijtvliet@gmail.com>",
@@ -20,7 +20,7 @@ pint = "^0.24"
 pint-pandas = "^0.6.2"
 colorama = "^0.4.6"
 numpy = "^1.26.2"
-mip = "^1.15.0"
+
 
 [tool.poetry.group.test.dependencies]
 codecov = "^2.1.13"
@@ -91,3 +91,5 @@ checks = [
     "SA01",
     "ES01",
 ]
+
+

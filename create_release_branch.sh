@@ -15,6 +15,10 @@ poetry version $1
 version=$(poetry version --short)
 message="Portfolyo Release $version"
 
+# Update __version__.py file in place
+#sed -i '' 's/^__version__ = .*/__version__ = "'"$version"'"/' portfolyo/__version__.py
+echo "__version__ = \"$version\"" > portfolyo/__version__.py
+
 git checkout -b $version
 
 git add pyproject.toml
