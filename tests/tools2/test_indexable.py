@@ -24,10 +24,10 @@ def create_obj(
     series: pd.Series, name_obj: str
 ) -> pd.DataFrame | pf.PfLine | pf.PfState:
     if name_obj == "pfline":
-        return pf.PfLine({"w": series})
+        return pf.PfLine({"w": series.astype("pint[MW]")})
     elif name_obj == "pfstate":
-        volume = pf.PfLine({"w": series})
-        prices = pf.PfLine({"p": series})
+        volume = pf.PfLine({"w": series.astype("pint[MW]")})
+        prices = pf.PfLine({"p": series.astype("pint[Eur/MWh]")})
         return pf.PfState(volume, prices)
     else:
         return pd.DataFrame({"col": series})
