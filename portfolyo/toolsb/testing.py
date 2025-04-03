@@ -8,13 +8,21 @@ import pandas as pd
 import pint
 
 from . import unit as tools_unit
+from . import freq as tools_freq
+
+
+def assert_quantityequality(q1, q2):
+    assert str(q1.units) == str(
+        q2.units
+    )  # TODO: remove str() when 'different unit registries' error is found
+    assert q1.magnitude == q2.magnitude or np.isnan(q1.magnitude) and np.isnan(q2.magnitude)
 
 
 def assert_value_equal(left: Any, right: Any):
     try:
         if np.isnan(left) and np.isnan(right):
             return
-        assert np.isclose(left, right)
+        assert np.isclose(left, right)  # works on Quantities too, even if left=5MW, right=5000kW
     except Exception as e:
         raise AssertionError from e
 
@@ -56,7 +64,7 @@ def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
 def assert_index_equal(left: pd.Index, right: pd.Index, *args, **kwargs):
     pd.testing.assert_index_equal(left, right, *args, **kwargs)
     if isinstance(left, pd.DatetimeIndex):
-        assert left.freq == right.freq
+        assert tools_freq.up_or_down(left.freq, right.freq) == 0
 
 
 def assert_index_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):

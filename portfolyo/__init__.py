@@ -2,9 +2,7 @@
 
 from pathlib import Path
 
-import tomli
-
-from . import dev, tools
+from . import dev, tools, toolsb
 from .core import extendpandas  # extend functionalty of pandas
 from .core import suppresswarnings
 from .core.pfline import Kind, PfLine, Structure, create
@@ -22,7 +20,7 @@ from .tools.peakfn import factory as create_peakfn
 from .tools.product import germanpower_peakfn, is_peak_hour
 from .tools.standardize import frame as standardize
 from .tools.tzone import force_agnostic, force_aware
-from .tools.unit import Q_, Unit, ureg
+from .toolsb.unit import Q_, Unit, ureg
 from .tools.wavg import general as wavg
 
 VOLUME = Kind.VOLUME
@@ -34,15 +32,4 @@ extendpandas.apply()
 suppresswarnings.apply()
 
 
-def get_version():
-    # Find the pyproject.toml file relative to this file
-    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
-
-    # Open and read the pyproject.toml file using tomli
-    with pyproject_path.open("rb") as f:
-        pyproject_data = tomli.load(f)
-        return pyproject_data["tool"]["poetry"]["version"]
-
-
-__version__ = get_version()
 __all__ = ["tools", "dev", "PfLine", "PfState"]

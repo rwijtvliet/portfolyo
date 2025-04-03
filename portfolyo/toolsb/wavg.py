@@ -122,6 +122,8 @@ def series(s: pd.Series, weights: Iterable | Mapping | pd.Series | None = None) 
     """
     # Unweighted average if no weights provided.
     if weights is None:
+        if s.isna().any():
+            return tools_unit.Q_(np.nan, s.pint.units)
         return s.mean()
 
     # Prep: ensure weights is also a Series, and only keep relevant section of s.
@@ -420,10 +422,8 @@ def weights_as_floatseries(
         weights = pd.Series(weights, refindex)
     else:
         raise TypeError("``weights`` must be iterable or mapping.")
-    # Step 2: coece to pintframe to ensure all weights have same unit (or are dimensionless).
-    weights = tools_unit.coerce_pintframe(weights)
-    # Step 3: keep only magnitude.
-    return weights.pint.magnitude
+    # Step 2: coece to pintframe to ensure all weights have same unit (or are dimensionless), and then keep only the magnitude.
+    return tools_unit.coerce_pintframe(weights).pint.magnitude
 
 
 def values_areuniform(series: pd.Series, mask: Iterable = None) -> bool:
