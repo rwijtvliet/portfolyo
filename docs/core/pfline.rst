@@ -58,7 +58,7 @@ There are many ways to specify the timeseries from which to initialise a portfol
 In General
 ==========
 
-``portfolyo`` tries to determine the dimension of information (e.g., if it is a price or a volume) using its key (if it has one) and its unit (also, if it has one) - see the section on :ref:`Compatilibity of abbrevation and unit <nameunitcompatibility>`.
+``portfolyo`` tries to determine the dimension of information (e.g., if it is a price or a volume) using its key (if it has one) and its unit - see the section on :ref:`Compatilibity of abbrevation and unit <nameunitcompatibility>`.
 
 To initialise a volume-only / price-only / revenue-only portfolio line, we must only provide a volume / price / revenue timeseries. To initialise a complete portfolio line, we must supply at least 2 of the following timeseries: prices, volumes, revenues. 
 
@@ -74,14 +74,14 @@ DataFrame or dictionary of timeseries...
 
 ...or any other ``Mapping`` from (string) key values to ``pandas.Series``. 
 
-The keys (or dataframe column names) must each be one of the following: ``w`` (power), ``q`` (energy), ``p`` (price), ``r`` (revenue). Depending on the keys, the ``.kind`` of the portfolio line is determined.
+The keys (or dataframe column names) must each be one of the following: ``w`` (power), ``q`` (energy), ``p`` (price), ``r`` (revenue). Depending on the keys, the ``.kind`` of the portfolio line is determined. The series must have a ``pint`` unit.
 
 .. exec_code::
    
    import portfolyo as pf 
    import pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_dict = {'w': pd.Series([200, 220, 300.0], index)}
+   input_dict = {'w': pd.Series([200, 220, 300.0], index, dtype='pint[MW]')}
    pf.PfLine(input_dict)
    # --- hide: start ---
    print(repr(pf.PfLine(input_dict)))
@@ -89,7 +89,7 @@ The keys (or dataframe column names) must each be one of the following: ``w`` (p
 Timeseries with unit
 ====================
 
-Under the condition that a valid ``pint`` unit is present, we may also provide a single timeseries (``pandas.Series``), or an iterable of timeseries. They are automatically converted to the default unit.
+Under the condition that a valid ``pint`` unit is present, we may also provide a single timeseries (``pandas.Series``), or an iterable of timeseries. 
 
 .. exec_code::
 
@@ -178,8 +178,9 @@ The properties ``PfLine.w``, ``.q``, ``.p`` and ``.r`` always return the informa
    # --- hide: stop ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    
    pfl.r
    # --- hide: start ---
@@ -199,8 +200,9 @@ If we want to extract more than one timeseries, we can use the ``.df`` attribute
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.df
@@ -222,8 +224,9 @@ The ``PfLine.index`` property returns the ``pandas.DatetimeIndex`` that applies 
    # --- hide: start --- 
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.index
@@ -237,8 +240,9 @@ For convenience, ``portfolyo`` adds a ``.duration`` and a ``right`` property to 
    # --- hide: start --- 
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.index.duration, pfl.index.right
@@ -259,8 +263,9 @@ Another slicing method is implemented with the ``.slice[]`` property. The improv
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.slice['2024':'2026']  # excludes 2026; 2026 interpreted as timestamp 2026-01-01 00:00:00
@@ -278,8 +283,9 @@ A portfolio line can be reindexed with ``.index()``, using another index, e.g. o
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    index2 = pd.date_range('2025', freq='YS', periods=3)  
@@ -299,12 +305,13 @@ Portfolio lines can be concatenated with the ``portfolio.concat()`` function. Th
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   input_df = pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index)
-   pfl = pf.PfLine(input_df)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    index2 = pd.date_range('2025', freq='YS', periods=3)  # 2 years' overlap with pfl
-   pfl2 = pf.PfLine(pd.DataFrame({'w':[22, 30, 40], 'p': [15, 20, 21]}, index))
+   pfl2 = pf.PfLine(pd.DataFrame({'w':[22, 30, 40], 'p': [15, 20, 21]}, index).astype({'w': 'pint[MW]', 'p': 'pint[Eur/MWh]'}))
    # first two datapoints (until/excl 2026) from pfl, last two datapoints (from/incl 2026) from pfl2 
    pf.concat([pfl.slice[:'2026'], pfl2.slice['2026':]]) 
    # --- hide: start ---
@@ -335,7 +342,9 @@ The data can be shown graphically with the ``.plot()`` method:
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   pfl = pf.PfLine(pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index))
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.plot()
@@ -354,6 +363,13 @@ Alternatively, the data can be saved as an Excel workbook with the ``.to_excel()
 
 .. code-block::
 
+   # --- hide: start ---
+   import portfolyo as pf, pandas as pd
+   index = pd.date_range('2024', freq='YS', periods=3)
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
+   # --- hide: stop ---
    # continuation of previous code example
    pfl.to_clipboard()
    pfl.to_excel("sourced_volume.xlsx")
@@ -371,7 +387,9 @@ Using the ``.asfreq()`` method, we can quickly and correctly downsample our data
    # --- hide: start ---
    import portfolyo as pf, pandas as pd
    index = pd.date_range('2024', freq='YS', periods=3)
-   pfl = pf.PfLine(pd.DataFrame({'w':[200, 220, 300], 'p': [100, 150, 200]}, index))
+   volume = pd.Series([200, 220, 300], index).astype('pint[MW]')
+   price = pd.Series([100, 150, 200], index).astype('pint[Eur/MWh]')
+   pfl = pf.PfLine([volume, price])
    # --- hide: stop ---
    # continuation of previous code example
    pfl.asfreq('QS')
@@ -387,7 +405,7 @@ For more information about resampling in general, see :doc:`this page<../special
 Arithmatic
 ----------
 
-There are many ways to change and interact with ``PfLine`` instances. An intuitive way is through arithmatic, described below. The operations are grouped by the operator, and colors are used to more easily indicate the type of the output value.
+There are many ways to change and interact with ``PfLine`` instances. An intuitive way is through arithmatic, described below. Colors are used to more easily indicate the type of the output value.
 
 General remarks:
 
@@ -400,10 +418,10 @@ General remarks:
      import portfolyo as pf, pandas as pd
      index = pd.date_range('2024', freq='YS', periods=3)
      pfl = pf.PfLine(pd.Series([2, 2.2, 3], index, dtype='pint[MW]')) 
-     pfl_1 = pfl + {'q': 50.0}  # standard unit (here: MWh) is assumed
+     pfl_1 = pfl + {'q': pf.Q_(50, 'MWh')}  
      pfl_2 = pfl + pf.Q_(50000.0, 'kWh')
-     pfl_3 = pfl + {'q': pd.Series([50, 50, 50.0], index)}
-     pfl_4 = pfl + pf.PfLine({'q': pd.Series([50, 50, 50.0], index)})
+     pfl_3 = pfl + {'q': pd.Series([50, 50, 50.0], index, dtype='pint[MWh]')}
+     pfl_4 = pfl + pf.PfLine({'q': pd.Series([50, 50, 50.0], index, dtype='pint[MWh]')})
      pfl_1 == pfl_2 == pfl_3 == pfl_4
      # --- hide: start ---
      print(repr(pfl_1 == pfl_2 == pfl_3 == pfl_4))
@@ -418,7 +436,7 @@ General remarks:
 
 * Arithmatic does silent flattening if necessary. E.g., if an operation is only possible if one or both of the operands is flat, this will be done automatically. (A nested portfolio line can also be flattened manually with the ``.flatten()`` method.)
 
-* However, an ``Exception`` is raised in case of ambiguity concerning the unit. E.g., when adding a ``float`` value to a ``PRICE`` portfolio line. Solution: explicitly convert into a ``pint.Quantity`` using ``pf.Q_()``. 
+* An ``Exception`` is raised in case of ambiguity concerning the unit. E.g., when adding a ``float`` value to a ``PRICE`` portfolio line. Solution: explicitly convert into a ``pint.Quantity`` using ``pf.Q_()``. 
 
 * The usual relationship between addition and multiplication holds. E.g., for a given portfolio line ``pfl``, the following two calculations have the same return value: ``pfl + pfl`` and ``2 * pfl``.
 

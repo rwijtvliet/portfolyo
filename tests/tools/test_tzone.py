@@ -168,6 +168,6 @@ def do_test_conversion(aggfreq, tzt_in, tzt_out, seriesordf, conversion_fn):
     expected = df_out if seriesordf == "df" else df_out["col1"]
     result = conversion_fn(fr_in)
     if seriesordf == "df":
-        testing.assert_frame_equal(result, expected, check_names=False, check_freq=False)
+        testing.assert_dataframe_equal(result, expected, check_names=False, check_freq=False)
     else:
         testing.assert_series_equal(result, expected, check_names=False, check_freq=False)

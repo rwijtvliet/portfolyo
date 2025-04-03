@@ -151,8 +151,13 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, ExcelClipboardOutput, PfLineAr
         ...
 
     @abc.abstractmethod
-    def reindex(self, index: pd.DatetimeIndex):
-        """Reindex and fill any new values with zero (where applicable)."""
+    def reindex(self, index: pd.DatetimeIndex) -> PfLine:
+        """Reindex; fill any new values with zero (where applicable)."""
+        ...
+
+    @abc.abstractmethod
+    def agg(self) -> pd.Series | pd.DataFrame:
+        """Aggregate values over entire delivery period."""
         ...
 
     @abc.abstractmethod
@@ -284,6 +289,7 @@ class FlatPfLine:
     loc = flat_methods.loc
     slice = flat_methods.slice
     reindex = flat_methods.reindex
+    # agg => on child classes
     __getitem__ = flat_methods.__getitem__
     # __bool__ => on child classes
     __eq__ = flat_methods.__eq__
@@ -299,6 +305,7 @@ class NestedPfLine(children.ChildFunctionality):
     loc = nested_methods.loc
     slice = nested_methods.slice
     reindex = nested_methods.reindex
+    agg = nested_methods.agg
     __bool__ = nested_methods.__bool__
     __eq__ = nested_methods.__eq__
 
@@ -317,6 +324,12 @@ class FlatVolumePfLine(FlatPfLine, VolumePfLine, PfLine):
             )
         newdf["w"] = newdf["q"] / tools.duration.index(newdf.index)  # TODO: check unit
         return FlatVolumePfLine(newdf)
+
+    def agg(self) -> pd.Series:
+        q = self.df["q"].sum()
+        duration = tools.duration.index(self.index).sum()
+        w = q / duration
+        return pd.Series({"w": w, "q": q})
 
     def __bool__(self) -> bool:
         return not np.allclose(self.df["w"].pint.magnitude, 0.0)
@@ -352,6 +365,11 @@ class FlatPricePfLine(FlatPfLine, PricePfLine, PfLine):
             )
         return FlatPricePfLine(newdf)
 
+    def agg(self) -> pd.Series:
+        duration = tools.duration.index(self.index)
+        p = tools.wavg.series(self.df["p"], duration)
+        return pd.Series({"p": p})
+
     def __bool__(self) -> bool:
         return not np.allclose(self.df["p"].pint.magnitude, 0.0)
 
@@ -385,6 +403,10 @@ class FlatRevenuePfLine(FlatPfLine, RevenuePfLine, PfLine):
                 f"There are no full periods available when changing to the frequency {freq}."
             )
         return FlatRevenuePfLine(newdf)
+
+    def agg(self) -> pd.Series:
+        r = self.df["r"].sum()
+        return pd.Series({"r": r})
 
     def __bool__(self) -> bool:
         return not np.allclose(self.df["r"].pint.magnitude, 0.0)
@@ -434,7 +456,16 @@ class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
         newdf["p"] = newdf["r"] / newdf["q"]
         return FlatCompletePfLine(newdf)
 
+    def agg(self) -> pd.Series:
+        q = self.df["q"].sum()
+        r = self.df["r"].sum()
+        duration = tools.duration.index(self.index).sum()
+        w = q / duration
+        p = r / q
+        return pd.Series({"w": w, "q": q, "p": p, "r": r})
+
     def reindex(self, index: pd.DatetimeIndex) -> FlatCompletePfLine:
+        # override default from FlatPfLine
         tools.testing.assert_indices_compatible(self.index, index)
         newdf = self.df[["w", "q", "r"]].reindex(index, fill_value=0)
         newdf["p"] = newdf["r"] / newdf["q"]

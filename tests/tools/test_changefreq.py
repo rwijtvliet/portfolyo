@@ -387,7 +387,7 @@ def do_test(
         fr = pd.DataFrame({"a": s})
         expected = pd.DataFrame({"a": s_expected})
         result = fn(fr, freq_target)
-        testing.assert_frame_equal(result, expected)
+        testing.assert_dataframe_equal(result, expected)
 
 
 TESTCASES = [  # period, freqs, result
