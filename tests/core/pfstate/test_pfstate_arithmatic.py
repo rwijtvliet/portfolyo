@@ -11,13 +11,23 @@ tz = "Europe/Berlin"
 # Set 1.
 i1 = pd.date_range("2020", freq="MS", periods=3, tz=tz)
 dataset1 = {
-    "offtake": create.flatpfline({"w": pd.Series([-3.5, -5, -5], i1)}),
-    "unsourcedprice": create.flatpfline({"p": pd.Series([300.0, 150, 100], i1)}),
+    "offtake": create.flatpfline(
+        {"w": pd.Series([-3.5, -5, -5], i1, dtype="pint[MW]")}
+    ),
+    "unsourcedprice": create.flatpfline(
+        {"p": pd.Series([300.0, 150, 100], i1, dtype="pint[Eur/MWh]")}
+    ),
     "sourced": create.flatpfline(
-        {"w": pd.Series([3.0, 5, 4], i1), "p": pd.Series([200.0, 100, 50], i1)}
+        {
+            "w": pd.Series([3.0, 5, 4], i1, dtype="pint[MW]"),
+            "p": pd.Series([200.0, 100, 50], i1, dtype="pint[Eur/MWh]"),
+        }
     ),
     "unsourced": create.flatpfline(
-        {"w": pd.Series([0.5, 0, 1], i1), "p": pd.Series([300.0, 150, 100], i1)}
+        {
+            "w": pd.Series([0.5, 0, 1], i1, dtype="pint[MW]"),
+            "p": pd.Series([300.0, 150, 100], i1, dtype="pint[Eur/MWh]"),
+        }
     ),
     "nodim": pd.Series([2, -1.5, 10], i1),
 }
@@ -26,13 +36,23 @@ pfs1 = PfState(dataset1["offtake"], dataset1["unsourcedprice"], dataset1["source
 # Set 2. Partial overlap with set 1.
 i2 = pd.date_range("2020-02", freq="MS", periods=3, tz=tz)
 dataset2 = {
-    "offtake": create.flatpfline({"w": pd.Series([-15.0, -20, -4], i2)}),
-    "unsourcedprice": create.flatpfline({"p": pd.Series([400.0, 50, 50], i2)}),
+    "offtake": create.flatpfline(
+        {"w": pd.Series([-15.0, -20, -4], i2, dtype="pint[MW]")}
+    ),
+    "unsourcedprice": create.flatpfline(
+        {"p": pd.Series([400.0, 50, 50], i2, dtype="pint[Eur/MWh]")}
+    ),
     "sourced": create.flatpfline(
-        {"w": pd.Series([12.0, 5, 4], i2), "p": pd.Series([100.0, 100, 50], i2)}
+        {
+            "w": pd.Series([12.0, 5, 4], i2, dtype="pint[MW]"),
+            "p": pd.Series([100.0, 100, 50], i2, dtype="pint[Eur/MWh]"),
+        }
     ),
     "unsourced": create.flatpfline(
-        {"w": pd.Series([3.0, 15, 0], i2), "p": pd.Series([400.0, 50, 50], i2)}
+        {
+            "w": pd.Series([3.0, 15, 0], i2, dtype="pint[MW]"),
+            "p": pd.Series([400.0, 50, 50], i2, dtype="pint[Eur/MWh]"),
+        }
     ),
     "nodim": pd.Series([2, -1.5, 10], i2),
 }
@@ -77,10 +97,13 @@ neg_pfs1 = PfState(
 )
 i12 = pd.date_range("2020-02", freq="MS", periods=2, tz=tz)
 add_pfs1_pfs2 = PfState(
-    create.flatpfline({"w": pd.Series([-20.0, -25], i12)}),
-    create.flatpfline({"p": pd.Series([400, 53.125], i12)}),
+    create.flatpfline({"w": pd.Series([-20.0, -25], i12, dtype="pint[MW]")}),
+    create.flatpfline({"p": pd.Series([400, 53.125], i12, dtype="pint[Eur/MWh]")}),
     create.flatpfline(
-        {"w": pd.Series([17.0, 9], i12), "p": pd.Series([100, 700 / 9], i12)}
+        {
+            "w": pd.Series([17.0, 9], i12, dtype="pint[MW]"),
+            "p": pd.Series([100, 700 / 9], i12, dtype="pint[Eur/MWh]"),
+        }
     ),
 )
 div_pfs1_pfs2 = pd.DataFrame(
@@ -231,6 +254,6 @@ def test_pfs_arithmatic(pfs_in, value, operation, expected):
     # Test correct case.
     result = calc()
     if isinstance(expected, pd.DataFrame):
-        testing.assert_frame_equal(result, expected)
+        testing.assert_dataframe_equal(result, expected)
     else:
         assert result == expected

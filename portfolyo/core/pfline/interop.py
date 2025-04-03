@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
+import pint
+import pint_pandas
 
 from ... import tools
 from . import classes, create
@@ -15,7 +17,7 @@ from . import classes, create
 if TYPE_CHECKING:  # needed to avoid circular imports
     from .classes import FlatPfLine
 
-_ATTRIBUTES = ("w", "q", "p", "r", "nodim", "agn")
+_ATTRIBUTES = ("w", "q", "p", "r", "nodim")
 
 
 @dataclass(frozen=True)
@@ -34,9 +36,6 @@ class InOp:
     . Turn all into timeseries:
         inop = inop.to_timeseries()
 
-    . Assign unit-agnostic to unit-specific:
-        inop = inop.assign_agn('p')
-
     . Check for consistency and fill the missing attributes as much as possible:
         inop = inop.make_consistent()
 
@@ -44,21 +43,18 @@ class InOp:
         inop = inop.to_df()
     """
 
-    w: tools.unit.Q_ | pd.Series = None
-    q: tools.unit.Q_ | pd.Series = None
-    p: tools.unit.Q_ | pd.Series = None
-    r: tools.unit.Q_ | pd.Series = None
-    nodim: tools.unit.Q_ | pd.Series = None  # explicitly dimensionless
-    agn: float | pd.Series = None  # agnostic
+    w: pint.Quantity | pd.Series | None = None
+    q: pint.Quantity | pd.Series | None = None
+    p: pint.Quantity | pd.Series | None = None
+    r: pint.Quantity | pd.Series | None = None
+    nodim: float | pd.Series | None = None  # explicitly dimensionless
 
     def __post_init__(self):
-        # Add correct units and check type.
-        object.__setattr__(self, "w", _set_unit(self.w, "w"))
-        object.__setattr__(self, "q", _set_unit(self.q, "q"))
-        object.__setattr__(self, "p", _set_unit(self.p, "p"))
-        object.__setattr__(self, "r", _set_unit(self.r, "r"))
-        object.__setattr__(self, "nodim", _set_unit(self.nodim, "nodim"))
-        object.__setattr__(self, "agn", _set_unit(self.agn, None))
+        object.__setattr__(self, "w", check_dimensionality(self.w, "w"))
+        object.__setattr__(self, "q", check_dimensionality(self.q, "q"))
+        object.__setattr__(self, "p", check_dimensionality(self.p, "p"))
+        object.__setattr__(self, "r", check_dimensionality(self.r, "r"))
+        object.__setattr__(self, "nodim", check_dimensionality(self.nodim, "nodim"))
 
     @classmethod
     def from_data(cls, data):
@@ -67,7 +63,7 @@ class InOp:
     def to_timeseries(self, ref_index=None) -> InOp:
         """Turn all values into timeseries or None. If none of the attributes is a
         timeseries, and no ``ref_index`` is provided, raise Error. If >1 is a timeseries,
-        store only the timestamps where they overlap (i.e., intersection)."""
+        keep only the timestamps where they overlap (i.e., intersection)."""
         # Get index.
         indices = [] if ref_index is None else [ref_index]
         for attr in _ATTRIBUTES:
@@ -82,52 +78,44 @@ class InOp:
             val = getattr(self, attr)
             if val is None:
                 continue
-            elif isinstance(val, pd.Series):
-                kwargs[attr] = val.loc[index]
-            elif isinstance(val, tools.unit.Q_):
-                kwargs[attr] = pd.Series(val.m, index, dtype=f"pint[{val.units:P}]")
-            else:  # float
+            elif isinstance(val, float):
                 kwargs[attr] = pd.Series(val, index)
+            elif isinstance(val, pint.Quantity):
+                kwargs[attr] = pd.Series(val.magnitude, index).astype(
+                    f"pint[{val.units}]"
+                )
+            else:  # float- or pint-series
+                kwargs[attr] = val.loc[index]
         # Return as new InOp instance.
         return InOp(**kwargs)
 
-    def assign_agn(self, da: str = None) -> InOp:
-        """Set dimension-agnostic part as specific dimension (unless it's None)."""
-        if self.agn is None or da is None:
-            return self
-        # keep = [a for a in _ATTRIBUTES if a != da]
-        # return InOp(**{**{a: getattr(self, a) for a in keep}, da: self.agn})
-        return self.drop("agn") | InOp(**{da: self.agn})
-
-    def drop(self, da: str) -> InOp:
-        """Drop part of the information and return new InOp object."""
-        return InOp(**{attr: getattr(self, attr) for attr in _ATTRIBUTES if attr != da})
+    # def drop(self, da: str) -> InOp:
+    #     """Drop part of the information and return new InOp object."""
+    #     return InOp(**{attr: getattr(self, attr) for attr in _ATTRIBUTES if attr != da})
 
     def make_consistent(self) -> InOp:
-        """Fill as much of the data as possible. All data must be None or timeseries, and
-        self.agn must have been assigned (or dropped)."""
+        """Fill as much of the data as possible. All data must be None or timeseries."""
 
-        self._assert_noagn_and_all_timeseries()
+        self._assert_all_timeseries()
 
-        # If we land here, there is no self.agn, and all other attributes are timeseries (or None).
+        # If we land here, all attributes are timeseries (or None).
 
         w, q, p, r, nodim = self.w, self.q, self.p, self.r, self.nodim
+        duration = tools.duration.frame
 
         # Volumes.
         if w is not None and q is not None:
             try:
-                tools.testing.assert_series_equal(
-                    w, q / q.index.duration, check_names=False
-                )
+                tools.testing.assert_series_equal(w, q / duration(q), check_names=False)
             except AssertionError as e:
                 raise ValueError("Values for w and q are not consistent.") from e
         elif w is not None and q is None:
-            q = w * w.index.duration
+            q = w * duration(w)
         elif w is None and q is not None:
-            w = q / q.index.duration
+            w = q / duration(q)
         elif w is None and q is None and p is not None and r is not None:
             q = r / p
-            w = q / q.index.duration
+            w = q / duration(q)
 
         # If we land here, there are no more options to find w and q.
         # They are consistent with each other but might be inconsistent with p and r.
@@ -169,41 +157,24 @@ class InOp:
 
     def to_df(self) -> pd.DataFrame:
         """Create dataframe with (at most) columns w, q, p, r, nodim. All data must be
-        None or timeseries, and self.agn must have been assigned (or dropped). Also, you'll
-        probably want to have run the `.make_consistent()` method."""
+        None or timeseries. Also, you'll probably want to have run the `.make_consistent()` method.
+        """
 
-        self._assert_noagn_and_all_timeseries()
+        self._assert_all_timeseries()
 
-        # If we land here, there is no self.agn, and all other attributes are timeseries (or None).
+        # If we land here, all attributes are timeseries (or None).
 
-        series = {}
+        return pd.DataFrame(
+            {attr: s for attr in _ATTRIBUTES if (s := getattr(self, attr)) is not None}
+        )
+
+    def _assert_all_timeseries(self):
+        """Raise Error if not all data are timeseries."""
         for attr in _ATTRIBUTES:
-            val = getattr(self, attr)
-            if val is None:
+            if isinstance(getattr(self, attr), None | pd.Series):
                 continue
-            series[attr] = val
-
-        return pd.DataFrame(series)
-
-    def _assert_noagn_and_all_timeseries(self):
-        """Raise Error if object (still) has agnostic data or if not all data are timeseries."""
-        if self.agn is not None:
             raise ValueError(
-                "Object contains agnostic data; first use `.assign_agn()`."
-            )
-
-        # Guard clause.
-        errors = {}
-        for attr in _ATTRIBUTES:
-            val = getattr(self, attr)
-            if val is None:
-                continue
-            if isinstance(val, pd.Series):
-                continue
-            errors[attr] = type(val)
-        if errors:
-            raise ValueError(
-                "Object contains non-timeseries data; first use `.to_timeseries()`."
+                f"Attribute {attr} contains non-timeseries data; use `.to_timeseries()`."
             )
 
     def __bool__(self) -> bool:
@@ -218,83 +189,71 @@ class InOp:
         return _equal(self, other)
 
 
-def _set_unit(
-    v: float | int | tools.unit.Q_ | pd.Series, attr: str
-) -> float | tools.unit.Q | pd.Series:
-    """Set unit (if none set yet) or convert to unit."""
+def raisedimerror_receivedfloat(expected: pint.util.UnitsContainer) -> None:
+    raise pint.DimensionalityError(
+        expected,
+        tools.unit.NAMES_AND_DIMENSIONS["nodim"],
+        extra_msg="Float or int only allowed for dimensionless value. To specify a physical quantity, add a unit.",
+    )
+
+
+def raisedimerror_receivedincorrect(
+    expected: pint.util.UnitsContainer, received: pint.util.UnitsContainer
+) -> None:
+    raise pint.DimensionalityError(
+        expected,
+        received,
+        extra_msg=f"Incorrect dimension for this attribute; expected {expected}, got {received}.",
+    )
+
+
+def check_dimensionality(
+    v: None | float | int | pint.Quantity | pd.Series, attr: str
+) -> None | float | pint.Quantity | pd.Series:
+    """Check the dimensionality of a value.
+
+    This function verifies if the given value `v` has the correct unit dimensionality
+    corresponding to the attribute `attr`.
+    """
+    # Retrieve the expected dimensionality for the given attribute.
     if v is None:
-        return None
+        return v
 
-    unit = tools.unit.from_name(attr) if attr else None
+    expected_dim = tools.unit.NAMES_AND_DIMENSIONS[attr]
+    v = tools.unit.normalize(v)
 
-    if unit is None:  # should be unit-agnostic
-        if isinstance(v, float):
-            return v
-        if isinstance(v, int):
-            return float(v)
-        if isinstance(v, pd.Series) and isinstance(v.index, pd.DatetimeIndex):
-            v = _timeseries_of_floats_or_pint(v)  # float-series or pint-series
-            if hasattr(v, "pint"):
-                raise ValueError(
-                    "Agnostic timeseries should not have a dimension and should not be "
-                    f"dimensionless. Should be plain number values; found {v.pint.units}."
-                )
-            return v
-        raise TypeError(
-            f"Value should be a number or timeseries of numbers; got {type(v)}."
-        )
+    # Check if the value is a float or int and ensure it is dimensionless.
+    if isinstance(v, float):
+        if expected_dim != tools.unit.NAMES_AND_DIMENSIONS["nodim"]:
+            raisedimerror_receivedfloat(expected_dim)
+        return v
 
-    else:  # should be unit-aware
-        if isinstance(v, float):
-            return tools.unit.Q_(v, unit)  # add unit
-        if isinstance(v, int):
-            return tools.unit.Q_(float(v), unit)  # add unit
-        if isinstance(v, tools.unit.Q_):
-            return tools.unit.Q_(v, unit)  # convert to unit
-        if isinstance(v, pd.Series) and isinstance(v.index, pd.DatetimeIndex):
-            v = _timeseries_of_floats_or_pint(v)  # float-series or pint-series
-            return v.astype(f"pint[{unit:P}]")
-        raise TypeError(
-            f"Value should be a number, Quantity, or timeseries; got {type(v)}."
-        )
+    elif isinstance(v, pint.Quantity):
+        if expected_dim != v.dimensionality:
+            raisedimerror_receivedincorrect(expected_dim, v.dimensionality)
+        return v
 
+    elif isinstance(v, pd.Series):
+        # Is pint-series or float-series.
 
-def _timeseries_of_floats_or_pint(s: pd.Series) -> pd.Series:
-    """Check if a timeseries is a series of objects, and if so, see if these objects are
-    actually Quantities."""
+        if not isinstance(v.dtype, pint_pandas.PintType):
+            if expected_dim != tools.unit.NAMES_AND_DIMENSIONS["nodim"]:
+                raisedimerror_receivedfloat(expected_dim)
 
-    # Turn into floats-series or pint-series.
-
-    if s.dtype != object:
-        if not hasattr(s, "pint"):
-            s = s.astype(float)  # int to float
         else:
-            magnitudes = s.pint.magnitude
-            if pd.api.types.is_integer_dtype(magnitudes.dtype):
-                # series of int to series of float
-                s = pd.Series(magnitudes.astype(float), dtype=s.dtype)
+            if expected_dim != v.pint.dimensionality:
+                raisedimerror_receivedincorrect(expected_dim, v.pint.dimensionality)
 
-    else:
-        # object -> maybe series of Quantitis -> convert to pint-series.
-        if not all(isinstance(val, tools.unit.Q_) for val in s.values):
-            raise TypeError(f"Timeseries with unexpected data type: {s.dtype}.")
-        quantities = [val.to_base_units() for val in s.values]
-        magnitudes = [q.m for q in quantities]
-        units = list(set([q.u for q in quantities]))
-        if len(units) != 1:
-            raise ValueError(f"Timeseries needs uniform unit; found {','.join(units)}.")
-        s = pd.Series(magnitudes, s.index, dtype=f"pint[{units[0]:P}]")
+        try:
+            tools.testing.assert_index_standardized(v.index)
+        except AssertionError as e:
+            raise ValueError("Timeseries not in expected form.") from e
 
-    # Check if all OK.
+        return v
 
-    try:
-        tools.standardize.assert_frame_standardized(s)
-    except AssertionError as e:
-        raise ValueError(
-            "Timeseries not in expected form. See ``portfolyo.standardize()`` for more information."
-        ) from e
-
-    return s
+    raise TypeError(
+        f"Value should be a number, Quantity, or timeseries; got {type(v)}."
+    )
 
 
 def _unit2attr(unit) -> str:
@@ -305,7 +264,7 @@ def _unit2attr(unit) -> str:
 
 
 def _from_data(
-    data: float | tools.unit.Q_ | pd.Series | Dict | pd.DataFrame | Iterable | Mapping,
+    data: float | pint.Quantity | pd.Series | Dict | pd.DataFrame | Iterable | Mapping,
 ) -> InOp:
     """Turn ``data`` into a InterOp object."""
 
@@ -313,19 +272,19 @@ def _from_data(
         return InOp()
 
     elif isinstance(data, int):
-        return InOp(agn=float(data))
+        return InOp(nodim=float(data))
 
     elif isinstance(data, float):
-        return InOp(agn=data)
+        return InOp(nodim=data)
 
-    elif isinstance(data, tools.unit.Q_):
+    elif isinstance(data, pint.Quantity):
         return InOp(**{_unit2attr(data.units): data})
 
     elif isinstance(data, pd.Series) and isinstance(data.index, pd.DatetimeIndex):
         # timeseries
-        data = tools.unit.avoid_frame_of_objects(data)
-        if data.dtype in [float, int]:
-            return InOp(agn=data)
+        data = tools.unit.normalize_frame(data)
+        if pd.api.types.is_float_dtype(data):
+            return InOp(nodim=data)
         else:
             return InOp(**{_unit2attr(data.pint.units): data})
 
@@ -372,7 +331,7 @@ def _multiple_union(inops: Iterable[InOp]) -> InOp:
     return inop_result
 
 
-def _union(inop1: InOp, inop2: InOp) -> InOp:
+def _union(inop1: InOp, inop2: InOp | None) -> InOp:
     """Combine 2 ``InOp`` objects, and raise error if same dimension is supplied twice."""
     if inop2 is None:
         return inop1
@@ -390,7 +349,7 @@ def _union(inop1: InOp, inop2: InOp) -> InOp:
     return InOp(**kwargs)
 
 
-def _equal(inop1: InOp, inop2: InOp) -> InOp:
+def _equal(inop1: InOp, inop2: InOp) -> bool:
     """2 ``InOp`` objects are equal if they have the same attributes."""
     if not isinstance(inop2, InOp):
         return False
@@ -409,7 +368,7 @@ def _equal(inop1: InOp, inop2: InOp) -> InOp:
 
 
 def pfline_or_nodimseries(
-    data: Any, ref_index: pd.DatetimeIndex, agn_default: str = None
+    data: Any, ref_index: pd.DatetimeIndex
 ) -> None | pd.Series | FlatPfLine:
     """Turn ``data`` into PfLine if dimension-aware. If not, turn into Series."""
 
@@ -424,21 +383,11 @@ def pfline_or_nodimseries(
         pass
 
     # Turn into InOp object with timeseries.
-    inop = InOp.from_data(data).assign_agn(agn_default).to_timeseries(ref_index)
+    inop = InOp.from_data(data).to_timeseries(ref_index)
 
-    if inop.p is inop.q is inop.w is inop.r is inop.nodim is None and (
-        inop.agn is None or np.allclose(inop.agn, 0)
-    ):
-        # Data was None, or
-        # Data was dimension-agnostic 0.0 and shouldn't be interpreted as something else.
+    if inop.p is inop.q is inop.w is inop.r is inop.nodim is None:
+        # Data was None
         return None
-
-    elif inop.agn is not None:
-        raise ValueError(
-            "Cannot do this operation. If you meant to specify data of a certain dimension"
-            " or unit, make it more explicit, either by specifying 'w', 'p', etc. as e.g."
-            " a dictionary key, or by setting a unit e.g. in a pint Quantity."
-        )
 
     elif inop.nodim is None:
         # Only dimension-aware data was supplied; must be able to turn into PfLine.

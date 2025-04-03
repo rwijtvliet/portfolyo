@@ -5,7 +5,6 @@ build:
   tools:
     python: "3.10"
   jobs:
-    
     post_install:
       - pip install poetry
       # Tell poetry to not use a virtual environment
@@ -14,8 +13,8 @@ build:
       - poetry self add poetry-plugin-export
       - poetry export -f requirements.txt --without-hashes --without-urls --with docs -o requirements.txt
       - pip install -r requirements.txt
-      #- pip list
-
+      - pip install -e . # install current package
+      - pip list
 
 sphinx:
   configuration: docs/conf.py

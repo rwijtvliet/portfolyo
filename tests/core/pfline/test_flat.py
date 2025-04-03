@@ -87,13 +87,25 @@ for freq in ["MS", "D", "15min"]:
     series[freq] = {"i": idx, "w": w, "q": q, "p": p, "r": q * p}
 
 
+@pytest.mark.parametrize(
+    "columns, dtype",
+    [("w", "pint[MW]"), ("q", "pint[MWh]"), ("p", "pint[Eur/MWh]"), ("r", "pint[Eur]")],
+)
 @pytest.mark.parametrize("freq_in", ["MS", "D", "15min"])
 @pytest.mark.parametrize("freq_out", ["MS", "D", "15min"])
-@pytest.mark.parametrize("columns", ["w", "q", "p", "pw", "wr"])
-def test_flatpfline_asfreqcorrect1(freq_in: str, freq_out: str, columns: str):
+def test_flatpfline_asfreqcorrect1(
+    freq_in: str, freq_out: str, columns: str, dtype: str
+):
     """Test if changing frequency is done correctly (when it's possible), for uniform pflines."""
-    pfl_in = create.flatpfline({col: series[freq_in][col] for col in columns})
-    expected_out = create.flatpfline({col: series[freq_out][col] for col in columns})
+    # pfl_in = create.flatpfline({col: series[freq_in][col] for col in columns})
+    # !ATTN: before there were double columns such as pw or wr
+    pfl_in = create.flatpfline(
+        {col: series[freq_in][col].astype(dtype) for col in columns}
+    )
+
+    expected_out = create.flatpfline(
+        {col: series[freq_out][col].astype(dtype) for col in columns}
+    )
     pfl_out = pfl_in.asfreq(freq_out)
     assert pfl_out == expected_out
 

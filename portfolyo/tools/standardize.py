@@ -122,7 +122,7 @@ def frame(
         raise ValueError("Could not standardize this frame") from e
 
     # Standardize index name.
-    fr = _standardize_index_name(fr)
+    fr = _fix_index_name(fr)
     # After standardizing timezone, the frequency should have been set.
     fr = tools_freq.set_to_frame(fr, freq_input)
     tools_freq.assert_freq_valid(fr.index.freq)
@@ -152,7 +152,7 @@ def _fix_timezone(fr, force, tz, floating):
     )
 
 
-def _standardize_index_name(fr: Series_or_DataFrame) -> Series_or_DataFrame:
+def _fix_index_name(fr: Series_or_DataFrame) -> Series_or_DataFrame:
     return fr.rename_axis(index="ts_left")
 
 
@@ -161,8 +161,9 @@ def assert_frame_standardized(fr: Series_or_DataFrame) -> None:
     assert_index_standardized(fr.index)
 
 
-def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
-    """Assert that index is standardized."""
+def assert_index_standardized(i: pd.DatetimeIndex) -> None:
+    """Assert that index is standardized: by checking if the frequency fits to the minute/second of the timestamps, the
+    day of the month, etc."""
 
     if not isinstance(i, pd.DatetimeIndex):
         raise AssertionError(f"Expecting DatetimeIndex; got {type(i)}.")
@@ -171,10 +172,6 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
     freq = i.freq
     if not freq:
         raise AssertionError("Index must have frequency set.")
-    # if freq not in (freqs := tools_freq.FREQUENCIES):
-    #     raise AssertionError(
-    #         f"Index frequency must be one of {', '.join(freqs)}; found '{freq}'."
-    #     )
     tools_freq.assert_freq_valid(freq)
 
     # Check length.
@@ -183,11 +180,9 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
 
     # Check hour and minute.
     if tools_freq.up_or_down(freq, "15min") <= 0:  # quarterhour
-        startminute = 15 if __right else 0
-        if i[0].minute != startminute:
-            err = ("right-bound", "15 min past the") if __right else ("", "at a full")
+        if i[0].minute != 0:
             raise AssertionError(
-                f"The first element in an index with {err[0]} quarterhourly values must be {err[1]} hour; found {i[0]}."
+                f"The first element in an index with quarterhourly values must be at the full hour; found {i[0]}."
             )
 
         if any(not_ok := [ts.minute not in (0, 15, 30, 45) for ts in i]):
@@ -204,12 +199,7 @@ def assert_index_standardized(i: pd.DatetimeIndex, __right: bool = False):
 
     # Check time-of-day.
     if tools_freq.up_or_down(freq, "h") <= 0:  # hour or shorter
-        if not __right:
-            start = i[0]
-            end = tools_right.stamp(i[-1], i.freq)
-        else:
-            start = tools_righttoleft.index(i)[0]
-            end = i[-1]
+        start, end = i[0], tools_right.stamp(i[-1], i.freq)
         if start.time() != end.time():
             raise AssertionError(
                 "An index must contain full days. For hourly-or-shorter values, this means "

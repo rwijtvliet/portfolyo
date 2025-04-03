@@ -9,6 +9,20 @@ from portfolyo import PfLine, create, testing
 
 tz = "Europe/Berlin"
 
+
+def wrapper_pfline(args_dict):
+    if "w" in args_dict and args_dict["w"].dtype == "float64":
+        args_dict["w"] = args_dict["w"].astype("pint[MW]")
+    if "p" in args_dict and args_dict["p"].dtype == "float64":
+        args_dict["p"] = args_dict["p"].astype("pint[Eur/MWh]")
+    if "q" in args_dict and args_dict["q"].dtype == "float64":
+        args_dict["q"] = args_dict["q"].astype("pint[MWh]")
+    if "r" in args_dict and args_dict["r"].dtype == "float64":
+        args_dict["r"] = args_dict["r"].astype("pint[Eur]")
+
+    return create.flatpfline(args_dict)
+
+
 # Set 1.
 ref_i = pd.date_range("2020", freq="MS", periods=3, tz=tz)
 ref_series = {
@@ -18,30 +32,24 @@ ref_series = {
 }
 ref_children = {
     "vol": {
-        "childA": create.flatpfline({"w": ref_series["A"]}),
-        "childB": create.flatpfline({"w": ref_series["B"]}),
-        "childC": create.flatpfline({"w": ref_series["C"]}),
+        "childA": wrapper_pfline({"w": ref_series["A"]}),
+        "childB": wrapper_pfline({"w": ref_series["B"]}),
+        "childC": wrapper_pfline({"w": ref_series["C"]}),
     },
     "pri": {
-        "childA": create.flatpfline({"p": ref_series["A"] * 100}),
-        "childB": create.flatpfline({"p": ref_series["B"] * 100}),
-        "childC": create.flatpfline({"p": ref_series["C"] * 100}),
+        "childA": wrapper_pfline({"p": ref_series["A"] * 100}),
+        "childB": wrapper_pfline({"p": ref_series["B"] * 100}),
+        "childC": wrapper_pfline({"p": ref_series["C"] * 100}),
     },
     "rev": {
-        "childA": create.flatpfline({"r": ref_series["A"] * 1000}),
-        "childB": create.flatpfline({"r": ref_series["B"] * 1000}),
-        "childC": create.flatpfline({"r": ref_series["C"] * 1000}),
+        "childA": wrapper_pfline({"r": ref_series["A"] * 1000}),
+        "childB": wrapper_pfline({"r": ref_series["B"] * 1000}),
+        "childC": wrapper_pfline({"r": ref_series["C"] * 1000}),
     },
     "all": {
-        "childA": create.flatpfline(
-            {"w": ref_series["A"], "r": ref_series["A"] * 1000}
-        ),
-        "childB": create.flatpfline(
-            {"w": ref_series["B"], "r": ref_series["B"] * 1000}
-        ),
-        "childC": create.flatpfline(
-            {"w": ref_series["C"], "r": ref_series["C"] * 1000}
-        ),
+        "childA": wrapper_pfline({"w": ref_series["A"], "r": ref_series["A"] * 1000}),
+        "childB": wrapper_pfline({"w": ref_series["B"], "r": ref_series["B"] * 1000}),
+        "childC": wrapper_pfline({"w": ref_series["C"], "r": ref_series["C"] * 1000}),
     },
 }
 ref_pfl = {kind: create.nestedpfline(ref_children[kind]) for kind in ref_children}
@@ -50,10 +58,10 @@ ref_pfl = {kind: create.nestedpfline(ref_children[kind]) for kind in ref_childre
 i2 = pd.date_range("2020-02", freq="MS", periods=3, tz=tz)
 series2 = {"D": pd.Series([8.0, 7, 6], i2)}
 children2 = {
-    "vol": {"childD": create.flatpfline({"w": series2["D"]})},
-    "pri": {"childD": create.flatpfline({"p": series2["D"] * 100})},
-    "rev": {"childD": create.flatpfline({"r": series2["D"] * 1000})},
-    "all": {"childD": create.flatpfline({"w": series2["D"], "r": series2["D"] * 1000})},
+    "vol": {"childD": wrapper_pfline({"w": series2["D"]})},
+    "pri": {"childD": wrapper_pfline({"p": series2["D"] * 100})},
+    "rev": {"childD": wrapper_pfline({"r": series2["D"] * 1000})},
+    "all": {"childD": wrapper_pfline({"w": series2["D"], "r": series2["D"] * 1000})},
 }
 i12 = pd.date_range("2020-02", freq="MS", periods=2, tz=tz)
 children12 = {kind: {**ref_children[kind], **children2[kind]} for kind in ref_children}
@@ -69,30 +77,30 @@ pfl12 = {
 i3 = pd.date_range("2022", freq="MS", periods=3, tz=tz)
 series3 = {"D": pd.Series([8.0, 7, 6], i3)}
 children3 = {
-    "vol": {"childD": create.flatpfline({"w": series3["D"]})},
-    "pri": {"childD": create.flatpfline({"p": series3["D"] * 100})},
-    "rev": {"childD": create.flatpfline({"r": series3["D"] * 1000})},
-    "all": {"childD": create.flatpfline({"w": series3["D"], "r": series3["D"] * 1000})},
+    "vol": {"childD": wrapper_pfline({"w": series3["D"]})},
+    "pri": {"childD": wrapper_pfline({"p": series3["D"] * 100})},
+    "rev": {"childD": wrapper_pfline({"r": series3["D"] * 1000})},
+    "all": {"childD": wrapper_pfline({"w": series3["D"], "r": series3["D"] * 1000})},
 }
 
 # Child with other frequency.
 i4 = pd.date_range("2020", freq="D", periods=3, tz=tz)
 series4 = {"D": pd.Series([8.0, 7, 6], i4)}
 children4 = {
-    "vol": {"childD": create.flatpfline({"w": series4["D"]})},
-    "pri": {"childD": create.flatpfline({"p": series4["D"] * 100})},
-    "rev": {"childD": create.flatpfline({"r": series4["D"] * 1000})},
-    "all": {"childD": create.flatpfline({"w": series4["D"], "r": series4["D"] * 1000})},
+    "vol": {"childD": wrapper_pfline({"w": series4["D"]})},
+    "pri": {"childD": wrapper_pfline({"p": series4["D"] * 100})},
+    "rev": {"childD": wrapper_pfline({"r": series4["D"] * 1000})},
+    "all": {"childD": wrapper_pfline({"w": series4["D"], "r": series4["D"] * 1000})},
 }
 
 # Child with other timezone.
 i5 = pd.date_range("2020", freq="MS", periods=3, tz=None)
 series5 = {"D": pd.Series([8.0, 7, 6], i5)}
 children5 = {
-    "vol": {"childD": create.flatpfline({"w": series5["D"]})},
-    "pri": {"childD": create.flatpfline({"p": series5["D"] * 100})},
-    "rev": {"childD": create.flatpfline({"r": series5["D"] * 1000})},
-    "all": {"childD": create.flatpfline({"w": series5["D"], "r": series5["D"] * 1000})},
+    "vol": {"childD": wrapper_pfline({"w": series5["D"]})},
+    "pri": {"childD": wrapper_pfline({"p": series5["D"] * 100})},
+    "rev": {"childD": wrapper_pfline({"r": series5["D"] * 1000})},
+    "all": {"childD": wrapper_pfline({"w": series5["D"], "r": series5["D"] * 1000})},
 }
 
 
@@ -122,7 +130,7 @@ def do_test_setchild(
     result = pfl
 
     assert result == expected
-    testing.assert_frame_equal(result.df, expected.df)
+    testing.assert_dataframe_equal(result.df, expected.df)
 
 
 def do_test_dropchild(pfl: PfLine, to_drop: Iterable[str], expected: PfLine, how: str):
@@ -145,7 +153,7 @@ def do_test_dropchild(pfl: PfLine, to_drop: Iterable[str], expected: PfLine, how
     result = pfl
 
     assert result == expected
-    testing.assert_frame_equal(result.df, expected.df)
+    testing.assert_dataframe_equal(result.df, expected.df)
 
 
 @pytest.mark.parametrize(

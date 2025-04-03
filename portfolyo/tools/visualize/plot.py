@@ -8,6 +8,7 @@ import matplotlib as mpl
 import pandas as pd
 from matplotlib import pyplot as plt
 
+
 from .. import freq as tools_freq
 from .. import unit as tools_unit
 from .categories import Categories
@@ -102,11 +103,14 @@ def plot_timeseries_as_bar(
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
 
     categories = Categories(s)
-    ax.bar(categories.x(), categories.y(), width=width, **kwargs)
+    height = categories.y()
+    # if any((h is pd.NA for h in height.quantity.magnitude)):
+    #     height = 0
+    if any(pd.isna(h) for h in height.quantity.magnitude):
+        height = height.fillna(0)
+    ax.bar(categories.x(), height, width=width, **kwargs)
     ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-    set_data_labels(
-        ax, categories.x(MAX_XLABELS), categories.y(MAX_XLABELS), labelfmt, True
-    )
+    set_data_labels(ax, categories.x(MAX_XLABELS), height, labelfmt, True)
     ax.autoscale()
 
 
@@ -132,6 +136,10 @@ def plot_timeseries_as_area(
     bottom = [0.0 for i in range(0, splot.size)]
     # make bottom into pintarray
     bottom = bottom * splot.values[0].units
+    # the case with all nan values
+    if all(pd.isna(s.magnitude) for s in splot.values):
+        for i in range(0, splot.size):
+            splot.values[i] = 0 * splot.values[i].u
 
     ax.fill_between(
         splot.index,
@@ -160,6 +168,10 @@ def plot_timeseries_as_step(
 
     splot = s.copy()  # modified with additional (repeated) datapoint
     splot[splot.index.right[-1]] = splot.values[-1]
+    # the case with all nan values
+    if all(pd.isna(s.magnitude) for s in splot.values):
+        for i in range(0, splot.size):
+            splot.values[i] = 0 * splot.values[i].u
 
     ax.step(splot.index, splot.values, where="mid", **kwargs)
     delta = s.index.right - s.index
@@ -180,17 +192,21 @@ def plot_timeseries_as_hline(
     check_ax_s_compatible(ax, s)
     s = prepare_ax_and_s(ax, s)  # ensure unit compatibility (if possible)
     categories = Categories(s)
+
+    height = categories.y()
+    if any(pd.isna(h) for h in height.quantity.magnitude):
+        height = height.fillna(0)
     # Center around x-tick:
     ax.hlines(
         pd.Series(
-            categories.y(), categories.x()
+            height, categories.x()
         ),  # HACK: categories.y() no longer working after update of pint-pandas to 0.6
         categories.x() - 0.4,
         categories.x() + 0.4,
         **kwargs,
     )
     ax.set_xticks(categories.x(MAX_XLABELS), categories.labels(MAX_XLABELS))
-    set_data_labels(ax, categories.x(), categories.y(), labelfmt, True)
+    set_data_labels(ax, categories.x(), height, labelfmt, True)
     ax.autoscale()
     # Adjust the margins around the plot
     ax.margins(x=0.2, y=0.2)
@@ -313,14 +329,18 @@ def set_data_labels(
     # Add labels.
     for x, y in zip(xx, yy):
         lbl = labelfmt.format(y.magnitude).replace(",", " ")
-        xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
+
+        xytext = (
+            (0, -10) if pd.isna(y.magnitude) or outside and y.magnitude < 0 else (0, 10)
+        )
+        # xytext = (0, -10) if outside and y.magnitude < 0 else (0, 10)
         ax.annotate(
             lbl,
             (x, y),
             textcoords="offset points",
             xytext=xytext,
             ha="center",
-            va="top" if y.magnitude < 0 else "bottom",
+            va="top" if pd.isna(y.magnitude) or y.magnitude < 0 else "bottom",
             rotation=90,
         )
 
