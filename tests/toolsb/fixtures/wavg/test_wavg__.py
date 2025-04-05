@@ -1,40 +1,23 @@
 import pytest
-import pandas as pd
-import numpy as np
-
-
-def assertquantityequality(q1, q2):
-    assert str(q1.units) == str(
-        q2.units
-    )  # TODO: remove str() when 'different unit registries' error is found
-    assert q1.magnitude == q2.magnitude or np.isnan(q1.magnitude) and np.isnan(q2.magnitude)
-
-
-def assertseriesequality(s1, s2):
-    assert str(s1.pint.units) == str(s2.pint.units)
-    nans1, nans2 = s1.isna(), s2.isna()
-    pd.testing.assert_series_equal(nans1, nans2)
-    pd.testing.assert_series_equal(s1[~nans1].pint.magnitude, s2[~nans2].pint.magnitude)
+from portfolyo import toolsb
 
 
 def do_test_wavg_series(s, weights, wavg, fn):
     if isinstance(wavg, type) and issubclass(wavg, Exception):
-        with pytest.raises(wavg):
+        with pytest.raises(Exception):
             _ = fn(s, weights)
 
     else:
-        assertquantityequality(fn(s, weights), wavg)
-        # pf.testing.assert_value_equal(wavgfnseries(values1d, weights0d), wavg_for_values1d_and_weights0d)
+        toolsb.testing.assert_scalar_equal(fn(s, weights), wavg)
 
 
 def do_test_wavg_dataframe(df, weights, axis, wavg, fn):
     if isinstance(wavg, type) and issubclass(wavg, Exception):
-        with pytest.raises(wavg):
+        with pytest.raises(Exception):
             _ = fn(df, weights, axis)
 
     else:
-        assertseriesequality(fn(df, weights, axis), wavg)
-        # pf.testing.assert_value_equal(wavgfnseries(values1d, weights0d), wavg_for_values1d_and_weights0d)
+        toolsb.testing.assert_series_equal(fn(df, weights, axis).sort_index(), wavg.sort_index())
 
 
 class TestWavgValues1dWeights0d:

@@ -5,26 +5,60 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import pint_pandas
 import pint
-
 from . import unit as tools_unit
 from . import freq as tools_freq
 
 
-def assert_quantityequality(q1, q2):
-    assert str(q1.units) == str(
-        q2.units
-    )  # TODO: remove str() when 'different unit registries' error is found
-    assert q1.magnitude == q2.magnitude or np.isnan(q1.magnitude) and np.isnan(q2.magnitude)
-
-
-def assert_value_equal(left: Any, right: Any):
+def assert_scalar_equal(left: Any, right: Any):
     try:
-        if np.isnan(left) and np.isnan(right):
-            return
-        assert np.isclose(left, right)  # works on Quantities too, even if left=5MW, right=5000kW
+        if np.isnan(left) and np.isnan(right):  # np.nan != np.nan, so separate check needed here
+            if isinstance(left, pint.Quantity):
+                assert left.units == right.units
+        else:
+            assert np.isclose(
+                left, right
+            )  # works on Quantities too, even if left=5MW, right=5000kW
     except Exception as e:
         raise AssertionError from e
+
+
+@functools.wraps(pd.testing.assert_index_equal)
+def assert_index_equal(left: pd.Index, right: pd.Index, *args, **kwargs):
+    pd.testing.assert_index_equal(left, right, *args, **kwargs)
+
+    assert isinstance(left, pd.DatetimeIndex) == isinstance(right, pd.DatetimeIndex)
+    if isinstance(left, pd.DatetimeIndex):
+        assert tools_freq.up_or_down(left.freq, right.freq) == 0
+
+
+@functools.wraps(pd.testing.assert_series_equal)
+def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
+    # Ensure pintseries, if possible.
+    left, right = tools_unit.convert_pintframe(left), tools_unit.convert_pintframe(right)
+
+    assert isinstance(left.dtype, pint_pandas.PintType) == isinstance(
+        right.dtype, pint_pandas.PintType
+    )
+
+    # If we are here, both are pintseries, or both are not pintseries.
+
+    if isinstance(left.dtype, pint_pandas.PintType):
+        # For pintseries: make units equal to avoid incorrect assertionerror from pd.testing.
+        assert tools_unit.get_basedimty(left) == tools_unit.get_basedimty(right)
+        right = right.pint.to(left.pint.units)
+        left, right = left.pint.magnitude, right.pint.magnitude
+
+    # Following function works on all series, including series of pint Quantity objects. It only
+    # does not work on pintseries, but the preprocessing above takes care of that case by using
+    # only the magnitude. Also, even though np.nan != np.nan when comparing scalars, np.nan ==
+    # np.nan when using the function below.
+    try:
+        pd.testing.assert_series_equal(left, right, *args, **kwargs)
+    except TypeError:  # can happen if series of quantities
+        for le, ri in zip(left, right):
+            assert_scalar_equal(le, ri)
 
 
 @functools.wraps(pd.testing.assert_frame_equal)
@@ -39,32 +73,6 @@ def assert_frame_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwargs)
         assert coll == colr
         # Series must match.
         assert_series_equal(sl, sr, *args, **kwargs)
-
-
-@functools.wraps(pd.testing.assert_series_equal)
-def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
-    leftm, leftu = tools_unit.split_magn_unit(left)
-    rightm, rightu = tools_unit.split_magn_unit(right)
-
-    # Magnitudes must be the same.
-    leftm = leftm.replace([np.inf, -np.inf], np.nan)
-    rightm = rightm.replace([np.inf, -np.inf], np.nan)
-    pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)
-
-    # Units must be the same.
-    if leftu is None:
-        assert leftu is rightu
-    elif isinstance(leftu, pint.Unit):  # all values share the same unit, leftu is Unit
-        assert leftu == rightu
-    else:  # each value has its own unit; leftu is Series
-        pd.testing.assert_series_equal(leftu, rightu)
-
-
-@functools.wraps(pd.testing.assert_index_equal)
-def assert_index_equal(left: pd.Index, right: pd.Index, *args, **kwargs):
-    pd.testing.assert_index_equal(left, right, *args, **kwargs)
-    if isinstance(left, pd.DatetimeIndex):
-        assert tools_freq.up_or_down(left.freq, right.freq) == 0
 
 
 def assert_index_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):

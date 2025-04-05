@@ -10,13 +10,13 @@ import portfolyo as pf
 # PARAMETRIZATION: NUMBERS
 
 
-class _Values1d(enum.Enum):
+class _Values1dNumbers(enum.Enum):
     NORMAL = (100.0, 200, 300, -150)
     UNIFORM = (100.0, 100, 100, 100)
     WITHNA = (100.0, 200, np.nan, -150)
 
 
-class _Weights1d(enum.Enum):
+class _Weights1dNumbers(enum.Enum):
     NORMAL = (10, 0, 10, 20)
     FEWERWEIGHTS = (10, 0, 10)
     MOREWEIGHTS = (10, 10, 10, 20, 9)
@@ -24,7 +24,7 @@ class _Weights1d(enum.Enum):
     SUMZERO = (-10, 10, 0, 0)
 
 
-class _Values2d(enum.Enum):
+class _Values2dNumbers(enum.Enum):
     NORMAL = (
         (100, 100),
         (200, -200),
@@ -51,31 +51,31 @@ class _Numbers:
     scope="module",
     params=[
         pytest.param(
-            (_Values1d.NORMAL, None, None, 112.5),
+            (_Values1dNumbers.NORMAL, None, None, 112.5),
             id="1dvalues_noneweights",
         ),
         pytest.param(
-            (_Values1d.NORMAL, _Weights1d.NORMAL, None, 25),
+            (_Values1dNumbers.NORMAL, _Weights1dNumbers.NORMAL, None, 25),
             id="1dvalues_1dweights",
         ),
         pytest.param(
-            (_Values1d.NORMAL, _Weights1d.FEWERWEIGHTS, None, 200),
+            (_Values1dNumbers.NORMAL, _Weights1dNumbers.FEWERWEIGHTS, None, 200),
             id="1dvalues_1dweights_fewerweights",
         ),
         pytest.param(
-            (_Values1d.NORMAL, _Weights1d.MOREWEIGHTS, None, ValueError),
+            (_Values1dNumbers.NORMAL, _Weights1dNumbers.MOREWEIGHTS, None, ValueError),
             id="1dvalues_1dweights_moreweights",
         ),
         pytest.param(
-            (_Values1d.NORMAL, _Weights1d.ALLZERO, None, np.nan),
+            (_Values1dNumbers.NORMAL, _Weights1dNumbers.ALLZERO, None, np.nan),
             id="1dvalues_1dweights_allzero",
         ),
         pytest.param(
-            (_Values1d.NORMAL, _Weights1d.SUMZERO, None, np.nan),
+            (_Values1dNumbers.NORMAL, _Weights1dNumbers.SUMZERO, None, np.nan),
             id="1dvalues_1dweights_sumzero",
         ),
         pytest.param(
-            (_Values1d.UNIFORM, _Weights1d.ALLZERO, None, np.nan),
+            (_Values1dNumbers.UNIFORM, _Weights1dNumbers.ALLZERO, None, 100),
             id="1dvalues_uniform_1dweights_allzero",
         ),
         pytest.param(
@@ -91,59 +91,44 @@ class _Numbers:
             id="1dvalues_withna_1dweights_na0weight",
         ),
         pytest.param(
-            ((100.0, 200, np.nan, -150), _Weights1d.ALLZERO, None, np.nan),
+            ((100.0, 200, np.nan, -150), _Weights1dNumbers.ALLZERO, None, np.nan),
             id="1dvalues_withna_1dweights_allzero",
         ),
         pytest.param(
-            ((100.0, 200, np.nan, -150), _Weights1d.SUMZERO, None, np.nan),
+            ((100.0, 200, np.nan, -150), _Weights1dNumbers.SUMZERO, None, np.nan),
             id="1dvalues_withna_1dweights_sumzero",
         ),
         pytest.param(
-            (_Values2d.NORMAL, None, 0, (112.5, 12.5)),
+            (_Values2dNumbers.NORMAL, None, 0, (112.5, 12.5)),
             id="2dvalues_noneweights_ax0",
         ),
         pytest.param(
-            (_Values2d.NORMAL, (10, 10, 10, 20), 0, (60, -20)),
+            (_Values2dNumbers.NORMAL, (10, 10, 10, 20), 0, (60, -20)),
             id="2dvalues_1dweights_ax0",
         ),
         pytest.param(
-            (_Values2d.NORMAL, (10, 10, 30), 0, (240, 160)),
+            (_Values2dNumbers.NORMAL, (10, 10, 30), 0, (240, 160)),
             id="2dvalues_1dweights_fewerweights_ax0",
         ),
         pytest.param(
-            (_Values2d.NORMAL, (10, 10, 10, 20, 9), 0, ValueError),
+            (_Values2dNumbers.NORMAL, (10, 10, 10, 20, 9), 0, ValueError),
             id="2dvalues_1dweights_moreweights_ax0",
         ),
         pytest.param(
-            (
-                _Values2d.NORMAL,
-                ((10, 10), (10, 10), (10, 30), (20, 0)),
-                0,
-                (60, 160),
-            ),
+            (_Values2dNumbers.NORMAL, ((10, 10), (10, 10), (10, 30), (20, 0)), 0, (60, 160)),
             id="2dvalues_2dweights_ax0",
         ),
         pytest.param(
-            (
-                _Values2d.NORMAL,
-                ((10, 10), (10, 10), (10, 30)),
-                0,
-                (200, 160),
-            ),
-            id="2dvalues_2dweights_fewerweights_ax0_A",
+            (_Values2dNumbers.NORMAL, ((10, 10), (10, 10), (10, 30)), 0, (200, 160)),
+            id="2dvalues_2dweights_fewerweightsoncollapsingaxis_ax0_A",
+        ),
+        pytest.param(
+            (_Values2dNumbers.NORMAL, ((10,), (10,), (10,), (20,)), 0, ValueError),
+            id="2dvalues_2dweights_fewerweightsonremainingaxis_ax0_B",
         ),
         pytest.param(
             (
-                _Values2d.NORMAL,
-                ((10,), (10,), (10,), (20,)),
-                0,
-                (60,),
-            ),
-            id="2dvalues_2dweights_fewerweights_ax0_B",
-        ),
-        pytest.param(
-            (
-                _Values2d.NORMAL,
+                _Values2dNumbers.NORMAL,
                 ((10, 10), (10, 10), (10, 30), (20, 0), (30, 40)),
                 0,
                 ValueError,
@@ -152,7 +137,7 @@ class _Numbers:
         ),
         pytest.param(
             (
-                _Values2d.NORMAL,
+                _Values2dNumbers.NORMAL,
                 ((10, 10, 10), (10, 10, 20), (10, 30, 30), (20, 0, 40)),
                 0,
                 ValueError,
@@ -160,34 +145,24 @@ class _Numbers:
             id="2dvalues_2dweights_moreweights_ax0_B",
         ),
         pytest.param(
-            (_Values2d.NORMAL, None, 1, (100, 0, 300, -150)),
+            (_Values2dNumbers.NORMAL, None, 1, (100, 0, 300, -150)),
             id="2dvalues_noneweights_ax1",
         ),
         pytest.param(
-            (_Values2d.NORMAL, (10, 30), 1, (100, -100, 300, -150)),
+            (_Values2dNumbers.NORMAL, (10, 30), 1, (100, -100, 300, -150)),
             id="2dvalues_1dweights_ax1",
         ),
         pytest.param(
-            (
-                _Values2d.NORMAL,
-                (10,),
-                1,
-                (100, 200, 300, -150),
-            ),
+            (_Values2dNumbers.NORMAL, (10,), 1, (100, 200, 300, -150)),
             id="2dvalues_1dweights_fewerweights_ax1",
         ),
         pytest.param(
-            (
-                _Values2d.NORMAL,
-                (10, 10, 30),
-                1,
-                ValueError,
-            ),
+            (_Values2dNumbers.NORMAL, (10, 10, 30), 1, ValueError),
             id="2dvalues_1dweights_moreweights_ax1",
         ),
         pytest.param(
             (
-                _Values2d.NORMAL,
+                _Values2dNumbers.NORMAL,
                 ((10, 10), (10, 10), (10, 30), (20, 0)),
                 1,
                 (100, 0, 300, -150),
@@ -195,62 +170,42 @@ class _Numbers:
             id="2dvalues_2dweights_ax1",
         ),
         pytest.param(
-            (
-                _Values2d.NORMAL,
-                ((10, 10), (10, 10), (10, 30)),
-                1,
-                (100, 0, 300),
-            ),
-            id="2dvalues_2dweights_fewerweights_ax1_A",
+            (_Values2dNumbers.NORMAL, ((10, 10), (10, 10), (10, 30)), 1, ValueError),
+            id="2dvalues_2dweights_fewerweightsonremainingaxis_ax1_A",
+        ),
+        pytest.param(
+            (_Values2dNumbers.NORMAL, ((10,), (10,), (10,), (20,)), 1, (100, 200, 300, -150)),
+            id="2dvalues_2dweights_fewerweightsoncollapsingaxis_ax1_B",
         ),
         pytest.param(
             (
-                _Values2d.NORMAL,
-                ((10,), (10,), (10,), (20,)),
-                1,
-                _Values1d.NORMAL,
-            ),
-            id="2dvalues_2dweights_fewerweights_ax1_B",
-        ),
-        pytest.param(
-            (
-                _Values2d.NORMAL,
+                _Values2dNumbers.NORMAL,
                 ((10, 10), (10, 10), (10, 30), (20, 0), (30, 40)),
                 1,
                 ValueError,
             ),
-            id="2dvalues_2dweights_moreweights_ax1_A",
+            id="2dvalues_2dweights_moreweightsonremainingaxis_ax1_A",
         ),
         pytest.param(
             (
-                _Values2d.NORMAL,
+                _Values2dNumbers.NORMAL,
                 ((10, 10, 10), (10, 10, 20), (10, 30, 30), (20, 0, 40)),
                 1,
                 ValueError,
             ),
-            id="2dvalues_2dweights_moreweights_ax1_B",
+            id="2dvalues_2dweights_moreweightsoncollapsingaxis_ax1_B",
         ),
         pytest.param(
-            (
-                _Values2d.SOMEUNIFORM,
-                _Weights1d.ALLZERO,
-                0,
-                (np.nan, 100, np.nan),
-            ),
+            (_Values2dNumbers.SOMEUNIFORM, _Weights1dNumbers.ALLZERO, 0, (np.nan, 100, np.nan)),
             id="2dvalues_1dweights_allzero_ax0",
         ),
         pytest.param(
-            (
-                _Values2d.SOMEUNIFORM,
-                _Weights1d.SUMZERO,
-                0,
-                (np.nan, 100, 100),
-            ),
+            (_Values2dNumbers.SOMEUNIFORM, _Weights1dNumbers.SUMZERO, 0, (np.nan, 100, 100)),
             id="2dvalues_1dweights_sumzero_ax0",
         ),
         pytest.param(
             (
-                _Values2d.SOMEUNIFORM,
+                _Values2dNumbers.SOMEUNIFORM,
                 ((10, 0, -10), (0, 0, 0), (0, 0, 0), (-10, 0, 10)),
                 0,
                 (100, 100, np.nan),
@@ -258,26 +213,16 @@ class _Numbers:
             id="2dvalues_2dweights_zeros_ax0",
         ),
         pytest.param(
-            (
-                _Values2d.SOMEUNIFORM,
-                (0, 0, 0),
-                1,
-                (100, np.nan, np.nan, np.nan),
-            ),
+            (_Values2dNumbers.SOMEUNIFORM, (0, 0, 0), 1, (100, np.nan, np.nan, np.nan)),
             id="2dvalues_1dweights_allzero_ax1",
         ),
         pytest.param(
-            (
-                _Values2d.SOMEUNIFORM,
-                (10, -10, 0),
-                1,
-                (100, np.nan, np.nan, 100),
-            ),
+            (_Values2dNumbers.SOMEUNIFORM, (10, -10, 0), 1, (100, np.nan, np.nan, 100)),
             id="2dvalues_1dweights_sumzero_ax1",
         ),
         pytest.param(
             (
-                _Values2d.SOMEUNIFORM,
+                _Values2dNumbers.SOMEUNIFORM,
                 ((10, 0, -10), (0, 0, 0), (0, 0, 0), (-10, 0, 10)),
                 1,
                 (100, np.nan, np.nan, np.nan),
@@ -289,9 +234,27 @@ class _Numbers:
                 ((100, 100, 99), (200, -200, -99), (300, 300, 99), (-150, -150, -99), (99, 99, 99)),
                 ((10, 10), (10, 10), (10, 30), (20, 0)),
                 0,
-                (60, 160),
+                ValueError,
             ),
-            id="2dvalues_2dweights_fewerweights_ax0_C",
+            id="2dvalues_2dweights_fewerweightsbothaxis_ax0_C",
+        ),
+        pytest.param(
+            (
+                ((100, 100, 99), (200, -200, -99), (300, 300, 99), (-150, -150, -99), (99, 99, 99)),
+                ((10, 10), (10, 10), (10, 30), (20, 0), (0, 0)),
+                0,
+                ValueError,
+            ),
+            id="2dvalues_2dweights_fewerweightremainingaxis_ax0_C",
+        ),
+        pytest.param(
+            (
+                ((100, 100, 99), (200, -200, -99), (300, 300, 99), (-150, -150, -99), (99, 99, 99)),
+                ((10, 10, 0), (10, 10, 0), (10, 30, 0), (20, 0, 0)),
+                0,
+                (60, 160, np.nan),
+            ),
+            id="2dvalues_2dweights_fewerweightcollapsingaxis_ax0_C",
         ),
         pytest.param(
             (
@@ -305,28 +268,30 @@ class _Numbers:
         pytest.param(
             (
                 ((100, 100, 99), (200, -200, -99), (300, 300, 99), (-150, -150, -99), (99, 99, 99)),
-                ((10, 10), (10, 10), (10, 30), (20, 0)),
+                ((10, 10), (10, 10), (10, 30), (20, 0), (10, -10)),
                 1,
-                (100, 0, 300, -150),
+                (100, 0, 300, -150, 99),
             ),
-            id="2dvalues_2dweights_fewerweights_ax1_C",
+            id="2dvalues_2dweights_fewerweightscollapsingaxis_ax1_C",
         ),
     ],
 )
 def _numbers(request) -> _Numbers:
     values, weights, axis, wavg = request.param
     # Values: ensure ndarray.
-    if isinstance(values, _Values1d | _Values2d):
+    if isinstance(values, _Values1dNumbers | _Values2dNumbers):
         values = values.value
     values = np.array(values)
     # Weights: ensure None or ndarray.
     if weights is not None:
-        if isinstance(weights, _Weights1d):
+        if isinstance(weights, _Weights1dNumbers):
             weights = weights.value
         weights = np.array(weights)
     # Wavg: ensure Exception, float, or ndarray.
+    if isinstance(wavg, _Values1dNumbers | _Values2dNumbers):
+        wavg = wavg.value
     if not is_exception(wavg) and isinstance(wavg, tuple):
-        wavg = np.array(wavg)
+        wavg = np.array(wavg, dtype=float)
     return _Numbers(values, weights, axis, wavg)
 
 
@@ -472,12 +437,7 @@ def values2d_units(request) -> _Values2dUnits:
 @pytest.fixture(scope="module")
 def values2d_unithelper(values2d_units):
     if values2d_units in [_Values2dUnits.NOUNITS, _Values2dUnits.UNIFORM]:
-
-        def gen():
-            while True:
-                yield None
-
-        return gen
+        return
 
     first = "ctEur/kWh" if values2d_units == _Values2dUnits.COMPATIBLE else "MW"
 
@@ -662,10 +622,6 @@ def wavg_for_values1d_and_weights0d(wavg_numbers, values1d_has_units) -> pf.Q_:
     return pf.Q_(wavg_numbers, "Eur/MWh" if values1d_has_units else "")
 
 
-def wavg_for_values1d_and_weights0d_isok(wavg_for_values1d_and_weights0d) -> bool:
-    return is_exception(wavg_for_values1d_and_weights0d)
-
-
 @pytest.fixture(scope="module")
 def wavg_for_values1d_and_weights1d(
     wavg_numbers, values1d, weights1d, values1d_has_units
@@ -683,8 +639,19 @@ def wavg_for_values1d_and_weights1d(
     return pf.Q_(wavg_numbers, "Eur/MWh" if values1d_has_units else "")
 
 
-def wavg_for_values1d_and_weights1d_isok(wavg_for_values1d_and_weights1d) -> bool:
-    return is_exception(wavg_for_values1d_and_weights1d)
+def _add_units_to_series(s, values2d_units, axis, values2d_unithelper):
+    if values2d_units is _Values2dUnits.INCOMPATIBLE and axis == 1:
+        return ValueError  # can't calc wavg across columns with incompatible units
+
+    if values2d_units is _Values2dUnits.NOUNITS:
+        return s
+    elif values2d_units in [_Values2dUnits.UNIFORM, _Values2dUnits.COMPATIBLE]:
+        return s.astype("pint[Eur/MWh]")
+    else:  # (values2d_units == "valuesincompatibleunits" and axis == 0)
+        # series of quantities
+        return pd.Series(
+            {i: pf.Q_(num, unit) for (i, num), unit in zip(s.items(), values2d_unithelper())}
+        )
 
 
 @pytest.fixture(scope="module")
@@ -697,24 +664,10 @@ def wavg_for_values2d_and_weights0d(
 ) -> pd.Series | type:
     if is_exception(wavg_numbers):
         return wavg_numbers
-
-    if values2d_units == "valuesincompatibleunits" and axis == 1:
-        return ValueError  # can't calc wavg across columns with incompatible units
-
-    s = pd.Series(wavg_numbers, values2d_index_that_remains)
-    if values2d_units == "valuesnounits":
-        return s
-    elif values2d_units in ["valuesuniformunits", "valuescompatibleunits"]:
-        return s.astype("pint[Eur/MWh]")
-    else:  # (values2d_units == "valuesincompatibleunits" and axis == 0)
-        # series of quantities
-        return pd.Series(
-            {i: pf.Q_(num, unit) for (i, num), unit in zip(s.items(), values2d_unithelper())}
-        )
-
-
-def wavg_for_values2d_and_weights0d_isok(wavg_for_values2d_and_weights0d) -> bool:
-    return is_exception(wavg_for_values2d_and_weights0d)
+    wavg = pd.Series(dict(zip(values2d_index_that_remains, wavg_numbers)))
+    if isinstance(values2d_index_that_remains, pd.DatetimeIndex):
+        wavg.index.freq = values2d_index_that_remains.freq
+    return _add_units_to_series(wavg, values2d_units, axis, values2d_unithelper)
 
 
 @pytest.fixture(scope="module")
@@ -740,23 +693,11 @@ def wavg_for_values2d_and_weights1d(
         w not in values2d_index_that_collapses for w in weights1d.index
     ):
         return ValueError
-    if values2d_units == "valuesincompatibleunits" and axis == 1:
-        # can't calc wavg across columns if columns have incompatible units
-        return ValueError
 
-    s = pd.Series(wavg_numbers, values2d_index_that_remains)
-    if values2d_units == "valuesnounits":
-        return s
-    elif values2d_units in ["valuesuniformunits", "valuescompatibleunits"]:
-        return s.astype("pint[Eur/MWh]")
-    else:  # (values2d_units == "valuesincompatibleunits" and axis == 0)
-        return pd.Series(
-            {i: pf.Q_(num, unit) for (i, num), unit in zip(s.items(), values2d_unithelper())}
-        )
-
-
-def wavg_for_values2d_and_weights1d_isok(wavg_for_values2d_and_weights1d) -> bool:
-    return is_exception(wavg_for_values2d_and_weights1d)
+    wavg = pd.Series(dict(zip(values2d_index_that_remains, wavg_numbers)))
+    if isinstance(values2d_index_that_remains, pd.DatetimeIndex):
+        wavg.index.freq = values2d_index_that_remains.freq
+    return _add_units_to_series(wavg, values2d_units, axis, values2d_unithelper)
 
 
 @pytest.fixture(scope="module")
@@ -785,24 +726,12 @@ def wavg_for_values2d_and_weights2d(
         or any(rowi not in values2d_rowindex for rowi in weights2d.index)
     ):
         return ValueError
-    if values2d_units == "valuesincompatibleunits" and axis == 1:
-        # can't calc wavg across columns if columns have incompatible units
-        return ValueError
 
-    s = pd.Series(wavg_numbers, values2d_index_that_remains)
-    if values2d_units == "valuesnounits":
-        return s
-    elif values2d_units in ["valuesuniformunits", "valuescompatibleunits"]:
-        return s.astype("pint[Eur/MWh]")
-    else:  # (values2d_units == "valuesincompatibleunits" and axis == 0)
-        return pd.Series(
-            {i: pf.Q_(num, unit) for (i, num), unit in zip(s.items(), values2d_unithelper())}
-        )
+    wavg = pd.Series(dict(zip(values2d_index_that_remains, wavg_numbers)))
+    if isinstance(values2d_index_that_remains, pd.DatetimeIndex):
+        wavg.index.freq = values2d_index_that_remains.freq
 
-
-@pytest.fixture(scope="module")
-def wavg_for_values2d_and_weights2d_isok(wavg_for_values2d_and_weights2d) -> bool:
-    return is_exception(wavg_for_values2d_and_weights2d)
+    return _add_units_to_series(wavg, values2d_units, axis, values2d_unithelper)
 
 
 # FUNCTIONS TO TEST
@@ -828,136 +757,3 @@ def wavgfnseries(request) -> Callable:
 )
 def wavgfndataframe(request) -> Callable:
     return request.param
-
-
-# DO THE TESTS. FINALLY.
-
-
-# def test_wavg_values1d_weights0d(values1d, weights0d, expected_for_values1d_and_weights0d):
-#     s, weights, expected = values1d, weights0d, expected_for_values1d_and_weights0d
-#     testfn = lambda: tools.wavg.series(s, weights)  # noqa
-#
-#     if is_exception(expected):
-#         with pytest.raises(expected):
-#             testfn()
-#         return
-#
-#     result = testfn()
-#     pf.testing.assert_value_equal(result, expected)
-#
-#
-# def test_wavg_values1d_weights1d(values1d, weights1d, expected_for_values1d_and_weights1d):
-#     s, weights, expected = values1d, weights1d, expected_for_values1d_and_weights1d
-#     testfn = lambda: tools.wavg.series(s, weights)  # noqa
-#
-#     if is_exception(expected):
-#         with pytest.raises(expected):
-#             testfn()
-#         return
-#
-#     result = testfn()
-#     pf.testing.assert_value_equal(result, expected)
-#
-#
-# @pytest.mark.parametrize(
-#     "val,wei,exp",
-#     [
-#         pytest.param(
-#             "values1d",
-#             "weights0d",
-#             "expected_for_values1d_and_weights0d",
-#         ),
-#         pytest.param(
-#             "values1d",
-#             "weights1d",
-#             "expected_for_values1d_and_weights1d",
-#         ),
-#     ],
-# )
-# def test_wavg_values1d(request, val, wei, exp):
-#     s = val
-#     weights = request.getfixturevalue(wei)
-#     expected = request.getfixturevalue(exp)
-#     testfn = lambda: tools.wavg.series(s, weights)  # noqa
-#
-#     if is_exception(expected):
-#         with pytest.raises(expected):
-#             testfn()
-#         return
-#
-#     result = testfn()
-#     pf.testing.assert_value_equal(result, expected)
-#
-#
-# def test_wavg_values2d_weights0d(values2d, weights0d, axis, expected_for_values2d_and_weights0d):
-#     df, weights, expected = values2d, weights0d, expected_for_values2d_and_weights0d
-#     testfn = lambda: tools.wavg.dataframe(df, weights, axis)  # noqa
-#
-#     if is_exception(expected):
-#         with pytest.raises(expected):
-#             testfn()
-#         return
-#
-#     result = testfn()
-#     pf.testing.assert_series_equal(result, expected, check_names=False, check_like=True)
-#
-#
-# def test_wavg_values2d_weights1d(values2d, weights1d, axis, expected_for_values2d_and_weights1d):
-#     df, weights, expected = values2d, weights1d, expected_for_values2d_and_weights1d
-#     testfn = lambda: tools.wavg.dataframe(df, weights, axis)  # noqa
-#
-#     if is_exception(expected):
-#         with pytest.raises(expected):
-#             testfn()
-#         return
-#
-#     result = testfn()
-#     pf.testing.assert_series_equal(result, expected, check_names=False, check_like=True)
-#
-#
-# def test_wavg_values2d_weights2d(values2d, weights2d, axis, expected_for_values2d_and_weights2d):
-#     df, weights, expected = values2d, weights2d, expected_for_values2d_and_weights2d
-#     testfn = lambda: tools.wavg.dataframe(df, weights, axis)  # noqa
-#
-#     if is_exception(expected):
-#         with pytest.raises(expected):
-#             testfn()
-#         return
-#
-#     result = testfn()
-#     pf.testing.assert_series_equal(result, expected, check_names=False, check_like=True)
-#
-#
-# @pytest.mark.parametrize(
-#     "val,wei,exp",
-#     [
-#         pytest.param(
-#             "values2d",
-#             "weights0d",
-#             "expected_for_values2d_and_weights0d",
-#         ),
-#         pytest.param(
-#             "values2d",
-#             "weights1d",
-#             "expected_for_values2d_and_weights1d",
-#         ),
-#         pytest.param(
-#             "values2d",
-#             "weights2d",
-#             "expected_for_values2d_and_weights2d",
-#         ),
-#     ],
-# )
-# def test_wavg_values2d(request, val, wei, exp, axis):
-#     df = val
-#     weights = request.getfixturevalue(wei)
-#     expected = request.getfixturevalue(exp)
-#     testfn = lambda: tools.wavg.dataframe(df, weights, axis)  # noqa
-#
-#     if is_exception(expected):
-#         with pytest.raises(expected):
-#             testfn()
-#         return
-#
-#     result = testfn()
-#     pf.testing.assert_series_equal(result, expected)

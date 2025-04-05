@@ -111,7 +111,7 @@ def convert_pintframe(fr: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
         try:
             return fr.astype(f"pint[{units}]")
         except pint.DimensionalityError:
-            return fr  # series of quantities with distince dimension; keep as-is
+            return fr  # series of quantities with distinct dimension; keep as-is
 
     return fr  # bools, timestamps, ...
 
@@ -128,11 +128,67 @@ def validate_pintframe(fr: pd.Series | pd.DataFrame) -> None:
         raise ValueError(f"This is not a pintseries: {fr}.")
 
 
+@overload
+def coerce_pintframe(fr: pd.Series) -> pd.Series:
+    ...
+
+
+@overload
+def coerce_pintframe(fr: pd.DataFrame) -> pd.DataFrame:
+    ...
+
+
 coerce_pintframe = tools_decorator.coerce_fn(convert_pintframe, validate_pintframe)
 
 apply_coercion_pintframe = tools_decorator.create_coerciondecorator(
-    convert_pintframe, validate_pintframe, default_param="unit"
+    convert_pintframe, validate_pintframe, default_param="fr"
 )
+
+# additional, further-reaching conversions.
+
+
+@overload
+def coerce_pintframe_reduceunits(fr: pd.Series) -> pd.Series:
+    ...
+
+
+@overload
+def coerce_pintframe_reduceunits(fr: pd.DataFrame) -> pd.DataFrame:
+    ...
+
+
+@apply_coercion_pintframe("fr")
+def coerce_pintframe_reduceunits(fr: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
+    """For series, same behavior as ``coerce_pintframe``. For dataframe, like ``coerce_pintframe``,
+    but ensures columns with same unit dimension have same units (e.g. converts an MW and a kW
+    column to both MW or both kW). Left-most columns determine unit.
+    """
+    if isinstance(fr, pd.Series):
+        return fr
+
+    basedimties_and_units = {}
+    series = {}
+    for c, s in fr.items():
+        basedimty = get_basedimty(s)
+        if (unit := basedimties_and_units.get(basedimty)) is not None:
+            s = s.pint.to(unit)
+        else:
+            basedimties_and_units[basedimty] = s.pint.units
+        series[c] = s
+    return pd.DataFrame(series)
+
+
+@apply_coercion_pintframe("fr")
+def coerce_pintframe_sameunits(fr: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
+    """For series, same behavior as ``coerce_pintframe``. For dataframe, like ``coerce_pintframe``,
+    but ensures all columns have same units (that of left-most column). Raises Error if incompatible
+    units."""
+    if isinstance(fr, pd.Series):
+        return fr
+
+    units = fr.iloc[0, 0].units
+    return fr.astype(f"pint[{units}]")  # will raise dimensionalityerror if impossible
+
 
 # =====================================
 # Units, dimensions, quantities, series
