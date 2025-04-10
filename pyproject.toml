@@ -54,6 +54,7 @@ debugpy = "^1.8.6"
 
 # building
 ruff = "^0.7.0"
+snakeviz = "^2.2.2"
 
 [build-system]
 requires = ["poetry-core"]

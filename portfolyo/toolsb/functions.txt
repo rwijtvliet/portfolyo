@@ -40,17 +40,17 @@ avgableframe-changefreq(fr, freq)
 
 Wavg
 ----
-wavg-frames etc.
+x wavg-frames etc.
 
 Testing
 -------
 series_allclose(s1, s2)
 assert-index-standardized(idx)
 assert-frame-standardized(fr)
-assert-value-equal(v1, v2)
-assert-index-equal(idx1, idx2)
-assert-series-equal(s1, s2)
-assert-frames-equal(df1, df2)
+x assert-value-equal(v1, v2)
+x assert-index-equal(idx1, idx2)
+x assert-series-equal(s1, s2)
+x assert-frames-equal(df1, df2)
 
 
 Units
