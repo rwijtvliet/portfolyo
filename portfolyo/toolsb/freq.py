@@ -5,7 +5,6 @@ Tools for dealing with frequencies.
 import builtins
 import functools
 from typing import Iterable
-
 import pandas as pd
 from pandas.tseries.frequencies import MONTHS, to_offset
 from pandas.tseries.offsets import BaseOffset
@@ -51,9 +50,13 @@ ALLOWED_FREQUENCIES_DOCS = "'min', '5min', '15min', '30min', 'h', 'D', 'MS', 'QS
 
 
 # Subsets of allowed frequencies.
-# . One subset.
+# . Three subsets that are mutually exclusive.
 _SHORTERTHANDAILY: set[BaseOffset] = {
     to_offset(freq) for freq in ("min", "5min", "15min", "30min", "h")
+}
+_DAILY: set[BaseOffset] = {to_offset("D")}
+_LONGERTHANDAILY: set[BaseOffset] = {
+    freq for freq in _FREQUENCIES if freq not in (_SHORTERTHANDAILY | _DAILY)
 }
 # . Three subsets that are mutually exclusive.
 _SORTED: tuple[BaseOffset, ...] = tuple(
@@ -128,6 +131,12 @@ def is_shorter_than_daily(freq: BaseOffset) -> bool:
     """Return True if ``freq`` is shorter than daily, i.e., hourly or shorter. This
     also implies that the frequency is a fixed-length frequency."""
     return freq in _SHORTERTHANDAILY
+
+
+@apply_coercion()
+def is_longer_than_daily(freq: BaseOffset) -> bool:
+    """Return True if ``freq`` is longer than daily, i.e., monthly or longer."""
+    return freq in _LONGERTHANDAILY
 
 
 @apply_coercion("source_freq", "target_freq")

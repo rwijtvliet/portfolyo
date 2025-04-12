@@ -5,6 +5,7 @@ from typing import Any, Iterable, overload
 
 import numpy as np
 import pandas as pd
+from pandas.core.dtypes.dtypes import BaseOffset
 
 from portfolyo.tools.types import Series_or_DataFrame
 
@@ -99,16 +100,16 @@ def series_allclose(s1: pd.Series, s2: pd.Series, *args, **kwargs) -> bool:
 
 
 @overload
-def trim(fr: pd.Series, freq: str) -> pd.Series:
+def trim(fr: pd.Series, freq: str | BaseOffset) -> pd.Series:
     ...
 
 
 @overload
-def trim(fr: pd.DataFrame, freq: str) -> pd.DataFrame:
+def trim(fr: pd.DataFrame, freq: str | BaseOffset) -> pd.DataFrame:
     ...
 
 
-def trim(fr: pd.Series | pd.DataFrame, freq: str) -> pd.Series | pd.DataFrame:
+def trim(fr: pd.Series | pd.DataFrame, freq: str | BaseOffset) -> pd.Series | pd.DataFrame:
     """Trim index of series or dataframe to only keep full periods of certain frequency.
 
     Parameters

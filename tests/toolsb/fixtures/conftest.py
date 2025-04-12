@@ -1,4 +1,5 @@
 import pandas as pd
+from typing import Literal
 import datetime as dt
 import pytest
 from pandas.tseries.frequencies import to_offset
@@ -6,7 +7,7 @@ from pandas.tseries.frequencies import to_offset
 
 @pytest.fixture(scope="session", params=range(3))
 def seed(request) -> int:
-    request.param
+    return request.param
 
 
 # Freq ---
@@ -20,27 +21,22 @@ def freq_asstr(request) -> str:
     return request.param
 
 
+@pytest.fixture(scope="session")
+def freq(freq_asstr: str) -> pd.tseries.offsets.BaseOffset:
+    return to_offset(freq_asstr)
+
+
 @pytest.fixture(scope="session", params=_SELECTION)
 def freq2_asstr(request) -> str:
     return request.param
 
 
 @pytest.fixture(scope="session")
-def equivalentfreq(freq_asstr, freq2_asstr) -> bool:
-    if freq_asstr == freq2_asstr:
-        return True  # same
-    elif freq_asstr.startswith("QS") and freq2_asstr.startswith("QS"):
-        month1, month2 = freq_asstr[-3:], freq2_asstr[-3:]
-        for group in [("JAN", "APR", "JUL", "OCT"), ("FEB", "MAY", "AUG", "NOV")]:
-            if month1 in group and month2 not in group:
-                return False  # both quarters but not equivalent
-        return True  # both quarters and equivalent
-    return False  # different length
+def freq2(freq2_asstr: str) -> pd.tseries.offsets.BaseOffset:
+    return to_offset(freq2_asstr)
 
 
-@pytest.fixture(scope="session", params=["2min", "4h", "7D", "3MS"])
-def freq_nok_asstr(request) -> str:
-    return request.param
+# Property of freq.
 
 
 @pytest.fixture(scope="session")
@@ -48,9 +44,71 @@ def freq_is_shorterthandaily(freq_asstr: str) -> bool:
     return freq_asstr in ("15min", "h")
 
 
+# How the frequencies compare.
+
+
 @pytest.fixture(scope="session")
-def freq(freq_asstr: str) -> pd.tseries.offsets.BaseOffset:
-    return to_offset(freq_asstr)
+def freq2_compared_to_freq(
+    freq_asstr, freq2_asstr
+) -> Literal["equiv", "incomp", "longer", "shorter"]:
+    if freq_asstr == freq2_asstr or {freq_asstr, freq2_asstr} == {"QS-JAN", "QS-APR"}:
+        return "equiv"
+    elif {freq_asstr, freq2_asstr} in (
+        {"QS-JAN", "QS-FEB"},
+        {"QS-JAN", "YS-FEB"},
+        {"QS-FEB", "QS-APR"},
+        {"QS-FEB", "YS-JAN"},
+        {"QS-APR", "YS-FEB"},
+        {"YS-JAN", "YS-FEB"},
+    ):
+        return "incomp"
+    elif _SELECTION.index(freq2_asstr) > _SELECTION.index(freq_asstr):
+        return "longer"
+    else:
+        return "shorter"
+
+
+# Subset of freq2 satisfying specific relationship to freq.
+
+
+@pytest.fixture(scope="session")
+def freq2_that_is_equivalent_to_freq(
+    freq2, freq2_compared_to_freq
+) -> pd.tseries.offsets.BaseOffset:
+    if freq2_compared_to_freq != "equiv":
+        pytest.skip("Testcase (equivalent frequency) not met.")
+    return freq2
+
+
+@pytest.fixture(scope="session")
+def freq2_that_is_incompatible_with_freq(
+    freq2, freq2_compared_to_freq
+) -> pd.tseries.offsets.BaseOffset:
+    if freq2_compared_to_freq != "incomp":
+        pytest.skip("Testcase (incompatible frequency) not met.")
+    return freq2
+
+
+@pytest.fixture(scope="session")
+def freq2_that_is_longer_than_freq(freq2, freq2_compared_to_freq) -> pd.tseries.offsets.BaseOffset:
+    if freq2_compared_to_freq != "longer":
+        pytest.skip("Testcase (longer frequency) not met.")
+    return freq2
+
+
+@pytest.fixture(scope="session")
+def freq2_that_is_shorter_than_freq(freq2, freq2_compared_to_freq) -> pd.tseries.offsets.BaseOffset:
+    if freq2_compared_to_freq != "shorter":
+        pytest.skip("Testcase (shorter frequency) not met.")
+    return freq2
+
+
+# Another frequency.
+
+
+@pytest.fixture(scope="session", params=["2min", "4h", "7D", "3MS"])
+def freq_nok_asstr(request) -> str:
+    return request.param
 
 
 @pytest.fixture(scope="session")

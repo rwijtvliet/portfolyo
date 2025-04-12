@@ -50,11 +50,12 @@ pre-commit = "^3.4.0"
 ipykernel = "^6.25.2"
 importlib-metadata = "^4.8"
 debugpy = "^1.8.6"
+ruff = "^0.7.0"
+snakeviz = "^2.2.2"
+pandas-stubs = "^2.2.3.250308"
 
 
 # building
-ruff = "^0.7.0"
-snakeviz = "^2.2.2"
 
 [build-system]
 requires = ["poetry-core"]
