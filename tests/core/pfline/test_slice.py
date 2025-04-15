@@ -185,3 +185,22 @@ def test__end_less_than_daily(enddate: str, tz: str):
     slice_end = f"{enddate[0]} 00:00"
     loc_end = f"{enddate[1]} 23:45"
     assert pfl1.slice[:slice_end] == pfl1.loc[:loc_end]
+
+
+@pytest.mark.parametrize("freq", ["MS", "YS", "YS-APR", "QS", "QS-MAR", "D"])
+@pytest.mark.parametrize(
+    "where",
+    ["2019-12-31", "2019-12-31 14:34", "2025-01-01"],
+)
+@pytest.mark.parametrize("tz", [None, "Europe/Berlin"])
+@pytest.mark.parametrize("sod", ["00:00", "06:00"])
+@pytest.mark.parametrize("inclusive", ["left", "both"])
+def test_slice_error_case(where: str, freq: str, tz: str, sod: str, inclusive: str):
+    index = get_idx(
+        "2020", starttime=sod, enddate="2024", freq=freq, inclusive=inclusive, tz=tz
+    )
+    pfl1 = dev.get_flatpfline(index)
+    # left, right = pfl1.slice[:where], pfl1.slice[where:]
+    with pytest.raises((ValueError, TypeError)):
+        _, _ = pfl1.slice[:where], pfl1.slice[where:]
+        return

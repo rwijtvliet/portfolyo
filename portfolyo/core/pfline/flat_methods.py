@@ -126,9 +126,19 @@ class SliceIndexer:
     def __getitem__(self, arg) -> FlatPfLine:
         mask = pd.Index([True] * len(self.pfl.df))
         if arg.start is not None:
-            mask &= self.pfl.index >= arg.start
+            # find the next nearest index in datetimeindex:
+            if self.pfl.index.get_indexer([arg.start], method="backfill")[0] != -1:
+                mask &= self.pfl.index >= arg.start
+            else:
+                raise ValueError(
+                    f"Start index {arg.start} not found in portfolio index."
+                )
         if arg.stop is not None:
-            mask &= self.pfl.index < arg.stop
+            # find the previous nearest index in datetimeindex:
+            if self.pfl.index.get_indexer([arg.stop], method="pad")[0] != -1:
+                mask &= self.pfl.index < arg.stop
+            else:
+                raise ValueError(f"Stop index {arg.stop} not found in portfolio index.")
 
         newdf = self.pfl.df.loc[mask]
         try:
