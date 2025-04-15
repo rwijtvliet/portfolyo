@@ -97,6 +97,15 @@ def freq2_that_is_longer_than_freq(freq2, freq2_compared_to_freq) -> pd.tseries.
 
 
 @pytest.fixture(scope="session")
+def freq2_that_is_longer_or_same_length_as_freq(
+    freq2, freq2_compared_to_freq
+) -> pd.tseries.offsets.BaseOffset:
+    if freq2_compared_to_freq not in ["longer", "equiv"]:
+        pytest.skip("Testcase (longer or equivalent frequency) not met.")
+    return freq2
+
+
+@pytest.fixture(scope="session")
 def freq2_that_is_shorter_than_freq(freq2, freq2_compared_to_freq) -> pd.tseries.offsets.BaseOffset:
     if freq2_compared_to_freq != "shorter":
         pytest.skip("Testcase (shorter frequency) not met.")
@@ -287,6 +296,28 @@ def idx(stamp_on_freqboundary, monthday, sod_asstr, tz, freq) -> pd.DatetimeInde
         inclusive="left",
         tz=tz,
     )
+
+
+# Unit ---
+
+
+@pytest.fixture(
+    scope="session",
+    params=[pytest.param(True, id="withunits"), pytest.param(False, id="withoutunits")],
+)
+def with_units(request) -> bool:
+    return request.param
+
+
+# Frametype ---
+
+
+@pytest.fixture(
+    scope="session",
+    params=[pytest.param(pd.Series, id="series"), pytest.param(pd.DataFrame, id="dataframe")],
+)
+def frametype(request) -> type:
+    return request.param
 
 
 #
