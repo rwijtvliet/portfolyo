@@ -46,22 +46,26 @@ def idx_shortfreq_untrimmed(shortfreq, tz, startdate_asstr, sod_asstr) -> pd.Dat
         tz=tz,
         freq=shortfreq,
         inclusive="left",
+        name=None,
     )
 
 
 @pytest.fixture(scope="module")
-def idx_longfreq_untrimmed(longfreq, idx_shortfreq_untrimmed, sod) -> pd.DatetimeIndex:
+def idx_longfreq_untrimmed(longfreq, idx_shortfreq_untrimmed, sod, tz) -> pd.DatetimeIndex:
     # Generous index with long frequency to cover at least idx_shortfreq_untrimmed.
+    incl = "both" if longfreq == idx_shortfreq_untrimmed.freq else "left"
     return pd.date_range(
         toolsb.stamp.floor(idx_shortfreq_untrimmed[0], longfreq, sod),
         toolsb.stamp.ceil(idx_shortfreq_untrimmed[-1], longfreq, sod),
+        tz=tz,
         freq=longfreq,
-        inclusive="left",
+        inclusive=incl,
+        name=None,
     )
 
 
 @pytest.fixture(scope="module")
-def _identifier_fn(longfreq, sod) -> Callable[[pd.DatetimeIndex], pd.Index]:
+def identifier_fn(longfreq, sod) -> Callable[[pd.DatetimeIndex], pd.Index]:
     # Identifiers that allow for 1-to-n mapping between idx_longfreq_untrimmed and idx_shortfreq_untrimmed
 
     def utc(idx):
@@ -121,37 +125,11 @@ def _identifier_fn(longfreq, sod) -> Callable[[pd.DatetimeIndex], pd.Index]:
     raise ValueError("Unexpected value for `freq2_that_is_longer_than_freq`.")
 
 
-# @pytest.fixture(scope="module")
-# def mapping_unfiltered(
-#     idx_shortfreq_untrimmed,
-#     idx_longfreq_untrimmed,
-#     _identifier_fn
-# ) -> pd.Series:
-#     # Find mapping.
-#     # - Index: timestamps of (trimmed) short index (unique values).
-#     # - Values: timestamps of long index.
-#     long = pd.Series(_identifier_fn(idx_longfreq_untrimmed), idx_longfreq_untrimmed)
-#     short = pd.Series(_identifier_fn(idx_shortfreq_untrimmed), idx_shortfreq_untrimmed)
-#     return pd.Series(long[short], short.index)
-#
-# def mapping(mapping_unfiltered):
-#     # Merge by aligning on the identifier-tuple.
-#     df_mapping = df_long.merge(df_shrt, left_index=True, right_index=True)
-#     # Calculate additional information.
-#     df_mapping["fraction"] = df_mapping["dur_shrt"] / df_mapping["dur_long"]
-#     # Put indices in index, keep only fraction as values.
-#     s_mapping = df_mapping.set_index(["idx_longfreq", "idx_shortfreq"])["fraction"]
-#     # . Reject periods that are not fully present.
-#     reject = s_mapping.groupby(level=0).sum() < 0.99
-#     return s_mapping[~reject]
-#
-
-
 @pytest.fixture(scope="module")
 def mapping_and_fractions(
     idx_shortfreq_untrimmed,
     idx_longfreq_untrimmed,
-    _identifier_fn,
+    identifier_fn,
 ) -> pd.Series:
     # Find mapping.
     # - Index level 0: timestamps of long index (multiple rows with same timestamp).
@@ -162,14 +140,14 @@ def mapping_and_fractions(
             "idx_longfreq": idx_longfreq_untrimmed,
             "dur_long": toolsb.index.duration(idx_longfreq_untrimmed).pint.m.values,
         },
-        _identifier_fn(idx_longfreq_untrimmed),
+        identifier_fn(idx_longfreq_untrimmed),
     )
     df_shrt = pd.DataFrame(
         {
             "idx_shortfreq": idx_shortfreq_untrimmed,
             "dur_shrt": toolsb.index.duration(idx_shortfreq_untrimmed).pint.m.values,
         },
-        _identifier_fn(idx_shortfreq_untrimmed),
+        identifier_fn(idx_shortfreq_untrimmed),
     )
     # Merge by aligning on the identifier-tuple.
     df_mapping = df_long.merge(df_shrt, left_index=True, right_index=True)
@@ -178,8 +156,9 @@ def mapping_and_fractions(
     # Put indices in index, keep only fraction as values.
     s_mapping = df_mapping.set_index(["idx_longfreq", "idx_shortfreq"])["fraction"]
     # . Reject periods that are not fully present.
-    reject = s_mapping.groupby(level=0).sum() < 0.99
-    return s_mapping[~reject]
+    rejectlongidx = s_mapping.groupby(level="idx_longfreq").sum() < 0.99
+    rejectrows = rejectlongidx[s_mapping.index.get_level_values("idx_longfreq")].values
+    return s_mapping[~rejectrows]
 
 
 @pytest.fixture(scope="module")
@@ -191,7 +170,7 @@ def mapping(mapping_and_fractions) -> pd.Series:
 
 
 @pytest.fixture(scope="module")
-def fractions(mapping_and_fractions, shortfreq) -> pd.Series:
+def fractions(mapping_and_fractions) -> pd.Series:
     return mapping_and_fractions.droplevel("idx_longfreq")
 
 
@@ -210,12 +189,18 @@ def idx_longfreq(mapping, longfreq, tz):
 # Calculate values for each case: upsample/downsample x summable/avgable
 
 
-@pytest.fixture(scope="module", params=["summable", "averagable"])
+@pytest.fixture(
+    scope="module",
+    params=[pytest.param("sum", id="summable"), pytest.param("avg", id="averagable")],
+)
 def avg_or_sum(request) -> str:
     return request.param
 
 
-@pytest.fixture(scope="module", params=["upsample", "downsample"])
+@pytest.fixture(
+    scope="module",
+    params=[pytest.param("up", id="upsample"), pytest.param("down", id="downsample")],
+)
 def up_or_down(request) -> str:
     return request.param
 
@@ -283,31 +268,30 @@ def sin_and_sout_distinct(
         sout = sin[mapping].set_axis(idx_shortfreq)  # repeats value
     elif (avg_or_sum, up_or_down) == ("avg", "down"):
         sin = get_inputframe(idx_shortfreq_untrimmed)
-        sout = (
-            (sin * fractions).dropna().set_axis(mapping.values).groupby(level=0).sum()
-        )  # TODO: is there an easier way to aggregate over index?
+        sout = (sin * fractions).groupby(mapping).sum()
     elif (avg_or_sum, up_or_down) == ("sum", "up"):
         sin = get_inputframe(idx_longfreq)
-        sout = fractions * sin[mapping.values].values
+        sout = fractions * sin[mapping].values
     else:
         sin = get_inputframe(idx_shortfreq_untrimmed)
-        sout = sin[mapping].set_axis(mapping.values).groupby(level=0).sum()
+        sout = sin.groupby(mapping).sum()
 
+    sout.index.freq = sout.index.inferred_freq
     return sin, sout
 
 
 @pytest.fixture(scope="module")
 def sin(sin_and_sout_uniform, sin_and_sout_distinct, complexity):
-    return (sin_and_sout_uniform if complexity == "uniform" else sin_and_sout_distinct)[0].rename(
-        "testseries"
-    )
+    s = (sin_and_sout_uniform if complexity == "uniform" else sin_and_sout_distinct)[0]
+    s.index.name = None
+    return s.rename("testseries")
 
 
 @pytest.fixture(scope="module")
 def sout(sin_and_sout_uniform, sin_and_sout_distinct, complexity):
-    return (sin_and_sout_uniform if complexity == "uniform" else sin_and_sout_distinct)[1].rename(
-        "testseries"
-    )
+    s = (sin_and_sout_uniform if complexity == "uniform" else sin_and_sout_distinct)[1]
+    s.index.name = None
+    return s.rename("testseries")
 
 
 @pytest.fixture(scope="module")

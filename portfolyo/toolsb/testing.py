@@ -26,11 +26,11 @@ def assert_scalar_equal(left: Any, right: Any):
 
 @functools.wraps(pd.testing.assert_index_equal)
 def assert_index_equal(left: pd.Index, right: pd.Index, *args, **kwargs):
-    pd.testing.assert_index_equal(left, right, *args, **kwargs)
-
     assert isinstance(left, pd.DatetimeIndex) == isinstance(right, pd.DatetimeIndex)
     if isinstance(left, pd.DatetimeIndex):
-        assert tools_freq.up_or_down(left.freq, right.freq) == 0
+        assert left.freq == right.freq or tools_freq.up_or_down(left.freq, right.freq) == 0
+        left, right = left._with_freq(None), right._with_freq(None)
+    pd.testing.assert_index_equal(left, right, *args, **kwargs)
 
 
 @functools.wraps(pd.testing.assert_series_equal)
@@ -54,8 +54,11 @@ def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
     # does not work on pintseries, but the preprocessing above takes care of that case by using
     # only the magnitude. Also, even though np.nan != np.nan when comparing scalars, np.nan ==
     # np.nan when using the function below.
+    assert_index_equal(left.index, right.index)  # use own index test
     try:
-        pd.testing.assert_series_equal(left, right, *args, **kwargs)
+        pd.testing.assert_series_equal(
+            left, right, *args, **{**kwargs, "check_index": False, "check_freq": False}
+        )
     except TypeError:  # can happen if series of quantities
         for le, ri in zip(left, right):
             assert_scalar_equal(le, ri)

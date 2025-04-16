@@ -316,11 +316,10 @@ def with_units(request) -> bool:
     scope="session",
     params=[pytest.param(pd.Series, id="series"), pytest.param(pd.DataFrame, id="dataframe")],
 )
-def frametype(request) -> type:
+def frame_type(request) -> type:
     return request.param
 
 
-#
 #
 # def index2020to2022(date2020, date2022_other
 #
