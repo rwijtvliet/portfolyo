@@ -2,7 +2,7 @@
 
 import functools
 from pathlib import Path
-from typing import Any, Mapping, MutableMapping, overload, Literal
+from typing import Any, Mapping, overload, Literal
 
 import pandas as pd
 import pint
@@ -228,31 +228,32 @@ apply_coercion_pintframe_oneunit = tools_decorator.create_coerciondecorator(
 # -------------------------------------------
 
 
-class UnitPref(MutableMapping):
+class UnitPref(dict):
     def __init__(self, /, *args, **kwargs) -> None:
-        self._mapping: dict[pint.util.UnitsContainer, pint.Unit] = dict(*args, **kwargs)
+        super().__init__(*args, **kwargs)
+
+        # Convert and validate data.
+        converted = {}
+        for dimty, unit in self.items():
+            converted[get_basedimty(dimty)] = coerce_unit(unit)
+        self.clear()
+        self.update(converted)
 
     def __getitem__(self, dimty: pint.util.UnitsContainer) -> pint.Unit:
         dimty = get_basedimty(dimty)
-        return self._mapping[dimty]
+        return super().__getitem__(dimty)
 
     def __setitem__(self, dimty: pint.util.UnitsContainer, unit: pint.Unit) -> None:
         unit = coerce_unit(unit)  # ensure Unit instance
         dimty = get_basedimty(dimty)
-        self._mapping[dimty] = unit
+        super().__setitem__(dimty, unit)
 
     def __delitem__(self, dimty: pint.util.UnitsContainer) -> None:
         dimty = get_basedimty(dimty)
-        del self._mapping[dimty]
-
-    def __iter__(self):
-        return iter(self._mapping)
-
-    def __len__(self):
-        return len(self._mapping)
+        super().__delitem__(dimty)
 
     def __repr__(self) -> str:
-        return f"Unit preferences: {self._mapping}"
+        return f"Unit preferences: {super().__repr__()}"
 
     @classmethod
     def from_objs(
@@ -306,7 +307,7 @@ class UnitPref(MutableMapping):
             return
 
         existing_unit = self[dimty]
-        if existing_unit == unit or collision == "ignore":  # no issue
+        if collision == "ignore" or existing_unit == unit:  # no issue
             return
         elif collision == "update":
             self[dimty] = unit
@@ -360,12 +361,12 @@ class UnitPref(MutableMapping):
     def merge(self, other: Self) -> Self:
         """Merge 2 instances. Raises ValueError if same dimensionality with distinct units found."""
         # Check if duplicate dimensionalities have same unit.
-        for dimty in set(self._mapping.keys()).intersection(set(other._mapping.keys())):
-            if (u1 := self._mapping[dimty]) != (u2 := other._mapping[dimty]):
+        for dimty in set(self.keys()).intersection(set(other.keys())):
+            if (u1 := self[dimty]) != (u2 := other[dimty]):
                 raise ValueError(
                     f"Found distinct units ({u1} and {u2}) for dimensionality {dimty}."
                 )
-        return UnitPref(self._mapping | other._mapping)
+        return UnitPref(self | other)
 
 
 def _convert_skalar_to_preferred(

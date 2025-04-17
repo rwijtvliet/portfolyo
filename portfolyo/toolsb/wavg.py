@@ -380,7 +380,7 @@ def _weights_as_floatseries(
     else:
         raise TypeError("``weights`` must be a series, a mapping, or another iterable.")
     # Step 2: coece to pintframe to ensure all weights have same unit (or are dimensionless), and then keep only the magnitude.
-    return tools_unit.coerce_pintdataframe_oneunit(weights).pint.magnitude
+    return tools_unit.coerce_pintframe_oneunit(weights).pint.magnitude
 
 
 def _weights_as_floatdf(
@@ -399,5 +399,5 @@ def _weights_as_floatdf(
         raise TypeError("``weights`` must be a dataframe, a mapping, or another iterable.")
     # Step 2: coece to pintframe to ensure all weights have same unit (or are dimensionless), and then keep only the magnitude.
     return pd.DataFrame(
-        {c: s.pint.magnitude for c, s in tools_unit.coerce_pintdataframe_oneunit(weights).items()}
+        {c: s.pint.magnitude for c, s in tools_unit.coerce_pintframe_oneunit(weights).items()}
     )
