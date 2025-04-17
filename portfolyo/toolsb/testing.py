@@ -28,7 +28,10 @@ def assert_scalar_equal(left: Any, right: Any):
 def assert_index_equal(left: pd.Index, right: pd.Index, *args, **kwargs):
     assert isinstance(left, pd.DatetimeIndex) == isinstance(right, pd.DatetimeIndex)
     if isinstance(left, pd.DatetimeIndex):
-        assert left.freq == right.freq or tools_freq.up_or_down(left.freq, right.freq) == 0
+        if ((left.freq is None) is not (right.freq is None)) or (
+            left.freq != right.freq and tools_freq.up_or_down(left.freq, right.freq) != 0
+        ):
+            raise AssertionError(f"Unequal frequencies. Left: {left.freq}; right: {right.freq}.")
         left, right = left._with_freq(None), right._with_freq(None)
     pd.testing.assert_index_equal(left, right, *args, **kwargs)
 

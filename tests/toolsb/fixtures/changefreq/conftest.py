@@ -51,9 +51,11 @@ def idx_shortfreq_untrimmed(shortfreq, tz, startdate_asstr, sod_asstr) -> pd.Dat
 
 
 @pytest.fixture(scope="module")
-def idx_longfreq_untrimmed(longfreq, idx_shortfreq_untrimmed, sod, tz) -> pd.DatetimeIndex:
+def idx_longfreq_untrimmed(
+    longfreq, idx_shortfreq_untrimmed, shortfreq, sod, tz
+) -> pd.DatetimeIndex:
     # Generous index with long frequency to cover at least idx_shortfreq_untrimmed.
-    incl = "both" if longfreq == idx_shortfreq_untrimmed.freq else "left"
+    incl = "both" if toolsb.freq.up_or_down(longfreq, shortfreq) == 0 else "left"
     return pd.date_range(
         toolsb.stamp.floor(idx_shortfreq_untrimmed[0], longfreq, sod),
         toolsb.stamp.ceil(idx_shortfreq_untrimmed[-1], longfreq, sod),
@@ -80,10 +82,7 @@ def identifier_fn(longfreq, sod) -> Callable[[pd.DatetimeIndex], pd.Index]:
     def prevmonth(idx) -> pd.Index:  # [bool]:
         return (idx.day == 1) & prevday(idx)
 
-    def prevquarter(idx, startmonth=1) -> pd.Index:  # [bool]:
-        return ((idx.month - startmonth) % 3 == 0) & prevmonth(idx)
-
-    def prevyear(idx, startmonth=1) -> pd.Index:  # [bool]:
+    def prevyear(idx, startmonth) -> pd.Index:  # [bool]:
         return (idx.month < startmonth) | (idx.month == startmonth) & prevmonth(idx)
 
     def numofdaysinmonth(idx):
@@ -97,11 +96,11 @@ def identifier_fn(longfreq, sod) -> Callable[[pd.DatetimeIndex], pd.Index]:
     def month0(idx) -> pd.Index:  # [int]:
         return (idx.month - 1 * prevmonth(idx) - 1) % 12  # 0..11
 
-    def quarter0(idx, startmonth=1) -> pd.Index:  # [int]:
+    def quarter0(idx, startmonth) -> pd.Index:  # [int]:
         startmonth0 = startmonth - 1
-        return (((month0(idx) - startmonth0) // 3) - 1 * prevquarter(idx)) % 4  # 0..3
+        return ((month0(idx) - startmonth0) // 3) % 4  # 0..3
 
-    def year(idx, startmonth=1) -> pd.Index:  # [int]:
+    def year(idx, startmonth) -> pd.Index:  # [int]:
         return idx.year - 1 * prevyear(idx, startmonth)
 
     if longfreq == "15min":
@@ -111,18 +110,18 @@ def identifier_fn(longfreq, sod) -> Callable[[pd.DatetimeIndex], pd.Index]:
     elif longfreq == "h":
         return lambda idx: pd.Index(zip(idx.year, idx.month, idx.day, idx.hour, utc(idx)))
     elif longfreq == "D":
-        return lambda idx: pd.Index(zip(year(idx), month0(idx), day0(idx)))
+        return lambda idx: pd.Index(zip(year(idx, 1), month0(idx), day0(idx)))
     elif longfreq == "MS":
-        return lambda idx: pd.Index(zip(year(idx), month0(idx)))
+        return lambda idx: pd.Index(zip(year(idx, 1), month0(idx)))
     elif longfreq == "QS-JAN" or longfreq == "QS-APR":
-        return lambda idx: pd.Index(zip(year(idx), quarter0(idx)))
+        return lambda idx: pd.Index(zip(year(idx, 1), quarter0(idx, 1)))
     elif longfreq == "QS-FEB":
         return lambda idx: pd.Index(zip(year(idx, 2), quarter0(idx, 2)))
     elif longfreq == "YS-JAN":
-        return lambda idx: year(idx)
+        return lambda idx: year(idx, 1)
     elif longfreq == "YS-FEB":
         return lambda idx: year(idx, 2)
-    raise ValueError("Unexpected value for `freq2_that_is_longer_than_freq`.")
+    raise ValueError("Unexpected value for `longfreq`.")
 
 
 @pytest.fixture(scope="module")
@@ -156,9 +155,9 @@ def mapping_and_fractions(
     # Put indices in index, keep only fraction as values.
     s_mapping = df_mapping.set_index(["idx_longfreq", "idx_shortfreq"])["fraction"]
     # . Reject periods that are not fully present.
-    rejectlongidx = s_mapping.groupby(level="idx_longfreq").sum() < 0.99
-    rejectrows = rejectlongidx[s_mapping.index.get_level_values("idx_longfreq")].values
-    return s_mapping[~rejectrows]
+    fractionsum = s_mapping.groupby(level="idx_longfreq").sum()
+    keep = fractionsum.index[np.isclose(fractionsum, 1)]
+    return s_mapping[s_mapping.index.get_level_values(0).isin(keep)]
 
 
 @pytest.fixture(scope="module")
@@ -266,17 +265,20 @@ def sin_and_sout_distinct(
     if (avg_or_sum, up_or_down) == ("avg", "up"):
         sin = get_inputframe(idx_longfreq)
         sout = sin[mapping].set_axis(idx_shortfreq)  # repeats value
+        sout.index.freq = idx_shortfreq.freq
     elif (avg_or_sum, up_or_down) == ("avg", "down"):
         sin = get_inputframe(idx_shortfreq_untrimmed)
         sout = (sin * fractions).groupby(mapping).sum()
+        sout.index.freq = idx_longfreq.freq
     elif (avg_or_sum, up_or_down) == ("sum", "up"):
         sin = get_inputframe(idx_longfreq)
         sout = fractions * sin[mapping].values
+        sout.index.freq = idx_shortfreq.freq
     else:
         sin = get_inputframe(idx_shortfreq_untrimmed)
         sout = sin.groupby(mapping).sum()
+        sout.index.freq = idx_longfreq.freq
 
-    sout.index.freq = sout.index.inferred_freq
     return sin, sout
 
 
