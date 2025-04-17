@@ -21,7 +21,6 @@ pint-pandas = "^0.6.2"
 colorama = "^0.4.6"
 numpy = "^1.26.2"
 
-
 [tool.poetry.group.test.dependencies]
 codecov = "^2.1.13"
 pytest = "^8"
@@ -72,8 +71,8 @@ pythonpath = ["./tests"]
 testpaths = "./tests/toolsb/"
 # norecursedirs = ["./tests/tools", "./tests/tools2", "./tests/core", "./tests/dev", "./tests/general"]
 
-[tool.black]
-line-length = 100
+# [tool.black]
+# line-length = 100
 
 
 [tool.ruff]
