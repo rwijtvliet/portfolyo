@@ -49,12 +49,10 @@ pre-commit = "^3.4.0"
 ipykernel = "^6.25.2"
 importlib-metadata = "^4.8"
 debugpy = "^1.8.6"
-ruff = "^0.7.0"
 snakeviz = "^2.2.2"
 pandas-stubs = "^2.2.3.250308"
-
-
-# building
+ruff = "^0.11.6"
+isort = "^6.0.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -68,23 +66,26 @@ markers = [
     "only_on_pr: marks tests as slow (select with -m only_on_pr and deselect with -m 'not only_on_pr')",
 ]
 pythonpath = ["./tests"]
-testpaths = "./tests/toolsb/"
-# norecursedirs = ["./tests/tools", "./tests/tools2", "./tests/core", "./tests/dev", "./tests/general"]
 
-# [tool.black]
-# line-length = 100
+[tool.black]
+line-length = 100
 
 
 [tool.ruff]
-line-length = 100
+# line-length = 100
 lint.select = ["E", "F", "W"] # Equivalent to flake8's built-in codes
 lint.ignore = [
     "E501",
+    # "W505",
     "E202",
     "E226",
 ] # Ignored codes (e.g., for long lines or line breaks before binary operators)
 exclude = ["__init__.py", "versioneer.py", "_version.py", ".venv/"]
+lint.pycodestyle.ignore-overlong-task-comments = true
 
+# [tool.ruff.lint]
+# # Add the `line-too-long` rule to the enforced rule set.
+# extend-select = ["E501"]
 
 [tool.numpydoc_validation]
 checks = [

@@ -125,9 +125,7 @@ def fn_to_test_value(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[pytest.param(True, id="strict"), pytest.param(False, id="notstrict")]
-)
+@pytest.fixture(params=[pytest.param(True, id="strict"), pytest.param(False, id="notstrict")])
 def strict(request):
     return request.param
 
@@ -260,9 +258,7 @@ def test_normalize_series_onedimquantities(
     assert_series_equal(result, expected)
 
 
-def test_normalize_series_mixeddimquantities(
-    mixeddim_quantity_series, fn_to_test_frame, strict
-):
+def test_normalize_series_mixeddimquantities(mixeddim_quantity_series, fn_to_test_frame, strict):
     if strict:
         with pytest.raises(pint.DimensionalityError):
             _ = fn_to_test_frame(mixeddim_quantity_series)

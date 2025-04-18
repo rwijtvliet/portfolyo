@@ -173,9 +173,7 @@ def index_dst1(startts_dst1, freq_dst) -> pd.DatetimeIndex:
 
 
 @pytest.fixture
-def durations_dst1(
-    startofday_dst1, startdate_dst1, freq_dst
-) -> tuple[float | int, float | int]:
+def durations_dst1(startofday_dst1, startdate_dst1, freq_dst) -> tuple[float | int, float | int]:
     if freq_dst == "15min":
         return (0.25, 0.25)
     elif freq_dst == "h":
@@ -248,9 +246,7 @@ def index_dst2(startts_dst2, freq_dst) -> pd.DatetimeIndex:
 
 
 @pytest.fixture
-def durations_dst2(
-    startofday_dst2, startdate_dst2, freq_dst
-) -> tuple[float | int, float | int]:
+def durations_dst2(startofday_dst2, startdate_dst2, freq_dst) -> tuple[float | int, float | int]:
     if freq_dst == "15min":
         return (0.25, 0.25)
     elif freq_dst == "h":

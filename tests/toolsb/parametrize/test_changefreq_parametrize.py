@@ -5,7 +5,8 @@ from portfolyo import toolsb
 
 
 _DAILYSOURCE = pd.Series(
-    1.0, pd.date_range("2020-10-21 06:00", "2022-04-21 06:00", freq="D", inclusive="left")
+    1.0,
+    pd.date_range("2020-10-21 06:00", "2022-04-21 06:00", freq="D", inclusive="left"),
 )
 
 
@@ -24,7 +25,10 @@ _DAILYSOURCE = pd.Series(
             pd.Series(
                 [90.0, 91, 92, 92, 90],
                 pd.date_range(
-                    "2021-01-01 06:00", "2022-04-01 06:00", freq="QS-JAN", inclusive="left"
+                    "2021-01-01 06:00",
+                    "2022-04-01 06:00",
+                    freq="QS-JAN",
+                    inclusive="left",
                 ),
             ),
         ),
@@ -33,7 +37,10 @@ _DAILYSOURCE = pd.Series(
             pd.Series(
                 [90.0, 91, 92, 92, 90],
                 pd.date_range(
-                    "2021-01-01 06:00", "2022-04-01 06:00", freq="QS-APR", inclusive="left"
+                    "2021-01-01 06:00",
+                    "2022-04-01 06:00",
+                    freq="QS-APR",
+                    inclusive="left",
                 ),
             ),
         ),
@@ -42,7 +49,10 @@ _DAILYSOURCE = pd.Series(
             pd.Series(
                 [365.0],
                 pd.date_range(
-                    "2021-01-01 06:00", "2022-01-01 06:00", freq="YS-JAN", inclusive="left"
+                    "2021-01-01 06:00",
+                    "2022-01-01 06:00",
+                    freq="YS-JAN",
+                    inclusive="left",
                 ),
             ),
         ),
@@ -51,7 +61,10 @@ _DAILYSOURCE = pd.Series(
             pd.Series(
                 [365.0],
                 pd.date_range(
-                    "2021-02-01 06:00", "2022-02-01 06:00", freq="YS-FEB", inclusive="left"
+                    "2021-02-01 06:00",
+                    "2022-02-01 06:00",
+                    freq="YS-FEB",
+                    inclusive="left",
                 ),
             ),
         ),
@@ -119,7 +132,10 @@ _QUARTERLYSOURCE = pd.Series(
             pd.Series(
                 [180.0, 91, 184, 92, 180],
                 pd.date_range(
-                    "2021-01-01 06:00", "2022-04-01 06:00", freq="QS-APR", inclusive="left"
+                    "2021-01-01 06:00",
+                    "2022-04-01 06:00",
+                    freq="QS-APR",
+                    inclusive="left",
                 ),
             ),
         ),
@@ -128,7 +144,10 @@ _QUARTERLYSOURCE = pd.Series(
             pd.Series(
                 [547.0],
                 pd.date_range(
-                    "2021-01-01 06:00", "2022-01-01 06:00", freq="YS-JAN", inclusive="left"
+                    "2021-01-01 06:00",
+                    "2022-01-01 06:00",
+                    freq="YS-JAN",
+                    inclusive="left",
                 ),
             ),
         ),

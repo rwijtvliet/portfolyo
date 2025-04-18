@@ -130,7 +130,8 @@ def convert_pintframe(fr: pd.DataFrame) -> pd.DataFrame:
 
 def convert_pintframe(fr: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
     """If possible, turn Series/DataFrame into (collection of) pintseries. Converts Series of
-    Quantities with uniform dimensionality into pintseries. If not possible, return as-is."""
+    Quantities with uniform dimensionality into pintseries. If not possible, return as-is.
+    """
     if isinstance(fr, pd.DataFrame):
         return pd.DataFrame({c: convert_pintframe(s) for c, s in fr.items()})
 
@@ -183,7 +184,9 @@ def convert_pintframe_reducedunits(fr: pd.DataFrame) -> pd.DataFrame:
     ...
 
 
-def convert_pintframe_reducedunits(fr: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
+def convert_pintframe_reducedunits(
+    fr: pd.Series | pd.DataFrame,
+) -> pd.Series | pd.DataFrame:
     """Like ``convert_pintframe``, but if possible also reduce number of units by converting like
     dimensionalities (e.g. MW and kW) to one unit. For series: relevant if series of quantities.
     For dataframes: additionally relevant if pintseries with same dimensionality. If not possible,
@@ -318,7 +321,9 @@ class UnitPref(dict):
             )
 
     def _add_fromskalar(
-        self, sk: float | int | pint.Quantity | Any, collision: Literal["update", "ignore", "raise"]
+        self,
+        sk: float | int | pint.Quantity | Any,
+        collision: Literal["update", "ignore", "raise"],
     ) -> None:
         """Add unit (if it has any) from skalar `sk` as preferred unit for its dimensionality."""
         sk = convert_quantity(sk)  # turns float and int into quantities
@@ -326,7 +331,9 @@ class UnitPref(dict):
             self._add_fromunit(sk.units, collision)
 
     def _add_fromframe(
-        self, fr: pd.Series | pd.DataFrame, collision: Literal["update", "ignore", "raise"]
+        self,
+        fr: pd.Series | pd.DataFrame,
+        collision: Literal["update", "ignore", "raise"],
     ) -> None:
         """Collect all units used in `fr`, and add each as preferred unit for its dimensionality."""
         if isinstance(fr, pd.DataFrame):

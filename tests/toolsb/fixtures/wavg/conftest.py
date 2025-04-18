@@ -115,7 +115,12 @@ class _Numbers:
             id="2dvalues_1dweights_moreweights_ax0",
         ),
         pytest.param(
-            (_Values2dNumbers.NORMAL, ((10, 10), (10, 10), (10, 30), (20, 0)), 0, (60, 160)),
+            (
+                _Values2dNumbers.NORMAL,
+                ((10, 10), (10, 10), (10, 30), (20, 0)),
+                0,
+                (60, 160),
+            ),
             id="2dvalues_2dweights_ax0",
         ),
         pytest.param(
@@ -174,7 +179,12 @@ class _Numbers:
             id="2dvalues_2dweights_fewerweightsonremainingaxis_ax1_A",
         ),
         pytest.param(
-            (_Values2dNumbers.NORMAL, ((10,), (10,), (10,), (20,)), 1, (100, 200, 300, -150)),
+            (
+                _Values2dNumbers.NORMAL,
+                ((10,), (10,), (10,), (20,)),
+                1,
+                (100, 200, 300, -150),
+            ),
             id="2dvalues_2dweights_fewerweightsoncollapsingaxis_ax1_B",
         ),
         pytest.param(
@@ -196,11 +206,21 @@ class _Numbers:
             id="2dvalues_2dweights_moreweightsoncollapsingaxis_ax1_B",
         ),
         pytest.param(
-            (_Values2dNumbers.SOMEUNIFORM, _Weights1dNumbers.ALLZERO, 0, (np.nan, 100, np.nan)),
+            (
+                _Values2dNumbers.SOMEUNIFORM,
+                _Weights1dNumbers.ALLZERO,
+                0,
+                (np.nan, 100, np.nan),
+            ),
             id="2dvalues_1dweights_allzero_ax0",
         ),
         pytest.param(
-            (_Values2dNumbers.SOMEUNIFORM, _Weights1dNumbers.SUMZERO, 0, (np.nan, 100, 100)),
+            (
+                _Values2dNumbers.SOMEUNIFORM,
+                _Weights1dNumbers.SUMZERO,
+                0,
+                (np.nan, 100, 100),
+            ),
             id="2dvalues_1dweights_sumzero_ax0",
         ),
         pytest.param(
@@ -231,7 +251,13 @@ class _Numbers:
         ),
         pytest.param(
             (
-                ((100, 100, 99), (200, -200, -99), (300, 300, 99), (-150, -150, -99), (99, 99, 99)),
+                (
+                    (100, 100, 99),
+                    (200, -200, -99),
+                    (300, 300, 99),
+                    (-150, -150, -99),
+                    (99, 99, 99),
+                ),
                 ((10, 10), (10, 10), (10, 30), (20, 0)),
                 0,
                 ValueError,
@@ -240,7 +266,13 @@ class _Numbers:
         ),
         pytest.param(
             (
-                ((100, 100, 99), (200, -200, -99), (300, 300, 99), (-150, -150, -99), (99, 99, 99)),
+                (
+                    (100, 100, 99),
+                    (200, -200, -99),
+                    (300, 300, 99),
+                    (-150, -150, -99),
+                    (99, 99, 99),
+                ),
                 ((10, 10), (10, 10), (10, 30), (20, 0), (0, 0)),
                 0,
                 ValueError,
@@ -249,7 +281,13 @@ class _Numbers:
         ),
         pytest.param(
             (
-                ((100, 100, 99), (200, -200, -99), (300, 300, 99), (-150, -150, -99), (99, 99, 99)),
+                (
+                    (100, 100, 99),
+                    (200, -200, -99),
+                    (300, 300, 99),
+                    (-150, -150, -99),
+                    (99, 99, 99),
+                ),
                 ((10, 10, 0), (10, 10, 0), (10, 30, 0), (20, 0, 0)),
                 0,
                 (60, 160, np.nan),
@@ -258,7 +296,13 @@ class _Numbers:
         ),
         pytest.param(
             (
-                ((100, 100, 99), (200, -200, -99), (300, 300, 99), (-150, -150, -99), (99, 99, 99)),
+                (
+                    (100, 100, 99),
+                    (200, -200, -99),
+                    (300, 300, 99),
+                    (-150, -150, -99),
+                    (99, 99, 99),
+                ),
                 (10, 30),
                 1,
                 (100, -100, 300, -150, 99),
@@ -267,7 +311,13 @@ class _Numbers:
         ),
         pytest.param(
             (
-                ((100, 100, 99), (200, -200, -99), (300, 300, 99), (-150, -150, -99), (99, 99, 99)),
+                (
+                    (100, 100, 99),
+                    (200, -200, -99),
+                    (300, 300, 99),
+                    (-150, -150, -99),
+                    (99, 99, 99),
+                ),
                 ((10, 10), (10, 10), (10, 30), (20, 0), (10, -10)),
                 1,
                 (100, 0, 300, -150, 99),

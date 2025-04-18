@@ -418,9 +418,7 @@ s2_u = pd.Series((s2.get(i) for i in idx_u), idx_u)
         (
             {"w": s1.astype("pint[MW]"), "p": Q_(50, "Eur/MWh")},
             io.InOp(w=s1.astype("pint[MW]"), p=Q_(50.0, "Eur/MWh")),
-            io.InOp(
-                w=s1.astype("pint[MW]"), p=pd.Series(50.0, idx1).astype("pint[Eur/MWh]")
-            ),
+            io.InOp(w=s1.astype("pint[MW]"), p=pd.Series(50.0, idx1).astype("pint[Eur/MWh]")),
         ),
         # (A) + (C): invalid key AND key with missing units.
         (

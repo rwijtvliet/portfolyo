@@ -302,7 +302,11 @@ def _convert_to_dailymidnight(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
         # --> Won't always work for Quarters
         # return pd.DatetimeIndex(idx.normalize(), freq=idx.freq)
         return pd.date_range(
-            idx[0].normalize(), freq=idx.freq, tz=idx.tz, name=idx.name, periods=len(idx)
+            idx[0].normalize(),
+            freq=idx.freq,
+            tz=idx.tz,
+            name=idx.name,
+            periods=len(idx),
         )
 
 

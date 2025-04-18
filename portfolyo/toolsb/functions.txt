@@ -35,8 +35,8 @@ frames-concat(frso axis)
 
 changefreq
 ----------
-summableframe-changefreq(fr, freq)
-avgableframe-changefreq(fr, freq)
+x summableframe-changefreq(fr, freq)
+x avgableframe-changefreq(fr, freq)
 
 Wavg
 ----
@@ -56,8 +56,8 @@ x assert-frames-equal(df1, df2)
 Units
 -----
 # ureg and units
-convert_unit
-validate_unit
+x convert_unit
+x validate_unit
 coerce_unit
 # units, dimensions, quantities, series
 to_base_dimensions(obj)

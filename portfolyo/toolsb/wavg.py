@@ -229,7 +229,10 @@ def _numpy_values1d_weights1d(values: np.ndarray, weights: np.ndarray) -> float:
     weight_is0 = np.isclose(weights, 0)
     if np.all(weight_is0):  # case 1: all weights are zero: nan unless all values same
         return _numpy_uniquenonnan_1d(values)
-    weights, values = weights[~weight_is0], values[~weight_is0]  # keep only nonzero weights/values
+    weights, values = (
+        weights[~weight_is0],
+        values[~weight_is0],
+    )  # keep only nonzero weights/values
     weight_sum = np.sum(weights)
     if np.isclose(weight_sum, 0):  # case2: sum of weights is zero: nan unless all values same
         return _numpy_uniquenonnan_1d(values)
@@ -259,7 +262,10 @@ def _numpy_values2d_weights1d(values: np.ndarray, weights: np.ndarray, axis: int
     weight_is0 = np.isclose(weights, 0)
     if np.all(weight_is0):  # case 1: all weights are zero: nan unless all values same
         return _numpy_uniquenonnan_2d(values)
-    weights, values = weights[~weight_is0], values[~weight_is0]  # keep only nonzero weights/values
+    weights, values = (
+        weights[~weight_is0],
+        values[~weight_is0],
+    )  # keep only nonzero weights/values
     weight_sum = np.sum(weights)
     if np.isclose(weight_sum, 0):  # case 2: sum of weights is zero: nan unless all values same
         return _numpy_uniquenonnan_2d(values)

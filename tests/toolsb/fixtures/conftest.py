@@ -314,7 +314,10 @@ def with_units(request) -> bool:
 
 @pytest.fixture(
     scope="session",
-    params=[pytest.param(pd.Series, id="series"), pytest.param(pd.DataFrame, id="dataframe")],
+    params=[
+        pytest.param(pd.Series, id="series"),
+        pytest.param(pd.DataFrame, id="dataframe"),
+    ],
 )
 def frame_type(request) -> type:
     return request.param
