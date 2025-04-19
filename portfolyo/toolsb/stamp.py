@@ -5,11 +5,11 @@ from typing import Literal
 
 import pandas as pd
 from pandas.core.dtypes.dtypes import BaseOffset
+from pint import Quantity
 
 from . import freq as tools_freq
-from . import startofday as tools_startofday
+from . import startofday as tools_sod
 from . import unit as tools_unit
-from pint import Quantity
 
 
 @tools_freq.apply_coercion()
@@ -73,14 +73,14 @@ def duration(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
     return tools_unit.Q_(hours, "h")
 
 
-@tools_startofday.apply_coercion(validation=False)
+@tools_sod.apply_coercion(validation=False)
 def replace_time(stamp: pd.Timestamp, startofday: dt.time) -> pd.Timestamp:
     """Replace the time-part of ``stamp`` with ``startofday``."""
     return stamp.replace(hour=startofday.hour, minute=startofday.minute, second=startofday.second)
 
 
 @tools_freq.apply_coercion()
-@tools_startofday.apply_coercion()
+@tools_sod.apply_coercion()
 def is_boundary(stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None) -> bool:
     """Check if timestamp is a valid delivery period start.
 
@@ -134,11 +134,11 @@ def _round(
 
 
 @tools_freq.apply_coercion()
-@tools_startofday.apply_coercion()
+@tools_sod.apply_coercion()
 def floor(
     stamp: pd.Timestamp,
     freq: BaseOffset,
-    startofday: dt.time = tools_startofday.MIDNIGHT,
+    startofday: dt.time = tools_sod.MIDNIGHT,
 ) -> pd.Timestamp:
     """Floor timestamp to beginning of delivery period it's contained in.
     I.e., find (latest) delivery period start that is on or before the timestamp.
@@ -181,11 +181,11 @@ def floor(
 
 
 @tools_freq.apply_coercion()
-@tools_startofday.apply_coercion()
+@tools_sod.apply_coercion()
 def ceil(
     stamp: pd.Timestamp,
     freq: BaseOffset,
-    startofday: dt.time = tools_startofday.MIDNIGHT,
+    startofday: dt.time = tools_sod.MIDNIGHT,
 ) -> pd.Timestamp:
     """Ceil timestamp to end of delivery period it's contained in.
     I.e., find (earliest) delivery period start that is on or after the timestamp.

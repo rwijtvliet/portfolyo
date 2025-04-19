@@ -5,12 +5,12 @@ from typing import overload
 import pandas as pd
 from pandas.tseries.offsets import BaseOffset
 
-from . import unit as tools_unit
+from . import frame as tools_frame
 from . import freq as tools_freq
 from . import index as tools_index
-from . import startofday as tools_startofday
-from . import frame as tools_frame
 from . import stamp as tools_stamp
+from . import startofday as tools_sod
+from . import unit as tools_unit
 from .types import Series_or_DataFrame
 
 
@@ -40,7 +40,7 @@ def _downsample_summable(s: pd.Series, freq: BaseOffset) -> pd.Series:
     if not len(s):  # Empty series.
         return _emptyseries(s, freq)
 
-    offset = tools_startofday.to_tdelta(s.index[0].time())
+    offset = tools_sod.to_tdelta(s.index[0].time())
     source, target = s.index.freq, freq
     name = s.name
 
@@ -89,7 +89,7 @@ def _upsample_avgable(s: pd.Series, freq: BaseOffset) -> pd.Series:
     if not len(s):  # Empty series.
         return _emptyseries(s, freq)
 
-    offset = tools_startofday.to_tdelta(s.index[0].time())
+    offset = tools_sod.to_tdelta(s.index[0].time())
     source, target = s.index.freq, freq
 
     # Several isuses with pandas resampling:
@@ -198,13 +198,11 @@ def index(idx: pd.DatetimeIndex, freq: str | BaseOffset) -> pd.DatetimeIndex:
 
 
 @overload
-def summable(fr: pd.Series, freq: str | BaseOffset) -> pd.Series:
-    ...
+def summable(fr: pd.Series, freq: str | BaseOffset) -> pd.Series: ...
 
 
 @overload
-def summable(fr: pd.DataFrame, freq: str | BaseOffset) -> pd.DataFrame:
-    ...
+def summable(fr: pd.DataFrame, freq: str | BaseOffset) -> pd.DataFrame: ...
 
 
 def summable(fr: Series_or_DataFrame, freq: str | BaseOffset) -> Series_or_DataFrame:
@@ -248,13 +246,11 @@ def summable(fr: Series_or_DataFrame, freq: str | BaseOffset) -> Series_or_DataF
 
 
 @overload
-def averagable(fr: pd.Series, freq: str | BaseOffset) -> pd.Series:
-    ...
+def averagable(fr: pd.Series, freq: str | BaseOffset) -> pd.Series: ...
 
 
 @overload
-def averagable(fr: pd.DataFrame, freq: str | BaseOffset) -> pd.DataFrame:
-    ...
+def averagable(fr: pd.DataFrame, freq: str | BaseOffset) -> pd.DataFrame: ...
 
 
 def averagable(fr: Series_or_DataFrame, freq: str | BaseOffset) -> Series_or_DataFrame:

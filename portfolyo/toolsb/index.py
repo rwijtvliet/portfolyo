@@ -10,9 +10,8 @@ from portfolyo.toolsb.types import Frequencylike
 from . import _decorator as tools_decorator
 from . import freq as tools_freq
 from . import stamp as tools_stamp
-from . import startofday as tools_startofday
+from . import startofday as tools_sod
 from .types import PintSeries
-
 
 # Conversion and validation.
 # --------------------------
@@ -33,7 +32,7 @@ def validate(idx: pd.DatetimeIndex) -> None:
 
     # Check on start_of_day.
     startofday = idx[0].time()
-    tools_startofday.validate(startofday)  # conversion not necessary
+    tools_sod.validate(startofday)  # conversion not necessary
 
     # Check on integer number of days.
     if tools_freq.is_shorter_than_daily(freq):
@@ -111,7 +110,7 @@ def duration(idx: pd.DatetimeIndex) -> PintSeries:
 
 # TODO: move to `preprocess.py`?
 @apply_coercion()
-@tools_startofday.apply_coercion()
+@tools_sod.apply_coercion()
 def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a daily-or-longer frequency, replace the time-part of each
     timestamp, so that the returned index has the specified start-of-day.
@@ -146,7 +145,7 @@ def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
 
 # TODO: move to `preprocess.py`?
 @apply_coercion(validation=False)
-@tools_startofday.apply_coercion()
+@tools_sod.apply_coercion()
 def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a shorter-than-daily frequency, drop timestamps from the index
     so that the returned index has the specified start-of-day.
