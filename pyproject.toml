@@ -65,7 +65,8 @@ build-backend = "poetry.core.masonry.api"
 markers = [
     "only_on_pr: marks tests as slow (select with -m only_on_pr and deselect with -m 'not only_on_pr')",
 ]
-pythonpath = ["./tests"]
+pythonpath = "./tests"
+testpath = "./tests/toolsb/"
 
 [tool.black]
 line-length = 100
