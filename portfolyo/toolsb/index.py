@@ -105,7 +105,7 @@ def duration(idx: pd.DatetimeIndex) -> PintSeries:
     else:
         tdelta = (idx + jump) - idx  # timedeltaindex
     hours = tdelta.total_seconds() / 3600  # one value or index
-    return pd.Series(hours, idx, dtype="pint[h]")
+    return pd.Series(hours, idx, name="duration", dtype="pint[h]")
 
 
 # TODO: move to `preprocess.py`?

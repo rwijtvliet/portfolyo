@@ -15,8 +15,8 @@ PeakFunction = Callable[[pd.DatetimeIndex], pd.Series]
 
 
 def factory(
-    peak_left: dt.time | None = None,
-    peak_right: dt.time | None = None,
+    peak_left: dt.time | str | dt.timedelta | None = None,
+    peak_right: dt.time | str | dt.timedelta | None = None,
     isoweekdays: Iterable[int] | None = None,
 ) -> PeakFunction:
     """Create function to identify which timestamps in an index are peakhours and which are offpeak.
@@ -122,6 +122,16 @@ def factory(
     return peak_fn
 
 
+def base_duration(idx: pd.DatetimeIndex) -> pd.Series:
+    """Duration of base period in each element of a datetimeindex. Alias of .duration.
+
+    See also
+    --------
+    portfolyo.duration
+    """
+    return tools_index.duration(idx)
+
+
 def peak_duration(idx: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
     """Duration of peak periods in each element of a datetimeindex.
 
@@ -143,7 +153,7 @@ def peak_duration(idx: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
     Series has the original index.
     """
     eval_idx = idx  # index to evaluate if peak or offpeak
-    for eval_freq in ("D", "h", "15min"):
+    for eval_freq in ("D", "h", "15min"):  # peakfn must work for one of these.
         if tools_freq.up_or_down(eval_idx.freq, eval_freq) > 0:  # upsampling necessary
             eval_idx = tools_changefreq.index(eval_idx, eval_freq)
         try:

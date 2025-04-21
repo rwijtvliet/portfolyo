@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from . import dev, tools, toolsb
+from .__version__ import __version__
 from .core import extendpandas  # extend functionalty of pandas
 from .core import suppresswarnings
 from .core.pfline import Kind, PfLine, Structure, create
@@ -18,13 +19,18 @@ from .tools.hedge import hedge
 from .tools.peakfn import PeakFunction
 from .tools.peakfn import factory as create_peakfn
 from .tools.product import germanpower_peakfn, is_peak_hour
+from .tools.right import index as right_index
+from .tools.right import stamp as right_stamp
 from .tools.standardize import frame as standardize
 from .tools.tzone import force_agnostic, force_aware
-from .tools.right import index as right_index, stamp as right_stamp
-from .tools.unit import Q_, Unit, ureg
+from .tools.unit import Q_, Unit
 from .tools.unit import normalize_frame as pintframe
+from .tools.unit import ureg
 from .tools.wavg import general as wavg
-from .__version__ import __version__
+
+# toolsb
+from .toolsb.index import duration
+from .toolsb.peakfn import PeakFunction, base_duration, offpeak_duration, peak_duration
 
 VOLUME = Kind.VOLUME
 PRICE = Kind.PRICE

@@ -2,14 +2,15 @@
 
 from . import (
     _decorator,
+    changefreq,
     frame,
     freq,
     index,
+    peakfn,
     stamp,
     startofday,
+    testing,
     types,
     unit,
-    testing,
     wavg,
-    changefreq,
 )

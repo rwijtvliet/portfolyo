@@ -1,6 +1,7 @@
-import pandas as pd
-from typing import Literal
 import datetime as dt
+from typing import Literal
+
+import pandas as pd
 import pytest
 from pandas.tseries.frequencies import to_offset
 
@@ -207,7 +208,7 @@ def sod_nok_astdelta(_sod_time_str_tdelta_nok) -> dt.timedelta:
     params=[
         pytest.param("Europe/Berlin", id="Berlin"),
         pytest.param("Asia/Kolkata", id="Kolkata"),
-        None,
+        pytest.param(None, id="notimezone"),
     ],
 )
 def tz(request) -> str | None:
