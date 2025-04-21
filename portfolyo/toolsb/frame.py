@@ -12,8 +12,36 @@ from portfolyo.tools.types import Series_or_DataFrame
 from . import index as tools_index
 
 
+def _nlevels(fr: pd.Series | pd.DataFrame, axis: int):
+    """Count levels on specified axis."""
+    if axis == 0:
+        return fr.index.nlevels
+    elif isinstance(fr, pd.DataFrame):  # axis == 1
+        return fr.columns.nlevels
+    else:  # axis == 1 and fr is Series
+        return 0
+
+
+def _add_level(fr: pd.Series | pd.DataFrame, levelvalue: Any, axis: int, top: bool = True):
+    """Add a level with specified value to top or bottom of specified axis."""
+    fr = pd.concat({levelvalue: fr}, axis=axis)  # add (prepend) level. Might turn Series into df
+    if top or _nlevels(fr, axis) < 2:  # no need to swap, or impossible to swap
+        return fr
+    elif isinstance(fr, pd.Series):
+        return fr.swaplevel(0, -1)  # move to bottom
+    else:  # DataFrame
+        return fr.swaplevel(0, -1, axis=axis)  # move to bottom
+
+
+def _ensure_nlevels(fr: pd.Series | pd.DataFrame, axis: int, want: int):
+    """Add levels from below/right to reach wanted level count on specified axis."""
+    for _ in range(want - _nlevels(fr, axis)):
+        fr = _add_level(fr, "", axis=axis, top=False)  # prepend empty level
+    return fr
+
+
 def add_header(
-    frame: pd.Series | pd.DataFrame, header: Any, axis: int = 1
+    fr: pd.Series | pd.DataFrame, header: Any, axis: int = 1
 ) -> pd.Series | pd.DataFrame:
     """Add additional (top-)level to dataframe axis (column or index).
 
@@ -23,7 +51,7 @@ def add_header(
         Series or dataframe to add header to.
     header
         Value to add as uniform top-level column or index value.
-    axis, optional (default: 1)
+    axis, optional
         Which axis to add the level to, columns (1) or index (0)
 
     Returns
@@ -31,11 +59,12 @@ def add_header(
         Same series or dataframe, but with additional level. Series changed to
         dataframe if axis == 1.
     """
-    return pd.concat([frame], keys=[header], axis=axis)
+    return _add_level(fr, header, axis)
 
 
+@functools.wraps(pd.concat)
 def concat(
-    frames: Iterable[pd.Series | pd.DataFrame], axis: int = 0, *args, **kwargs
+    frames: Iterable[pd.Series | pd.DataFrame], *, axis: int = 0, **kwargs
 ) -> pd.Series | pd.DataFrame:
     """
     Wrapper for ``pandas.concat``; concatenate pandas objects even if they have
@@ -49,7 +78,7 @@ def concat(
     ----------
     frames
         Series or dataframes that must be concatenated.
-    axis, optional (default: 0)
+    axis, optional
         Axis along which concatenation must take place.
 
     Returns
@@ -58,29 +87,15 @@ def concat(
 
     Notes
     -----
-    Any arguments and kwarguments are passed onto the ``pandas.concat`` function.
+    Any kwargs are passed onto the ``pandas.concat`` function.
 
     See also
     --------
     pandas.concat
     """
-
-    def nlevels(fr):
-        if axis == 1:
-            return 0 if isinstance(fr, pd.Series) else fr.columns.nlevels
-        else:
-            return fr.index.nlevels
-
-    def add_levels(fr, want: int):
-        for _ in range(want - nlevels(fr)):
-            fr = add_header(fr, "", axis=axis)  # prepend empty level
-            kwargs = {} if isinstance(fr, pd.Series) else {"axis": axis}
-            fr = fr.swaplevel(0, -1, **kwargs)  # move empty levels to bottom
-        return fr
-
-    want = np.max([nlevels(fr) for fr in frames])
-    frames = [add_levels(fr, want) for fr in frames]
-    return pd.concat(frames, axis=axis, *args, **kwargs)
+    want = np.max([_nlevels(fr, axis) for fr in frames])
+    frames = [_ensure_nlevels(fr, axis, want) for fr in frames]
+    return pd.concat(frames, axis=axis, **kwargs)
 
 
 @functools.wraps(np.allclose)
@@ -100,13 +115,11 @@ def series_allclose(s1: pd.Series, s2: pd.Series, *args, **kwargs) -> bool:
 
 
 @overload
-def trim(fr: pd.Series, freq: str | BaseOffset) -> pd.Series:
-    ...
+def trim(fr: pd.Series, freq: str | BaseOffset) -> pd.Series: ...
 
 
 @overload
-def trim(fr: pd.DataFrame, freq: str | BaseOffset) -> pd.DataFrame:
-    ...
+def trim(fr: pd.DataFrame, freq: str | BaseOffset) -> pd.DataFrame: ...
 
 
 def trim(fr: pd.Series | pd.DataFrame, freq: str | BaseOffset) -> pd.Series | pd.DataFrame:

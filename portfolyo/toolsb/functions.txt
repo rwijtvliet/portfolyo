@@ -30,8 +30,8 @@ x index-trim-tostartofday(idx<daily, startofday)
 
 frame
 -----
-frame-add-header(fr, header, axis)
-frames-concat(frso axis)
+x frame-add-header(fr, header, axis)
+x frames-concat(frso axis)
 
 changefreq
 ----------
