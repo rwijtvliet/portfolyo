@@ -1,7 +1,11 @@
 import datetime as dt
-from dataclasses import dataclass
+from dataclasses import InitVar, dataclass
+from typing import Iterable
 
-from ... import tools
+import pint
+from pandas.tseries.offsets import BaseOffset
+
+from ... import toolsb
 
 
 @dataclass(frozen=True)
@@ -21,22 +25,26 @@ class Commodity:
     units, optional
     """
 
-    freq: str
-    is_peak_hour: tools.peakperiod.PeakFunction = None
-    startofday: dt.time | str | dt.timedelta = None
-    units: str = None
+    freq: str | BaseOffset
+    is_peak_hour: toolsb.peakfn.PeakFunction | None = None
+    startofday: dt.time | str | dt.timedelta = toolsb.startofday.MIDNIGHT
+    preferred_units: InitVar[Iterable[str | pint.Unit] | None] = None
 
-    def __post_init__(self):
+    def __post_init__(self, preferred_units):
         # if self.freq not in (freqs := tools.freq.FREQUENCIES):
         #     raise ValueError(
         #         f"``freq`` must be one of {', '.join(freqs)}; got {self.freq}."
         #     )
-        tools.freq.assert_freq_valid(self.freq)
+        object.__setattr__(self, "freq", toolsb.freq.coerce(self.freq))
+        object.__setattr__(self, "startofday", toolsb.startofday.coerce(self.startofday))
+        object.__setattr__(
+            self, "unitpref", toolsb.unit.UnitPref.from_objs(preferred_units, "raise")
+        )
 
 
 power = Commodity(
-    "15min",
-    tools.peakperiod.factory(dt.time(hour=8), dt.time(hour=20), [1, 2, 3, 4, 5]),
-    0,
+    "15min", toolsb.product.germanpower_peakfn, preferred_units=["MWh", "Eur/MWh", "MW"]
 )
-gas = Commodity("D", None, 6)
+gas = Commodity("D", startofday="06:00", preferred_units=["MWh", "Eur/MWh", "MW"])
+coal = Commodity("D", preferred_units=["ktce", "Eur/tce", "tce/h"])
+co2 = Commodity("D", preferred_units=["ktCo2", "Eur/tCo2", "tCo2/h"])

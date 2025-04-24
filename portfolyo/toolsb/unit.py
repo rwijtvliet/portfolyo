@@ -2,7 +2,7 @@
 
 import functools
 from pathlib import Path
-from typing import Any, Mapping, overload, Literal
+from typing import Any, Iterable, Literal, Mapping, overload
 
 import pandas as pd
 import pint
@@ -119,13 +119,11 @@ apply_coercion_quantity = tools_decorator.create_coerciondecorator(
 
 
 @overload
-def convert_pintframe(fr: pd.Series) -> pd.Series:
-    ...
+def convert_pintframe(fr: pd.Series) -> pd.Series: ...
 
 
 @overload
-def convert_pintframe(fr: pd.DataFrame) -> pd.DataFrame:
-    ...
+def convert_pintframe(fr: pd.DataFrame) -> pd.DataFrame: ...
 
 
 def convert_pintframe(fr: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
@@ -175,13 +173,11 @@ apply_coercion_pintframe = tools_decorator.create_coerciondecorator(
 
 
 @overload
-def convert_pintframe_reducedunits(fr: pd.Series) -> pd.Series:
-    ...
+def convert_pintframe_reducedunits(fr: pd.Series) -> pd.Series: ...
 
 
 @overload
-def convert_pintframe_reducedunits(fr: pd.DataFrame) -> pd.DataFrame:
-    ...
+def convert_pintframe_reducedunits(fr: pd.DataFrame) -> pd.DataFrame: ...
 
 
 def convert_pintframe_reducedunits(
@@ -260,13 +256,16 @@ class UnitPref(dict):
 
     @classmethod
     def from_objs(
-        cls, *objs: pint.Unit | float | int | pint.Quantity | pd.Series | pd.DataFrame
+        cls,
+        objs: Iterable[pint.Unit | float | int | pint.Quantity | pd.Series | pd.DataFrame],
+        collision: Literal["update", "ignore", "raise"] = "ignore",
     ) -> Self:
         """Create instance from one or more objects that a unit can be derived from. If multiple
-        units are found for a dimensionality, the first-found unit is kept."""
+        units are found for a dimensionality, keep first (if ``collision`` == 'ignore', default),
+        keep last (if ``collision`` == 'update') or raise exception (if ``collision == 'raise')."""
         self = cls()
         for obj in objs:
-            self.add(obj, "ignore")
+            self.add(obj, collision)
         return self
 
     def add(
@@ -292,7 +291,7 @@ class UnitPref(dict):
         the same dimensionality are found, `collision` determines, which is kept (or if Exception
         is raised).
         """
-        if isinstance(obj, pint.Unit):
+        if isinstance(obj, str | pint.Unit):
             self._add_fromunit(obj, collision)
         elif isinstance(obj, float | int | pint.Quantity):
             self._add_fromskalar(obj, collision)
@@ -405,24 +404,21 @@ def _convert_series_to_preferred(
 def convert_to_preferred(
     obj: int | float | pint.Quantity,
     pref: Mapping[pint.util.UnitsContainer, pint.Unit],
-) -> pint.Quantity:
-    ...
+) -> pint.Quantity: ...
 
 
 @overload
 def convert_to_preferred(
     obj: pd.Series,
     pref: Mapping[pint.util.UnitsContainer, pint.Unit],
-) -> pd.Series:
-    ...
+) -> pd.Series: ...
 
 
 @overload
 def convert_to_preferred(
     obj: pd.DataFrame,
     pref: Mapping[pint.util.UnitsContainer, pint.Unit],
-) -> pd.DataFrame:
-    ...
+) -> pd.DataFrame: ...
 
 
 def convert_to_preferred(

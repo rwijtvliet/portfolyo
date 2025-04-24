@@ -7,6 +7,7 @@ from . import (
     freq,
     index,
     peakfn,
+    product,
     stamp,
     startofday,
     testing,
