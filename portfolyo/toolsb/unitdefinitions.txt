@@ -26,6 +26,7 @@ tonne_coal_equiv = 6.978 * MWh = tce
 # Emissions
 [emissions]
 tonne_co2 = [emissions] = tCO2
+kg_co2 = kgCO2 = tCO2 / 1000
 
 # Revenue (Currency)
 [currency_usd]

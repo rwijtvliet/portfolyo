@@ -3,6 +3,7 @@ from typing import Iterable, Mapping, overload
 import numpy as np
 import pandas as pd
 import pint
+
 from . import unit as tools_unit
 
 # Developer notes:
@@ -54,8 +55,7 @@ def general(
     fr: pd.Series,
     weights: Iterable | Mapping | pd.Series | None = None,
     axis: int = 0,
-) -> pint.Quantity:
-    ...
+) -> pint.Quantity: ...
 
 
 @overload
@@ -63,8 +63,7 @@ def general(
     fr: pd.DataFrame,
     weights: Iterable | Mapping | pd.Series | pd.DataFrame | None = None,
     axis: int = 0,
-) -> pd.Series:
-    ...
+) -> pd.Series: ...
 
 
 def general(
@@ -100,7 +99,6 @@ def general(
         raise TypeError(f"Parameter ``fr`` must be Series or DataFrame; got {type(fr)}.")
 
 
-@tools_unit.apply_coercion_pintframe("s")
 def series(s: pd.Series, weights: Iterable | Mapping | pd.Series | None = None) -> pint.Quantity:
     """Weighted average of series.
 
@@ -120,6 +118,8 @@ def series(s: pd.Series, weights: Iterable | Mapping | pd.Series | None = None) 
     -----
     Will raise Error if values in ``s`` have distinct units.
     """
+    s = tools_unit.coerce_pintframe(s)
+
     units = s.pint.units
     magnitudes = s.pint.magnitude
 
@@ -134,7 +134,6 @@ def series(s: pd.Series, weights: Iterable | Mapping | pd.Series | None = None) 
     return wavg_float * units
 
 
-@tools_unit.apply_coercion_pintframe("df")
 def dataframe(
     df: pd.DataFrame,
     weights: Iterable | Mapping | pd.Series | pd.DataFrame | None = None,
@@ -162,6 +161,7 @@ def dataframe(
     -----
     Will raise error if axis == 1 and columns have distinct unit-dimensions.
     """
+    df = tools_unit.coerce_pintframe(df)
     weights = _weights_for_2dvalues(weights, df.index, df.columns, axis)
     return _dataframe_axis1(df, weights) if axis == 1 else _dataframe_axis0(df, weights)
 

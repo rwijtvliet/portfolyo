@@ -1,17 +1,15 @@
-"""Module to work with indices."""
+"""Module to work with datetime indices."""
 
 import datetime as dt
 from typing import Iterable
 
 import pandas as pd
 
-from portfolyo.toolsb.types import Frequencylike
-
 from . import _decorator as tools_decorator
 from . import freq as tools_freq
 from . import stamp as tools_stamp
 from . import startofday as tools_sod
-from .types import PintSeries
+from .types import Frequencylike, PintSeries
 
 # Conversion and validation.
 # --------------------------
@@ -47,19 +45,9 @@ def validate(idx: pd.DatetimeIndex) -> None:
 coerce = tools_decorator.coerce_fn(convert, validate)
 
 
-# def coerce(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
-#     idx = convert(idx)
-#     validate(idx)
-#     return idx
-
-
-apply_coercion = tools_decorator.create_coerciondecorator(convert, validate, default_param="idx")
-
-
 # --------------------------
 
 
-@apply_coercion()
 def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     """Right-bound timestamps, belonging to left-bound timestamps of delivery periods
     in index.
@@ -83,10 +71,10 @@ def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     #   idx = pd.date_range('2020-03-29', freq='D', periods=5, tz='Europe/Berlin')
     # . idx + i.freq
     #   Same example, different error: time is moved to 01:00 for first timestamp.
+    idx = coerce(idx)
     return pd.DatetimeIndex(idx + tools_freq.to_jump(idx.freq), idx.freq)
 
 
-@apply_coercion()
 def duration(idx: pd.DatetimeIndex) -> PintSeries:
     """Duration of the delivery periods in a datetime index.
 
@@ -99,6 +87,7 @@ def duration(idx: pd.DatetimeIndex) -> PintSeries:
     -------
         Series, with ``idx`` as index and durations as values.
     """
+    idx = coerce(idx)
     jump = tools_freq.to_jump(idx.freq)
     if isinstance(jump, pd.Timedelta):
         tdelta = jump  # one timedelta
@@ -109,8 +98,6 @@ def duration(idx: pd.DatetimeIndex) -> PintSeries:
 
 
 # TODO: move to `preprocess.py`?
-@apply_coercion()
-@tools_sod.apply_coercion()
 def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a daily-or-longer frequency, replace the time-part of each
     timestamp, so that the returned index has the specified start-of-day.
@@ -131,6 +118,8 @@ def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     This process changes the timestamps and must only be used as a correction to data
     that was recorded with the incorrect timestamps.
     """
+    idx = coerce(idx)
+    startofday = tools_sod.coerce(startofday)
 
     if tools_freq.is_shorter_than_daily(idx.freq):
         raise ValueError(
@@ -144,8 +133,6 @@ def replace_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
 
 
 # TODO: move to `preprocess.py`?
-@apply_coercion(validation=False)
-@tools_sod.apply_coercion()
 def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.DatetimeIndex:
     """For indices with a shorter-than-daily frequency, drop timestamps from the index
     so that the returned index has the specified start-of-day.
@@ -165,6 +152,9 @@ def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     -----
     This process is lossy; timestamps are dropped.
     """
+    idx = convert(idx)
+    startofday = tools_sod.coerce(startofday)
+
     if not tools_freq.is_shorter_than_daily(idx.freq):
         raise ValueError(
             "This function works on indices with a shorter-than-daily frequency. To replace the time-part"
@@ -190,8 +180,6 @@ def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     return idx[pos0:-pos1]
 
 
-@apply_coercion()
-@tools_freq.apply_coercion()
 def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     """Trim index to only keep full periods of certain frequency.
 
@@ -211,6 +199,9 @@ def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     -----
     Only if ``idx`` has shorter frequency than ``freq`` might actual trimming occur.
     """
+    idx = coerce(idx)
+    freq = tools_freq.coerce(freq)
+
     if tools_freq.up_or_down(idx.freq, freq) >= 0:
         return idx  # no trimming needed when upsampling
 
@@ -240,7 +231,8 @@ def intersect(idxs: Iterable[pd.DatetimeIndex]) -> pd.DatetimeIndex:
     Otherwise, an error is raised. If there is no overlap, an empty datetimeindex is
     returned.
     """
-    idxs = list(idxs)  # Iterable does not (necessarily) have __len__. List does.
+    # Coerce and turn into list (iterable does not necessarily have __len__; list does)
+    idxs = [coerce(idx) for idx in idxs]
 
     if len(idxs) == 0:
         raise ValueError("Must specify at least one index.")

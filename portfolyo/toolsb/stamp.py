@@ -4,16 +4,15 @@ import datetime as dt
 from typing import Literal
 
 import pandas as pd
-from pandas.core.dtypes.dtypes import BaseOffset
 from pint import Quantity
 
 from . import freq as tools_freq
 from . import startofday as tools_sod
 from . import unit as tools_unit
+from .types import Frequencylike
 
 
-@tools_freq.apply_coercion()
-def to_right(stamp: pd.Timestamp, freq: BaseOffset) -> pd.Timestamp:
+def to_right(stamp: pd.Timestamp, freq: Frequencylike) -> pd.Timestamp:
     """Right-bound timestamp belonging to left-bound timestamp.
 
     Parameters
@@ -31,11 +30,11 @@ def to_right(stamp: pd.Timestamp, freq: BaseOffset) -> pd.Timestamp:
     -----
     Does not verify that ``stamp`` is indeed a left-bound timestamp for the previded frequency.
     """
+    freq = tools_freq.coerce(freq)
     return stamp + tools_freq.to_jump(freq)
 
 
-@tools_freq.apply_coercion()
-def duration(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
+def duration(stamp: pd.Timestamp, freq: Frequencylike) -> Quantity:
     """Duration of a delivery period.
 
     Parameters
@@ -62,8 +61,9 @@ def duration(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
     >>> duration(pd.Timestamp('2020-03-29', tz='Europe/Berlin'), 'D')
     23.0 h
     """
-    jump = tools_freq.to_jump(freq)
+    freq = tools_freq.coerce(freq)
 
+    jump = tools_freq.to_jump(freq)
     if isinstance(jump, pd.Timedelta):
         tdelta = jump  # one timedelta
     else:
@@ -73,15 +73,15 @@ def duration(stamp: pd.Timestamp, freq: pd.DateOffset) -> Quantity:
     return tools_unit.Q_(hours, "h")
 
 
-@tools_sod.apply_coercion(validation=False)
-def replace_time(stamp: pd.Timestamp, startofday: dt.time) -> pd.Timestamp:
+def replace_time(stamp: pd.Timestamp, startofday: dt.time | str) -> pd.Timestamp:
     """Replace the time-part of ``stamp`` with ``startofday``."""
+    startofday = tools_sod.convert(startofday)
     return stamp.replace(hour=startofday.hour, minute=startofday.minute, second=startofday.second)
 
 
-@tools_freq.apply_coercion()
-@tools_sod.apply_coercion()
-def is_boundary(stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | None = None) -> bool:
+def is_boundary(
+    stamp: pd.Timestamp, freq: Frequencylike, startofday: dt.time | str = tools_sod.MIDNIGHT
+) -> bool:
     """Check if timestamp is a valid delivery period start.
 
     Parameters
@@ -99,6 +99,9 @@ def is_boundary(stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | Non
         True if stamp is at start of a delivery period described by ``freq`` and
         ``startofday``.
     """
+    freq = tools_freq.coerce(freq)
+    startofday = tools_sod.coerce(startofday)
+
     if tools_freq.is_shorter_than_daily(freq):
         return stamp.floor(freq) == stamp
     else:
@@ -107,7 +110,7 @@ def is_boundary(stamp: pd.Timestamp, freq: BaseOffset, startofday: dt.time | Non
 
 def _round(
     stamp: pd.Timestamp,
-    freq: BaseOffset,
+    freq: Frequencylike,
     startofday: dt.time,
     fn: Literal["floor", "ceil"],
 ) -> pd.Timestamp:
@@ -133,12 +136,8 @@ def _round(
     return freq.rollback(rounded) if fn == "floor" else freq.rollforward(rounded)
 
 
-@tools_freq.apply_coercion()
-@tools_sod.apply_coercion()
 def floor(
-    stamp: pd.Timestamp,
-    freq: BaseOffset,
-    startofday: dt.time = tools_sod.MIDNIGHT,
+    stamp: pd.Timestamp, freq: Frequencylike, startofday: dt.time | str = tools_sod.MIDNIGHT
 ) -> pd.Timestamp:
     """Floor timestamp to beginning of delivery period it's contained in.
     I.e., find (latest) delivery period start that is on or before the timestamp.
@@ -177,15 +176,13 @@ def floor(
     >>> floor(pd.Timestamp('2020-04-21 15:42'), 'MS', dt.time(hour=6))
     Timestamp('2020-04-01 06:00:00')
     """
+    freq = tools_freq.coerce(freq)
+    startofday = tools_sod.coerce(startofday)
     return _round(stamp, freq, startofday, "floor")
 
 
-@tools_freq.apply_coercion()
-@tools_sod.apply_coercion()
 def ceil(
-    stamp: pd.Timestamp,
-    freq: BaseOffset,
-    startofday: dt.time = tools_sod.MIDNIGHT,
+    stamp: pd.Timestamp, freq: Frequencylike, startofday: dt.time | str = tools_sod.MIDNIGHT
 ) -> pd.Timestamp:
     """Ceil timestamp to end of delivery period it's contained in.
     I.e., find (earliest) delivery period start that is on or after the timestamp.
@@ -224,4 +221,6 @@ def ceil(
     >>> ceil(pd.Timestamp('2020-04-21 15:42'), 'MS', dt.time(hour=6))
     Timestamp('2020-05-01 06:00:00')
     """
+    freq = tools_freq.coerce(freq)
+    startofday = tools_sod.coerce(startofday)
     return _round(stamp, freq, startofday, "ceil")

@@ -28,9 +28,9 @@ def _add_level(fr: pd.Series | pd.DataFrame, levelvalue: Any, axis: int, top: bo
     if top or _nlevels(fr, axis) < 2:  # no need to swap, or impossible to swap
         return fr
     elif isinstance(fr, pd.Series):
-        return fr.swaplevel(0, -1)  # move to bottom
+        return fr.swaplevel(0, 1)  # move to bottom
     else:  # DataFrame
-        return fr.swaplevel(0, -1, axis=axis)  # move to bottom
+        return fr.swaplevel(0, 1, axis=axis)  # move to bottom
 
 
 def _ensure_nlevels(fr: pd.Series | pd.DataFrame, axis: int, want: int):

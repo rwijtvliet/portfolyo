@@ -11,10 +11,10 @@ from . import index as tools_index
 from . import stamp as tools_stamp
 from . import startofday as tools_sod
 from . import unit as tools_unit
-from .types import Series_or_DataFrame
+from .types import Frequencylike, Series_or_DataFrame
 
 
-def _emptyseries(s_ref: pd.Series, freq) -> pd.Series:
+def _emptyseries(s_ref: pd.Series, freq: BaseOffset) -> pd.Series:
     s = s_ref.copy().iloc[:0]
     s.index.freq = freq
     return freq
@@ -106,17 +106,15 @@ def _upsample_avgable(s: pd.Series, freq: BaseOffset) -> pd.Series:
 
     # So, first, add additional row...
     additional_stamp = tools_stamp.to_right(s.index[-1], s.index.freq)
-    new_index = s.index.append(pd.DatetimeIndex([additional_stamp], freq=s.index.freq))
-    s = s.reindex(new_index)  # adds nan in final row
+    new_idx = s.index.append(pd.DatetimeIndex([additional_stamp], freq=s.index.freq))
+    s = s.reindex(new_idx)  # adds nan in final row
     # ... then do upsampling ...
     s2 = s.resample(freq, offset=offset).asfreq().ffill()
     # ... and then remove final row (and turn back into series).
     return s2.iloc[:-1].rename(s.name)
 
 
-@tools_unit.apply_coercion_pintframe("s")
-@tools_freq.apply_coercion("freq")
-def _general(s: pd.Series, freq: str | BaseOffset, *, summable: bool) -> pd.Series:
+def _general(s: pd.Series, freq: Frequencylike, *, summable: bool) -> pd.Series:
     """Change frequency of a Series, depending on the type of data it contains.
 
     Parameters
@@ -132,6 +130,9 @@ def _general(s: pd.Series, freq: str | BaseOffset, *, summable: bool) -> pd.Seri
     -------
         Resampled series at target frequency.
     """
+    # Coercion.
+    s = tools_unit.coerce_pintframe(s)
+    freq = tools_freq.coerce(freq)
 
     # TODO: Add tests with multiindex columns
 
@@ -159,9 +160,7 @@ def _general(s: pd.Series, freq: str | BaseOffset, *, summable: bool) -> pd.Seri
             return _upsample_avgable(s, freq)
 
 
-@tools_index.apply_coercion("idx")
-@tools_freq.apply_coercion("freq")
-def index(idx: pd.DatetimeIndex, freq: str | BaseOffset) -> pd.DatetimeIndex:
+def index(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     """Resample index.
 
     Parameters
@@ -173,8 +172,12 @@ def index(idx: pd.DatetimeIndex, freq: str | BaseOffset) -> pd.DatetimeIndex:
 
     Returns
     -------
-    pd.DatetimeIndex
+        Resampled index.
     """
+    # Coercion.
+    idx = tools_index.coerce(idx)
+    freq = tools_freq.coerce(freq)
+
     up_or_down = tools_freq.up_or_down(idx.freq, freq)
 
     # Nothing more needed; index already in desired frequency.

@@ -83,10 +83,6 @@ def validate_unit(unit: Any) -> None:
 
 coerce_unit = tools_decorator.coerce_fn(convert_unit, validate_unit)
 
-apply_coercion_unit = tools_decorator.create_coerciondecorator(
-    convert_unit, None, default_param="unit"
-)
-
 
 # Conversion and validation: Quantity.
 # ------------------------------------
@@ -107,11 +103,6 @@ def validate_quantity(sk: Any) -> None:
 
 
 coerce_quantity = tools_decorator.coerce_fn(convert_quantity, validate_quantity)
-
-
-apply_coercion_quantity = tools_decorator.create_coerciondecorator(
-    convert_quantity, validate_quantity
-)
 
 
 # Conversion and validation: Series and Dataframe.
@@ -165,9 +156,6 @@ def validate_pintframe(fr: pd.Series | pd.DataFrame) -> None:
 
 coerce_pintframe = tools_decorator.coerce_fn(convert_pintframe, validate_pintframe)
 
-apply_coercion_pintframe = tools_decorator.create_coerciondecorator(
-    convert_pintframe, validate_pintframe, default_param="fr"
-)
 
 # additional, further-reaching conversions.
 
@@ -201,10 +189,6 @@ coerce_pintframe_oneunitperdim = tools_decorator.coerce_fn(
     convert_pintframe_reducedunits, validate_pintframe_oneunitperdim
 )
 
-apply_coercion_pintframe_oneunitperdim = tools_decorator.create_coerciondecorator(
-    convert_pintframe_reducedunits, validate_pintframe_oneunitperdim
-)
-
 
 def validate_pintframe_oneunit(fr: pd.Series | pd.DataFrame) -> None:
     """Validate that pintframe has only one dimensionality with only one unit."""
@@ -215,10 +199,6 @@ def validate_pintframe_oneunit(fr: pd.Series | pd.DataFrame) -> None:
 
 
 coerce_pintframe_oneunit = tools_decorator.coerce_fn(
-    convert_pintframe_reducedunits, validate_pintframe_oneunit
-)
-
-apply_coercion_pintframe_oneunit = tools_decorator.create_coerciondecorator(
     convert_pintframe_reducedunits, validate_pintframe_oneunit
 )
 

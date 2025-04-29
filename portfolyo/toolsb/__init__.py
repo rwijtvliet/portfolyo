@@ -1,7 +1,6 @@
 """General tools; mainly to use on pandas objects."""
 
 from . import (
-    _decorator,
     changefreq,
     frame,
     freq,
@@ -14,4 +13,5 @@ from . import (
     types,
     unit,
     wavg,
+    wqpr,
 )

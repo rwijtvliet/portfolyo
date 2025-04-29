@@ -8,66 +8,75 @@ from typing import Callable, Dict, Tuple
 import numpy as np
 import pandas as pd
 
-from portfolyo.tools.unit import Q_
+from portfolyo.toolsb.types import Frequencylike
 
-from .. import tools
+from .. import toolsb
 from ..core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine, create
 from ..core.pfstate import PfState
+from ..toolsb.unit import Q_, ureg
 from . import mockup
 
 OK_COL_COMBOS = ["w", "q", "p", "pr", "qr", "qp", "wp", "wr"]
 
 NAMES_AND_UNITS = {
-    "w": tools.unit.ureg.MW,
-    "q": tools.unit.ureg.MWh,
-    "p": tools.unit.ureg.euro_per_MWh,
-    "r": tools.unit.ureg.euro,
-    "duration": tools.unit.ureg.hour,
-    "t": tools.unit.ureg.degC,
-    "nodim": tools.unit.ureg.dimensionless,
+    "w": ureg.MW,
+    "q": ureg.MWh,
+    "p": ureg.euro / ureg.MWh,
+    "r": ureg.euro,
+    "duration": ureg.hour,
+    "t": ureg.degC,
+    "nodim": ureg.dimensionless,
 }
 
+_PERIODS = {"YS": 4, "QS": 5, "MS": 14, "D": 400, "h": 10_000, "15min": 50_000, "5min": 150_000}
 
-INDEX_LEN = {"YS": 4, "QS": 5, "MS": 14, "D": 400, "h": 10_000, "15min": 50_000}
+
+def _periods(freq):
+    for freq2, periods in _PERIODS.items():
+        if toolsb.freq.up_or_down(freq, freq2) >= 0:
+            break
+    else:
+        raise ValueError("Couldn't find a fitting frequency.")
+    return np.random.randint(periods // 2, periods * 2)
 
 
 def get_index(
-    freq: str = "D",
+    freq: Frequencylike = "D",
     tz: str = "Europe/Berlin",
-    startdate: str = None,
-    periods: int = None,
-    start_of_day: dt.time = None,
+    startdate: str | None = None,
+    periods: int | None = None,
+    startofday: dt.time | str = toolsb.startofday.MIDNIGHT,
     *,
-    _seed: int = None,
+    _seed: int | None = None,
 ) -> pd.DatetimeIndex:
     """Get index."""
+    freq = toolsb.freq.coerce(freq)
+    startofday = toolsb.startofday.coerce(startofday)
+
     # Prepare values.
     if _seed:
         np.random.seed(_seed)
-    if not periods:
-        standard_len = INDEX_LEN.get(freq, 10)
-        periods = np.random.randint(standard_len // 2, standard_len * 2)
+    periods = periods or _periods(freq)
     if not startdate:
-        a, m, d = 2016, 1, 1  # earliest possible
-        a += np.random.randint(0, 8) if _seed else (periods % 8)
-        if tools.freq.up_or_down(freq, "MS") <= 0:
+        y, m, d = 2016, 1, 1  # earliest possible
+        y += np.random.randint(0, 8) if _seed else (periods % 8)
+        if toolsb.freq.up_or_down(freq, "MS") <= 0:
             m += np.random.randint(0, 12) if _seed else (periods % 12)
-        if tools.freq.up_or_down(freq, "D") <= 0:
+        if toolsb.freq.up_or_down(freq, "D") <= 0:
             d += np.random.randint(0, 28) if _seed else (periods % 28)
-        startdate = f"{a}-{m}-{d}"
-    if not start_of_day:
-        start_of_day = dt.time(hour=0, minute=0)
+        startdate = f"{y}-{m}-{d}"
     # Create index.
-    start = tools.stamp.create(startdate, tz, start_of_day)
-    i = pd.date_range(start, periods=periods, freq=freq)  # tz included in start
+    idx = pd.date_range(
+        f"{startdate} {toolsb.startofday.to_string(startofday)}", periods=periods, freq=freq, tz=tz
+    )
     # Some checks.
-    if tools.freq.up_or_down(freq, "h") <= 0:
-        i = _shorten_index_if_necessary(i, start_of_day)
-    return i
+    if toolsb.freq.is_shorter_than_daily(freq):
+        idx = _shorten_index_if_necessary(idx, startofday)
+    return idx
 
 
-def get_value(
-    name: str = None, has_unit: bool = True, magn: float = None, *, _seed: int = None
+def get_skalar(
+    col: str, has_unit: bool = True, magn: float | None = None, *, _seed: int = None
 ) -> float | Q_:
     """Get a single value."""
     if _seed:
@@ -77,7 +86,7 @@ def get_value(
     if not has_unit:
         return magn
     else:
-        return Q_(magn, NAMES_AND_UNITS[name])
+        return Q_(magn, NAMES_AND_UNITS[col])
 
 
 def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:
@@ -87,7 +96,7 @@ def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:
         raise ValueError("Index must contain at least one full day")
     # Must ensure that index is integer number of days.
     for _ in range(0, 100):  # max 100 quarterhours in a day (@ end of DST)
-        if tools.right.stamp(i[-1], i.freq).time() == start_of_day:
+        if toolsb.stamp.to_right(i[-1], i.freq).time() == start_of_day:
             return i
         i = i[:-1]
     raise ValueError("Can't find timestamp to end index on.")

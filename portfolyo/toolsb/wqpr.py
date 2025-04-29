@@ -2,12 +2,13 @@
 
 from typing import Iterable
 
+import numpy as np
 import pandas as pd
 import pint
 
+from . import testing as tools_testing
 from .types import Col
-from .unit import ureg, get_basedimty
-
+from .unit import get_basedimty, ureg
 
 # =========================
 # Physical characterization
@@ -153,11 +154,29 @@ def validate_compatible(
     have_energy = any(dim in _Dimty.energy_dims() for dim in dims)
     have_emissions = any(dim in _Dimty.emissions_dims() for dim in dims)
     if have_energy and have_emissions:
-        raise ValueError("Found incompatible combination of energies and emissions.")
+        raise ValueError("Found incompatible combination: energies and emissions.")
     # Check mixing of distinct currencies.
     distinct_currency_count = len(set(dim for dim in dims if dim in _Dimty.currency_dims()))
     if distinct_currency_count > 1:
-        raise ValueError("Found incompatible combination of distinct currencies.")
+        raise ValueError("Found incompatible combination: distinct currencies.")
+
+
+def validate_complete(
+    objs: Iterable[
+        pint.util.UnitsContainer | pint.Unit | pint.Quantity | pd.Series | str | float | int
+    ],
+):
+    """Validate if objects are complete. Complete means: contains energy or emissions, energy rate
+    or emissions rate, energy price or emissions price, and revenue."""
+    dims = {get_basedimty(obj) for obj in objs}
+    if not any(dim in _Dimty.quantity_dims() for dim in dims):
+        raise ValueError("Did not find a quantity (i.e., energy or emissions).")
+    if not any(dim in _Dimty.quantityrate_dims() for dim in dims):
+        raise ValueError("Did not find a quantity rate (i.e., energy rate or emissions rate).")
+    if not any(dim in _Dimty.quantityprice_dims() for dim in dims):
+        raise ValueError("Did not find a quantity price (i.e., energy price or emissions price).")
+    if not any(dim in _Dimty.currency_dims() for dim in dims):
+        raise ValueError("Did not find a currency.")
 
 
 _COL_TO_DIMTIES = {
@@ -184,6 +203,67 @@ def valid_col(
     raise ValueError(
         f"Dimensionality of object {obj} ({dim}) not valid as a column for a portfolio line."
     )
+
+
+def complete_and_verify(
+    duration: pd.Series,
+    w: pd.Series | None,
+    q: pd.Series | None,
+    p: pd.Series | None,
+    r: pd.Series | None,
+) -> tuple[pd.Series | None, pd.Series | None, pd.Series | None, pd.Series | None]:
+    """Calculate as many of the series as possible. Series are assumed to have same index."""
+    # Volumes.
+    if w is not None and q is not None:
+        try:
+            tools_testing.assert_series_equal(w, q / duration, check_names=False)
+        except AssertionError as e:
+            raise ValueError("Values for w and q are not consistent.") from e
+    elif w is not None and q is None:
+        q = w * duration
+    elif w is None and q is not None:
+        w = q / duration
+    elif w is None and q is None and p is not None and r is not None:
+        q = r / p
+        w = q / duration
+
+    # If we are here, there are no more options to find w and q.
+    # They are consistent with each other but might be inconsistent with p and r.
+
+    # Price.
+    if p is None and q is not None and r is not None:
+        p = r / q
+
+    # If we are here, there are no more options to find p.
+    # It may be inconsistent with w, q and r.
+
+    # Revenue.
+    if r is None and q is not None and p is not None:
+        r = q * p
+        # Make correction for edge case: p unknown (nan or inf) and q==0 --> assume r=0
+        mask = np.isclose(q.pint.m, 0) & (p.isna() | np.isinf(p.pint.m))
+        if mask.any():
+            r[mask] = 0
+
+    # If we land here, there are no more options to find r.
+    # It may be inconsistent with w, q and p.
+
+    # Consistency.
+    if q is not None and p is not None and r is not None:
+        # Check for consistency, but ignore edge cases:
+        # - p unknown (nan or inf) and q==0 --> ignore
+        # - q unknown (nan or inf) and p==0 --> ignore
+        ign1 = np.isclose(q.pint.m, 0) & (p.isna() | np.isinf(p.pint.m))
+        ign2 = np.isclose(p.pint.m, 0) & (q.isna() | np.isinf(q.pint.m))
+        ignore = ign1 | ign2
+        try:
+            tools_testing.assert_series_equal(
+                r[~ignore], p[~ignore] * q[~ignore], check_names=False
+            )
+        except AssertionError as e:
+            raise ValueError("Values for r, p, and q are not consistent.") from e
+
+    return w, q, p, r
 
 
 # @dataclasses.dataclass(frozen=True, kw_only=True)

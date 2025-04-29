@@ -1,24 +1,12 @@
 """Working with pint units."""
 
-from pathlib import Path
 
-from .types import Series_or_DataFrame
 import pandas as pd
 import pint
 import pint_pandas
 
-
-path = Path(__file__).parent / "unitdefinitions.txt"
-
-
-ureg = pint_pandas.PintType.ureg = pint.UnitRegistry(
-    str(path),
-    auto_reduce_dimensions=True,
-    autoconvert_to_preferred=True,
-    case_sensitive=False,
-)
-ureg.formatter.default_format = "~P"  # short by default
-ureg.setup_matplotlib()
+from ..toolsb.unit import ureg
+from .types import Series_or_DataFrame
 
 # Set for export.
 PA_ = pint_pandas.PintArray
@@ -29,8 +17,8 @@ Unit = ureg.Unit
 NAMES_AND_DIMENSIONS = {
     "w": ureg.get_dimensionality("[energy]/[time]"),
     "q": ureg.get_dimensionality("[energy]"),
-    "p": ureg.get_dimensionality("[currency]/[energy]"),
-    "r": ureg.get_dimensionality("[currency]"),
+    "p": ureg.get_dimensionality("[currency_eur]/[energy]"),
+    "r": ureg.get_dimensionality("[currency_eur]"),
     "duration": ureg.get_dimensionality("[time]"),
     "t": ureg.get_dimensionality("[temperature]"),
     "nodim": ureg.get_dimensionality("[]"),

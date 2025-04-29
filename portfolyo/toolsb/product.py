@@ -12,12 +12,11 @@ from . import startofday as tools_sod
 germanpower_peakfn = tools_peakfn.factory("08:00", "20:00", [1, 2, 3, 4, 5])
 
 
-@tools_sod.apply_coercion("startofday")
 def delivery_period(
     ts_trade: pd.Timestamp,
     delivery_duration: str,
     front_count: int,
-    startofday: dt.time = tools_sod.MIDNIGHT,
+    startofday: dt.time | str = tools_sod.MIDNIGHT,
 ) -> Tuple[pd.Timestamp, pd.Timestamp]:
     """Find start and end of delivery period.
 
@@ -38,6 +37,7 @@ def delivery_period(
     (pd.Timestamp, pd.Timestamp)
         Left (inclusive) and right (exclusive) timestamp of delivery period.
     """
+    startofday = tools_sod.coerce(startofday)
     ts_trade = ts_trade.replace(hour=23, minute=59)  # ensure after start_of_day
     if delivery_duration in ["m", "q", "y"]:
         freq = delivery_duration.upper() + "S"

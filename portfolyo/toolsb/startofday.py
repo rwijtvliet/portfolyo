@@ -59,10 +59,6 @@ def validate(startofday: dt.time) -> None:
 
 coerce = tools_decorator.coerce_fn(convert, validate)
 
-apply_coercion = tools_decorator.create_coerciondecorator(
-    convert, validate, default_param="startofday"
-)
-
 
 # --------------------------
 

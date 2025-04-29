@@ -1,6 +1,6 @@
 """Help the type checker."""
 
-from typing import TypeVar, Literal
+from typing import Literal, TypeVar
 
 import pandas as pd
 

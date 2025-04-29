@@ -5,6 +5,7 @@ Tools for dealing with frequencies.
 import builtins
 import functools
 from typing import Iterable
+
 import pandas as pd
 from pandas.tseries.frequencies import MONTHS, to_offset
 from pandas.tseries.offsets import BaseOffset
@@ -76,7 +77,7 @@ def _equivalent_freqs(freq: BaseOffset) -> set[BaseOffset]:
         return {f for f in _QUARTERLY if f.startingMonth % 3 == freq.startingMonth % 3}
     elif freq in _FREQUENCIES:
         return {freq}
-    raise ValueError("Unexpected frequency.")
+    raise ValueError(f"Unexpected frequency {freq}.")
 
 
 @functools.lru_cache()
@@ -89,7 +90,7 @@ def _downsample_targets(freq: BaseOffset) -> set[BaseOffset]:
         return set((f for f in _YEARLY if f.month % 3 == freq.startingMonth % 3))
     elif freq in _YEARLY:
         return set()
-    raise ValueError("Unexpected frequency.")
+    raise ValueError(f"Unexpected frequency {freq}.")
 
 
 # Conversion and validation.
@@ -120,27 +121,23 @@ coerce = tools_decorator.coerce_fn(convert, validate)
 #     return freq
 
 
-apply_coercion = tools_decorator.create_coerciondecorator(convert, validate, default_param="freq")
-
-
 # --------------------------
 
 
-@apply_coercion()
-def is_shorter_than_daily(freq: BaseOffset) -> bool:
+def is_shorter_than_daily(freq: Frequencylike) -> bool:
     """Return True if ``freq`` is shorter than daily, i.e., hourly or shorter. This
     also implies that the frequency is a fixed-length frequency."""
+    freq = coerce(freq)
     return freq in _SHORTERTHANDAILY
 
 
-@apply_coercion()
-def is_longer_than_daily(freq: BaseOffset) -> bool:
+def is_longer_than_daily(freq: Frequencylike) -> bool:
     """Return True if ``freq`` is longer than daily, i.e., monthly or longer."""
+    freq = coerce(freq)
     return freq in _LONGERTHANDAILY
 
 
-@apply_coercion("source_freq", "target_freq")
-def up_or_down(source_freq: BaseOffset, target_freq: BaseOffset) -> int:
+def up_or_down(source_freq: Frequencylike, target_freq: Frequencylike) -> int:
     """See if changing the frequency of an index requires up- or downsampling.
 
     Upsampling means that the number of values increases - one value in the source
@@ -163,6 +160,7 @@ def up_or_down(source_freq: BaseOffset, target_freq: BaseOffset) -> int:
     ------
     ValueError if resampling is not possible because frequencies are incompatible. E.g. 'QS-JAN' -> 'YS-FEB'.
     """
+    source_freq, target_freq = coerce(source_freq), coerce(target_freq)
     if target_freq in _downsample_targets(source_freq):
         return -1
     elif source_freq in _downsample_targets(target_freq):
@@ -198,6 +196,7 @@ def sorted(freqs: Iterable[Frequencylike]) -> tuple[BaseOffset, ...]:
     >>> sorted(['h', 'YS-FEB', 'QS'])
     ValueError
     """
+    freqs = (coerce(freq) for freq in freqs)
     return tuple(builtins.sorted(freqs, key=functools.cmp_to_key(up_or_down)))
 
 
@@ -227,6 +226,7 @@ def shortest(freqs: Iterable[Frequencylike]) -> BaseOffset:
     >>> shortest(['h', 'YS-FEB', 'QS'])
     ValueError
     """
+    freqs = (coerce(freq) for freq in freqs)
     return sorted(set(freqs))[0]
 
 
@@ -257,10 +257,10 @@ def longest(freqs: Iterable[Frequencylike]) -> BaseOffset:
     >>> longest(['h', 'YS-FEB', 'QS'])
     ValueError
     """
+    freqs = (coerce(freq) for freq in freqs)
     return sorted(set(freqs))[-1]
 
 
-@apply_coercion()
 def to_jump(freq: BaseOffset) -> pd.Timedelta | pd.DateOffset:
     """Jump object corresponding to a frequency. Can be added to a left-bound delivery
     period timestamp to get the right-bound timestamp of that delivery period (which
@@ -289,6 +289,7 @@ def to_jump(freq: BaseOffset) -> pd.Timedelta | pd.DateOffset:
     >>> freq.to_jump("MS")
     <DateOffset: months=1>
     """
+    freq = coerce(freq)
     # Custom handling for specific simple frequencies
     if isinstance(freq, pd.tseries.offsets.Minute) and freq.n in (1, 5, 15, 30):
         return pd.Timedelta(minutes=freq.n)
