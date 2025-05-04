@@ -6,7 +6,8 @@ import pandas as pd
 
 from ... import toolsb
 from ..commodity import Commodity
-from .enums import Structure
+from . import text as pfl_text
+from .enums import Kind, Structure
 
 # Constructors:
 
@@ -28,7 +29,7 @@ from .enums import Structure
 
 def _verify_no_excess_columns_in_flat_pfl(pfl: PfLineb) -> None:
     """Ensure no expected columns are present."""
-    for col, s in pfl.items():
+    for col in pfl.columns:
         if col not in toolsb.types.COLS:
             raise ValueError(
                 f"Found unexpected column name {col}; expected all column names to be one of {toolsb.types.COLS}."
@@ -38,7 +39,7 @@ def _verify_no_excess_columns_in_flat_pfl(pfl: PfLineb) -> None:
 def _add_units_to_existing_nonpint_columns_in_flat_pfl(pfl: PfLineb, no_units: str) -> None:
     """If a column does not have units, raise ValueError (if ``no_units``=='raise') or assume unit
     defined in ``pfl.commodity``."""
-    for col, s in pfl.items():
+    for col, s in tuple(pfl.items()):
         if pd.api.types.is_integer_dtype(s.dtype) or pd.api.types.is_float_dtype(s.dtype):
             if no_units == "raise":
                 raise ValueError(
@@ -50,7 +51,7 @@ def _add_units_to_existing_nonpint_columns_in_flat_pfl(pfl: PfLineb, no_units: s
 
 def _coerce_pintseries_in_flat_pfl(pfl: PfLineb) -> None:
     """Ensure each column is a pintseries."""
-    for col, s in pfl.items():
+    for col, s in tuple(pfl.items()):
         pfl[col] = toolsb.unit.coerce_pintframe_oneunit(s)
 
 
@@ -72,10 +73,14 @@ def _add_missing_columns_to_flat_pfl_and_check_consistency(pfl: PfLineb) -> None
     if r is not None:
         pfl["r"] = r
 
+    # Sort.
+    column_rank = {col: i for i, col in enumerate(toolsb.types.COLS)}
+    pfl.sort_index(axis=1, key=lambda columns: columns.map(column_rank), inplace=True)
+
 
 def _ensure_correct_units_in_flat_pfl(pfl: PfLineb) -> None:
     """Convert each series to the correct unit."""
-    for col, s in pfl.items():
+    for col, s in tuple(pfl.items()):  # tuple to avoid changing object while iterating
         units = pfl.commodity.col_to_units[col]
         pfl[col] = s.pint.to(units)
 
@@ -93,13 +98,12 @@ class PfLineb(pd.DataFrame):
 
     Parameters
     ----------
-    data
-        Mapping (column 'w', 'q', 'p' and/or 'r' -> pd.Series)
+    Same parameters as `pandas.DataFrame`. Additionally:
     commodity
         Commodity describing characteristics of the commodity and the market it is traded on.
-    implicit
-        Iterable containing 0 or more of the following values:
-        - 'units': if units are missing, the unit preferences in ``commodity`` are assumed.
+    no_units
+        Action to take in case unitless values or series are provided. 'imply' to assume the units
+        specified in the commodity; 'raise' to raise an exception.
 
     See also
     --------
@@ -151,6 +155,7 @@ class PfLineb(pd.DataFrame):
         super().__init__(data, index, columns, dtype, copy)
 
         self.commodity = commodity
+        assert self.commodity is not None
 
         # Data valication and coercion.
 
@@ -159,15 +164,21 @@ class PfLineb(pd.DataFrame):
 
         # . Columns.
         if not isinstance(self.columns, pd.MultiIndex):  # Flat
-            self.structure: Structure = Structure.FLAT
-
             if commodity is None:
                 raise ValueError("No commodity provided.")
+            self.structure: Structure = Structure.FLAT
+            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             _verify_no_excess_columns_in_flat_pfl(self)
+            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             _add_units_to_existing_nonpint_columns_in_flat_pfl(self, no_units)
+            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             _coerce_pintseries_in_flat_pfl(self)
+            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             _add_missing_columns_to_flat_pfl_and_check_consistency(self)
+            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             _ensure_correct_units_in_flat_pfl(self)
+            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
+            self.kind: Kind = Kind.from_cols(self.columns)
 
         self._freeze()  # ensure immutable
 
@@ -176,7 +187,9 @@ class PfLineb(pd.DataFrame):
 
     @property
     def _constructor(self):
-        return PfLineb
+        return lambda *args, **kwargs: PfLineb(
+            *args, **kwargs, commodity=self.commodity, _skip_verification=True
+        )
 
     # Ensure immutability.
 
@@ -190,6 +203,18 @@ class PfLineb(pd.DataFrame):
             raise TypeError(f"{self.__class__.__name__} is immutable")
         super().__setitem__(key, value)
 
+    @property
+    def iloc(self):
+        return _Indexer(self, "iloc")
+
+    @property
+    def loc(self):
+        return _Indexer(self, "loc")
+
+    @property
+    def slice(self):
+        return _SliceIndexer(self)
+
     def __finalize__(self, other, method=None, **kwargs):
         # Ensures immutability persists after operations like `.copy()` or `.loc[]`
         result = super().__finalize__(other, method=method, **kwargs)
@@ -200,4 +225,34 @@ class PfLineb(pd.DataFrame):
     # Printing.
 
     def __repr__(self) -> str:
-        return repr(super())
+        dftext = pd.DataFrame(self).pint.dequantify().__repr__()
+        return "\n".join(pfl_text.pflheader(self)) + "\n\n" + dftext
+
+    # Export.
+
+    def to_df(self) -> pd.DataFrame:
+        return pd.DataFrame({c: s for c, s in self.items()})
+
+
+class _Indexer:
+    def __init__(self, pfl: PfLineb, methodname: str):
+        self.pfl = pfl
+        self.methodname = methodname
+
+    def __getitem__(self, indexer) -> PfLineb:
+        df = pd.DataFrame(self.pfl)
+        indexeddf = df.__getattr__(self.methodname)[indexer].copy()
+        return self.pfl._constructor(indexeddf)
+
+
+class _SliceIndexer:
+    def __init__(self, pfl: PfLineb):
+        self.pfl = pfl
+
+    def __getitem__(self, slice) -> PfLineb:
+        mask = pd.Index([True] * len(self.pfl))
+        if slice.start is not None:
+            mask &= self.pfl.index >= slice.start
+        if slice.stop is not None:
+            mask &= self.pfl.index < slice.stop
+        return self.pfl.loc[mask]

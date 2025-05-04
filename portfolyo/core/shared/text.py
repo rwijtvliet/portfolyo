@@ -5,7 +5,8 @@ from typing import Dict, Iterable
 import colorama
 import pandas as pd
 
-from ... import tools
+from ... import tools, toolsb
+from ..commodity import Commodity
 
 COLORS = ["WHITE", "YELLOW", "CYAN", "GREEN", "RED", "BLUE", "MAGENTA", "BLACK"]
 TREECOLORS = [colorama.Style.BRIGHT + getattr(colorama.Fore, f) for f in COLORS]
@@ -57,13 +58,14 @@ def df_with_strindex(df: pd.DataFrame, num_of_ts: int):
     return df
 
 
-def index_info(i: pd.DatetimeIndex) -> Iterable[str]:
+def objectheader(i: pd.DatetimeIndex, commodity: Commodity) -> Iterable[str]:
     """Info about the index."""
-    end = tools.right.stamp(i[-1], i.freq)
+    end = toolsb.stamp.to_right(i[-1], i.freq)
     return [
-        f". Start: {i[0]  } (incl)    . Timezone    : {i.tz or 'none'}  ",
-        f". End  : {end   } (excl)    . Start-of-day: {i[0].time()}  ",
-        f". Freq : {i.freq} ({len(i)} datapoints)",
+        f". Commodity: {commodity.name}",
+        f". Start    : {i[0]  } (incl)    . Timezone    : {i.tz or 'none'}  ",
+        f". End      : {end   } (excl)    . Start-of-day: {i[0].time()}  ",
+        f". Freq     : {i.freq} ({len(i)} datapoints)",
     ]
 
 

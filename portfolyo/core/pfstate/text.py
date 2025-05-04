@@ -14,7 +14,7 @@ def pfs_as_string(pfs: PfState, num_of_ts: int, color: bool) -> str:
         pfs.offtakevolume, pfs.unsourcedprice, pfs.sourced
     )  # ensure we have all of wqpr
     lines = ["PfState object."]
-    lines.extend(shared_text.index_info(pfs.index))
+    lines.extend(shared_text.objectheader(pfs.index))
     spaces = " " * (shared_text.MAX_DEPTH + 5)
     lines.extend([spaces + txtline for txtline in shared_text.dataheader(cols_and_units)])
     volume_cols_and_units = {c: cols_and_units[c] for c in ["w", "q"]}

@@ -7,8 +7,8 @@ from .__version__ import __version__
 from .core import extendpandas  # extend functionalty of pandas
 from .core import suppresswarnings
 from .core.commodity import Commodity, gas_ger, power_ger
-from .core.pfline import Kind, PfLine, Structure, create
-from .core.pflineb import PfLineb
+from .core.pfline import PfLine, create
+from .core.pflineb import Kind, PfLineb, Structure
 from .core.pfstate import PfState
 from .tools import testing
 from .tools2.concat import general as concat

@@ -14,6 +14,8 @@ class Commodity:
 
     Parameters
     ----------
+    name
+        Display name for the commodity.
     freq
         Shortest timeperiod of this commodity, e.g. when traded on spot or intraday markets.
     units
@@ -32,6 +34,7 @@ class Commodity:
         European natural gas '06:00'. Default: midnight.
     """
 
+    name: str
     freq: str | BaseOffset
     units: InitVar[Iterable[str | pint.Unit]]
     peakfn: toolsb.peakfn.PeakFunction | None = None
@@ -74,8 +77,24 @@ class Commodity:
 
 
 power_ger = Commodity(
-    "15min", ["MWh", "Eur/MWh", "MW", "Eur"], peakfn=toolsb.product.germanpower_peakfn
+    "Power, Germany",
+    "15min",
+    ["MWh", "Eur/MWh", "MW", "Eur"],
+    peakfn=toolsb.product.germanpower_peakfn,
 )
-gas_ger = Commodity("D", ["MWh", "Eur/MWh", "MW", "Eur"], startofday="06:00")
-coal_ger = Commodity("D", ["ktce", "Eur/tce", "tce/h", "Eur"])
-co2_ger = Commodity("D", ["ktCo2", "Eur/tCo2", "tCo2/h", "Eur"])
+gas_ger = Commodity(
+    "Gas, Germany",
+    "D",
+    ["MWh", "Eur/MWh", "MW", "Eur"],
+    startofday="06:00",
+)
+coal_ger = Commodity(
+    "Coal, Germany",
+    "D",
+    ["ktce", "Eur/tce", "tce/h", "Eur"],
+)
+co2_ger = Commodity(
+    "CO2, Germany",
+    "D",
+    ["ktCo2", "Eur/tCo2", "tCo2/h", "Eur"],
+)
