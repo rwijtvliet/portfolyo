@@ -50,7 +50,7 @@ def get_index(
     _seed: int | None = None,
 ) -> pd.DatetimeIndex:
     """Get index."""
-    freq = toolsb.freq.coerce(freq)
+    freq = toolsb.freq.convert_and_validate(freq)
     startofday = toolsb.startofday.coerce(startofday)
 
     # Prepare values.

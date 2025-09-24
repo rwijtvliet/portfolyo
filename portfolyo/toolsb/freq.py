@@ -115,10 +115,6 @@ def validate(freq: BaseOffset | None) -> None:
 
 
 coerce = tools_decorator.coerce_fn(convert, validate)
-# def coerce(freq: Frequencylike) -> BaseOffset:
-#     freq = convert(freq)
-#     validate(freq)
-#     return freq
 
 
 # --------------------------

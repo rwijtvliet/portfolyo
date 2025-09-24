@@ -7,7 +7,7 @@ from typing import Any, Dict, Mapping, Tuple
 
 import pandas as pd
 
-from ... import toolsb
+from ... import tools
 from . import classes, create
 from .enums import Kind
 
@@ -55,7 +55,7 @@ def _children(mapping: Mapping) -> Dict[str, classes.PfLine]:
         raise ValueError("Must provide at least 1 child.")
 
     # Keep only overlapping part of indices.
-    idx = toolsb.index.intersect(child.index for child in children.values())
+    idx = tools.intersect.indices(*[child.index for child in children.values()])
     if len(idx) == 0:
         raise ValueError("PfLine indices have no overlap.")
     return {name: child.loc[idx] for name, child in children.items()}

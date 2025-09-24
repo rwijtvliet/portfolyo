@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Iterable
 
 import pandas as pd
 
-from ... import toolsb
+from ... import tools
 
 if TYPE_CHECKING:
     from .classes import FlatPfLine, NestedPfLine
@@ -77,5 +77,5 @@ class Nested:
         dfs = [flatdf]
         for name, child in self.items():
             childdf = child.dataframe(cols, has_units, childlevels=childlevels - 1)
-            dfs.append(toolsb.frame.add_header(childdf, name))
-        return toolsb.frame.concat(dfs, axis=1)
+            dfs.append(tools.frame.add_header(childdf, name))
+        return tools.frame.concat(dfs, 1)

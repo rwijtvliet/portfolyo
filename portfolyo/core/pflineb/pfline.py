@@ -1,8 +1,14 @@
 from __future__ import annotations
 
-from typing import Literal, Mapping
+import abc
+import dataclasses
+import functools
+import pathlib
+from typing import Any, Literal, Mapping
 
 import pandas as pd
+
+from portfolyo.core import pflineb
 
 from ... import toolsb
 from ..commodity import Commodity
@@ -25,6 +31,23 @@ from .enums import Kind, Structure
 # d) ensure existing columns are consistent
 # e) add missing columns
 # f)
+
+
+def _apply_correct_timezone(pfl: PfLineb, target_tz) -> None:
+    if not isinstance(pfl.index, pd.DatetimeIndex):
+        raise ValueError("PfLine data must have datetime index.")
+    source_tz = pfl.index.tz
+    if source_tz == target_tz:
+        return
+    elif source_tz is None:  # agnostic -> aware
+        fn = lambda s: s.tz_localize(target_tz, ambiguous="infer")
+    elif target_tz is None:  # aware -> agnostic
+        fn = lambda s: s.tz_localize(None)
+    else:  # aware -> aware
+        fn = lambda s: s.tz_convert(target_tz)
+
+    for col, s in tuple(pfl.items()):
+        pfl[col] = fn(s)
 
 
 def _verify_no_excess_columns_in_flat_pfl(pfl: PfLineb) -> None:
@@ -85,42 +108,45 @@ def _ensure_correct_units_in_flat_pfl(pfl: PfLineb) -> None:
         pfl[col] = s.pint.to(units)
 
 
-class PfLineb(pd.DataFrame):
-    """Subclass of pandas.DataFrame to hold a energy- or emissions-related timeseries data.
+
+
+class PfLineb(abc.ABC):
+    """Class to hold a energy- or emissions-related timeseries data.
 
     Depending on the type of information, will contain one or more of the following:
-    - Column q with energy or emissions timeseries (e.g. in GWh or tCO2);
-    - Column w with energy rate or emissions rate timeseries (e.g. in kW or tCO2/min);
-    - Column p with price timeseries (e.g. in Eur/MWh or Usd/tCO2);
-    - Column r with revenue timeseries (e.g. in Eur or Usd).
+    - Attridute ``q`` with energy or emissions timeseries (e.g. in GWh or tCO2);
+    - Attribute ``w`` with energy rate or emissions rate timeseries (e.g. in kW or tCO2/min);
+    - Attribute ``p`` with price timeseries (e.g. in Eur/MWh or Usd/tCO2);
+    - Attribute ``r`` with revenue timeseries (e.g. in Eur or Usd).
 
     In addition, may contain nested PfLines, i.e., children that add up to the PfLine's data.
 
     Parameters
     ----------
-    Same parameters as `pandas.DataFrame`. Additionally:
-    commodity
+    data
+        Data to create portfolio line from.
+        For flat PfLine: mapping with one or more attributes or items ``w``, ``q``, ``r``, ``p``;
+        all timeseries. Most commonly a ``pandas.DataFrame`` or a dictionary of ``pandas.Series``,
+        but may also be e.g. another PfLine object. If they contain a (distinct) ``pint`` data type,
+        may also be a single ``pandas.Series`` or a collection of ``pandas.Series``.
+        For nested PfLine: mapping, from strings (as the child names) to portfolio lines, or to
+        objects that can be converted into portfolio lines.
+    commodity, optional
         Commodity describing characteristics of the commodity and the market it is traded on.
-    no_units
-        Action to take in case unitless values or series are provided. 'imply' to assume the units
-        specified in the commodity; 'raise' to raise an exception.
-
-    See also
-    --------
-    pandas.DataFrame
     """
 
+    def __new__(
+        cls, data: Any, /, *, commodity: Commodity | None = None, _skip_verification: bool = False
+    ):
+        if cls is not PfLineb: # User actually called one of its descendents. Just moving along.
+            return super().__new__(cls)
+
+        # User called PfLine(...) directly. Data must be processed by a descendent. We must figure out, which one.
+        return create.pfline(data, commodity)
+        
+
     def __init__(
-        self,
-        data=None,
-        index=None,
-        columns=None,
-        dtype=None,
-        copy=None,
-        *,
-        commodity: Commodity | None = None,
-        no_units: Literal["raise", "imply"] = "raise",
-        _skip_verification: bool = False,
+        self, data: Any, /, *, commodity: Commodity | None = None, _skip_verification: bool = False
     ):
 
         # Cases to check:
@@ -133,16 +159,13 @@ class PfLineb(pd.DataFrame):
         # Construction if data IS a pfline instance.
         if isinstance(data, PfLineb):
             # Guard clauses.
-            if commodity and data.commodity is not commodity:
+            if commodity is not None and data.commodity is not commodity:
                 raise ValueError(
-                    "Commodity mismatch: commodity of ``data`` is distinct from ``commodity`` "
-                    f"parameter ({data.commodity} vs {commodity})."
+                    f"Commodity mismatch: commodity of ``data`` ({data.commodity}) is distinct from"
+                    f" ``commodity`` parameter ({commodity})."
                 )
-            if index is not None or columns is not None or dtype is not None or copy is not None:
-                raise ValueError(
-                    "Expect ``index``, ``columns``, ``dtype`` and ``copy`` to be None."
-                )
-            self = data.copy()
+            self._df = data.df
+            self._commodity = data.
             return
 
         # Construction if data contains pfline instances.
@@ -151,8 +174,10 @@ class PfLineb(pd.DataFrame):
         ):
             pass
 
+        # --- actual object initialisation ---
         # Let pandas construct the DataFrame normally.
         super().__init__(data, index, columns, dtype, copy)
+        # ------------------------------------
 
         self.commodity = commodity
         assert self.commodity is not None
@@ -161,23 +186,24 @@ class PfLineb(pd.DataFrame):
 
         # . Index.
         self.index = toolsb.index.coerce(self.index)
+        tz1 = None if self.index.tz is None else self.index.tz.zone  # datetimeindex tz: .zone
+        tz2 = None if self.commodity.tz is None else self.commodity.tz.key  # ZoneInfo object: .key
+        if tz1 != tz2:
+            raise ValueError(
+                f"Timezone mismatch: timezone in the data ({tz1}) is distinct from timezone required"
+                f" by the commodity ({tz2}). First convert or localize your data."
+            )
 
         # . Columns.
         if not isinstance(self.columns, pd.MultiIndex):  # Flat
             if commodity is None:
                 raise ValueError("No commodity provided.")
             self.structure: Structure = Structure.FLAT
-            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             _verify_no_excess_columns_in_flat_pfl(self)
-            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             _add_units_to_existing_nonpint_columns_in_flat_pfl(self, no_units)
-            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             _coerce_pintseries_in_flat_pfl(self)
-            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             _add_missing_columns_to_flat_pfl_and_check_consistency(self)
-            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             _ensure_correct_units_in_flat_pfl(self)
-            print(" - ".join(f"{c}:{s.iloc[0]}" for c, s in self.items()))
             self.kind: Kind = Kind.from_cols(self.columns)
 
         self._freeze()  # ensure immutable
@@ -190,6 +216,15 @@ class PfLineb(pd.DataFrame):
         return lambda *args, **kwargs: PfLineb(
             *args, **kwargs, commodity=self.commodity, _skip_verification=True
         )
+
+    # def __eq__(self, other: Any) -> bool:
+    #     return (
+    #         type(other) is PfLineb
+    #         and self.commodity == other.commodity
+    #         and self.kind is other.kind
+    #         and self.structure is other.structure
+    #         and self.children == other.children
+    #     )
 
     # Ensure immutability.
 
@@ -205,11 +240,11 @@ class PfLineb(pd.DataFrame):
 
     @property
     def iloc(self):
-        return _Indexer(self, "iloc")
+        return _IlocIndexer(self)
 
     @property
     def loc(self):
-        return _Indexer(self, "loc")
+        return _LocIndexer(self)
 
     @property
     def slice(self):
@@ -228,20 +263,51 @@ class PfLineb(pd.DataFrame):
         dftext = pd.DataFrame(self).pint.dequantify().__repr__()
         return "\n".join(pfl_text.pflheader(self)) + "\n\n" + dftext
 
+    def print(self: PfLineb, num_of_ts: int = 5, color: bool = True) -> None:
+        """Treeview of the portfolio line.
+
+        Parameters
+        ----------
+        num_of_ts
+            How many timestamps to show for each PfLine.
+        color
+            Make tree structure clearer by including colors. May not work on all output devices.
+
+        Returns
+        -------
+        None
+        """
+        print(pfl_text.pfl_as_string(self, num_of_ts, color))
+
     # Export.
 
     def to_df(self) -> pd.DataFrame:
-        return pd.DataFrame({c: s for c, s in self.items()})
+        return pd.DataFrame(self)
+
+    @functools.wraps(pd.DataFrame.to_excel)
+    def to_excel(self, *args, **kwargs) -> None:
+        pd.DataFrame(self).pint.dequantify().tz_localize(None).to_excel(*args, **kwargs)
+
+    @functools.wraps(pd.DataFrame.to_clipboard)
+    def to_clipboard(self, *args, **kwargs) -> None:
+        pd.DataFrame(self).pint.dequantify().tz_localize(None).to_clipboard(*args, **kwargs)
 
 
-class _Indexer:
-    def __init__(self, pfl: PfLineb, methodname: str):
+class _LocIndexer:
+    def __init__(self, pfl: PfLineb):
         self.pfl = pfl
-        self.methodname = methodname
 
     def __getitem__(self, indexer) -> PfLineb:
-        df = pd.DataFrame(self.pfl)
-        indexeddf = df.__getattr__(self.methodname)[indexer].copy()
+        indexeddf = pd.DataFrame(self.pfl).loc[indexer].copy()
+        return self.pfl._constructor(indexeddf)
+
+
+class _IlocIndexer:
+    def __init__(self, pfl: PfLineb):
+        self.pfl = pfl
+
+    def __getitem__(self, indexer) -> PfLineb:
+        indexeddf = pd.DataFrame(self.pfl).iloc[indexer].copy()
         return self.pfl._constructor(indexeddf)
 
 

@@ -5,6 +5,7 @@ from . import (
     frame,
     freq,
     index,
+    peakconvert,
     peakfn,
     product,
     stamp,

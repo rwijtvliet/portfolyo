@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from typing import TYPE_CHECKING, Any, Mapping
 
-from ... import toolsb
+from ... import tools
 from . import create
 
 if TYPE_CHECKING:
@@ -26,10 +26,10 @@ class ChildFunctionality(Mapping):
                 f"Incompatible kinds; the portfolio line has {self.kind} but the child has {child.kind}."
             )
         try:
-            toolsb.testing.assert_index_compatible(self.index, child.index)
+            tools.testing.assert_indices_compatible(self.index, child.index)
         except AssertionError as e:
             raise ValueError("Index of new child is not compatible with the existing data.") from e
-        idx = toolsb.index.intersect((self.index, child.index))
+        idx = tools.intersect.indices(self.index, child.index)
         if len(idx) == 0:
             raise ValueError(
                 "Delivery period of the new child does not have any overlap with the existing data."

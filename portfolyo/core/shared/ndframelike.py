@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import abc
-from typing import Iterable
 
 import pandas as pd
 
@@ -49,26 +48,4 @@ class NDFrameLike(abc.ABC):
     def slice(self):
         """Create a new instance with a subset of the rows.
         Different from loc since performs slicing with right-open interval."""
-        ...
-
-    @abc.abstractmethod
-    def dataframe(
-        self, cols: Iterable[str] | None = None, has_units: bool = True, *args, **kwargs
-    ) -> pd.DataFrame:
-        """DataFrame for portfolio line in default units.
-
-        Parameters
-        ----------
-        cols : str, optional (default: all that are available)
-            The columns (w, q, p, r) to include in the dataframe.
-            Columns that are not available are silently excluded.
-        has_units : bool, optional (default: True)
-            - If True, return dataframe with ``pint`` units. (The unit can be extracted
-                as a column level with ``.pint.dequantify()``).
-            - If False, return dataframe with float values.
-
-        Returns
-        -------
-        pd.DataFrame
-        """
         ...

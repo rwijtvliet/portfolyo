@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from ... import toolsb
+from ... import tools
 from . import classes
 from .enums import Structure
 
@@ -17,7 +17,7 @@ def flatten(self: NestedPfLine) -> FlatPfLine:
     return constructor(self.df)  # use flattened toplevel dataframe for initialisation
 
 
-def po(self: NestedPfLine, peak_fn: toolsb.peakfn.PeakFunction, freq: str = "MS") -> pd.DataFrame:
+def po(self: NestedPfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS") -> pd.DataFrame:
     return self.flatten().po(peak_fn, freq)
 
 
@@ -25,7 +25,7 @@ def hedge_with(
     self: NestedPfLine,
     p: PricePfLine,
     how: str = "val",
-    peak_fn: toolsb.peakfn.PeakFunction = None,
+    peak_fn: tools.peakfn.PeakFunction = None,
     freq: str = "MS",
 ) -> FlatPfLine:
     return self.flatten().hedge_with(p, how, peak_fn, freq)
@@ -63,8 +63,8 @@ def agg(self) -> pd.DataFrame:
         if isinstance(child, classes.FlatPfLine):
             dfs.append(child.agg().to_frame(name).T)
         else:
-            dfs.append(toolsb.frame.add_header(child.agg(), name, 0))
-    return tools.frame.concat(dfs)
+            dfs.append(tools.frame.add_header(child.agg(), name, 0))
+    return tools.unit.normalize_frame(tools.frame.concat(dfs))
 
 
 class LocIndexer:

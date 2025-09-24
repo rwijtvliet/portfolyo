@@ -9,8 +9,9 @@ from typing import TYPE_CHECKING, Any, Dict, Iterable, Mapping
 import numpy as np
 import pandas as pd
 import pint
+import pint_pandas
 
-from ... import toolsb
+from ... import tools
 from . import classes, create
 
 if TYPE_CHECKING:  # needed to avoid circular imports
@@ -68,7 +69,7 @@ class InOp:
         for attr in _ATTRIBUTES:
             if isinstance(val := getattr(self, attr), pd.Series):
                 indices.append(val.index)
-        index = toolsb.index.intersect(indices)  # raises error if none passed
+        index = tools.intersect.indices(*indices)  # raises error if none passed
         if not len(index):
             raise ValueError("Data has no overlapping timestamps.")
         # Save all values as timeseries.
@@ -98,12 +99,12 @@ class InOp:
         # If we land here, all attributes are timeseries (or None).
 
         w, q, p, r, nodim = self.w, self.q, self.p, self.r, self.nodim
-        duration = toolsb.index.duration(frame.index)
+        duration = tools.duration.frame
 
         # Volumes.
         if w is not None and q is not None:
             try:
-                toolsb.testing.assert_series_equal(w, q / duration(q), check_names=False)
+                tools.testing.assert_series_equal(w, q / duration(q), check_names=False)
             except AssertionError as e:
                 raise ValueError("Values for w and q are not consistent.") from e
         elif w is not None and q is None:
@@ -144,7 +145,7 @@ class InOp:
             ign2 = np.isclose(p.pint.m, 0) & (q.isna() | np.isinf(q.pint.m))
             ignore = ign1 | ign2
             try:
-                toolsb.testing.assert_series_equal(
+                tools.testing.assert_series_equal(
                     r[~ignore], p[~ignore] * q[~ignore], check_names=False
                 )
             except AssertionError as e:
@@ -189,7 +190,7 @@ class InOp:
 def raisedimerror_receivedfloat(expected: pint.util.UnitsContainer) -> None:
     raise pint.DimensionalityError(
         expected,
-        "[]",
+        tools.unit.NAMES_AND_DIMENSIONS["nodim"],
         extra_msg="Float or int only allowed for dimensionless value. To specify a physical quantity, add a unit.",
     )
 
@@ -216,17 +217,42 @@ def check_dimensionality(
     if v is None:
         return v
 
-    expected_dims = toolsb.wqpr.col_to_dimties(attr)
-    received_dim = toolsb.unit.get_basedimty(v)
+    expected_dim = tools.unit.NAMES_AND_DIMENSIONS[attr]
+    v = tools.unit.normalize(v)
+    # Check if the value is a float or int and ensure it is dimensionless.
+    if isinstance(v, float):
+        if expected_dim != tools.unit.NAMES_AND_DIMENSIONS["nodim"]:
+            raisedimerror_receivedfloat(expected_dim)
+        return v
 
-    if received_dim not in expected_dims:
-        raise ValueError(
-            f"Expected one of following dimensions: {expected_dims}. Received: {received_dim}."
-        )
+    elif isinstance(v, pint.Quantity):
+        if expected_dim != v.dimensionality:
+            raisedimerror_receivedincorrect(expected_dim, v.dimensionality)
+        return v
+
+    elif isinstance(v, pd.Series):
+        # Is pint-series or float-series.
+
+        if not isinstance(v.dtype, pint_pandas.PintType):
+            if expected_dim != tools.unit.NAMES_AND_DIMENSIONS["nodim"]:
+                raisedimerror_receivedfloat(expected_dim)
+
+        else:
+            if expected_dim != v.pint.dimensionality:
+                raisedimerror_receivedincorrect(expected_dim, v.pint.dimensionality)
+
+        try:
+            tools.testing.assert_index_standardized(v.index)
+        except AssertionError as e:
+            raise ValueError("Timeseries not in expected form.") from e
+
+        return v
+
+    raise TypeError(f"Value should be a number, Quantity, or timeseries; got {type(v)}.")
 
 
 def _unit2attr(unit) -> str:
-    attr = toolsb.unit.to_name(unit)  # Error if dimension unknown
+    attr = tools.unit.to_name(unit)  # Error if dimension unknown
     if attr not in _ATTRIBUTES:
         raise NotImplementedError(f"Cannot handle data with this unit ({unit}).")
     return attr
@@ -240,13 +266,24 @@ def _from_data(
     if data is None:
         return InOp()
 
-    try:
-        col = toolsb.wqpr.valid_col(data)
-        return InOp(**{col: data})
-    except ValueError:
-        pass  # could be dataframe or iterable or series (!= timeseries)
+    elif isinstance(data, int):
+        return InOp(nodim=float(data))
 
-    if isinstance(data, pd.DataFrame) or isinstance(data, pd.Series) or isinstance(data, Mapping):
+    elif isinstance(data, float):
+        return InOp(nodim=data)
+
+    elif isinstance(data, pint.Quantity):
+        return InOp(**{_unit2attr(data.units): data})
+
+    elif isinstance(data, pd.Series) and isinstance(data.index, pd.DatetimeIndex):
+        # timeseries
+        data = tools.unit.normalize_frame(data)
+        if pd.api.types.is_float_dtype(data):
+            return InOp(nodim=data)
+        else:
+            return InOp(**{_unit2attr(data.pint.units): data})
+
+    elif isinstance(data, pd.DataFrame) or isinstance(data, pd.Series) or isinstance(data, Mapping):
 
         def dimabbr(key):  # following keys return 'w': 'w', ('w', 'pf1'), ('pf1', 'w')
             if key in _ATTRIBUTES:
@@ -313,7 +350,7 @@ def _equal(inop1: InOp, inop2: InOp) -> bool:
             return False
         if isinstance(val1, pd.Series):
             try:
-                toolsb.testing.assert_series_equal(val1, val2, check_names=False)
+                tools.testing.assert_series_equal(val1, val2, check_names=False)
             except AssertionError:
                 return False
         elif val1 != val2:

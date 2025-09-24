@@ -7,7 +7,7 @@ from typing import Callable, Dict  # noqa
 import numpy as np
 import pandas as pd
 
-from ... import toolsb
+from ... import tools
 from ..shared.excelclipboard import ExcelClipboardOutput
 from ..shared.ndframelike import NDFrameLike
 from . import children, create, dataframeexport, flat_methods, nested_methods
@@ -80,11 +80,13 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, ExcelClipboardOutput, PfLineAr
 
     @property
     @abc.abstractmethod
-    def kind(self) -> Kind: ...
+    def kind(self) -> Kind:
+        ...
 
     @property
     @abc.abstractmethod
-    def structure(self) -> Structure: ...
+    def structure(self) -> Structure:
+        ...
 
     @property
     def index(self) -> pd.DatetimeIndex:
@@ -99,7 +101,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, ExcelClipboardOutput, PfLineAr
     @property
     def end(self) -> pd.Timestamp:
         """End (excl) of the portfolio line."""
-        return toolsb.index.to_right(self.df.index)[-1]
+        return tools.right.index(self.df.index)[-1]
 
     @property
     @abc.abstractmethod
@@ -159,7 +161,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, ExcelClipboardOutput, PfLineAr
         ...
 
     @abc.abstractmethod
-    def po(self: PfLine, peak_fn: toolsb.peakfn.PeakFunction, freq: str = "MS") -> pd.DataFrame:
+    def po(self: PfLine, peak_fn: tools.peakfn.PeakFunction, freq: str = "MS") -> pd.DataFrame:
         """Decompose the portfolio line into peak and offpeak values. Takes simple (duration-
         weighted) averages of volume [MW] and price [Eur/MWh] - does not hedge!
 
@@ -186,7 +188,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, ExcelClipboardOutput, PfLineAr
         self: PfLine,
         p: PricePfLine,
         how: str = "val",
-        peak_fn: toolsb.peakfn.PeakFunction = None,
+        peak_fn: tools.peakfn.PeakFunction = None,
         freq: str = "MS",
     ) -> PfLine:
         """Hedge the volume in the portfolio line with a price curve.
@@ -315,17 +317,17 @@ class FlatVolumePfLine(FlatPfLine, VolumePfLine, PfLine):
     df: pd.DataFrame
 
     def asfreq(self, freq: str = "MS") -> FlatVolumePfLine:
-        newdf = toolsb.changefreq.summable(self.df[["q"]], freq)
+        newdf = tools.changefreq.summable(self.df[["q"]], freq)
         if not len(newdf):
             raise ValueError(
                 f"There are no full periods available when changing to the frequency {freq}."
             )
-        newdf["w"] = newdf["q"] / toolsb.duration.index(newdf.index)  # TODO: check unit
+        newdf["w"] = newdf["q"] / tools.duration.index(newdf.index)  # TODO: check unit
         return FlatVolumePfLine(newdf)
 
     def agg(self) -> pd.Series:
         q = self.df["q"].sum()
-        duration = toolsb.duration.index(self.index).sum()
+        duration = tools.duration.index(self.index).sum()
         w = q / duration
         return pd.Series({"w": w, "q": q})
 
@@ -356,7 +358,7 @@ class FlatPricePfLine(FlatPfLine, PricePfLine, PfLine):
     df: pd.DataFrame
 
     def asfreq(self, freq: str = "MS") -> FlatPricePfLine:
-        newdf = toolsb.changefreq.averagable(self.df[["p"]], freq)
+        newdf = tools.changefreq.averagable(self.df[["p"]], freq)
         if not len(newdf):
             raise ValueError(
                 f"There are no full periods available when changing to the frequency {freq}."
@@ -364,8 +366,8 @@ class FlatPricePfLine(FlatPfLine, PricePfLine, PfLine):
         return FlatPricePfLine(newdf)
 
     def agg(self) -> pd.Series:
-        duration = toolsb.index.duration(self.index)
-        p = toolsb.wavg.series(self.df["p"], duration)
+        duration = tools.duration.index(self.index)
+        p = tools.wavg.series(self.df["p"], duration)
         return pd.Series({"p": p})
 
     def __bool__(self) -> bool:
@@ -395,7 +397,7 @@ class FlatRevenuePfLine(FlatPfLine, RevenuePfLine, PfLine):
     df: pd.DataFrame
 
     def asfreq(self, freq: str = "MS") -> FlatRevenuePfLine:
-        newdf = toolsb.changefreq.summable(self.df[["r"]], freq)
+        newdf = tools.changefreq.summable(self.df[["r"]], freq)
         if not len(newdf):
             raise ValueError(
                 f"There are no full periods available when changing to the frequency {freq}."
@@ -445,26 +447,26 @@ class FlatCompletePfLine(FlatPfLine, CompletePfLine, PfLine):
         return FlatRevenuePfLine(self.df[["r"]])
 
     def asfreq(self, freq: str = "MS") -> FlatCompletePfLine:
-        newdf = toolsb.changefreq.summable(self.df[["q", "r"]], freq)
+        newdf = tools.changefreq.summable(self.df[["q", "r"]], freq)
         if not len(newdf):
             raise ValueError(
                 f"There are no full periods available when changing to the frequency {freq}."
             )
-        newdf["w"] = newdf["q"] / toolsb.index.duration(newdf.index)
+        newdf["w"] = newdf["q"] / tools.duration.index(newdf.index)
         newdf["p"] = newdf["r"] / newdf["q"]
         return FlatCompletePfLine(newdf)
 
     def agg(self) -> pd.Series:
         q = self.df["q"].sum()
         r = self.df["r"].sum()
-        duration = toolsb.index.duration(self.index).sum()
+        duration = tools.duration.index(self.index).sum()
         w = q / duration
         p = r / q
         return pd.Series({"w": w, "q": q, "p": p, "r": r})
 
     def reindex(self, index: pd.DatetimeIndex) -> FlatCompletePfLine:
         # override default from FlatPfLine
-        toolsb.testing.assert_index_compatible(self.index, index)
+        tools.testing.assert_indices_compatible(self.index, index)
         newdf = self.df[["w", "q", "r"]].reindex(index, fill_value=0)
         newdf["p"] = newdf["r"] / newdf["q"]
         return FlatCompletePfLine(newdf)

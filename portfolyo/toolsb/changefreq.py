@@ -132,7 +132,7 @@ def _general(s: pd.Series, freq: Frequencylike, *, summable: bool) -> pd.Series:
     """
     # Coercion.
     s = tools_unit.coerce_pintframe(s)
-    freq = tools_freq.coerce(freq)
+    freq = tools_freq.convert_and_validate(freq)
 
     # TODO: Add tests with multiindex columns
 
@@ -176,7 +176,7 @@ def index(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     """
     # Coercion.
     idx = tools_index.coerce(idx)
-    freq = tools_freq.coerce(freq)
+    freq = tools_freq.convert_and_validate(freq)
 
     up_or_down = tools_freq.up_or_down(idx.freq, freq)
 

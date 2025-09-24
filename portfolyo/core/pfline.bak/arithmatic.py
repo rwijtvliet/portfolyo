@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 import numpy as np
 import pandas as pd
 
-from ... import toolsb
+from ... import tools
 from . import classes, create, interop
 from .enums import Kind, Structure
 
@@ -23,7 +23,7 @@ class Prep:
 
         def wrapper(o1, o2, *args, **kwargs):
             try:
-                toolsb.testing.assert_index_compatible(o1.index, o2.index)
+                tools.testing.assert_indices_compatible(o1.index, o2.index)
             except AssertionError as e:
                 raise NotImplementedError from e
             return fn(o1, o2, *args, **kwargs)
@@ -220,7 +220,7 @@ class Add:
         # newdf = sum(tools.intersect.frames(pfl1.df, pfl2.df))  # keep common rows
         # if pfl1.kind is Kind.COMPLETE:
         #     newdf["p"] = newdf["r"] / newdf["q"]
-        newdfs = toolsb.frame.intersect((pfl1.df, pfl2.df))  # keep only common rows
+        newdfs = tools.intersect.frames(pfl1.df, pfl2.df)  # keep only common rows
         newdf = sum(newdfs)
         if len(newdf.index) == 0:
             raise NotImplementedError(
@@ -230,7 +230,7 @@ class Add:
             # Calculate price from wavg instead of r/q, to handle edge case p1==p2, q==0.
             values = pd.DataFrame({"1": newdfs[0].p, "2": newdfs[1].p})
             weights = pd.DataFrame({"1": newdfs[0].q, "2": newdfs[1].q})
-            newdf["p"] = toolsb.wavg.dataframe(values, weights, axis=1)
+            newdf["p"] = tools.wavg.dataframe(values, weights, axis=1)
         return pfl1.__class__(newdf)
 
     @Prep.assert_pflines_samekind  # pfl1 and pfl2 now have same kind
@@ -256,7 +256,7 @@ class Multiply:
         if set([pfl1.kind, pfl2.kind]) != {Kind.PRICE, Kind.VOLUME}:
             raise NotImplementedError("Can only multiply volume with price information.")
         q, p = (pfl2.q, pfl1.p) if pfl1.kind is Kind.PRICE else (pfl1.q, pfl2.p)
-        q, p = toolsb.frame.intersect((q, p))
+        q, p = tools.intersect.frames(q, p)
         r = (q * p).pint.to_base_units()
         constructor = classes.constructor(Structure.FLAT, Kind.REVENUE)
         return constructor(pd.DataFrame({"r": r}))
@@ -268,7 +268,7 @@ class Multiply:
             return Multiply.nestedpfline_and_series(pfl, s)
 
     def flatpfline_and_series(pfl: NestedPfLine, s: pd.Series) -> NestedPfLine:
-        df, s = toolsb.frame.intersect((pfl.df, s))
+        df, s = tools.intersect.frames(pfl.df, s)
         newdf = pd.DataFrame({col: series * s for col, series in df.items()})
         if pfl.kind is Kind.COMPLETE:  # correction: in this case, keep original prices
             newdf["p"] = df["p"]
@@ -297,7 +297,7 @@ class Divide:
                 series = pfl1.q, pfl2.q
             elif pfl1.kind is Kind.REVENUE:
                 series = pfl1.r, pfl2.r
-            series = toolsb.frame.intersect(series)
+            series = tools.intersect.frames(*series)
             s = series[0] / series[1]
             if not len(s):
                 raise ValueError("Data has no overlapping timestamps.")
@@ -306,10 +306,10 @@ class Divide:
         # Unequal kind.
 
         if (pfl1.kind, pfl2.kind) == (Kind.REVENUE, Kind.PRICE):
-            r, p = toolsb.frame.intersect((pfl1.r, pfl2.p))
+            r, p = tools.intersect.frames(pfl1.r, pfl2.p)
             data = {"q": r / p}
         elif (pfl1.kind, pfl2.kind) == (Kind.REVENUE, Kind.VOLUME):
-            r, q = toolsb.frame.intersect((pfl1.r, pfl2.q))
+            r, q = tools.intersect.frames(pfl1.r, pfl2.q)
             data = {"p": r / q}
         else:
             raise NotImplementedError(
@@ -333,5 +333,5 @@ class Unite:
             )
 
         # Collect the complete dataframe.
-        data = pd.concat(toolsb.frame.intersect((pfl1.df, pfl2.df)), axis=1)
+        data = pd.concat(tools.intersect.frames(pfl1.df, pfl2.df), axis=1)
         return create.flatpfline(data)

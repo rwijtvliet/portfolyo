@@ -95,20 +95,21 @@ def nestedtree(
     return out
 
 
-def pfl_as_string(pfl: PfLineb, flatten: bool, num_of_ts: int, color: bool) -> str:
+def pfl_as_string(pfl: PfLineb, num_of_ts: int, color: bool) -> str:
     lines = pflheader(pfl)
     if pfl.structure is Structure.NESTED:
         lines.extend(_children_info(pfl))
-    if flatten:
-        lines.extend(shared_text.dataheader(pfl.commodity.col_to_units))
-        lines.extend([""])
-        lines.extend(_flatdatablock(pfl, num_of_ts))
-    else:
-        spaces = " " * (shared_text.MAX_DEPTH + 5)
-        lines.extend(
-            [spaces + txtline for txtline in shared_text.dataheader(pfl.commodity.col_to_units)]
-        )
-        lines.extend(nestedtree("(this pfline)", pfl, num_of_ts))
+    # if flatten:
+    #     lines.extend(shared_text.dataheader(pfl.commodity.col_to_units))
+    #     lines.extend([""])
+    #     lines.extend(_flatdatablock(pfl, num_of_ts))
+    # else:
+    spaces = " " * (shared_text.MAX_DEPTH + 5)
+    columns_and_units = {
+        col: unit for col, unit in pfl.commodity.col_to_units.items() if col in pfl.kind.available
+    }
+    lines.extend([spaces + txtline for txtline in shared_text.dataheader(columns_and_units)])
+    lines.extend(nestedtree("(this pfline)", pfl, num_of_ts))
     txt = "\n".join(lines)
     return txt if color else shared_text.remove_color(txt)
 
@@ -118,7 +119,7 @@ class PfLineText:
     #     lines = _header(self)
     #     return pfl_as_string(self, True, 20, False)
 
-    def print(self: PfLineb, flatten: bool = False, num_of_ts: int = 5, color: bool = True) -> None:
+    def print(self: PfLineb, num_of_ts: int = 5, color: bool = True) -> None:
         """Treeview of the portfolio line.
 
         Parameters

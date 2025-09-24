@@ -59,7 +59,7 @@ def df_with_strindex(df: pd.DataFrame, num_of_ts: int):
 
 
 def objectheader(i: pd.DatetimeIndex, commodity: Commodity) -> Iterable[str]:
-    """Info about the index."""
+    """Info about the index and commodity."""
     end = toolsb.stamp.to_right(i[-1], i.freq)
     return [
         f". Commodity: {commodity.name}",

@@ -176,7 +176,7 @@ def floor(
     >>> floor(pd.Timestamp('2020-04-21 15:42'), 'MS', dt.time(hour=6))
     Timestamp('2020-04-01 06:00:00')
     """
-    freq = tools_freq.coerce(freq)
+    freq = tools_freq.convert_and_validate(freq)
     startofday = tools_sod.coerce(startofday)
     return _round(stamp, freq, startofday, "floor")
 
@@ -221,6 +221,6 @@ def ceil(
     >>> ceil(pd.Timestamp('2020-04-21 15:42'), 'MS', dt.time(hour=6))
     Timestamp('2020-05-01 06:00:00')
     """
-    freq = tools_freq.coerce(freq)
+    freq = tools_freq.convert_and_validate(freq)
     startofday = tools_sod.coerce(startofday)
     return _round(stamp, freq, startofday, "ceil")

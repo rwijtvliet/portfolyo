@@ -184,6 +184,7 @@ _COL_TO_DIMTIES = {
     "w": _Dimty.quantityrate_dims,
     "r": _Dimty.currency_dims,
     "p": _Dimty.quantityprice_dims,
+    "nodim": {_Dimty.dimensionless_dim},  # TODO: must be removed?
 }
 
 
@@ -218,7 +219,7 @@ def complete_and_verify(
         try:
             tools_testing.assert_series_equal(w, q / duration, check_names=False)
         except AssertionError as e:
-            raise ValueError("Values for w and q are not consistent.") from e
+            raise ValueError(f"Values for w and q are not consistent: {w:=}, {q:=}") from e
     elif w is not None and q is None:
         q = w * duration
     elif w is None and q is not None:
