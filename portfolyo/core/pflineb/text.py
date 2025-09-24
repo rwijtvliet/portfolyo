@@ -9,7 +9,7 @@ from ..shared import text as shared_text
 from .enums import Kind, Structure
 
 if TYPE_CHECKING:
-    from .pfline import PfLineb
+    from .pflinee import PfLine
 
 
 INFO = {
@@ -20,18 +20,18 @@ INFO = {
 }
 
 
-def _what(pfl: PfLineb, *, long: bool = False) -> str:
+def _what(pfl: PfLine, *, long: bool = False) -> str:
     parts = INFO[pfl.kind]
     return " ".join(parts) if long else parts[0]
 
 
-def _children_info(pfl: PfLineb) -> Iterable[str]:
+def _children_info(pfl: PfLine) -> Iterable[str]:
     """Info about the children of the portfolio line."""
     childtxt = [f"'{name}' ({_what(child)})" for name, child in pfl.children.items()]
     return [". Children: " + ("none" if not childtxt else ", ".join(childtxt))]
 
 
-def _flatdatablock(pfl: PfLineb, num_of_ts: int) -> Iterable[str]:
+def _flatdatablock(pfl: PfLine, num_of_ts: int) -> Iterable[str]:
     """The timestamps and data to be shown in a block, next to the tree."""
     # Obtain dataframe with index = timestamp as string and columns = one or more of 'wqpr'.
     df = pd.DataFrame(pfl)
@@ -49,7 +49,7 @@ def _flatdatablock(pfl: PfLineb, num_of_ts: int) -> Iterable[str]:
     return df_str.split("\n")
 
 
-def _childrenlines(pfl: PfLineb, num_of_ts: int, depth: int) -> Iterable[str]:
+def _childrenlines(pfl: PfLine, num_of_ts: int, depth: int) -> Iterable[str]:
     """Treeview of only the children."""
     out = []
     if pfl.structure is Structure.FLAT:
@@ -64,14 +64,14 @@ def _childrenlines(pfl: PfLineb, num_of_ts: int, depth: int) -> Iterable[str]:
 # Highest-level functions.
 
 
-def pflheader(pfl: PfLineb) -> list[str]:
+def pflheader(pfl: PfLine) -> list[str]:
     firstline = [f"PfLine with {_what(pfl, long=True)} information."]
     return firstline + shared_text.objectheader(pfl.index, pfl.commodity)
 
 
 def nestedtree(
     name: str,
-    pfl: PfLineb,
+    pfl: PfLine,
     num_of_ts: int,
     depth: int = 0,
     is_last: bool = True,
@@ -95,7 +95,7 @@ def nestedtree(
     return out
 
 
-def pfl_as_string(pfl: PfLineb, num_of_ts: int, color: bool) -> str:
+def pfl_as_string(pfl: PfLine, num_of_ts: int, color: bool) -> str:
     lines = pflheader(pfl)
     if pfl.structure is Structure.NESTED:
         lines.extend(_children_info(pfl))
@@ -114,26 +114,23 @@ def pfl_as_string(pfl: PfLineb, num_of_ts: int, color: bool) -> str:
     return txt if color else shared_text.remove_color(txt)
 
 
-class PfLineText:
+class TextMethods:
     # def __repr__(self):
     #     lines = _header(self)
     #     return pfl_as_string(self, True, 20, False)
 
-    def print(self: PfLineb, num_of_ts: int = 5, color: bool = True) -> None:
+    def print(self, num_of_ts: int = 5, color: bool = True) -> None:
         """Treeview of the portfolio line.
 
         Parameters
         ----------
-        flatten : bool, optional (default: False)
-            if True, show only the top-level (aggregated) information.
-        num_of_ts : int, optional (default: 5)
+        num_of_ts, optional (default: 5)
             How many timestamps to show for each PfLine.
-        color : bool, optional (default: True)
-            Make tree structure clearer by including colors. May not work on all output
-            devices.
+        color, optional (default: True)
+            Make tree structure clearer by including colors. May not work on all output devices.
 
         Returns
         -------
         None
         """
-        print(pfl_as_string(self, flatten, num_of_ts, color))
+        print(pfl_as_string(self, num_of_ts, color))

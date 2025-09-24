@@ -14,9 +14,12 @@ from ..shared.excelclipboard import ExcelClipboardOutput
 from ..shared.ndframelike import NDFrameLike
 from . import children, create, indexer
 from .arithmatic import PfLineArithmatic
+from .children import ChildMethods
 from .enums import Kind, Structure
+from .flat import FlatMethods
+from .nested import NestedMethods
 from .plot import PfLinePlot
-from .text import PfLineText
+from .text import TextMethods
 
 
 # When creating a PfLine (or FlatPfLine or NestedPfLine) instance directly (i.e., with
@@ -39,7 +42,7 @@ def dont_init_twice(Class):
     return Class
 
 
-class PfLine(NDFrameLike, PfLineText, PfLinePlot, ExcelClipboardOutput, PfLineArithmatic):
+class PfLine(NDFrameLike, TextMethods, PfLinePlot, ExcelClipboardOutput, PfLineArithmatic):
     """Class to hold a related energy timeseries. This can be volume data (with q
     [MWh] and w [MW]), price data (with p [Eur/MWh]), revenue data (with r [Eur]), or
     a combination of all.
@@ -134,46 +137,46 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, ExcelClipboardOutput, PfLineAr
         """
         ...
 
-    @abc.abstractmethod
-    def hedge_with(
-        self: PfLine,
-        p: PricePfLine,
-        how: str = "val",
-        peak_fn: toolsb.peakfn.PeakFunction = None,
-        freq: str = "MS",
-    ) -> PfLine:
-        """Hedge the volume in the portfolio line with a price curve.
-
-        Parameters
-        ----------
-        p : PricePfLine
-            Portfolio line with prices to be used in the hedge.
-        how : str, optional (Default: 'val')
-            Hedge-constraint. 'vol' for volumetric hedge, 'val' for value hedge.
-        peak_fn : PeakFunction, optional (default: None)
-            To hedge with peak and offpeak products: function that returns boolean
-            Series indicating if timestamps in index lie in peak period.
-            If None, hedge with base products.
-        freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'YS' (years)}
-            Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
-
-        See also
-        --------
-        portfolyo.create_peakfn
-        portfolyo.germanpower_peakfn
-
-        Returns
-        -------
-        PfLine
-            Hedged volume and prices. Index with same frequency as original, but every
-            timestamp within a given hedging frequency has the same volume [MW] and price.
-            (or, one volume-price pair for peak, and another volume-price pair for offpeak.)
-
-        Notes
-        -----
-        If the PfLine contains prices, these are ignored.
-        """
-        ...
+    # @abc.abstractmethod
+    # def hedge_with(
+    #     self: PfLine,
+    #     p: PricePfLine,
+    #     how: str = "val",
+    #     peak_fn: toolsb.peakfn.PeakFunction = None,
+    #     freq: str = "MS",
+    # ) -> PfLine:
+    #     """Hedge the volume in the portfolio line with a price curve.
+    #
+    #     Parameters
+    #     ----------
+    #     p : PricePfLine
+    #         Portfolio line with prices to be used in the hedge.
+    #     how : str, optional (Default: 'val')
+    #         Hedge-constraint. 'vol' for volumetric hedge, 'val' for value hedge.
+    #     peak_fn : PeakFunction, optional (default: None)
+    #         To hedge with peak and offpeak products: function that returns boolean
+    #         Series indicating if timestamps in index lie in peak period.
+    #         If None, hedge with base products.
+    #     freq : {'D' (days), 'MS' (months, default), 'QS' (quarters), 'YS' (years)}
+    #         Frequency of hedging products. E.g. 'QS' to hedge with quarter products.
+    #
+    #     See also
+    #     --------
+    #     portfolyo.create_peakfn
+    #     portfolyo.germanpower_peakfn
+    #
+    #     Returns
+    #     -------
+    #     PfLine
+    #         Hedged volume and prices. Index with same frequency as original, but every
+    #         timestamp within a given hedging frequency has the same volume [MW] and price.
+    #         (or, one volume-price pair for peak, and another volume-price pair for offpeak.)
+    #
+    #     Notes
+    #     -----
+    #     If the PfLine contains prices, these are ignored.
+    #     """
+    #     ...
 
     # Methods implemented here.
 
@@ -258,7 +261,7 @@ class PfLine(NDFrameLike, PfLineText, PfLinePlot, ExcelClipboardOutput, PfLineAr
 
 
 @dataclasses.dataclass(frozen=True, repr=False, eq=False)
-class FlatPfLine(PfLine):
+class FlatPfLine(PfLine, FlatMethods):
     # Normal instance fields.
     # . Class is only called internally, so expect df to be in correct format.
     #   Meaning: correct columns for `kind`, and correct units for `commodity`.
@@ -268,118 +271,11 @@ class FlatPfLine(PfLine):
     # Class variables.
     structure: ClassVar[Structure] = Structure.FLAT
 
-    # Methods / properties.
     # dataframe = dataframeexport.Flat.dataframe
-    # hedge_with = flat_methods.hedge_with
-
-    # Methods required by parent.
-
-    @property
-    def loc(self) -> indexer.FlatLoc:
-        return indexer.FlatLoc(self)
-
-    @property
-    def slice(self) -> indexer.FlatSlice:
-        return indexer.FlatSlice(self)
-
-    def asfreq(self, freq: Frequencylike = "MS") -> FlatPfLine:
-        freq = toolsb.freq.coerce(freq)
-
-        if self.kind is Kind.VOLUME:
-            newdf = toolsb.changefreq.summable(self.df[["q"]], freq)
-            newdf["w"] = newdf["q"] / toolsb.index.duration(newdf.index)  # TODO: check unit
-        elif self.kind is Kind.PRICE:
-            newdf = toolsb.changefreq.averagable(self.df[["p"]], freq)
-        elif self.kind is Kind.REVENUE:
-            newdf = toolsb.changefreq.summable(self.df[["r"]], freq)
-        else:  # self.kind is Kind.COMPLETE:
-            newdf = toolsb.changefreq.summable(self.df[["q", "r"]], freq)
-            newdf["w"] = newdf["q"] / toolsb.index.duration(newdf.index)
-            newdf["p"] = newdf["r"] / newdf["q"]
-
-        if not len(newdf):
-            raise ValueError(f"There are no full periods when changing to frequency {freq}.")
-        return FlatPfLine(newdf, self.kind, self.commodity)
-
-    def flatten(self) -> FlatPfLine:
-        return self  # already flat
-
-    def reindex(self, index: pd.DatetimeIndex) -> FlatPfLine:
-        toolsb.testing.assert_index_compatible(self.index, index)
-
-        if self.kind is Kind.COMPLETE:
-            newdf = self.df[["w", "q", "r"]].reindex(index, fill_value=0)
-            newdf["p"] = newdf["r"] / newdf["q"]  # TODO: convert to correct units
-        else:
-            newdf = self.df.reindex(index, fill_value=0)
-
-        return FlatPfLine(newdf, self.kind, self.commodity)
-
-    def agg(self) -> pd.Series:
-        if self.kind is Kind.VOLUME:
-            q = self.df["q"].sum()
-            duration = toolsb.index.duration(self.index).sum()
-            w = q / duration
-            return pd.Series({"w": w, "q": q})
-        elif self.kind is Kind.PRICE:
-            duration = toolsb.index.duration(self.index)
-            p = toolsb.wavg.series(self.df["p"], duration)
-            return pd.Series({"p": p})
-        elif self.kind is Kind.REVENUE:
-            r = self.df["r"].sum()
-            return pd.Series({"r": r})
-        else:  # self.kind is Kind.COMPLETE:
-            q = self.df["q"].sum()
-            r = self.df["r"].sum()
-            duration = toolsb.index.duration(self.index).sum()
-            w = q / duration
-            p = r / q
-            return pd.Series({"w": w, "q": q, "p": p, "r": r})
-
-    def __bool__(self) -> bool:
-        return not all(np.allclose(self.df[col].pint.m, 0) for col in self.kind.summable)
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, self.__class__):
-            return False
-        try:
-            toolsb.testing.assert_frame_equal(self.df, other.df, rtol=1e-7)
-            return True
-        except AssertionError:
-            return False
-
-    def __getitem__(self, *args, **kwargs):
-        raise TypeError("Flat portfolio line is not subscriptable (has no children).")
-
-    def po(self: PfLine, freq: Frequencylike) -> pd.DataFrame:
-        peak_fn = self.commodity.peak_fn
-        df_dict = {}
-
-        # Always include duration.
-        duration = toolsb.index.duration(self.df.index)
-        df_dict["duration"] = toolsb.peakconvert.tseries2poframe(duration, peak_fn, freq, True)
-
-        # Add volume.
-        if self.kind in [Kind.VOLUME, Kind.COMPLETE]:
-            df_dict["q"] = toolsb.peakconvert.tseries2poframe(self.q, peak_fn, freq, True)
-            df_dict["w"] = df_dict["q"] / df_dict["duration"]
-
-        # Add revenue.
-        if self.kind in [Kind.REVENUE, Kind.COMPLETE]:
-            df_dict["r"] = tseries2poframe(self.r, peak_fn, freq, True)
-
-        # Add price.
-        if self.kind is Kind.PRICE:
-            df_dict["p"] = tseries2poframe(self.p, peak_fn, freq, False)
-        elif self.kind is Kind.COMPLETE:
-            df_dict["p"] = df_dict["r"] / df_dict["q"]
-
-        # Turn into dataframe.
-        return pd.DataFrame({k: df.stack() for k, df in df_dict.items()})
 
 
 @dataclasses.dataclass(frozen=True, repr=False, eq=False)
-class NestedPfLine(children.ChildFunctionality, PfLine):
+class NestedPfLine(PfLine, NestedMethods, ChildMethods):
     # Normal instance fields.
     # . Class is only called internally, so expect children to be in correct format.
     #   Meaning: all have same `kind` and are in correct units for `commodity`.
@@ -398,50 +294,3 @@ class NestedPfLine(children.ChildFunctionality, PfLine):
         object.__setattr__(self, "df", df)
 
     # dataframe = dataframeexport.Nested.dataframe
-    # po = nested_methods.po
-    # hedge_with = nested_methods.hedge_with
-
-    # Methods required by parent.
-
-    @property
-    def loc(self) -> indexer.NestedLoc:
-        return indexer.NestedLoc(self)
-
-    @property
-    def slice(self) -> indexer.NestedSlice:
-        return indexer.NestedSlice(self)
-
-    def asfreq(self, freq: Frequencylike = "MS") -> NestedPfLine:
-        freq = toolsb.freq.coerce(freq)
-        newchildren = {name: child.asfreq(freq) for name, child in self.items()}
-        return NestedPfLine(newchildren, self.kind, self.commodity)
-
-    def flatten(self) -> FlatPfLine:
-        return FlatPfLine(self.df, self.commodity)  # use toplevel df for initialisation
-
-    def reindex(self, index: pd.DatetimeIndex) -> NestedPfLine:
-        newchildren = {name: child.reindex(index) for name, child in self.pfl.items()}
-        return NestedPfLine(newchildren, self.kind, self.commodity)
-
-    def agg(self) -> pd.DataFrame:
-        dfs = [self.flatten().agg().to_frame("").T]
-        for name, child in self.items():
-            if child.structure is Structure.FLAT:
-                dfs.append(child.agg().to_frame(name).T)
-            else:
-                dfs.append(toolsb.frame.add_header(child.agg(), name, 0))
-        return toolsb.frame.concat(dfs)
-
-    def __bool__(self) -> bool:
-        return any(self.children.keys())  # True if a) has children of which b) any are true
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, self.__class__):
-            return False
-        return self.children == other.children
-
-    def po(self: PfLine, freq: Frequencylike) -> pd.DataFrame:
-        dfs = [self.flatten().po(freq)]
-        for name, child in self.items():
-            dfs.append(toolsb.frame.add_header(child.po(freq), name, 1))
-        return toolsb.frame.concat(dfs)

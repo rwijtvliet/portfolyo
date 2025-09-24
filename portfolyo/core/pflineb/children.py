@@ -4,14 +4,14 @@ import warnings
 from typing import TYPE_CHECKING, Any, Mapping
 
 from ... import toolsb
-from . import create
+from . import create, pflinee
 
 if TYPE_CHECKING:
-    from .classes import NestedPfLine, PfLine
+    from .pflinee import NestedPfLine, PfLine
 
 
-class ChildFunctionality(Mapping):
-    def set_child(self: NestedPfLine, name: str, child: PfLine | Any) -> NestedPfLine:
+class ChildMethods(Mapping):
+    def set_child(self, name: str, child: PfLine | Any) -> NestedPfLine:
         """Set/add/update child; returns new pfline instance without changing current instance."""
         if name in ["w", "q", "p", "r"]:
             raise ValueError("Name cannot be one of 'w', 'q', 'p', 'r'.")
@@ -45,18 +45,18 @@ class ChildFunctionality(Mapping):
             )
         newchildren = {**self, name: child}
         newchildren = {name: child.loc[idx] for name, child in newchildren.items()}
-        return NestedPfLine(newchildren)
+        return pflinee.NestedPfLine(newchildren, self.kind, self.commodity)
 
-    def drop_child(self: NestedPfLine, name: str) -> NestedPfLine:
+    def drop_child(self, name: str) -> NestedPfLine:
         """Drop child; returns new pfline instance without changing current instance."""
         if name not in self.children:
             raise KeyError(f"Portfolio line does not have child with name '{name}'.")
         if len(self.children) == 1:
             raise RuntimeError("Cannot remove the last child of a portfolio line.")
         newchildren = {n: child for n, child in self.items() if n != name}
-        return self.__class__(newchildren)
+        return pflinee.NestedPfLine(newchildren, self.kind, self.commodity)
 
-    def __getitem__(self: NestedPfLine, name: str):
+    def __getitem__(self, name: str):
         if name not in self.children:
             raise KeyError(
                 f"Portfolio line does not have child with name '{name}'."
@@ -64,17 +64,17 @@ class ChildFunctionality(Mapping):
             )
         return self.children[name]
 
-    def items(self: NestedPfLine):
+    def items(self):
         """Iterate over children in (name, child)-tuples."""
         return self.children.items()
 
-    def __iter__(self: NestedPfLine):
+    def __iter__(self):
         return iter(self.children.keys())
 
-    def __len__(self: NestedPfLine):
+    def __len__(self):
         return len(self.children)
 
-    def __getattr__(self: NestedPfLine, name: str):  # allow access to children by attribute
+    def __getattr__(self, name: str):  # allow access to children by attribute
         if name not in self.children:
             raise AttributeError(f"No such attribute '{name}'.")
         return self.children[name]
