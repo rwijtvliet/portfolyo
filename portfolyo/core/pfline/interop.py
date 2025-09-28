@@ -21,15 +21,12 @@ _ATTRIBUTES = ("w", "q", "p", "r", "nodim")
 
 @dataclass(frozen=True)
 class InOp:
-    """Class to check increase interoperability. Tries to extract power (w), energy (q),
-    price (p), revenue (r), adimensional (nodim) and dim-agnostic (agn) information from
-    the provided data.
+    """Class to check increase interoperability. Tries to extract quartity rate (w), quantity (q),
+    price (p), revenue (r) and adimensional (nodim) information from the provided data.
 
     Typical usage:
 
     . Initialisation:
-        inop = Inop(w=..., q=..., ...)
-    or
         inop = Inop.from_data(...)
 
     . Turn all into timeseries:
@@ -233,7 +230,7 @@ def _unit2attr(unit) -> str:
 
 
 def _from_data(
-    data: float | pint.Quantity | pd.Series | Dict | pd.DataFrame | Iterable | Mapping,
+    data: float | pint.Quantity | pd.Series | Dict | pd.DataFrame | Iterable | Mapping | None,
 ) -> InOp:
     """Turn ``data`` into a InterOp object."""
 

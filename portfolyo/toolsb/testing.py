@@ -5,10 +5,12 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-import pint_pandas
 import pint
-from . import unit as tools_unit
+import pint_pandas
+
 from . import freq as tools_freq
+from . import unit as tools_unit
+from .types import NontimeDataframe, NontimeSeries, TimeDataframe, TimeSeries
 
 
 def assert_scalar_equal(left: Any, right: Any):
@@ -37,9 +39,11 @@ def assert_index_equal(left: pd.Index, right: pd.Index, *args, **kwargs):
 
 
 @functools.wraps(pd.testing.assert_series_equal)
-def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
+def assert_series_equal(
+    left: NontimeSeries | TimeSeries, right: NontimeSeries | TimeSeries, *args, **kwargs
+):
     # Ensure pintseries, if possible.
-    left, right = tools_unit.convert_pintframe(left), tools_unit.convert_pintframe(right)
+    left, right = tools_unit._convert_pintseries(left), tools_unit._convert_pintseries(right)
 
     assert isinstance(left.dtype, pint_pandas.PintType) == isinstance(
         right.dtype, pint_pandas.PintType
@@ -68,7 +72,9 @@ def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
 
 
 @functools.wraps(pd.testing.assert_frame_equal)
-def assert_frame_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwargs):
+def assert_frame_equal(
+    left: NontimeDataframe | TimeDataframe, right: NontimeDataframe | TimeDataframe, *args, **kwargs
+):
     # Dataframes equal even if *order* of columns is not the same.
     left = left.sort_index(axis=1)
     right = right.sort_index(axis=1)
@@ -91,26 +97,27 @@ def assert_index_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
         raise AssertionError(f"Indices that have unequal timezone; {lz} and {rz}.")
 
 
-def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):
-    """Assert that timeseries with power- and energy-values are consistent."""
-    if freq == "15min":
-        assert_series_equal(q, w * tools_unit.Q_(0.25, "h"), check_names=False)
-    elif freq == "h":
-        assert_series_equal(q, w * tools_unit.Q_(1.0, "h"), check_names=False)
-    elif freq == "D":
-        assert (q >= w * tools_unit.Q_(22.99, "h")).all()
-        assert (q <= w * tools_unit.Q_(25.01, "h")).all()
-    elif freq == "MS":
-        assert (q >= w * 27 * tools_unit.Q_(24.0, "h")).all()
-        assert (q <= w * 32 * tools_unit.Q_(24.0, "h")).all()
-    elif freq == "QS":
-        assert (q >= w * 89 * tools_unit.Q_(24.0, "h")).all()
-        assert (q <= w * 93 * tools_unit.Q_(24.0, "h")).all()
-    elif freq == "YS":
-        assert (q >= w * tools_unit.Q_(8759.9, "h")).all()
-        assert (q <= w * tools_unit.Q_(8784.1, "h")).all()
-    else:
-        raise ValueError(f"Uncaught value for freq: {freq}.")
+# # TODO: fix if you want to use it. Currently too lax.
+# def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):
+#     """Assert that timeseries with power- and energy-values are consistent."""
+#     if freq == "15min":
+#         assert_series_equal(q, w * tools_unit.Q_(0.25, "h"), check_names=False)
+#     elif freq == "h":
+#         assert_series_equal(q, w * tools_unit.Q_(1.0, "h"), check_names=False)
+#     elif freq == "D":
+#         assert (q >= w * tools_unit.Q_(22.99, "h")).all()
+#         assert (q <= w * tools_unit.Q_(25.01, "h")).all()
+#     elif freq == "MS":
+#         assert (q >= w * 27 * tools_unit.Q_(24.0, "h")).all()
+#         assert (q <= w * 32 * tools_unit.Q_(24.0, "h")).all()
+#     elif freq == "QS":
+#         assert (q >= w * 89 * tools_unit.Q_(24.0, "h")).all()
+#         assert (q <= w * 93 * tools_unit.Q_(24.0, "h")).all()
+#     elif freq == "YS":
+#         assert (q >= w * tools_unit.Q_(8759.9, "h")).all()
+#         assert (q <= w * tools_unit.Q_(8784.1, "h")).all()
+#     else:
+#         raise ValueError(f"Uncaught value for freq: {freq}.")
 
 
 def assert_p_q_r_compatible(r: pd.Series, p: pd.Series, q: pd.Series):

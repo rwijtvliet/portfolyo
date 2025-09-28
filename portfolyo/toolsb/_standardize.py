@@ -8,17 +8,17 @@ from pytz import AmbiguousTimeError, NonExistentTimeError
 from . import freq as tools_freq
 from . import right as tools_right
 from . import tzone as tools_tzone
-from .types import Series_or_DataFrame
+from .types import Series_or_Dataframe
 
 
 def frame(
-    fr: Series_or_DataFrame,
+    fr: Series_or_Dataframe,
     force: str = None,
     bound: str = "left",
     *,
     tz: str = None,
     floating: bool = True,
-) -> Series_or_DataFrame:
+) -> Series_or_Dataframe:
     """Standardize a series or dataframe.
 
     Parameters
@@ -149,7 +149,7 @@ def _fix_timezone(fr, force, tz, floating):
     raise ValueError(f"Parameter ``force`` must be None, 'aware' or 'agnostic'; got {force}.")
 
 
-def _standardize_index_name(fr: Series_or_DataFrame) -> Series_or_DataFrame:
+def _standardize_index_name(fr: Series_or_Dataframe) -> Series_or_Dataframe:
     return fr.rename_axis(index="ts_left")
 
 
@@ -196,7 +196,7 @@ def left_index(i: pd.DatetimeIndex, how: str = "A") -> pd.DatetimeIndex:
         return pd.DatetimeIndex([i[0] - additionterm, *i[:-1]])
 
 
-def assert_frame_standardized(fr: Series_or_DataFrame) -> None:
+def assert_frame_standardized(fr: Series_or_Dataframe) -> None:
     """Assert that series or dataframe is standardized."""
     assert_index_standardized(fr.index)
 

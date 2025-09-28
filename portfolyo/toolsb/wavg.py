@@ -118,7 +118,7 @@ def series(s: pd.Series, weights: Iterable | Mapping | pd.Series | None = None) 
     -----
     Will raise Error if values in ``s`` have distinct units.
     """
-    s = tools_unit.coerce_pintframe(s)
+    s = tools_unit.coerce_pintseries(s)
 
     units = s.pint.units
     magnitudes = s.pint.magnitude
@@ -161,7 +161,7 @@ def dataframe(
     -----
     Will raise error if axis == 1 and columns have distinct unit-dimensions.
     """
-    df = tools_unit.coerce_pintframe(df)
+    df = tools_unit.coerce_pintseries(df)
     weights = _weights_for_2dvalues(weights, df.index, df.columns, axis)
     return _dataframe_axis1(df, weights) if axis == 1 else _dataframe_axis0(df, weights)
 

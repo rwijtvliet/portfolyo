@@ -1,7 +1,7 @@
 import pandas as pd
 
 from ... import toolsb
-from .pflinee import FlatPfLine, NestedPfLine
+from . import flat, nested
 
 
 def _assert_flat_data_ok(newdf: pd.DataFrame, olddf: pd.DataFrame) -> None:
@@ -22,35 +22,37 @@ def _assert_flat_data_ok(newdf: pd.DataFrame, olddf: pd.DataFrame) -> None:
 class FlatLoc:
     """Helper class to obtain FlatPfLine instance, whose index is subset of original index."""
 
-    def __init__(self, pfl: FlatPfLine):
+    def __init__(self, pfl: flat.FlatPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> FlatPfLine:
+    def __getitem__(self, arg) -> flat.FlatPfLine:
         newdf = self.pfl.df.loc[arg]
         _assert_flat_data_ok(newdf, self.pfl.df)
-        # TODO: maybe just use the user-input route instead of FlatPfLine(), to ensure data is checked?
-        return FlatPfLine(newdf, self.pfl.kind, self.pfl.commodity)
+        # TODO: maybe just use the user-input route instead of flat.FlatPfLine(), to ensure data is checked?
+        return flat.FlatPfLine(newdf, self.pfl.kind, self.pfl.commodity)
 
 
 class FlatIloc:
-    def __init__(self, pfl: FlatPfLine):
+    """Helper class to obtain FlatPfLine instance, whose index is subset of original index."""
+
+    def __init__(self, pfl: flat.FlatPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> FlatPfLine:
+    def __getitem__(self, arg) -> flat.FlatPfLine:
         newdf = self.pfl.df.iloc[arg]
         _assert_flat_data_ok(newdf, self.pfl.df)
         # TODO: .iloc might have selected only one or 2 columns, and therefore changed the .kind of the PfLine.
-        return FlatPfLine(newdf, self.pfl.kind, self.pfl.commodity)
+        return flat.FlatPfLine(newdf, self.pfl.kind, self.pfl.commodity)
 
 
 class FlatSlice:
     """Helper class to obtain FlatPfLine instance, whose index is subset of original index.
     Exclude end point from the slice."""
 
-    def __init__(self, pfl: FlatPfLine):
+    def __init__(self, pfl: flat.FlatPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> FlatPfLine:
+    def __getitem__(self, arg) -> flat.FlatPfLine:
         mask = pd.Index([True] * len(self.pfl.df))
         if arg.start is not None:
             mask &= self.pfl.index >= arg.start
@@ -59,38 +61,38 @@ class FlatSlice:
 
         newdf = self.pfl.df.loc[mask]
         _assert_flat_data_ok(newdf, self.pfl.df)
-        return FlatPfLine(newdf, self.pfl.kind, self.pfl.commodity)
+        return flat.FlatPfLine(newdf, self.pfl.kind, self.pfl.commodity)
 
 
 class NestedLoc:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index."""
 
-    def __init__(self, pfl: NestedPfLine):
+    def __init__(self, pfl: nested.NestedPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> NestedPfLine:
+    def __getitem__(self, arg) -> nested.NestedPfLine:
         newchildren = {name: child.loc[arg] for name, child in self.pfl.items()}
-        return NestedPfLine(newchildren, self.pfl.kind, self.pfl.commodity)
+        return nested.NestedPfLine(newchildren, self.pfl.kind, self.pfl.commodity)
 
 
 class NestedIloc:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index."""
 
-    def __init__(self, pfl: NestedPfLine):
+    def __init__(self, pfl: nested.NestedPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> NestedPfLine:
+    def __getitem__(self, arg) -> nested.NestedPfLine:
         newchildren = {name: child.iloc[arg] for name, child in self.pfl.items()}
-        return NestedPfLine(newchildren, self.pfl.kind, self.pfl.commodity)
+        return nested.NestedPfLine(newchildren, self.pfl.kind, self.pfl.commodity)
 
 
 class NestedSlice:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index.
     Exclude end point from the slice."""
 
-    def __init__(self, pfl: NestedPfLine):
+    def __init__(self, pfl: nested.NestedPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> NestedPfLine:
+    def __getitem__(self, arg) -> nested.NestedPfLine:
         newchildren = {name: child.slice[arg] for name, child in self.pfl.items()}
-        return NestedPfLine(newchildren, self.pfl.kind, self.pfl.commodity)
+        return nested.NestedPfLine(newchildren, self.pfl.kind, self.pfl.commodity)

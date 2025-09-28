@@ -5,14 +5,60 @@ from typing import Any, Iterable, overload
 
 import numpy as np
 import pandas as pd
-from pandas.core.dtypes.dtypes import BaseOffset
-
-from portfolyo.tools.types import Series_or_DataFrame
+import pint_pandas
 
 from . import index as tools_index
+from .types import Frequencylike, Series_or_Dataframe, TimeSeries_or_TimeDataframe
+
+# Conversion and validation.
+# --------------------------
 
 
-def _nlevels(fr: pd.Series | pd.DataFrame, axis: int):
+def validate_timeframe(fr: pd.Series | pd.DataFrame) -> None:
+    tools_index.validate(fr.index)
+
+
+def coerce_timeframe(fr: Series_or_Dataframe) -> Series_or_Dataframe:
+    fr = fr.set_axis(pd.DatetimeIndex(fr.index), axis=0)
+    validate_timeframe(fr)
+    return fr
+
+
+def validate_pintframe(fr: pd.Series | pd.DataFrame) -> None:
+    if isinstance(fr, pd.DataFrame):
+        for _, s in fr.items():
+            validate_timeframe(s)
+
+    # If we are here, fr is a series.
+    if not isinstance(fr.dtype, pint_pandas.PintType):
+        raise ValueError(f"This is not a pintseries: {fr}.")
+
+
+def coerce_pintframe(fr: Series_or_Dataframe) -> Series_or_Dataframe:
+    if isinstance(fr, pd.DataFrame):
+        return pd.DataFrame({col: s for col, s in fr.items()})
+
+    # If we are here, fr is a series.
+    if pd.api.types.is_integer_dtype(fr.dtype):
+        fr = fr.astype(float).astype("pint[]")
+    elif pd.api.types.is_float_dtype(fr.dtype):
+        fr = fr.astype("pint[]")
+    elif pd.api.types.is_object_dtype(fr.dtype) and isinstance(fr.iloc[0], pint.Quantity):
+        units = fr.iloc[0].units
+        fr = fr.astype(f"pint[{units}]")  # works if all quantities have same dimension
+
+    validate_pintframe(fr)
+    return fr
+
+
+def coerce_pinttimeframe(fr: Series_or_Dataframe) -> Series_or_Dataframe:
+    return coerce_timeframe(coerce_pintframe(fr))
+
+
+# --------------------------
+
+
+def _nlevels(fr: pd.Series | pd.DataFrame, axis: int) -> int:
     """Count levels on specified axis."""
     if axis == 0:
         return fr.index.nlevels
@@ -22,7 +68,9 @@ def _nlevels(fr: pd.Series | pd.DataFrame, axis: int):
         return 0
 
 
-def _add_level(fr: pd.Series | pd.DataFrame, levelvalue: Any, axis: int, top: bool = True):
+def _add_level(
+    fr: pd.Series | pd.DataFrame, levelvalue: Any, axis: int, top: bool = True
+) -> pd.Series | pd.DataFrame:
     """Add a level with specified value to top or bottom of specified axis."""
     fr = pd.concat({levelvalue: fr}, axis=axis)  # add (prepend) level. Might turn Series into df
     if top or _nlevels(fr, axis) < 2:  # no need to swap, or impossible to swap
@@ -33,7 +81,7 @@ def _add_level(fr: pd.Series | pd.DataFrame, levelvalue: Any, axis: int, top: bo
         return fr.swaplevel(0, 1, axis=axis)  # move to bottom
 
 
-def _ensure_nlevels(fr: pd.Series | pd.DataFrame, axis: int, want: int):
+def _ensure_nlevels(fr: pd.Series | pd.DataFrame, axis: int, want: int) -> pd.Series | pd.DataFrame:
     """Add levels from below/right to reach wanted level count on specified axis."""
     for _ in range(want - _nlevels(fr, axis)):
         fr = _add_level(fr, "", axis=axis, top=False)  # prepend empty level
@@ -51,15 +99,26 @@ def add_header(
         Series or dataframe to add header to.
     header
         Value to add as uniform top-level column or index value.
-    axis, optional
+    axis, optional (default: 1)
         Which axis to add the level to, columns (1) or index (0)
 
     Returns
     -------
-        Same series or dataframe, but with additional level. Series changed to
-        dataframe if axis == 1.
+        Same series or dataframe, but with additional level. Series changed to dataframe if axis == 1.
     """
     return _add_level(fr, header, axis)
+
+
+@overload
+def concat(frames: Iterable[pd.Series], *, axis: int = 0, **kwargs) -> pd.Series | pd.DataFrame:
+    # Iterable of Series returns Series if axis==0 and Dataframe if axis==1.
+    ...
+
+
+@overload
+def concat(frames: Iterable[pd.Series | pd.DataFrame], *, axis: int = 0, **kwargs) -> pd.DataFrame:
+    # If one of iterables is dataframe, returns Dataframe.
+    ...
 
 
 @functools.wraps(pd.concat)
@@ -78,7 +137,7 @@ def concat(
     ----------
     frames
         Series or dataframes that must be concatenated.
-    axis, optional
+    axis, optional (default: 0)
         Axis along which concatenation must take place.
 
     Returns
@@ -114,15 +173,7 @@ def series_allclose(s1: pd.Series, s2: pd.Series, *args, **kwargs) -> bool:
     return np.allclose(s1_vals, s2_vals, *args, **kwargs)
 
 
-@overload
-def trim(fr: pd.Series, freq: str | BaseOffset) -> pd.Series: ...
-
-
-@overload
-def trim(fr: pd.DataFrame, freq: str | BaseOffset) -> pd.DataFrame: ...
-
-
-def trim(fr: pd.Series | pd.DataFrame, freq: str | BaseOffset) -> pd.Series | pd.DataFrame:
+def trim(fr: TimeSeries_or_TimeDataframe, freq: Frequencylike) -> TimeSeries_or_TimeDataframe:
     """Trim index of series or dataframe to only keep full periods of certain frequency.
 
     Parameters
@@ -139,7 +190,9 @@ def trim(fr: pd.Series | pd.DataFrame, freq: str | BaseOffset) -> pd.Series | pd
     return fr.loc[tools_index.trim(fr.index, freq)]
 
 
-def intersect(frs: Iterable[Series_or_DataFrame]) -> tuple[Series_or_DataFrame, ...]:
+def intersect(
+    frs: Iterable[TimeSeries_or_TimeDataframe],
+) -> tuple[TimeSeries_or_TimeDataframe, ...]:
     """Intersect several dataframes and/or series.
 
     Parameters
@@ -162,31 +215,29 @@ def intersect(frs: Iterable[Series_or_DataFrame]) -> tuple[Series_or_DataFrame, 
 
 
 def intersect_flex(
-    frs: Series_or_DataFrame,
+    frs: TimeSeries_or_TimeDataframe,
     *,
     ignore_freq: bool = False,
     ignore_tz: bool = False,
     ignore_startofday: bool = False,
-) -> tuple[Series_or_DataFrame, ...]:
-    """Intersect several datetime indices, but allow for more flexibility of ignoring
-    certain properties.
+) -> tuple[TimeSeries_or_TimeDataframe, ...]:
+    """Intersect several datetime indices, but allow for more flexibility of ignoring certain
+    properties.
 
     Parameters
     ----------
     frs
         Series or dataframes to intersect.
     ignore_freq, optional (default: False)
-        If True, do intersection even if frequencies are not equivalent; drop time
-        periods that do not (fully) exist in either of the frame indices. The frequencies
-        of original frames are preserved. If frequencies are incompatible, an error is
-        raised.
+        If True, do intersection even if frequencies are not equivalent; drop time periods that do
+        not (fully) exist in either of the frame indices. The frequencies of original frames are
+        preserved. If frequencies are incompatible, an error is raised.
     ignore_tz, optional (default: False)
-        If True, ignore timezones; perform intersection using 'wall time'. The timezones
-        of original frames are preserved.
+        If True, ignore timezones; perform intersection using 'wall time'. The timezones of original
+        frames are preserved.
     ignore_startofday, optional (default: False)
         If True, do intersection even if frame indices have a different start-of-day. The
-        start-of-day of original frames are preserved (even if frequency is shorter
-        than daily).
+        start-of-day of original frames are preserved (even if frequency is shorter than daily).
 
     Returns
     -------

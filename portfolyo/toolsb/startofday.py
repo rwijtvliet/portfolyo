@@ -57,7 +57,10 @@ def validate(startofday: dt.time) -> None:
         raise ValueError("Start-of-day must be at a full hour (not necessarily midnight).")
 
 
-coerce = tools_decorator.coerce_fn(convert, validate)
+def coerce(startofday: dt.time | str | dt.timedelta) -> dt.time:
+    startofday = convert(startofday)
+    validate(startofday)
+    return startofday
 
 
 # --------------------------

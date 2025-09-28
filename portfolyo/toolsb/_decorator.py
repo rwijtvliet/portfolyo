@@ -17,14 +17,14 @@ def cache_hashable_arguments(fn):
     return wrapper
 
 
-def coerce_fn(convert: Callable[[Any], Any], validate: Callable[[Any], None]) -> Callable:
-    @functools.wraps(convert)
-    def coerce(*args, **kwargs):
-        arg = convert(*args, **kwargs)
-        validate(arg)
-        return arg
-
-    return coerce
+# def coerce_fn(convert: Callable[[Any], Any], validate: Callable[[Any], None]) -> Callable:
+#     @functools.wraps(convert)
+#     def coerce(*args, **kwargs):
+#         arg = convert(*args, **kwargs)
+#         validate(arg)
+#         return arg
+#
+#     return coerce
 
 
 # def create_coerciondecorator(

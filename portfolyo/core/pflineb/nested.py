@@ -1,52 +1,34 @@
-from typing import TYPE_CHECKING
+"""Class that is created when instantiating a nested pfline. Brings together all functionality."""
 
-from ...toolsb.types import Frequencylike
-from . import indexer
+import dataclasses
+from typing import ClassVar, Mapping
 
-if TYPE_CHECKING:
-    from .pflinee import FLatPfLine, NestedPfLine, PfLine
+import pandas as pd
+
+from ..commodity import Commodity
+from .enums import Kind, Structure
+from .nested_children import ChildMethods
+from .nested_required import NestedRequiredMethods
+from .pfline import PfLine
 
 
-class NestedMethods:
-    @property
-    def loc(self) -> indexer.NestedLoc:
-        return indexer.NestedLoc(self)
+@dataclasses.dataclass(frozen=True, repr=False, eq=False)
+class NestedPfLine(PfLine, NestedRequiredMethods, ChildMethods):
+    # Normal instance fields.
+    # . Class is only called internally, so expect children to be in correct format.
+    #   Meaning: all have same `kind` and are in correct units for `commodity`.
+    children: Mapping[str, PfLine]
+    kind: Kind
+    commodity: Commodity
+    # Class variables.
+    structure: ClassVar[Structure] = Structure.NESTED
+    # Calculated instance fields.
+    df: pd.DataFrame = dataclasses.field(init=False)
 
-    @property
-    def slice(self) -> indexer.NestedSlice:
-        return indexer.NestedSlice(self)
+    def __post_init__(self):
+        df = sum(child.df for child in self.children.values())
+        if self.kind is Kind.COMPLETE:
+            df["p"] = df["r"] / df["q"]  # TODO: convert to correct unit
+        object.__setattr__(self, "df", df)
 
-    def asfreq(self, freq: Frequencylike = "MS") -> NestedPfLine:
-        freq = toolsb.freq.coerce(freq)
-        newchildren = {name: child.asfreq(freq) for name, child in self.items()}
-        return NestedPfLine(newchildren, self.kind, self.commodity)
-
-    def flatten(self) -> FlatPfLine:
-        return FlatPfLine(self.df, self.commodity)  # use toplevel df for initialisation
-
-    def reindex(self, index: pd.DatetimeIndex) -> NestedPfLine:
-        newchildren = {name: child.reindex(index) for name, child in self.pfl.items()}
-        return NestedPfLine(newchildren, self.kind, self.commodity)
-
-    def agg(self) -> pd.DataFrame:
-        dfs = [self.flatten().agg().to_frame("").T]
-        for name, child in self.items():
-            if child.structure is Structure.FLAT:
-                dfs.append(child.agg().to_frame(name).T)
-            else:
-                dfs.append(toolsb.frame.add_header(child.agg(), name, 0))
-        return toolsb.frame.concat(dfs)
-
-    def __bool__(self) -> bool:
-        return any(self.children.keys())  # True if a) has children of which b) any are true
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, self.__class__):
-            return False
-        return self.children == other.children
-
-    def po(self: PfLine, freq: Frequencylike) -> pd.DataFrame:
-        dfs = [self.flatten().po(freq)]
-        for name, child in self.items():
-            dfs.append(toolsb.frame.add_header(child.po(freq), name, 1))
-        return toolsb.frame.concat(dfs)
+    # dataframe = dataframeexport.Nested.dataframe

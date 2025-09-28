@@ -9,21 +9,15 @@ from . import _decorator as tools_decorator
 from . import freq as tools_freq
 from . import stamp as tools_stamp
 from . import startofday as tools_sod
-from .types import Frequencylike, PintSeries
+from .types import Frequencylike, PintTimeSeries
 
 # Conversion and validation.
 # --------------------------
 
 
-def convert(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
-    """Convert argument to correct/expected type."""
-    if idx.freq is None:
-        idx = pd.DatetimeIndex(idx, freq=idx.inferred_freq)
-    return idx
-
-
 def validate(idx: pd.DatetimeIndex) -> None:
-    """Validate if argument has necessary properties to be used in portfolio lines."""
+    """Check if ``idx`` is a valid DatetimeIndex (valid to be used in portfolio lines). If not,
+    raise Error."""
     # Check on frequency.
     freq = idx.freq
     tools_freq.validate(freq)  # conversion not necessary
@@ -42,15 +36,20 @@ def validate(idx: pd.DatetimeIndex) -> None:
             )
 
 
-coerce = tools_decorator.coerce_fn(convert, validate)
+def coerce(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    """Convert ``idx`` into valid DatetimeIndex; raise Error if unsuccessful."""
+    if idx.freq is None:
+        idx = pd.DatetimeIndex(idx, freq=idx.inferred_freq)
+
+    validate(idx)
+    return idx
 
 
 # --------------------------
 
 
 def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
-    """Right-bound timestamps, belonging to left-bound timestamps of delivery periods
-    in index.
+    """Right-bound timestamps, belonging to left-bound timestamps of delivery periods in index.
 
     Parameters
     ----------
@@ -75,7 +74,7 @@ def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     return pd.DatetimeIndex(idx + tools_freq.to_jump(idx.freq), idx.freq)
 
 
-def duration(idx: pd.DatetimeIndex) -> PintSeries:
+def duration(idx: pd.DatetimeIndex) -> PintTimeSeries:
     """Duration of the delivery periods in a datetime index.
 
     Parameters
@@ -152,7 +151,7 @@ def trim_to_startofday(idx: pd.DatetimeIndex, startofday: dt.time) -> pd.Datetim
     -----
     This process is lossy; timestamps are dropped.
     """
-    idx = convert(idx)
+    idx = coerce(idx)
     startofday = tools_sod.coerce(startofday)
 
     if not tools_freq.is_shorter_than_daily(idx.freq):
@@ -200,7 +199,7 @@ def trim(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
     Only if ``idx`` has shorter frequency than ``freq`` might actual trimming occur.
     """
     idx = coerce(idx)
-    freq = tools_freq.coerce(freq)
+    freq = tools_freq.convert(freq)
 
     if tools_freq.up_or_down(idx.freq, freq) >= 0:
         return idx  # no trimming needed when upsampling

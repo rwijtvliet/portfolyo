@@ -10,7 +10,20 @@ import pint_pandas
 from typing_extensions import Self
 
 from . import _decorator as tools_decorator
-from .types import PintSeries
+from .types import (
+    FloatSeries,
+    IntSeries,
+    MultiDimQuantitySeries,
+    NontimeDataframe,
+    NontimeSeries,
+    OtherScalar,
+    OtherUniformSeries,
+    PintSeries,
+    Series_or_Dataframe,
+    SingleDimQuantitySeries,
+    TimeDataframe,
+    TimeSeries,
+)
 
 _FILEPATH = Path(__file__).parent / "unitdefinitions.txt"
 
@@ -34,9 +47,20 @@ Unit = ureg.Unit
 
 
 def get_basedimty(
-    obj: pint.util.UnitsContainer | pint.Unit | pint.Quantity | pd.Series | str | float | int,
+    obj: (
+        pint.util.UnitsContainer
+        | pint.Unit
+        | pint.Quantity
+        | IntSeries
+        | FloatSeries
+        | PintSeries
+        | str
+        | float
+        | int
+    ),
 ) -> pint.util.UnitsContainer:
-    """Get base dimensionality of ``obj``."""
+    """Get base dimensionality of ``obj``. If ``obj`` is a Series, it must not be a series of pint
+    Quantities."""
     if isinstance(obj, pd.DataFrame):
         raise TypeError(
             "Can't get dimensionality of DataFrame; call function for individual Series."
@@ -58,20 +82,8 @@ def get_basedimty(
 # --------------------------------
 
 
-@functools.lru_cache()
-def convert_unit(unit: pint.Unit | str | None) -> pint.Unit:
-    """If possible, turn `unit` into Unit. If not possible, return as-is."""
-    if unit is None:
-        unit = Unit("")  # intepret as dimensionless
-    elif not isinstance(unit, pint.Unit):
-        try:
-            unit = Unit(unit)
-        except pint.UndefinedUnitError:
-            pass
-    return unit
-
-
 def validate_unit(unit: Any) -> None:
+    """Check if ``unit`` is valid unit. If not, raise Error."""
     if not isinstance(unit, pint.Unit):
         raise ValueError(
             f"'{unit}' is not a (defined) unit. Add to unit registry by relating to existing unit,"
@@ -81,126 +93,122 @@ def validate_unit(unit: Any) -> None:
         )
 
 
-coerce_unit = tools_decorator.coerce_fn(convert_unit, validate_unit)
+@functools.lru_cache()
+def coerce_unit(unit: pint.Unit | str | None) -> pint.Unit:
+    """Convert ``unit`` into valid frequency; raise Error if unsuccessful."""
+    if unit is None:
+        unit = Unit("")  # intepret as dimensionless
+    elif not isinstance(unit, pint.Unit):
+        try:
+            unit = Unit(unit)
+        except pint.UndefinedUnitError:
+            pass
+
+    validate_unit(unit)
+    return unit
 
 
 # Conversion and validation: Quantity.
 # ------------------------------------
 
 
-def convert_quantity(sk: int | float | pint.Quantity) -> pint.Quantity:
-    """If possible, turn `sk` into Quantity. If not possible, return as-is."""
-    if isinstance(sk, int):
-        return Q_(float(sk), "")
-    elif isinstance(sk, float):
-        return Q_(sk, "")
-    return sk
-
-
 def validate_quantity(sk: Any) -> None:
+    """Check if ``sk`` is valid quantity. If not, raise Error."""
     if not isinstance(sk, pint.Quantity):
         raise ValueError(f"This is not a Quantity: {sk}.")
 
 
-coerce_quantity = tools_decorator.coerce_fn(convert_quantity, validate_quantity)
+def coerce_quantity(sk: int | float | pint.Quantity) -> pint.Quantity:
+    """Convert ``sk`` into quantity; raise Error if unsuccessful."""
+    if isinstance(sk, int):
+        return Q_(float(sk), "")
+    elif isinstance(sk, float):
+        return Q_(sk, "")
+
+    validate_quantity(sk)
+    return sk
 
 
-# Conversion and validation: Series and Dataframe.
-# ------------------------------------------------
+# Conversion and validation: Series
+# ---------------------------------
 
 
-@overload
-def convert_pintframe(fr: pd.Series) -> pd.Series: ...
-
-
-@overload
-def convert_pintframe(fr: pd.DataFrame) -> pd.DataFrame: ...
-
-
-def convert_pintframe(fr: pd.Series | pd.DataFrame) -> pd.Series | pd.DataFrame:
-    """If possible, turn Series/DataFrame into (collection of) pintseries. Converts Series of
-    Quantities with uniform dimensionality into pintseries. If not possible, return as-is.
-    """
-    if isinstance(fr, pd.DataFrame):
-        return pd.DataFrame({c: convert_pintframe(s) for c, s in fr.items()})
-
-    # If we are here, `fr` is a series.
+def _convert_to_pintseries_if_possible(
+    s: (
+        IntSeries
+        | FloatSeries
+        | PintSeries
+        | OtherUniformSeries
+        | SingleDimQuantitySeries
+        | MultiDimQuantitySeries
+    ),
+) -> PintSeries | OtherUniformSeries | MultiDimQuantitySeries:
+    """If possible, turn Series into PintSeries. Converts Series of Quantities with uniform
+    dimensionality into pintseries. If not possible, return as-is."""
 
     # NOTE: Can't use `.is_numeric_dtype`, because also true for pint dtype.
-    if pd.api.types.is_integer_dtype(fr.dtype):
-        return fr.astype(float).astype("pint[]")
-    elif pd.api.types.is_float_dtype(fr.dtype):
-        return fr.astype("pint[]")
+    if pd.api.types.is_integer_dtype(s.dtype):
+        return s.astype(float).astype("pint[]")
+    elif pd.api.types.is_float_dtype(s.dtype):
+        return s.astype("pint[]")
 
-    elif pd.api.types.is_object_dtype(fr.dtype) and isinstance(fr.iloc[0], pint.Quantity):
-        units = fr.iloc[0].units
+    elif pd.api.types.is_object_dtype(s.dtype) and isinstance(s.iloc[0], pint.Quantity):
+        units = s.iloc[0].units
         try:
-            return fr.astype(f"pint[{units}]")
+            return s.astype(f"pint[{units}]")  # works if all quantities have same dimension
         except pint.DimensionalityError:
-            return fr  # series of quantities with distinct dimension; keep as-is
+            return s  # series of quantities with distinct dimension; keep as-is
 
-    return fr  # bools, timestamps, ...
-
-
-def validate_pintframe(fr: pd.Series | pd.DataFrame) -> None:
-    if isinstance(fr, pd.DataFrame):
-        for _, s in fr.items():
-            validate_pintframe(s)
-        return
-
-    # If we are here, `fr` is a series.
-
-    if not isinstance(fr.dtype, pint_pandas.PintType):
-        raise ValueError(f"This is not a pintseries: {fr}.")
+    return s  # bools, timestamps, ..., quantities
 
 
-coerce_pintframe = tools_decorator.coerce_fn(convert_pintframe, validate_pintframe)
+def validate_pintseries(s: pd.Series) -> None:
+    """Check if ``s`` is a pintseries (i.e., series with pint dtype); if not, raise Error."""
+    if not isinstance(s.dtype, pint_pandas.PintType):
+        raise ValueError(f"This is not a pintseries: {s}.")
 
 
-# additional, further-reaching conversions.
+def coerce_pintseries(s: pd.Series) -> PintSeries:
+    """Convert ``s`` into pintseries; raise Error if unsuccessful."""
+    s = _convert_to_pintseries_if_possible(s)
+    validate_pintseries(s)
+    return s
 
 
-@overload
-def convert_pintframe_reducedunits(fr: pd.Series) -> pd.Series: ...
+def validate_pintdataframe(df: pd.DataFrame) -> None:
+    """Check if ``df`` is a pintdataframe (i.e., dataframe with pintseries); if not, raise Error."""
+    for _, s in df.items():
+        validate_pintseries(s)
 
 
-@overload
-def convert_pintframe_reducedunits(fr: pd.DataFrame) -> pd.DataFrame: ...
+def coerce_pintdataframe(df: pd.DataFrame) -> PintDataframe:
+    """Convert ``df`` into pintdataframe; raise Error if unsuccessful."""
+    df = pd.DataFrame({col: _convert_to_pintseries_if_possible(s) for col, s in df.items()})
+    validate_pintdataframe(df)
+    return df
 
 
-def convert_pintframe_reducedunits(
-    fr: pd.Series | pd.DataFrame,
-) -> pd.Series | pd.DataFrame:
-    """Like ``convert_pintframe``, but if possible also reduce number of units by converting like
-    dimensionalities (e.g. MW and kW) to one unit. For series: relevant if series of quantities.
-    For dataframes: additionally relevant if pintseries with same dimensionality. If not possible,
-    return as-is."""
-    fr = convert_pintframe(fr)  # Float and ints to quantities. Series of quantities to pintseries.
-    pref = UnitPref.from_objs(fr)  # collect units
-    return convert_to_preferred(fr, pref)  # apply units
+def coerce_not_quantityseries(s: pd.Series) -> PintSeries | dict[Any, pint.Quantity]:
+    """Convert ``s`` into pintseries or a dictionary. Do not allow quantities to remain as series
+    element."""
+    s = _convert_to_pintseries_if_possible(s)
+    try:
+        validate_pintseries(s)
+        return s
+    except Exception:
+        pass
 
+    # If we are here, ``s`` is not a pintseries, and we now expect: only objects.
 
-def validate_pintframe_oneunitperdim(fr: pd.Series | pd.DataFrame) -> None:
-    """Validate that pintframe has only one unit for each dimensionality."""
-    UnitPref().add(fr, "raise")  # will raise error if multiple units found for same dimensionality
-
-
-coerce_pintframe_oneunitperdim = tools_decorator.coerce_fn(
-    convert_pintframe_reducedunits, validate_pintframe_oneunitperdim
-)
-
-
-def validate_pintframe_oneunit(fr: pd.Series | pd.DataFrame) -> None:
-    """Validate that pintframe has only one dimensionality with only one unit."""
-    unitpref = UnitPref()
-    unitpref.add(fr, "raise")  # will raise error if multiple units found for same dimensionality
-    if len(unitpref) > 1:
-        raise ValueError(f"Found multiple dimensionalities: {list(unitpref.keys())}.")
-
-
-coerce_pintframe_oneunit = tools_decorator.coerce_fn(
-    convert_pintframe_reducedunits, validate_pintframe_oneunit
-)
+    if not any(isinstance(v, pint.Quantity) for v in s.values):
+        raise ValueError(
+            f"Unexpected series: cannot convert to pintseries, but does not contain any quantities: {s}."
+        )
+    if not all(isinstance(v, pint.Quantity) for v in s.values):
+        raise ValueError(
+            f"Unexpected series: cannot convert to pintseries, but does not contain only quantities: {s}."
+        )
+    return s.to_dict()
 
 
 # Conversion and validation: Unit preference.
@@ -208,6 +216,8 @@ coerce_pintframe_oneunit = tools_decorator.coerce_fn(
 
 
 class UnitPref(dict):
+    """Mapping base dimensionality (pint.util.UnitsContainer) -> unit (pint.Unit)."""
+
     def __init__(self, /, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
 
@@ -250,7 +260,19 @@ class UnitPref(dict):
 
     def add(
         self,
-        obj: pint.Unit | float | int | pint.Quantity | pd.Series | pd.DataFrame,
+        obj: (
+            str
+            | pint.Unit
+            | int
+            | float
+            | pint.Quantity
+            | IntSeries
+            | FloatSeries
+            | PintSeries
+            | SingleDimQuantitySeries
+            | MultiDimQuantitySeries
+            | pd.DataFrame
+        ),
         collision: Literal["update", "ignore", "raise"] = "ignore",
     ) -> None:
         """Add a new unit as the preferred unit for its dimensionality.
@@ -275,13 +297,15 @@ class UnitPref(dict):
             self._add_fromunit(obj, collision)
         elif isinstance(obj, float | int | pint.Quantity):
             self._add_fromskalar(obj, collision)
-        else:  # Series or Dataframe
-            self._add_fromframe(obj, collision)
+        elif isinstance(obj, pd.Series):
+            self._add_fromseries(obj, collision)
+        else:  # Dataframe
+            self._add_fromdataframe(obj, collision)
 
     def _add_fromunit(
         self, unit: pint.Unit, collision: Literal["update", "ignore", "raise"]
     ) -> None:
-        """Add `unit` as preferred unit for its dimensionality."""
+        """Add ``unit`` as preferred unit for its dimensionality."""
         unit = coerce_unit(unit)  # ensure Unit instance
         dimty = get_basedimty(unit)
         if dimty not in self:  # add
@@ -295,38 +319,48 @@ class UnitPref(dict):
             self[dimty] = unit
         elif collision == "raise":
             raise ValueError(
-                f"An existing unit ({existing_unit}) was found and it differs from the provided unit ({unit}); dimensionality {dimty}."
-                " To avoid raising an error, see `.add_or_lookup`."
+                f"An existing unit ({existing_unit}) was found and it differs from the provided unit"
+                f" ({unit}); dimensionality {dimty}."
             )
 
     def _add_fromskalar(
         self,
-        sk: float | int | pint.Quantity | Any,
+        sk: int | float | pint.Quantity | Any,
         collision: Literal["update", "ignore", "raise"],
     ) -> None:
-        """Add unit (if it has any) from skalar `sk` as preferred unit for its dimensionality."""
-        sk = convert_quantity(sk)  # turns float and int into quantities
+        """Add unit (if it has any) from skalar ``sk`` as preferred unit for its dimensionality."""
+        sk = coerce_quantity(sk)  # turns float and int into quantities
         if isinstance(sk, pint.Quantity):
             self._add_fromunit(sk.units, collision)
 
-    def _add_fromframe(
+    def _add_fromseries(
         self,
-        fr: pd.Series | pd.DataFrame,
+        s: (
+            IntSeries
+            | FloatSeries
+            | PintSeries
+            | NonuniformSeries
+            | SingleDimQuantitySeries
+            | MultiDimQuantitySeries
+        ),
         collision: Literal["update", "ignore", "raise"],
     ) -> None:
-        """Collect all units used in `fr`, and add each as preferred unit for its dimensionality."""
-        if isinstance(fr, pd.DataFrame):
-            for _, s in fr.items():
-                self._add_fromframe(s, collision)
-            return
-
-        # If we are here, `fr` is a series.
-
-        if isinstance(fr.dtype, pint_pandas.PintType):  # one unit for entire series
-            self._add_fromunit(fr.pint.units, collision)
-        elif pd.api.types.is_object_dtype(fr.dtype):  # may contain quantities
-            for sk in fr.values:
+        """Collect all units used in ``s``, and add each as preferred unit for its dimensionality."""
+        if isinstance(s.dtype, pint_pandas.PintType):  # one unit for entire series
+            self._add_fromunit(s.pint.units, collision)
+        elif pd.api.types.is_object_dtype(s.dtype):  # may contain quantities
+            for sk in s.values:
                 self._add_fromskalar(sk, collision)
+
+    def _add_fromdataframe(
+        self,
+        df: pd.DataFrame,
+        collision: Literal["update", "ignore", "raise"],
+    ) -> None:
+        """Collect all units used in ``df``, and add each as preferred unit for its dimensionality."""
+        for _, s in df.items():
+            self._add_fromseries(s, collision)
+        return
 
     # def add_or_lookup_unit(self, unit: pint.Unit) -> pint.Unit:
     #     """If a unit is stored for the dimensionality of `unit`, return it. If not, store
@@ -339,7 +373,7 @@ class UnitPref(dict):
     #     return unit
 
     def get_fromunit(self, unit: pint.Unit) -> pint.Unit | None:
-        """Look-up the unit stored for the dimenisionality of `unit`, and return it (or None if none
+        """Look-up the unit stored for the dimensionality of `unit`, and return it (or None if none
         present."""
         unit = coerce_unit(unit)  # ensure Unit instance
         return self.get(get_basedimty(unit))
@@ -355,56 +389,51 @@ class UnitPref(dict):
         return UnitPref(self | other)
 
 
-def _convert_skalar_to_preferred(
-    sk: float | int | pint.Quantity | Any,
-    pref: Mapping[pint.util.UnitsContainer, pint.Unit],
+def _coerce_quantity_to_preferred(
+    sk: int | float | pint.Quantity, pref: Mapping[pint.util.UnitsContainer, pint.Unit]
 ) -> pint.Quantity:
-    sk = convert_quantity(sk)
-    if isinstance(sk, pint.Quantity):
-        if (new_units := pref.get(get_basedimty(sk))) is not None:
-            return sk.to(new_units)
-    return sk  # bools, timestamps, ...; unknown unit; skalar without unit preference
+    sk = coerce_quantity(sk)
+    if (new_units := pref.get(get_basedimty(sk))) is not None:
+        return sk.to(new_units)
+    return sk
 
 
-def _convert_series_to_preferred(
-    s: pd.Series,
+def _coerce_series_to_preferred(
+    s: IntSeries | FloatSeries | PintSeries | SingleDimQuantitySeries | MultiDimQuantitySeries,
     pref: Mapping[pint.util.UnitsContainer, pint.Unit],
-) -> PintSeries | pd.Series:
-    s = convert_pintframe(s)
-    if isinstance(s.dtype, pint_pandas.PintType):
-        if (new_units := pref.get(get_basedimty(s))) is not None:
-            return s.pint.to(new_units)
-    elif pd.api.types.is_object_dtype(s.dtype):
-        # Do element-by-element
-        return pd.Series([_convert_skalar_to_preferred(sk, pref) for sk in s], s.index, name=s.name)
-    return s  # bools, timestamps, ...; unknown unit; pintseries without unit preference
+) -> pd.Series | dict[Any, pint.Quantity]:
+    s_or_dict = coerce_not_quantityseries(s)
+    if isinstance(s_or_dict, pd.Series):
+        if (new_units := pref.get(get_basedimty(s_or_dict))) is not None:
+            return s_or_dict.pint.to(new_units)
+    else:  # dict: do element-by-element
+        return {key: _coerce_quantity_to_preferred(sk, pref) for key, sk in s_or_dict.items()}
 
 
 @overload
 def convert_to_preferred(
-    obj: int | float | pint.Quantity,
-    pref: Mapping[pint.util.UnitsContainer, pint.Unit],
+    obj: int | float | pint.Quantity, pref: Mapping[pint.util.UnitsContainer, pint.Unit]
 ) -> pint.Quantity: ...
 
 
 @overload
 def convert_to_preferred(
-    obj: pd.Series,
-    pref: Mapping[pint.util.UnitsContainer, pint.Unit],
+    obj: pd.Series, pref: Mapping[pint.util.UnitsContainer, pint.Unit]
 ) -> pd.Series: ...
 
 
 @overload
 def convert_to_preferred(
-    obj: pd.DataFrame,
-    pref: Mapping[pint.util.UnitsContainer, pint.Unit],
+    obj: pd.DataFrame, pref: Mapping[pint.util.UnitsContainer, pint.Unit]
 ) -> pd.DataFrame: ...
 
 
 def convert_to_preferred(
-    obj: int | float | pint.Quantity | pd.Series | pd.DataFrame,
+    obj: (
+        int | float | pint.Quantity | IntSeries | FloatSeries | PintSeries | pd.DataFrame | Iterable
+    ),
     pref: Mapping[pint.util.UnitsContainer, pint.Unit],
-) -> pint.Quantity | pd.Series | pd.DataFrame:
+) -> pint.Quantity | PintSeries | Iterable:
     """Convert ``obj`` to preferred units. Also turns floats and ints into dimensionless.
 
     Parameters
@@ -419,8 +448,8 @@ def convert_to_preferred(
         Same object, in other units.
     """
     if isinstance(obj, pd.DataFrame):
-        return pd.DataFrame({col: _convert_series_to_preferred(s, pref) for col, s in obj.items()})
+        return pd.DataFrame({col: _coerce_series_to_preferred(s, pref) for col, s in obj.items()})
     elif isinstance(obj, pd.Series):
-        return _convert_series_to_preferred(obj, pref)
+        return _coerce_series_to_preferred(obj, pref)
     else:  # assume skalar, so int, float, quantity, but also bool, timestamp, ...
-        return _convert_skalar_to_preferred(obj, pref)
+        return _coerce_quantity_to_preferred(obj, pref)

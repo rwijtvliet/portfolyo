@@ -11,16 +11,16 @@ from . import index as tools_index
 from . import stamp as tools_stamp
 from . import startofday as tools_sod
 from . import unit as tools_unit
-from .types import Frequencylike, Series_or_DataFrame
+from .types import Frequencylike, TimeDataframe, TimeSeries, TimeSeries_or_TimeDataframe
 
 
-def _emptyseries(s_ref: pd.Series, freq: BaseOffset) -> pd.Series:
+def _emptyseries(s_ref: TimeSeries, freq: BaseOffset) -> TimeSeries:
     s = s_ref.copy().iloc[:0]
     s.index.freq = freq
     return freq
 
 
-def _downsample_avgable(s: pd.Series, freq: BaseOffset) -> pd.Series:
+def _downsample_avgable(s: TimeSeries, freq: BaseOffset) -> TimeSeries:
     """Downsample averagble series."""
     # Downsampling is easiest for summable series. Therefore, make `s` summable first.
     duration = tools_index.duration(s.index)
@@ -31,7 +31,7 @@ def _downsample_avgable(s: pd.Series, freq: BaseOffset) -> pd.Series:
     return s2.rename(s.name)
 
 
-def _downsample_summable(s: pd.Series, freq: BaseOffset) -> pd.Series:
+def _downsample_summable(s: TimeSeries, freq: BaseOffset) -> TimeSeries:
     """Downsample summable series."""
     # Downsampling is easiest for summable series: sum child values.
 
@@ -71,7 +71,7 @@ def _downsample_summable(s: pd.Series, freq: BaseOffset) -> pd.Series:
     return s.rename(name)
 
 
-def _upsample_summable(s: pd.Series, freq: BaseOffset) -> pd.Series:
+def _upsample_summable(s: TimeSeries, freq: BaseOffset) -> TimeSeries:
     """Upsample summable series."""
     # Upsampling is easiest for averagable series. Therefore, make `s` averagable first.
     duration = tools_index.duration(s.index)
@@ -82,7 +82,7 @@ def _upsample_summable(s: pd.Series, freq: BaseOffset) -> pd.Series:
     return s2.rename(s.name)
 
 
-def _upsample_avgable(s: pd.Series, freq: BaseOffset) -> pd.Series:
+def _upsample_avgable(s: TimeSeries, freq: BaseOffset) -> TimeSeries:
     """Upsample averagable series."""
     # Upsampling is easiest for averagable series: duplicate value to all children.
 
@@ -114,7 +114,7 @@ def _upsample_avgable(s: pd.Series, freq: BaseOffset) -> pd.Series:
     return s2.iloc[:-1].rename(s.name)
 
 
-def _general(s: pd.Series, freq: Frequencylike, *, summable: bool) -> pd.Series:
+def _general(s: TimeSeries, freq: Frequencylike, *, summable: bool) -> TimeSeries:
     """Change frequency of a Series, depending on the type of data it contains.
 
     Parameters
@@ -131,7 +131,7 @@ def _general(s: pd.Series, freq: Frequencylike, *, summable: bool) -> pd.Series:
         Resampled series at target frequency.
     """
     # Coercion.
-    s = tools_unit.coerce_pintframe(s)
+    s = tools_unit.coerce_pintseries(s)
     freq = tools_freq.convert_and_validate(freq)
 
     # TODO: Add tests with multiindex columns
@@ -201,14 +201,14 @@ def index(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
 
 
 @overload
-def summable(fr: pd.Series, freq: str | BaseOffset) -> pd.Series: ...
+def summable(fr: TimeSeries, freq: Frequencylike) -> TimeSeries: ...
 
 
 @overload
-def summable(fr: pd.DataFrame, freq: str | BaseOffset) -> pd.DataFrame: ...
+def summable(fr: TimeDataframe, freq: Frequencylike) -> TimeDataframe: ...
 
 
-def summable(fr: Series_or_DataFrame, freq: str | BaseOffset) -> Series_or_DataFrame:
+def summable(fr: TimeSeries_or_TimeDataframe, freq: Frequencylike) -> TimeSeries_or_TimeDataframe:
     """Resample and aggregate a Series or DataFrame with 'time-summable' timeseries data.
 
     Parameters
@@ -249,14 +249,14 @@ def summable(fr: Series_or_DataFrame, freq: str | BaseOffset) -> Series_or_DataF
 
 
 @overload
-def averagable(fr: pd.Series, freq: str | BaseOffset) -> pd.Series: ...
+def averagable(fr: TimeSeries, freq: Frequencylike) -> TimeSeries: ...
 
 
 @overload
-def averagable(fr: pd.DataFrame, freq: str | BaseOffset) -> pd.DataFrame: ...
+def averagable(fr: TimeDataframe, freq: Frequencylike) -> TimeDataframe: ...
 
 
-def averagable(fr: Series_or_DataFrame, freq: str | BaseOffset) -> Series_or_DataFrame:
+def averagable(fr: TimeSeries_or_TimeDataframe, freq: Frequencylike) -> TimeSeries_or_TimeDataframe:
     """Resample and aggregate a Series or DataFrame with 'time-averagable' timeseries data.
 
     Parameters

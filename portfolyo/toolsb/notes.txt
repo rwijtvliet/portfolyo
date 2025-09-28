@@ -2,5 +2,10 @@ Organisation of modules and methods:
 
 * Each module works on a specific object class.
 
-* All methods inside a module take the same object type as their first argument.
+* If possible, all methods inside a module take the same object type as their first argument.
+
+* There are 3 common functions found in these modules:
+  - ``convert``: tries to convert argument to target type, returns as-is if not possible.
+  - ``validate``: checks if argument is of correct type, raises Error if not.
+  - ``coerce`` (``convert`` followed by ``validate``): tries to convert argument to target type, raises Error if not possible.
 

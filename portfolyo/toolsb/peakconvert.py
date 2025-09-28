@@ -6,10 +6,10 @@ from . import frame as tools_frame
 from . import index as tools_index
 from . import peakfn as tools_peakfn
 from . import wavg as tools_wavg
-from .types import Frequencylike
+from .types import Frequencylike, TimeDataframe, TimeSeries
 
 
-def _tseries2po(s: pd.Series, peak_fn: tools_peakfn.PeakFunction, is_summable: bool) -> pd.Series:
+def _tseries2po(s: TimeSeries, peak_fn: tools_peakfn.PeakFunction, is_summable: bool) -> pd.Series:
     """
     Aggregate timeseries with varying (float) values to a single (float) peak and offpeak value.
 
@@ -43,11 +43,11 @@ def _tseries2po(s: pd.Series, peak_fn: tools_peakfn.PeakFunction, is_summable: b
 
 
 def tseries2poframe(
-    s: pd.Series,
+    s: TimeSeries,
     peak_fn: tools_peakfn.PeakFunction,
     freq: Frequencylike,
     is_summable: bool,
-) -> pd.DataFrame:
+) -> TimeDataframe:
     """
     Aggregate timeseries with varying values to a dataframe with peak and offpeak
     timeseries, grouped by specified frequency.

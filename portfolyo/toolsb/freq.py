@@ -98,23 +98,22 @@ def _downsample_targets(freq: BaseOffset) -> set[BaseOffset]:
 
 
 @functools.lru_cache()
-def convert(freq: Frequencylike) -> BaseOffset:
-    """Convert argument to correct/expected type."""
-    if isinstance(freq, str):
-        freq = to_offset(freq)
-    return freq
-
-
-@functools.lru_cache()
-def validate(freq: BaseOffset | None) -> None:
-    """Validate if argument has necessary properties to be used in portfolio lines."""
+def validate(freq: Any) -> None:
+    """Check if ``freq`` is valid frequency. If not, raise Error."""
     if freq is None:
         raise ValueError("Frequency may not be None.")
     if freq not in _FREQUENCIES:
         raise ValueError(f"Frequency must be one of {ALLOWED_FREQUENCIES_DOCS}.")
 
 
-coerce = tools_decorator.coerce_fn(convert, validate)
+@functools.lru_cache()
+def coerce(freq: Frequencylike) -> BaseOffset:
+    """Convert ``freq`` into valid frequency; raise Error if unsuccessful."""
+    if isinstance(freq, str):
+        freq = to_offset(freq)
+
+    validate(freq)
+    return freq
 
 
 # --------------------------

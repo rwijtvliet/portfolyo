@@ -10,8 +10,9 @@ from . import changefreq as tools_changefreq
 from . import freq as tools_freq
 from . import index as tools_index
 from . import startofday as tools_sod
+from .types import BoolTimeSeries, PintTimeSeries
 
-PeakFunction = Callable[[pd.DatetimeIndex], pd.Series]
+PeakFunction = Callable[[pd.DatetimeIndex], BoolTimeSeries]
 
 
 def factory(
@@ -106,7 +107,7 @@ def factory(
             mask &= cond1
         return mask
 
-    def peak_fn(idx: pd.DatetimeIndex) -> pd.Series:
+    def peak_fn(idx: pd.DatetimeIndex) -> BoolTimeSeries:
         # Check if function works for this frequency.
         if tools_freq.up_or_down(idx.freq, longest_freq) > 0:
             raise ValueError(
@@ -122,7 +123,7 @@ def factory(
     return peak_fn
 
 
-def base_duration(idx: pd.DatetimeIndex) -> pd.Series:
+def base_duration(idx: pd.DatetimeIndex) -> PintTimeSeries:
     """Duration of base period in each element of a datetimeindex. Alias of .duration.
 
     See also
@@ -132,7 +133,7 @@ def base_duration(idx: pd.DatetimeIndex) -> pd.Series:
     return tools_index.duration(idx)
 
 
-def peak_duration(idx: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
+def peak_duration(idx: pd.DatetimeIndex, peak_fn: PeakFunction) -> PintTimeSeries:
     """Duration of peak periods in each element of a datetimeindex.
 
     Parameters
@@ -168,7 +169,7 @@ def peak_duration(idx: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
     raise ValueError("Couldn't calculate the duration of the peak period for the provided index.")
 
 
-def offpeak_duration(idx: pd.DatetimeIndex, peak_fn: PeakFunction) -> pd.Series:
+def offpeak_duration(idx: pd.DatetimeIndex, peak_fn: PeakFunction) -> PintTimeSeries:
     """
     Duration of offpeak periods in each element of a datetimeindex.
 

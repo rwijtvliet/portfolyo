@@ -1,13 +1,15 @@
 """Units, applied to physical dimensions and portfolyo colums."""
 
-from typing import Iterable
+from typing import Callable, Iterable, Literal
 
 import numpy as np
 import pandas as pd
 import pint
+from pint.util import UnitsContainer
 
+from . import index as tools_index
 from . import testing as tools_testing
-from .types import Col
+from .types import Col, UniformSeries
 from .unit import get_basedimty, ureg
 
 # =========================
@@ -179,41 +181,77 @@ def validate_complete(
         raise ValueError("Did not find a currency.")
 
 
-_COL_TO_DIMTIES = {
+_COL_TO_DIMTIESFN: dict[Col, Callable[[], set[pint.util.UnitsContainer]]] = {
     "q": _Dimty.quantity_dims,
     "w": _Dimty.quantityrate_dims,
     "r": _Dimty.currency_dims,
     "p": _Dimty.quantityprice_dims,
-    "nodim": {_Dimty.dimensionless_dim},  # TODO: must be removed?
 }
 
 
-def col_to_dimties(col: Col) -> set[pint.util.UnitsContainer]:
-    """Return dimensionalities (in base dimensions) allowed for a given column."""
-    return _COL_TO_DIMTIES[col]()
+def col_to_dimties(
+    col: Col | Literal["nodim"], nodim_allowed: bool = False
+) -> set[pint.util.UnitsContainer]:
+    """Return dimensionalities (in base dimensions) allowed for a given column.
+
+    Parameters
+    ----------
+    col
+        The column for which to get the allowed dimensionality.
+    nodim_allowed, optional (default: False)
+        If False, ``col`` may be one of 'w', 'q', 'p', 'r'. If True, may also be 'nodim'.
+
+    Returns
+    -------
+        Set of allowed dimensionalities.
+    """
+    if col == "nodim":
+        if nodim_allowed:
+            return {_Dimty.dimensionless_dim()}
+        raise ValueError("Value 'nodim' not allowed for parameter `col`.")
+    return _COL_TO_DIMTIESFN[col]()
 
 
 def valid_col(
-    obj: pint.util.UnitsContainer | pint.Unit | pint.Quantity | pd.Series | str | float | int,
-) -> str:
-    """Return column allowed for a given object."""
+    obj: pint.util.UnitsContainer | pint.Unit | pint.Quantity | UniformSeries | str | float | int,
+    nodim_allowed: bool = False,
+) -> Col | Literal["nodim"]:
+    """Return column allowed for a given object.
+
+    Parameters
+    ----------
+    obj
+        Data from which to analyse the units (dimensionality) to find column it can be used for.
+    nodim_allowed, optional (default: False)
+        If False, check if ``col`` is one of 'w', 'q', 'p', 'r'. If True, check also if it is 'nodim'.
+
+    Returns
+    -------
+        Column for which the data can be used.
+    """
     dim = get_basedimty(obj)
-    for col, dimtyfn in _COL_TO_DIMTIES.items():
-        if dim in dimtyfn():
+    for col, dimtiesfn in _COL_TO_DIMTIESFN.items():
+        if dim in dimtiesfn():
             return col
+    if nodim_allowed and dim == _Dimty.dimensionless_dim():
+        return "nodim"
     raise ValueError(
         f"Dimensionality of object {obj} ({dim}) not valid as a column for a portfolio line."
     )
 
 
 def complete_and_verify(
-    duration: pd.Series,
-    w: pd.Series | None,
-    q: pd.Series | None,
-    p: pd.Series | None,
-    r: pd.Series | None,
+    w: pd.Series | None, q: pd.Series | None, p: pd.Series | None, r: pd.Series | None
 ) -> tuple[pd.Series | None, pd.Series | None, pd.Series | None, pd.Series | None]:
     """Calculate as many of the series as possible. Series are assumed to have same index."""
+    # Get duration.
+    for s in [w, q, p, r]:
+        if s is not None:
+            duration = tools_index.duration(s.index)
+            break
+    else:
+        return None, None, None, None
+
     # Volumes.
     if w is not None and q is not None:
         try:
@@ -229,7 +267,7 @@ def complete_and_verify(
         w = q / duration
 
     # If we are here, there are no more options to find w and q.
-    # They are consistent with each other but might be inconsistent with p and r.
+    # If they are not both None, they are consistent with each other but might be inconsistent with p and r.
 
     # Price.
     if p is None and q is not None and r is not None:
