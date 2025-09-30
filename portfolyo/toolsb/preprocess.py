@@ -1,8 +1,6 @@
 """Module to preprocess indices, frequencies, timedeltas."""
 
-import pandas as pd
 
-from .. import tools
 
 # def timedelta_to_jump(tdelta: pd.Timedelta) -> pd.Timedelta | pd.DateOffset:
 #     """Guess the jump object from a time delta.

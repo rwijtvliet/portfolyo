@@ -1,7 +1,7 @@
 """Module with decorators."""
 
 import functools
-from typing import Any, Callable, Hashable
+from typing import Hashable
 
 
 def cache_hashable_arguments(fn):

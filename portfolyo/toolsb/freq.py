@@ -10,7 +10,6 @@ import pandas as pd
 from pandas.tseries.frequencies import MONTHS, to_offset
 from pandas.tseries.offsets import BaseOffset
 
-from . import _decorator as tools_decorator
 from .types import Frequencylike
 
 # Developer notes:

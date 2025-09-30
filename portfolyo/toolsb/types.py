@@ -49,6 +49,8 @@ BoolTimeSeries = pd.Series  # Series with DatetimeIndex and bool dtype
 NontimeDataframe = pd.DataFrame  # without DatetimeIndex
 TimeDataframe = pd.DataFrame  # with DatetimeIndex
 
+# 3)
+PintTimeDataframe = pd.DataFrame  # with DatetimeIndex and each column has a pint dtype
 
 # Series or Dataframe.
 

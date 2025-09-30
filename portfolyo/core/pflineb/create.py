@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
-from . import flat, nested, pfline
-from .enums import Kind, Structure
+import pint
+
+from ...toolsb.types import Col, PintTimeDataframe, PintTimeSeries
+from ..commodity import Commodity
+from . import flat, flat_helper, nested, nested_helper, pfline
 
 if TYPE_CHECKING:
     from .flat import FlatPfLine
@@ -13,19 +16,16 @@ if TYPE_CHECKING:
 
 def create_pfline(data: Any, commodity: Commodity | None = None) -> PfLine:
     """Create a PfLine instance from the provided data, if possible."""
+    # Catch easy cases.
     if isinstance(data, pfline.PfLine):
-        # Data already correct instance. Quick-return.
-        if data.commodity is commodity:
-            return data
-        else:
-            return data.set_commodity(commodity)
+        return data if data.commodity is commodity else data.set_commodity(commodity)
 
     # Data must be processed to see, which descendent class we need to return.
     errors = {}
     for name, fn in {"flat": create_flatpfline, "nested": create_nestedpfline}.items():
         # Try passing data to other creation functions.
         try:
-            return fn(data)
+            return fn(data, commodity)
         except (ValueError, TypeError, KeyError) as e:
             errors[name] = e
             pass
@@ -35,55 +35,66 @@ def create_pfline(data: Any, commodity: Commodity | None = None) -> PfLine:
     )
 
 
-def create_flatpfline(data: Any) -> FlatPfLine:
+def create_flatpfline(
+    data: (
+        Mapping[Col, PintTimeSeries | pint.Quantity]
+        | PintTimeDataframe
+        | PintTimeSeries
+        | Iterable[PintTimeSeries | pint.Quantity]
+    ),
+    commodity: Commodity | None,
+) -> FlatPfLine:
     """Create a FlatPfLine instance from the provided data, if possible.
 
     Parameters
     ----------
-    data: Any
+    data
         Generally: mapping with one or more attributes or items ``w``, ``q``, ``r``, ``p``;
         all timeseries. Most commonly a ``pandas.DataFrame`` or a dictionary of
         ``pandas.Series``, but may also be e.g. another PfLine object.
-        If they contain a (distinct) ``pint`` data type, ``data`` may also be a single
+        If they contain (distinct) ``pint`` data types, ``data`` may also be a single
         ``pandas.Series`` or a collection of ``pandas.Series``.
+    commodity, optional (default: none)
+        Commodity the data applies to. Used to set units etc.
 
     Returns
     -------
-    FlatPfLine
+        Flat portfolio line
     """
-    # In some situations, no processing is needed to return a flat pfline.
-    if isinstance(data, flat.FlatPfLine):
-        # Data already correct instance. Quick-return.
-        return data
-    elif isinstance(data, nested.NestedPfLine):
-        # The data is a PfLine, but not a flat one.
-        return data.flatten()
+    # Catch easy cases.
+    if isinstance(data, flat.FlatPfLine):  # data already correct instance; quick-return
+        return data.set_commodity(commodity)
+    elif isinstance(data, nested.NestedPfLine):  # data is a PfLine, but not a flat one: flatten
+        return data.flatten().set_commodity(commodity)
 
-    # Data must be processed to see, which descendent class we need to return.
-    df, kind = flat_helper.dataframe_and_kind(data)
+    # Data must be processed to find dataframe and kind.
+    df = flat_helper.create_df(data)
+    kind = flat_helper.get_kind(df)
+    df = flat_helper.apply_commodity(df, commodity)
     return flat.FlatPfLine(df, kind, commodity)
 
 
-def create_nestedpfline(data: Any) -> NestedPfLine:
+def create_nestedpfline(data: Mapping[str, Any], commodity: Commodity | None) -> NestedPfLine:
     """Create a NestedPfLine instance from the provided data, if possible.
 
     Parameters
     ----------
-    data: Any
+    data
         Generally: mapping, between strings (as keys) and portfolio lines, or objects
         that can be converted into portfolio lines (as values).
+    commodity, optional (default: none)
+        Commodity the data applies to. Used to set units etc.
 
     Returns
     -------
-    NestedPfLine
+        Nested portfolio line
     """
-    if isinstance(data, nested.NestedPfLine):
-        # Data already correct instance. Quick-return.
-        return data
+    # Catch easy cases.
+    if isinstance(data, nested.NestedPfLine):  # data already correct instancE; quick-return
+        return data.set_commodity(commodity)
     elif isinstance(data, flat.FlatPfLine):
-        # The data is a PfLine, but not a nested one.
         raise TypeError("Cannot create nested portfolio line from a flat portfolio line.")
 
-    # Data must be processed to see, which descendent class we need to return.
+    # Data must be processed to find children and kind.
     children, kind = nested_helper.children_and_kind(data)
     return nested.NestedPfLine(children, kind, commodity)

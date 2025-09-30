@@ -5,7 +5,6 @@ from typing import Callable, Iterable, Literal
 import numpy as np
 import pandas as pd
 import pint
-from pint.util import UnitsContainer
 
 from . import index as tools_index
 from . import testing as tools_testing

@@ -5,7 +5,6 @@ from typing import Iterable
 
 import pandas as pd
 
-from . import _decorator as tools_decorator
 from . import freq as tools_freq
 from . import stamp as tools_stamp
 from . import startofday as tools_sod
