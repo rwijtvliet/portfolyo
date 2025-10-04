@@ -8,10 +8,15 @@ from typing import Any, Dict, Mapping, Tuple
 import pandas as pd
 
 from ... import toolsb
-from ...toolsb.types import PintTimeDataframe
-from ..commodity import Commodity
-from . import pfline
+from . import classes, create
 from .enums import Kind
+
+
+def children_and_kind(data: Any) -> Tuple[Dict[str, classes.PfLine], Kind]:
+    mapping = _mapping(data)
+    children = _children(mapping)
+    kind = _kind(children)
+    return children, kind
 
 
 def _mapping(data: Any) -> Mapping[Any, Any]:
@@ -32,15 +37,11 @@ def _mapping(data: Any) -> Mapping[Any, Any]:
     )
 
 
-def create_children(data: Mapping | PintTimeDataframe) -> dict[str, pfline.PfLine]:
-    """From data, create a dictionary of PfLines. Also, do some data verification."""
-
-    # Turn dataframe into dictionary.
-    if isinstance(data, pd.DataFrame):
-        data = {colname: data[colname] for colname in data.columns.get_level_values(0).unique()}
+def _children(mapping: Mapping) -> Dict[str, classes.PfLine]:
+    """From mapping, create dictionary of PfLines."""
 
     # Create dictionary of PfLines.
-    children = {name: pfline.create(child) for name, child in data.items()}
+    children = {name: create.pfline(child) for name, child in mapping.items()}
 
     # Assert valid keys.
     for name in children:
@@ -60,19 +61,12 @@ def create_children(data: Mapping | PintTimeDataframe) -> dict[str, pfline.PfLin
     return {name: child.loc[idx] for name, child in children.items()}
 
 
-def apply_commodity(
-    children: dict[str, pfline.PfLine], commodity: Commodity | None
-) -> dict[str, pfline.PfLine]:
-    """Apply ``commodity`` to ``children``, i.e., convert to correct units and do few checks."""
-    return {name: child.set_commodity(commodity) for name, child in children.items()}
-
-
-def get_kind(children: dict[str, pfline.PfLine]) -> Kind:
+def _kind(children: Dict[str, classes.PfLine]) -> Kind:
     """Kind of data, based on children."""
 
     # Kind of children.
-    kindset = set([child.kind for child in children.values()])  # always >= 1
-    if len(kindset) > 1:
+    kindset = set([child.kind for child in children.values()])
+    if len(kindset) != 1:
         kinds1 = defaultdict(list)
         for name, child in children.items():
             kinds1[child.kind].append(name)

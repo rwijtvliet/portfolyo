@@ -1,96 +1,96 @@
 """Functions to change frequency of a pandas dataframe."""
 
-from typing import Any
+from typing import overload
 
 import pandas as pd
+from pandas.tseries.offsets import BaseOffset
 
-from . import duration as tools_duration
+from . import frame as tools_frame
 from . import freq as tools_freq
-from . import right as tools_right
-from . import startofday as tools_startofday
-from . import trim as tools_trim
-from .types import Series_or_DataFrame
+from . import index as tools_index
+from . import stamp as tools_stamp
+from . import startofday as tools_sod
+from . import unit as tools_unit
+from .types import Frequencylike, TimeDataframe, TimeSeries, TimeSeries_or_TimeDataframe
 
 
-def _astype(s: pd.Series, dtype: Any) -> pd.Series:
-    """Convert dtype of series ``s`` to ``dtype``."""
-    # HACK: s.astype(float) results in incorrect datatype (see https://github.com/hgrecco/pint-pandas/issues/203).
-    # therefore: workaround taking the magnitude if wanted dtype is float (in this case, s.dtype should be 'pint[dimensionless]')
-    if dtype is float and s.dtype == "pint[dimensionless]":
-        return s.pint.magnitude
-    return s.astype(dtype)
+def _emptyseries(s_ref: TimeSeries, freq: BaseOffset) -> TimeSeries:
+    s = s_ref.copy().iloc[:0]
+    s.index.freq = freq
+    return freq
 
 
-def _emptyseries(s_ref: pd.Series, freq) -> pd.Series:
-    i = pd.DatetimeIndex([], freq=freq, tz=s_ref.index.tz)
-    return pd.Series([], i, dtype=s_ref.dtype, name=s_ref.name)
-
-
-def _downsample_avgable(s: pd.Series, freq: str) -> pd.Series:
+def _downsample_avgable(s: TimeSeries, freq: BaseOffset) -> TimeSeries:
     """Downsample averagble series."""
-    # For averagable series: first make summable.
-    duration = tools_duration.frame(s)
-    summable = s.mul(duration, axis=0)  # now has a pint dtype
+    # Downsampling is easiest for summable series. Therefore, make `s` summable first.
+    duration = tools_index.duration(s.index)
+    summable = s.mul(duration)
     summable2 = _downsample_summable(summable, freq)
-    duration2 = tools_duration.frame(summable2)
-    s2 = summable2.div(duration2, axis=0)
-    s2 = _astype(s2, s.dtype)
+    duration2 = tools_index.duration(summable2.index)
+    s2 = summable2.div(duration2)
     return s2.rename(s.name)
 
 
-def _downsample_summable(s: pd.Series, freq: str) -> pd.Series:
+def _downsample_summable(s: TimeSeries, freq: BaseOffset) -> TimeSeries:
     """Downsample summable series."""
     # Downsampling is easiest for summable series: sum child values.
 
-    s = tools_trim.frame(s, freq)  # keep only full periods in target freq
+    s = tools_frame.trim(s, freq)  # keep only full periods in target freq
 
     if not len(s):  # Empty series.
         return _emptyseries(s, freq)
 
-    offset = tools_startofday.get(s.index, "timedelta")
-    source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
-    target_vs_daily = tools_freq.up_or_down(freq, "D")
+    offset = tools_sod.to_tdelta(s.index[0].time())
+    source, target = s.index.freq, freq
+    name = s.name
 
-    # HACK: We cannot simply `.resample()`, e.g. from hourly to monthly, because in that
-    # case the start-of-day is lost. We need to do it in two steps.
+    # HACK: We cannot always simply `.resample()`. When resampling e.g. from hourly to monthly,
+    # the start-of-day is lost, and we need to do it in two steps.
+    # Cases and approach:
+    # A) Source < daily and target < daily: normal downsampling
+    # B) Source < daily and target = daily: downsample to daily with offset
+    # C) Source < daily and target > daily: downsample to daily with offset, downsample to source with fix
+    # D) Source >= daily and target > daily: downsample to source with fix
 
-    # Downsample to days.
-    s2 = s
-    if source_vs_daily < 0:
-        if target_vs_daily < 0:
-            return s2.resample(freq).sum()
-        s2 = s2.resample("D", offset=offset).sum()
-    # Downsample to longer-than-days.
-    if target_vs_daily > 0:
-        # workaround: (a) first downsample to days...
-        s2 = s2.resample(freq).sum()
-        s2.index += offset  # ...(b) add the offset manually...
-        s2.index.freq = freq  # ...(c) and set the frequency manually as well.
-    return s2.rename(s.name)
+    # Case A: Both shorter than daily: normal downsampling.
+    if tools_freq.is_shorter_than_daily(source) and tools_freq.is_shorter_than_daily(target):
+        return s.resample(target).sum()
+
+    # If we are here, `source` or `target` (or both) is daily-or-longer.
+
+    # Case B or C: downsample to daily with offset.
+    if tools_freq.is_shorter_than_daily(source):
+        s = s.resample("D", offset=offset).sum()  # workaround: (a) first downsample to days...
+
+    # Case C or D: downsample to source and fix.
+    if tools_freq.is_longer_than_daily(target):
+        s = s.resample(freq).sum()  # (b) ...then downsample further to source freq...
+        s.index += offset  # ...(c) add the offset manually...
+        s.index.freq = freq  # ...(d) and set the frequency manually as well.
+
+    return s.rename(name)
 
 
-def _upsample_summable(s: pd.Series, freq: str) -> pd.Series:
+def _upsample_summable(s: TimeSeries, freq: BaseOffset) -> TimeSeries:
     """Upsample summable series."""
-    # For summable series: first make averagable.
-    duration = tools_duration.frame(s)
-    avgable = s.div(duration, axis=0)  # now has a pint dtype
+    # Upsampling is easiest for averagable series. Therefore, make `s` averagable first.
+    duration = tools_index.duration(s.index)
+    avgable = s.div(duration)
     avgable2 = _upsample_avgable(avgable, freq)
-    duration2 = tools_duration.frame(avgable2)
-    s2 = avgable2.mul(duration2, axis=0)
-    s2 = _astype(s2, s.dtype)
+    duration2 = tools_index.duration(avgable2.index)
+    s2 = avgable2.mul(duration2)
     return s2.rename(s.name)
 
 
-def _upsample_avgable(s: pd.Series, freq: str) -> pd.Series:
+def _upsample_avgable(s: TimeSeries, freq: BaseOffset) -> TimeSeries:
     """Upsample averagable series."""
     # Upsampling is easiest for averagable series: duplicate value to all children.
 
     if not len(s):  # Empty series.
         return _emptyseries(s, freq)
 
-    offset = tools_startofday.get(s.index, "timedelta")
-    source_vs_daily = tools_freq.up_or_down(s.index.freq, "D")
-    target_vs_daily = tools_freq.up_or_down(freq, "D")
+    offset = tools_sod.to_tdelta(s.index[0].time())
+    source, target = s.index.freq, freq
 
     # Several isuses with pandas resampling:
 
@@ -98,125 +98,186 @@ def _upsample_avgable(s: pd.Series, freq: str) -> pd.Series:
     # start-of-day is lost. We need to do it in two steps; first upsampling to days and
     # then downsampling to months.
 
-    if source_vs_daily > 0 and target_vs_daily > 0:
+    if tools_freq.is_longer_than_daily(source) and tools_freq.is_longer_than_daily(target):
         return _downsample_avgable(_upsample_avgable(s, "D"), freq)
 
     # HACK: (2): We cannot simply `.resample()`, because in that case the final value is not
     # duplicated. Solution: add a dummy value, which we eventually remove again.
 
     # So, first, add additional row...
-    # (original code to add additional row, does not work if unit-aware. Maybe with future release of pint_pandas?)
-    # s = s.copy()
-    # s.loc[s.index.right[-1]] = None
-    # (Workaround: turn into dataframe, change frequency, and turn back into series.)
-    df = pd.DataFrame(s)
-    additional_stamp = tools_right.stamp(s.index[-1], s.index.freq)
-    df.loc[additional_stamp, :] = None
+    additional_stamp = tools_stamp.to_right(s.index[-1], s.index.freq)
+    new_idx = s.index.append(pd.DatetimeIndex([additional_stamp], freq=s.index.freq))
+    s = s.reindex(new_idx)  # adds nan in final row
     # ... then do upsampling ...
-    df2 = df.resample(freq, offset=offset).asfreq().ffill()  # duplicate value
+    s2 = s.resample(freq, offset=offset).asfreq().ffill()
     # ... and then remove final row (and turn back into series).
-    return df2.iloc[:-1, 0].rename(s.name)
+    return s2.iloc[:-1].rename(s.name)
 
 
-def _general(is_summable: bool, s: pd.Series, freq: str = "MS") -> pd.Series:
-    f"""Change frequency of a Series, depending on the type of data it contains.
+def _general(s: TimeSeries, freq: Frequencylike, *, summable: bool) -> TimeSeries:
+    """Change frequency of a Series, depending on the type of data it contains.
 
     Parameters
     ----------
-    is_summable : bool
-        True if data is summable, False if it is averagable.
-    s : pd.Series
-        Series that needs to be resampled.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
+    s
+        Timeseries that needs to be resampled.
+    freq
         Target frequency.
+    summable
+        True if data is summable, False if it is averagable.
 
     Returns
     -------
-    pd.Series
         Resampled series at target frequency.
     """
+    # Coercion.
+    s = tools_unit.coerce_pintseries(s)
+    freq = tools_freq.convert_and_validate(freq)
 
     # TODO: Add tests with multiindex columns
 
-    # Eliminate integers.
-    if pd.api.types.is_integer_dtype(s.dtype):
-        s = s.astype(float)
-
-    # s is now a Series with a 'float' or 'pint' dtype.
-
     up_or_down = tools_freq.up_or_down(s.index.freq, freq)
 
-    # Nothing more needed; portfolio already in desired frequency.
+    # No resampling; portfolio already in desired frequency.
     if up_or_down == 0:
-        s.index.freq = freq
+        if s.index.freq != freq:  # equivalent but unequal
+            s = s.copy()
+            s.index.freq = freq
         return s
 
     # Must downsample.
     elif up_or_down == -1:
-        if is_summable:
+        if summable:
             return _downsample_summable(s, freq)
         else:
             return _downsample_avgable(s, freq)
 
     # Must upsample.
     else:
-        if is_summable:
+        if summable:
             return _upsample_summable(s, freq)
         else:
             return _upsample_avgable(s, freq)
 
 
-def index(i: pd.DatetimeIndex, freq: str = "MS") -> pd.DatetimeIndex:
-    f"""Resample index.
+def index(idx: pd.DatetimeIndex, freq: Frequencylike) -> pd.DatetimeIndex:
+    """Resample index.
 
     Parameters
     ----------
-    i : pd.DatetimeIndex
+    idx
         Index to resample.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}
+    freq
         Target frequency.
 
     Returns
     -------
-    pd.DatetimeIndex
+        Resampled index.
     """
-    up_or_down = tools_freq.up_or_down(i.freq, freq)
+    # Coercion.
+    idx = tools_index.coerce(idx)
+    freq = tools_freq.convert_and_validate(freq)
+
+    up_or_down = tools_freq.up_or_down(idx.freq, freq)
 
     # Nothing more needed; index already in desired frequency.
     if up_or_down == 0:
-        return i
+        if idx.freq != freq:  # equivalent but unequal
+            idx = idx.copy()
+            idx.freq = freq
+        return idx
 
     # Must downsample.
     elif up_or_down == -1:
-        # We must jump through a hoop: can't directly resample an Index.
-        return _downsample_summable(pd.Series(0, i), freq).index
+        # HACK: we must jump through a hoop: can't directly resample an Index.
+        # (Use summable because faster.)
+        return _downsample_summable(pd.Series(0, idx), freq).index
 
     # Must upsample.
     else:  # up_or_down == 1
-        return _upsample_avgable(pd.Series(0, i), freq).index
+        # HACK: as above.
+        # (Use averagable because faster.)
+        return _upsample_avgable(pd.Series(0, idx), freq).index
 
 
-def summable(fr: Series_or_DataFrame, freq: str = "MS") -> Series_or_DataFrame:
-    f"""
-    Resample and aggregate a DataFrame or Series with 'time-summable' quantities.
+@overload
+def summable(fr: TimeSeries, freq: Frequencylike) -> TimeSeries: ...
+
+
+@overload
+def summable(fr: TimeDataframe, freq: Frequencylike) -> TimeDataframe: ...
+
+
+def summable(fr: TimeSeries_or_TimeDataframe, freq: Frequencylike) -> TimeSeries_or_TimeDataframe:
+    """Resample and aggregate a Series or DataFrame with 'time-summable' timeseries data.
 
     Parameters
     ----------
-    fr : Series or DataFrame
-        Pandas Series or DataFrame to be resampled.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
+    fr
+        Timeseries to change frequency of.
+    freq
         Target frequency.
 
     Returns
     -------
-    Series or DataFrame
+        Resampled timeseries at target frequency.
 
     Notes
     -----
-    A 'time-summable' quantity is one that can be summed to get to an aggregate
-    value, like revenue [Eur] or energy [MWh]. Prices [Eur/MWh] and powers [MW]
-    are not time-summable.
-    See https://portfolyo.readthedocs.io/en/latest/specialized_topics/resampling.html
+    When downsampling, the values are summed. When upsampling, the values are split according to
+    their duration.
+
+    'Time-summable' data is data that must be SUMMED to an aggregate value, like revenue (e.g. [Eur])
+    or energy (e.g. [MWh]). Prices (e.g. [Eur/MWh]) and powers (e.g. [MW]) are not time-summable.
+    See https://portfolyo.readthedocs.io/en/latest/specialized_topics/resampling.html for more
+    information.
+
+    For shorter-than-daily indices, it is assumed that the index starts with a full day.
+    I.e., the time-of-day of the first element is assumed to be the start time for the
+    day-or-longer delivery periods. (E.g., if the index has hourly values and starts with
+    "2020-04-21 06:00:00", it is assumed that a delivery day is from 06:00:00 (incl)
+    until 06:00:00 (excl).)
+
+    See also
+    --------
+    .averagable
+    """
+    if isinstance(fr, pd.DataFrame):
+        return pd.DataFrame({c: summable(s, freq) for c, s in fr.items()})
+
+    return _general(fr, freq, summable=True)
+
+
+@overload
+def averagable(fr: TimeSeries, freq: Frequencylike) -> TimeSeries: ...
+
+
+@overload
+def averagable(fr: TimeDataframe, freq: Frequencylike) -> TimeDataframe: ...
+
+
+def averagable(fr: TimeSeries_or_TimeDataframe, freq: Frequencylike) -> TimeSeries_or_TimeDataframe:
+    """Resample and aggregate a Series or DataFrame with 'time-averagable' timeseries data.
+
+    Parameters
+    ----------
+    fr
+        Timeseries to change frequency of.
+    freq
+        Target frequency.
+
+    Returns
+    -------
+        Resampled timeseries.
+
+    Notes
+    -----
+    When downsampling, the values are weighted with their duration. When upsampling, the values are
+    duplicated.
+
+    'Time-averagable' data is data that must be AVERAGED to an aggregate value, like power (e.g.
+    [MW]). Revenues (e.g. [Eur]), energies (e.g. [MWh]) and prices (e.g. [Eur/MWh]) are not
+    time-averagable. See https://portfolyo.readthedocs.io/en/latest/specialized_topics/resampling.html
     for more information.
 
     For shorter-than-daily indices, it is assumed that the index starts with a full day.
@@ -224,44 +285,12 @@ def summable(fr: Series_or_DataFrame, freq: str = "MS") -> Series_or_DataFrame:
     day-or-longer delivery periods. (E.g., if the index has hourly values and starts with
     "2020-04-21 06:00:00", it is assumed that a delivery day is from 06:00:00 (incl)
     until 06:00:00 (excl).)
+
+    See also
+    --------
+    .summable
     """
     if isinstance(fr, pd.DataFrame):
-        # Turn into series, change frequency, and turn back into dataframe.
-        return pd.DataFrame({key: summable(s, freq) for key, s in fr.items()})
+        return pd.DataFrame({c: averagable(s, freq) for c, s in fr.items()})
 
-    return _general(True, fr, freq)
-
-
-def averagable(fr: Series_or_DataFrame, freq: str = "MS") -> Series_or_DataFrame:
-    f"""
-    Resample and aggregate a DataFrame or Series with 'time-averagable' quantities.
-
-    Parameters
-    ----------
-    fr : Series or DataFrame
-        Pandas Series or DataFrame to be resampled.
-    freq : {tools_freq.ALLOWED_FREQUENCIES_DOCS}, optional (default: 'MS')
-        Target frequency.
-
-    Returns
-    -------
-    Series or DataFrame
-
-    Notes
-    -----
-    A 'time-averagable' quantity is one that can be averaged to an aggregate value,
-    like power [MW]. When downsampling, the values are weighted with their duration.
-    See https://portfolyo.readthedocs.io/en/latest/specialized_topics/resampling.html
-    for more information.
-
-    For shorter-than-daily indices, it is assumed that the index starts with a full day.
-    I.e., the time-of-day of the first element is assumed to be the start time for the
-    day-or-longer delivery periods. (E.g., if the index has hourly values and starts with
-    "2020-04-21 06:00:00", it is assumed that a delivery day is from 06:00:00 (incl)
-    until 06:00:00 (excl).)
-    """
-    if isinstance(fr, pd.DataFrame):
-        # Turn into series, change frequency, and turn back into dataframe.
-        return pd.DataFrame({key: averagable(value, freq) for key, value in fr.items()})
-
-    return _general(False, fr, freq)
+    return _general(fr, freq, summable=False)

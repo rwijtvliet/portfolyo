@@ -21,19 +21,7 @@ class NDFrameLike(abc.ABC):
 
     @abc.abstractmethod
     def asfreq(self, freq: str = "MS") -> NDFrameLike:
-        """Resample the instance to a new frequency.
-
-        Parameters
-        ----------
-        freq : str, optional
-            The frequency at which to resample. 'YS' for year, 'QS' for quarter, 'MS'
-            (default) for month, 'D for day', 'h' for hour, '15min' for quarterhour.
-
-        Returns
-        -------
-        Instance
-            Resampled at wanted frequency.
-        """
+        """Resample the instance to a new frequency."""
         ...
 
     @property
@@ -41,6 +29,12 @@ class NDFrameLike(abc.ABC):
     def loc(self):
         """Create a new instance with a subset of the rows (selection by row label(s) or
         a boolean array.)"""
+        ...
+
+    @property
+    @abc.abstractmethod
+    def iloc(self):
+        """Create a new instance with a subset of the rows (selection by row index position)."""
         ...
 
     @property

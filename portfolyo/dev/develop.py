@@ -1,6 +1,4 @@
-"""
-Code to quickly get objects for testing.
-"""
+"""Code to quickly get objects for testing."""
 
 import datetime as dt
 from typing import Callable, Dict, Tuple
@@ -8,12 +6,11 @@ from typing import Callable, Dict, Tuple
 import numpy as np
 import pandas as pd
 
-from portfolyo.toolsb.types import Frequencylike
-
-from .. import toolsb
-from ..core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine, create
+from .. import tools
+from ..core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine
 from ..core.pfstate import PfState
-from ..toolsb.unit import Q_, ureg
+from ..tools.types import Frequencylike
+from ..tools.unit import Q_, ureg
 from . import mockup
 
 OK_COL_COMBOS = ["w", "q", "p", "pr", "qr", "qp", "wp", "wr"]
@@ -31,9 +28,9 @@ NAMES_AND_UNITS = {
 _PERIODS = {"YS": 4, "QS": 5, "MS": 14, "D": 400, "h": 10_000, "15min": 50_000, "5min": 150_000}
 
 
-def _periods(freq):
+def _periods(freq: Frequencylike):
     for freq2, periods in _PERIODS.items():
-        if toolsb.freq.up_or_down(freq, freq2) >= 0:
+        if tools.freq.up_or_down(freq, freq2) >= 0:
             break
     else:
         raise ValueError("Couldn't find a fitting frequency.")
@@ -45,13 +42,13 @@ def get_index(
     tz: str = "Europe/Berlin",
     startdate: str | None = None,
     periods: int | None = None,
-    startofday: dt.time | str = toolsb.startofday.MIDNIGHT,
+    startofday: dt.time | str = tools.startofday.MIDNIGHT,
     *,
     _seed: int | None = None,
 ) -> pd.DatetimeIndex:
     """Get index."""
-    freq = toolsb.freq.convert_and_validate(freq)
-    startofday = toolsb.startofday.coerce(startofday)
+    freq = tools.freq.coerce(freq)
+    startofday = tools.startofday.coerce(startofday)
 
     # Prepare values.
     if _seed:
@@ -60,22 +57,22 @@ def get_index(
     if not startdate:
         y, m, d = 2016, 1, 1  # earliest possible
         y += np.random.randint(0, 8) if _seed else (periods % 8)
-        if toolsb.freq.up_or_down(freq, "MS") <= 0:
+        if tools.freq.up_or_down(freq, "MS") <= 0:
             m += np.random.randint(0, 12) if _seed else (periods % 12)
-        if toolsb.freq.up_or_down(freq, "D") <= 0:
+        if tools.freq.up_or_down(freq, "D") <= 0:
             d += np.random.randint(0, 28) if _seed else (periods % 28)
         startdate = f"{y}-{m}-{d}"
     # Create index.
     idx = pd.date_range(
-        f"{startdate} {toolsb.startofday.to_string(startofday)}", periods=periods, freq=freq, tz=tz
+        f"{startdate} {tools.startofday.to_string(startofday)}", periods=periods, freq=freq, tz=tz
     )
     # Some checks.
-    if toolsb.freq.is_shorter_than_daily(freq):
+    if tools.freq.is_shorter_than_daily(freq):
         idx = _shorten_index_if_necessary(idx, startofday)
     return idx
 
 
-def get_skalar(
+def get_scalar(
     col: str, has_unit: bool = True, magn: float | None = None, *, _seed: int = None
 ) -> float | Q_:
     """Get a single value."""
@@ -89,31 +86,31 @@ def get_skalar(
         return Q_(magn, NAMES_AND_UNITS[col])
 
 
-def _shorten_index_if_necessary(i, start_of_day) -> pd.DatetimeIndex:
+def _shorten_index_if_necessary(idx: pd.DatetimeIndex, start_of_day: dt.time) -> pd.DatetimeIndex:
     """Shorten index with (quarter)hourly values if necessary to ensure that an integer
     number of calendar days is included."""
-    if (i[-1] - i[0]).total_seconds() < 23 * 3600:
+    if (idx[-1] - idx[0]).total_seconds() < 23 * 3600:
         raise ValueError("Index must contain at least one full day")
     # Must ensure that index is integer number of days.
     for _ in range(0, 100):  # max 100 quarterhours in a day (@ end of DST)
-        if toolsb.stamp.to_right(i[-1], i.freq).time() == start_of_day:
-            return i
-        i = i[:-1]
+        if tools.stamp.to_right(idx[-1], idx.freq).time() == start_of_day:
+            return idx
+        idx = idx[:-1]
     raise ValueError("Can't find timestamp to end index on.")
 
 
 def get_series(
-    i: pd.DatetimeIndex = None,
-    name: str = None,
+    idx: pd.DatetimeIndex | None = None,
+    name: str | None = None,
     has_unit: bool = True,
     *,
-    _seed: int = None,
+    _seed: int | None = None,
 ) -> pd.Series:
-    """Get Series with index `i` and name `name`. Values from mock-up functions (if in
+    """Get Series with index ``idx`` and name ``name``. Values from mock-up functions (if in
     'wqpr') or random between 100 and 200."""
-    if i is None:
-        i = get_index(_seed=_seed)
-    i.name = "ts_left"
+    if idx is None:
+        idx = get_index(_seed=_seed)
+    idx.name = "ts_left"
 
     if _seed:
         np.random.seed(_seed)
@@ -122,39 +119,39 @@ def get_series(
         # random average, and 3 random amplitudes with sum < 1
         avg = 30 + 10 * np.random.random()
         ampls = np.random.rand(3) * np.array([0.3, 0.2, 0.1])
-        return mockup.w_offtake(i, avg, *ampls, has_unit=has_unit)
+        return mockup.w_offtake(idx, avg, *ampls, has_unit=has_unit)
     elif name == "q":
-        q = get_series(i, "w", True) * i.duration
+        q = get_series(idx, "w", True) * idx.duration
         q = q.rename("q")
         return q if has_unit else q.pint.m
     elif name == "p":
         # random average, and 3 random amplitudes with sum < 1
         avg = 100 + 20 * np.random.random()
         ampls = np.random.rand(3) * np.array([0.25, 0.04, 0.3])
-        return mockup.p_marketprices(i, avg, *ampls, has_unit=has_unit)
+        return mockup.p_marketprices(idx, avg, *ampls, has_unit=has_unit)
     elif name == "r":
-        r = get_series(i, "q", has_unit) * get_series(i, "p", has_unit)
+        r = get_series(idx, "q", has_unit) * get_series(idx, "p", has_unit)
         return r.rename("r")
     elif name == "nodim":
         dtype = "pint[dimensionless]" if has_unit else float
-        return pd.Series(0.9 + 0.2 * np.random.rand(len(i)), i, dtype=dtype)
+        return pd.Series(0.9 + 0.2 * np.random.rand(len(idx)), idx, dtype=dtype)
     else:
-        return pd.Series(100 + 100 * np.random.rand(len(i)), i, name=name)
+        return pd.Series(100 + 100 * np.random.rand(len(idx)), idx, name=name)
 
 
 def get_dataframe(
-    i: pd.DatetimeIndex = None,
+    idx: pd.DatetimeIndex | None = None,
     columns="wp",
     has_unit: bool = True,
     *,
-    _seed: int = None,
+    _seed: int | None = None,
 ) -> pd.DataFrame:
-    """Get DataFrame with index `i` and columns `columns`. Columns (e.g. `q` and `w`)
+    """Get DataFrame with index ``idx`` and columns ``columns``. Columns (e.g. `q` and `w`)
     are not made consistent."""
-    if i is None:
-        i = get_index(_seed=_seed)
-    i.name = "ts_left"
-    series = {col: get_series(i, col, has_unit, _seed=_seed) for col in columns}
+    if idx is None:
+        idx = get_index(_seed=_seed)
+    idx.name = "ts_left"
+    series = {col: get_series(idx, col, has_unit, _seed=_seed) for col in columns}
     return pd.DataFrame(series)
 
 
@@ -209,21 +206,21 @@ def _get_namefn(nlevels: int) -> Callable[[int], str]:
 
 
 def get_pfline(
-    i: pd.DatetimeIndex = None,
+    idx: pd.DatetimeIndex | None = None,
     kind: Kind = Kind.COMPLETE,
     nlevels: int = 1,
     childcount: int = 2,
     *,
     positive: bool = False,
-    _ancestornames: Tuple[str] = (),
-    _seed: int = None,
+    _ancestornames: Tuple[str] = tuple(),
+    _seed: int | None = None,
 ) -> PfLine:
     """
     Create a portfolio line.
 
     Parameters
     ----------
-    i : pd.DatetimeIndex, optional (default: random)
+    idx : pd.DatetimeIndex, optional (default: random)
         Datetimeindex to use for the portfolio line.
     kind : Kind, optional (default: COMPLETE)
     nlevels : int (default: 1)
@@ -242,8 +239,8 @@ def get_pfline(
     PfLine
     """
     # Gather information.
-    if i is None:
-        i = get_index(_seed=_seed)
+    if idx is None:
+        idx = get_index(_seed=_seed)
     if _seed:
         np.random.seed(_seed)
     # Create flat pfline.
@@ -254,10 +251,10 @@ def get_pfline(
             Kind.REVENUE: "r",
             Kind.COMPLETE: "qr",
         }[kind]
-        df = get_dataframe(i, columns, _seed=_seed)
+        df = get_dataframe(idx, columns, _seed=_seed)
         if not positive and np.random.randint(1, 4) == 1:
             df = -1 * df  # HACK: `-df` leads to error in pint. Maybe fixed in future
-        return create.flatpfline(df)
+        return flat.flatpfline(df)
     # Create nested PfLine.
     if childcount < 1:
         raise ValueError("Nested PfLine must have at least 1 child.")
@@ -267,25 +264,25 @@ def get_pfline(
         names = (*_ancestornames, namefn(c))
         name = "-".join(names)
         children[name] = get_pfline(
-            i, kind, nlevels - 1, childcount, _ancestornames=names, _seed=_seed
+            idx, kind, nlevels - 1, childcount, _ancestornames=names, _seed=_seed
         )
     return create.nestedpfline(children)
 
 
 def get_flatpfline(
-    i: pd.DatetimeIndex = None, kind: Kind = Kind.COMPLETE, *, _seed: int = None
+    idx: pd.DatetimeIndex | None = None, kind: Kind = Kind.COMPLETE, *, _seed: int | None = None
 ) -> FlatPfLine:
     """Get flat portfolio line, i.e. without children."""
-    return get_pfline(i, kind, 1, _seed=_seed)
+    return get_pfline(idx, kind, 1, _seed=_seed)
 
 
 def get_nestedpfline(
-    i: pd.DatetimeIndex = None,
+    idx: pd.DatetimeIndex | None = None,
     kind: Kind = Kind.COMPLETE,
     nlevels: int = 2,
     childcount: int = 2,
     *,
-    _seed: int = None,
+    _seed: int | None = None,
 ) -> NestedPfLine:
     """Get nested portfolio line with children of the same ``kind``. If ``nlevels``==2, the children are both flat; if not,
     the portfolio line is multiply nested."""
@@ -293,30 +290,30 @@ def get_nestedpfline(
         raise ValueError(
             "Nested PfLine must have at least 2 levels. Use `get_flatpfline` or the more general `get_pfline` instead."
         )
-    return get_pfline(i, kind, nlevels, childcount, _seed=_seed)
+    return get_pfline(idx, kind, nlevels, childcount, _seed=_seed)
 
 
 def get_randompfline(
-    i: pd.DatetimeIndex = None,
+    idx: pd.DatetimeIndex | None = None,
     kind: Kind = Kind.COMPLETE,
     max_nlevels: int = 3,
     max_childcount: int = 2,
     *,
     positive: bool = False,
-    _ancestornames: Tuple[str] = (),
-    _seed: int = None,
+    _ancestornames: tuple[str] = tuple(),
+    _seed: int | None = None,
 ) -> PfLine:
     """Get portfolio line, without children or with children in random number of levels.
     (including the current level; max_nlevels must be >= 1.)"""
     # Gather information.
-    if i is None:
-        i = get_index(_seed=_seed)
+    if idx is None:
+        idx = get_index(_seed=_seed)
     if _seed:
         np.random.seed(_seed)
     nlevels = np.random.randint(1, max_nlevels + 1)
     # Create flat PfLine.
     if nlevels == 1:
-        return get_pfline(i, kind, 1, positive=positive, _seed=_seed)
+        return get_pfline(idx, kind, 1, positive=positive, _seed=_seed)
     # Create nested PfLine.
     namefn = _get_namefn(nlevels)
     children = {}
@@ -325,7 +322,7 @@ def get_randompfline(
         names = (*_ancestornames, namefn(c))
         name = "-".join(names)
         children[name] = get_randompfline(
-            i,
+            idx,
             kind,
             max_nlevels - 1,
             max_childcount,
@@ -339,25 +336,29 @@ def get_randompfline(
 # Portfolio state.
 
 
-def get_pfstate(i: pd.DatetimeIndex = None, avg=None, *, _seed: int = None) -> PfState:
+def get_pfstate(
+    idx: pd.DatetimeIndex | None = None, avg=None, *, _seed: int | None = None
+) -> PfState:
     """Get portfolio state."""
-    if i is None:
-        i = get_index(_seed=_seed)
+    if idx is None:
+        idx = get_index(_seed=_seed)
     if _seed:
         np.random.seed(_seed)
     if avg is None:
         avg = 200 ** np.random.rand()  # between 1 and 200
-    wo = -1 * mockup.w_offtake(i, avg)
-    pu = mockup.p_marketprices(i)
+    wo = -1 * mockup.w_offtake(idx, avg)
+    pu = mockup.p_marketprices(idx)
     ws, ps = mockup.wp_sourced(wo)
     return PfState.from_series(wo=wo, pu=pu, ws=ws, ps=ps)
 
 
-def get_pfstates(i: pd.DatetimeIndex = None, num=3, *, _seed: int = None) -> Dict[str, PfState]:
+def get_pfstates(
+    idx: pd.DatetimeIndex | None = None, num=3, *, _seed: int | None = None
+) -> Dict[str, PfState]:
     """Get dictionary of portfolio states."""
-    if i is None:
-        i = get_index(_seed=_seed)
+    if idx is None:
+        idx = get_index(_seed=_seed)
     names = ["Pf 1", "Portfolio 2 (long name)", "Portfolio number three"]
     for n in range(3, num):
         names.append(f"Portfolio {n+1}")
-    return {name: get_pfstate(i, _seed=_seed) for name in names[:num]}
+    return {name: get_pfstate(idx, _seed=_seed) for name in names[:num]}

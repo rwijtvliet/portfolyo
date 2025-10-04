@@ -2,418 +2,315 @@
 Tools for dealing with frequencies.
 """
 
-import numpy as np
-import pandas as pd
+import builtins
+import functools
+from typing import Any, Iterable
 
-from .types import Series_or_DataFrame
+import pandas as pd
+from pandas.tseries.frequencies import MONTHS, to_offset
+from pandas.tseries.offsets import BaseOffset
+
+from .types import Frequencylike
+
+# Developer notes:
+#
+# We do not support arbitrary frequencies. Instead, we focus on some due to their prevalence in the energy industry.
+# * Shorter-than-daily: mainly hour (h) and quarterhour (15min), but we also support some additional ones (1min, 5min, 30min).
+#   These are all fixed-length frequencies, i.e., the timedelta between timestamps is constant.
+# * Daily or longer: day (D), months (MS), quarters starting in any month (QS-JAN, QS-FEB, ...), years starting in any month (YS-JAN, YS-FEB, ...)
+#   These all are non-fixed-length frequencies, with the timedelta between timestamps taking on multiple values.
+#
+# For the shorter-than-daily frequencies, we do not support all indices. Instead, there are additional requirements, namely,
+#   (1) that they start on a full hour and
+#   (2) that they contain an integer number of days.
+# That way, we ensure that
+#   (1) downsampling to days etc. is possible, and
+#   (2) we can use the first timestamp as the "start-of-day" of the timeseries.
+#
+# Terminology when comparing 2 frequencies:
+#
+# COMPATIBLE vs INCOMPATIBLE.
+# Resampling between 2 frequencies is not always possible, e.g., to resample from QS-FEB (quarters starting in Feb) to YS-JAN (years starting in Jan). Direct resampling is not possible, because neither 'neatly fits' inside the other. To still resample, we must take a detour by first resampling to a shorter frequency that neatly divides BOTH, e.g. MS (monthly). This is must be done manually by the user. The frequencies are colled "incompatible".
+#
+# EQUIVALENT.
+# For quarters, we have the situation that several frequencies map 1-to-1 onto each other. For example, 'QS-FEB' describes a quarterly series where one of the quarters starts with February. This means another of its quarters starts in May, and therefore, this frequency is the same as 'QS-MAY'. These frequencies are called "equivalent".
+# * This also means that downsampling from quarters to years is possible to 4 distinct yearly frequencies (e.g. 'QS-FEB' can be upsampled to 'YS-FEB', but also 'YS-MAY', which has different periods and different values). And that upsampling from years to quarters is also possible to 4 quarterly frequencies - though these all result in the same timeseries (e.g. 'YS-FEB' can be downsampled to 'QS-FEB' and to 'QS-MAY', though this has the same periods and the same values).
+
 
 # Allowed frequencies.
-ALLOWED_FREQUENCIES_DOCS = "'15min' (=quarterhour), 'h', 'D', 'MS', 'QS' (or 'QS-FEB', 'QS-MAR', etc.), or 'YS' (or 'YS-FEB', 'YS-MAR', etc.)"
-ALLOWED_CLASSES = [
-    pd.tseries.offsets.YearBegin,
-    pd.tseries.offsets.QuarterBegin,
-    pd.tseries.offsets.MonthBegin,
-    pd.tseries.offsets.Day,
-    pd.tseries.offsets.Hour,
-    pd.tseries.offsets.Minute,
-]
-TO_OFFSET = pd.tseries.frequencies.to_offset
-SHORTEST_TO_LONGEST = [type(TO_OFFSET(freq)) for freq in ["15min", "h", "D", "MS", "QS", "YS"]]
-
-quarter_matrix = [
-    ["QS", "QS-APR", "QS-JUL", "QS-OCT"],
-    ["QS-FEB", "QS-MAY", "QS-AUG", "QS-NOV"],
-    ["QS-MAR", "QS-JUN", "QS-SEP", "QS-DEC"],
-]
 
 
-def assert_freq_valid(freq: str | pd.offsets.BaseOffset) -> None:
-    """
-    Validate if the given frequency string is allowed based on pandas offset objects.
+_FREQUENCIES: set[BaseOffset] = {
+    *(to_offset(freq) for freq in ("min", "5min", "15min", "30min", "h", "D", "MS")),
+    *(to_offset(f"QS-{m}") for m in MONTHS),
+    *(to_offset(f"YS-{m}") for m in MONTHS),
+}
 
-    Parameters
-    ----------
-    freq
-        Frequency, or frequency alias (e.g., "YS", "QS", "MS").
-    """
-
-    freq_offset = pd.tseries.frequencies.to_offset(freq)
-    mro_class = freq_offset.__class__.__mro__[0]
-
-    # Check if the MRO is in the list of allowed MROs
-    # have to make sure it's only the first class on the list
-    if mro_class not in ALLOWED_CLASSES:
-        raise AssertionError(f"The passed frequency '{freq}' is not allowed.")
-
-    # Define restricted classes that should have n == 1
-    restricted_classes = {
-        pd.offsets.MonthBegin: 1,
-        pd.offsets.Day: 1,
-        pd.offsets.Hour: 1,
-        pd.offsets.Minute: 15,
-    }
-    allowed_n = restricted_classes.get(type(freq_offset))
-    if allowed_n is not None:  # case where freq is not in restricted class
-        # Check if freq_offset.n is not None and if it doesn't match allowed_n
-        if freq_offset.n is None or freq_offset.n != allowed_n:
-            raise AssertionError(f"The passed frequency {freq} is not allowed.")
+ALLOWED_FREQUENCIES_DOCS = "'min', '5min', '15min', '30min', 'h', 'D', 'MS', 'QS' (or 'QS-FEB', 'QS-MAR', etc.), or 'YS' (or 'YS-FEB', 'YS-MAR', etc.)"
 
 
-def up_or_down(freq_source: str, freq_target: str) -> int:
-    """
-    Compare source frequency with target frequency to see if it needs up- or downsampling.
+# Subsets of allowed frequencies.
+# . Three subsets that are mutually exclusive.
+_SHORTERTHANDAILY: set[BaseOffset] = {
+    to_offset(freq) for freq in ("min", "5min", "15min", "30min", "h")
+}
+_DAILY: set[BaseOffset] = {to_offset("D")}
+_LONGERTHANDAILY: set[BaseOffset] = {
+    freq for freq in _FREQUENCIES if freq not in (_SHORTERTHANDAILY | _DAILY)
+}
+# . Three subsets that are mutually exclusive.
+_SORTED: tuple[BaseOffset, ...] = tuple(
+    to_offset(freq) for freq in ("min", "5min", "15min", "30min", "h", "D", "MS")
+)
+_QUARTERLY: set[BaseOffset] = set((to_offset(f"QS-{m}") for m in MONTHS))
+_YEARLY: set[BaseOffset] = set((to_offset(f"YS-{m}") for m in MONTHS))
+
+
+# Mappings between frequencies.
+
+
+@functools.lru_cache()
+def _equivalent_freqs(freq: BaseOffset) -> set[BaseOffset]:
+    """Return all frequencies that are equivalent (or equal) to ``freq``."""
+    if freq in _QUARTERLY:
+        return {f for f in _QUARTERLY if f.startingMonth % 3 == freq.startingMonth % 3}
+    elif freq in _FREQUENCIES:
+        return {freq}
+    raise ValueError(f"Unexpected frequency {freq}.")
+
+
+@functools.lru_cache()
+def _downsample_targets(freq: BaseOffset) -> set[BaseOffset]:
+    """Return all frequencies that ``freq`` can be downsampled to."""
+    if freq in _SORTED:
+        pos = _SORTED.index(freq)
+        return set(_SORTED[pos + 1 :]) | _QUARTERLY | _YEARLY
+    elif freq in _QUARTERLY:
+        return set((f for f in _YEARLY if f.month % 3 == freq.startingMonth % 3))
+    elif freq in _YEARLY:
+        return set()
+    raise ValueError(f"Unexpected frequency {freq}.")
+
+
+# Conversion and validation.
+# --------------------------
+
+
+@functools.lru_cache()
+def validate(freq: Any) -> None:
+    """Check if ``freq`` is valid frequency. If not, raise Error."""
+    if freq is None:
+        raise ValueError("Frequency may not be None.")
+    if freq not in _FREQUENCIES:
+        raise ValueError(f"Frequency must be one of {ALLOWED_FREQUENCIES_DOCS}.")
+
+
+@functools.lru_cache()
+def coerce(freq: Frequencylike) -> BaseOffset:
+    """Convert ``freq`` into valid frequency; raise Error if unsuccessful."""
+    if isinstance(freq, str):
+        freq = to_offset(freq)
+
+    validate(freq)
+    return freq
+
+
+# --------------------------
+
+
+def is_shorter_than_daily(freq: Frequencylike) -> bool:
+    """Return True if ``freq`` is shorter than daily, i.e., hourly or shorter. This
+    also implies that the frequency is a fixed-length frequency."""
+    freq = coerce(freq)
+    return freq in _SHORTERTHANDAILY
+
+
+def is_longer_than_daily(freq: Frequencylike) -> bool:
+    """Return True if ``freq`` is longer than daily, i.e., monthly or longer."""
+    freq = coerce(freq)
+    return freq in _LONGERTHANDAILY
+
+
+def up_or_down(source_freq: Frequencylike, target_freq: Frequencylike) -> int:
+    """See if changing the frequency of an index requires up- or downsampling.
 
     Upsampling means that the number of values increases - one value in the source
     corresponds to multiple values in the target.
 
     Parameters
     ----------
-    freq_source, freq_target : frequencies to compare.
+    source_freq
+        Frequency of the source data.
+    target_freq
+        Frequency to resample it to.
 
     Returns
     -------
-    * 1 if source frequency must be upsampled to obtain (i.e, is longer than) target frequency.
-    * 0 if source frequency is same as target frequency.
-    * -1 if source frequency must be downsampled to obtain (i.e, is shorter than) target frequency.
+    * 1 if index must be upsampled to obtain target frequency. E.g. 'D' -> 'MS'.
+    * 0 if source frequency is equal (or equivalent) to target frequency. E.g. 'QS-JAN' -> 'QS-APR'.
+    * -1 if index must be downsampled to obtain target frequency. E.g. 'MS' -> 'D'.
 
-    Notes
-    -----
-    If the freq can't be down- or upsampled, throws ValueError.
+    Raises
+    ------
+    ValueError if resampling is not possible because frequencies are incompatible. E.g. 'QS-JAN' -> 'YS-FEB'.
+    """
+    source_freq, target_freq = coerce(source_freq), coerce(target_freq)
+    if target_freq in _downsample_targets(source_freq):
+        return -1
+    elif source_freq in _downsample_targets(target_freq):
+        return 1
+    elif target_freq in _equivalent_freqs(source_freq):
+        return 0
+    raise ValueError(f"Can't (directly) resample from {source_freq} to {target_freq}.")
+
+
+def sorted(freqs: Iterable[Frequencylike]) -> tuple[BaseOffset, ...]:
+    """Sort several frequencies from shortest to longest.
+
+    Parameters
+    ----------
+    freqs
+        Frequencies to sort.
+
+    Returns
+    -------
+        Sorted frequncies. Equivalent frequencies (e.g. QS-JAN and QS-APR) may appear
+        in any order.
+
+    Raises
+    ------
+    ValueError
+        If any pair of frequencies is incompatible (e.g. QS-JAN and QS-FEB, or QS-JAN
+        and YS-FEB, or YS-JAN and YS-FEB).
 
     Examples
     --------
-    >>> freq.up_or_down('D', 'MS')
-    -1
-    >>> freq.up_or_down('MS', 'D')
-    1
-    >>> freq.up_or_down('MS', 'MS')
-    0
-    >>> freq.up_or_down('QS', 'QS-APR')
+    >>> sorted(['h', 'YS', 'QS'])
+    ('h', 'QS', 'YS')
+    >>> sorted(['h', 'YS-FEB', 'QS'])
     ValueError
-
     """
-    restricted_classes = [
-        pd._libs.tslibs.offsets.QuarterBegin,
-        pd._libs.tslibs.offsets.YearBegin,
-    ]
-    # Convert freq from str to offset
-    freq_source_as_offset = pd.tseries.frequencies.to_offset(freq_source)
-    freq_target_as_offset = pd.tseries.frequencies.to_offset(freq_target)
-
-    # Compare if the freq are the same
-    if freq_source_as_offset == freq_target_as_offset:
-        return 0
-    # One of the freq can be in restricted class, but not both
-    if not (
-        type(freq_source_as_offset) in restricted_classes
-        and type(freq_target_as_offset) in restricted_classes
-    ):
-        try:
-            assert_freq_sufficiently_long(freq_source, freq_target, strict=True)
-            return 1
-        except AssertionError:
-            return -1
-    # If both in restricted class
-    else:
-        source_index = restricted_classes.index(type(freq_source_as_offset))
-        target_index = restricted_classes.index(type(freq_target_as_offset))
-        # the code below describes the case when year and/or quarter starts from the same month group
-        # example: JAN,APR,JUl and OCT
-        # if we are in the same quadrant (belong to the same month group), we can transfrom one to another
-        # better described at https://github.com/rwijtvliet/portfolyo/issues/57
-        group_by_month_beginn = (
-            freq_source_as_offset.startingMonth
-            if source_index == 0
-            else freq_source_as_offset.month
-        ) % 3 == (
-            freq_target_as_offset.startingMonth
-            if target_index == 0
-            else freq_target_as_offset.month
-        ) % 3
-
-        if group_by_month_beginn:
-            if source_index > target_index:
-                # we are in case AS and QS
-                return 1
-            elif source_index < target_index:
-                # we are in the case QS and AS
-                return -1
-            elif source_index == 0:
-                # we are in the case QS and QS
-                return 0
-
-        raise ValueError(
-            f"The passed frequency {freq_source} can't be aggregated to {freq_target}."
-        )
+    freqs = (coerce(freq) for freq in freqs)
+    return tuple(builtins.sorted(freqs, key=functools.cmp_to_key(up_or_down)))
 
 
-def assert_freq_sufficiently_long(freq, freq_ref, strict: bool = False) -> None:
-    """
-    Compares ``freq`` and ``freq_ref``, raising an AssertionError if ``freq`` is not long enough.
-
-    Parameters
-    ----------
-    freq_source, freq_ref : frequencies to compare.
-    strict : bool, optional (default: False)
-        - If ``strict`` is True, ``freq`` must be strictly longer than ``freq_long``.
-        - If False, it may be equally long.
-
-    """
-    # freq should start from the beginning of the year
-    index_freq = SHORTEST_TO_LONGEST.index(type(TO_OFFSET(freq)))
-    index_ref = SHORTEST_TO_LONGEST.index(type(TO_OFFSET(freq_ref)))
-    if strict is True:
-        if not (index_freq > index_ref):
-            raise AssertionError(
-                f"The passed frequency is not sufficiently long; passed {freq}, but should be {freq_ref} or longer."
-            )
-    else:
-        if not (index_freq >= index_ref):
-            raise AssertionError(
-                f"The passed frequency is not sufficiently long; passed {freq}, but should be {freq_ref} or longer."
-            )
-
-
-def assert_freq_equally_long(freq, freq_ref) -> None:
-    """
-    Compares ``freq`` and ``freq_ref``, raising an AssertionError if ``freq`` is not equally long as ``freq_ref``.
-
-    Parameters
-    ----------
-    freq_source, freq_ref : frequencies to compare.
-    Valid examples
-    --------
-    >>> freq.assert_freq_equally_long('QS', 'QS')
-    or
-    >>> freq.assert_freq_equally_long('QS', 'QS-APR')
-    or
-    >>> freq.assert_freq_equally_long('QS', 'QS-FEB')
-
-    """
-    assert_freq_sufficiently_long(freq, freq_ref, strict=False)
-    assert_freq_sufficiently_long(freq_ref, freq, strict=False)
-
-
-def assert_freq_sufficiently_short(freq, freq_ref, strict: bool = False) -> None:
-    """
-    Compares ``freq`` and ``freq_ref``, raising an AssertionError if ``freq`` is not short enough.
-
-    Parameters
-    ----------
-    freq_source, freq_ref : frequencies to compare.
-    strict : bool, optional (default: False)
-        - If ``strict`` is True, ``freq`` must be strictly shorter than ``freq_long``.
-        - If False, it may be equally long, or rather, short.
-
-    """
-    assert_freq_sufficiently_long(freq_ref, freq, strict)
-
-
-def _longestshortest(shortest: bool, *freqs: str):
-    """Determine which frequency denotes the shortest or longest time period."""
-    common_ts = pd.Timestamp("2020-01-01")
-    # ts = [common_ts + pd.tseries.frequencies.to_offset(fr) for fr in freqs]
-    # Compute the duration each frequency represents
-    durations = []
-    for fr in freqs:
-        offset = pd.tseries.frequencies.to_offset(fr)
-        delta = (common_ts + 2 * offset) - (common_ts + offset)  # Actual time span
-        durations.append(delta)
-    i = (np.argmin if shortest else np.argmax)(durations)
-    return freqs[i]
-
-
-def shortest(*freqs: str) -> str:
+def shortest(freqs: Iterable[Frequencylike]) -> BaseOffset:
     """Find shortest of several frequencies.
 
     Parameters
     ----------
-    *freqs : str
+    freqs
         Frequencies to compare.
 
     Returns
     -------
-    The shortest of the provided frequencies.
+       Shortest of provided frequencies. If there is a tie between equivalent frequencies (e.g.
+       QS-JAN and QS-APR), any one may be returned (see Notes, below).
+
+    Notes
+    -----
+    If result is *compared for equality* with a frequency, use ``up_or_down`` instead, in order to
+    avoid unexpected results for equivalent frequencies. For example, to test if ``freq`` is at least
+    as long as QS, we could use ``shortest(freq, 'QS') == 'QS'``, or ``up_or_down(freq, 'QS') >= 0``.
+    Both generally return expected result, but if freq==QS-APR, first might incorrectly return ``False``.
+
+    Raises
+    ------
+    ValueError
+        If any pair of frequencies is incompatible (e.g. QS-JAN and QS-FEB, or QS-JAN
+        and YS-FEB, or YS-JAN and YS-FEB).
 
     Examples
     --------
-    >>> freq.shortest('MS', 'h', 'YS', 'D')
+    >>> shortest(['h', 'YS', 'QS'])
     'h'
+    >>> shortest(['h', 'YS-FEB', 'QS'])
+    ValueError
     """
-    return _longestshortest(True, *freqs)
+    freqs = (coerce(freq) for freq in freqs)
+    return sorted(set(freqs))[0]
 
 
-def longest(*freqs: str) -> str:
+def longest(freqs: Iterable[Frequencylike]) -> BaseOffset:
     """Find longest of several frequencies.
 
     Parameters
     ----------
-    *freqs : str
+    freqs
         Frequencies to compare.
 
     Returns
     -------
-    The longest of the provided frequencies.
+       Longest of the provided frequencies. If there is a tie between equivalent frequencies (e.g.
+       QS-JAN and QS-APR), any one may be returned (see Notes, below).
+
+    Notes
+    -----
+    If result is *compared for equality* with a frequency, use ``up_or_down`` instead, in order to
+    avoid unexpected results for equivalent frequencies. For example, to test if ``freq`` is at least
+    as long as QS, we could use ``shortest(freq, 'QS') == 'QS'``, or ``up_or_down(freq, 'QS') >= 0``.
+    Both generally return expected result, but if freq==QS-APR, first might incorrectly return ``False``.
+
+    Raises
+    ------
+    ValueError
+        If any pair of frequencies is incompatible (e.g. QS-JAN and QS-FEB, or QS-JAN
+        and YS-FEB, or YS-JAN and YS-FEB).
 
     Examples
     --------
-    >>> freq.longest('MS', 'h', 'YS', 'D')
+    >>> longest(['h', 'YS', 'QS'])
     'YS'
+    >>> longest(['h', 'YS-FEB', 'QS'])
+    ValueError
     """
-    return _longestshortest(False, *freqs)
+    freqs = (coerce(freq) for freq in freqs)
+    return sorted(set(freqs))[-1]
 
 
-def to_offset(freq: str) -> pd.Timedelta | pd.DateOffset:
-    """Object that can be added to a left-bound timestamp to find corresponding right-bound timestamp.
+def to_jump(freq: BaseOffset) -> pd.Timedelta | pd.DateOffset:
+    """Jump object corresponding to a frequency. Can be added to a left-bound delivery
+    period timestamp to get the right-bound timestamp of that delivery period (which
+    is the left-bound timestamp of the following delivery period).
 
     Parameters
     ----------
-    freq : str
-        Frequency denoting the length of the time period.
+    freq
+        Frequency of delivery period.
 
     Returns
     -------
-    pd.Timedelta | pd.DateOffset
+        Term that can be (repeatedly) added to / subtracted from a left-bound
+        timestamp to find the next / previous left-bound timestamps.
+
+    Notes
+    -----
+    Only gives correct result if added to a valid left-bound stamp for the frequency.
+    If necessary, check if this is the case with `tools.stamp.is_boundary()`, or ensure
+    it is the case with `tools.stamp.floor()` or `tools.stamp.ceil()`.
 
     Examples
     --------
-    >>> freq.to_offset("h")
+    >>> freq.to_jump("h")
     Timedelta('0 days 01:00:00')
-    >>> freq.to_offset("MS")
+    >>> freq.to_jump("MS")
     <DateOffset: months=1>
     """
-    # Convert the frequency string to an offset object
-    offset = pd.tseries.frequencies.to_offset(freq)
-
+    freq = coerce(freq)
     # Custom handling for specific simple frequencies
-    if isinstance(offset, pd.tseries.offsets.Minute) and offset.n == 15:
-        return pd.Timedelta(minutes=15)
-    elif isinstance(offset, pd.tseries.offsets.Hour) and offset.n == 1:
+    if isinstance(freq, pd.tseries.offsets.Minute) and freq.n in (1, 5, 15, 30):
+        return pd.Timedelta(minutes=freq.n)
+    elif isinstance(freq, pd.tseries.offsets.Hour) and freq.n == 1:
         return pd.Timedelta(hours=1)
-    elif isinstance(offset, pd.tseries.offsets.Day) and offset.n == 1:
+    elif isinstance(freq, pd.tseries.offsets.Day) and freq.n == 1:
         return pd.DateOffset(days=1)
-    elif isinstance(offset, pd.tseries.offsets.MonthBegin) and offset.n == 1:
+    elif isinstance(freq, pd.tseries.offsets.MonthBegin) and freq.n == 1:
         return pd.DateOffset(months=1)
-    elif isinstance(offset, pd.tseries.offsets.QuarterBegin) and offset.n == 1:
+    elif isinstance(freq, pd.tseries.offsets.QuarterBegin) and freq.n == 1:
         return pd.DateOffset(months=3)
-    elif isinstance(offset, pd.tseries.offsets.YearBegin) and offset.n == 1:
+    elif isinstance(freq, pd.tseries.offsets.YearBegin) and freq.n == 1:
         return pd.DateOffset(years=1)
-    else:
+    else:  # shouldn't occur due to check decorator
         raise ValueError(
             f"Parameter ``freq`` must be one of {ALLOWED_FREQUENCIES_DOCS}; got '{freq}'."
         )
-
-
-def from_tdelta(tdelta: pd.Timedelta) -> str:
-    f"""Guess the frequency from a time delta.
-
-    Parameters
-    ----------
-    tdelta : pd.Timedelta
-        Time delta between start and end of delivery period.
-
-    Returns
-    -------
-    str
-        One of {ALLOWED_FREQUENCIES_DOCS}.
-    """
-    if tdelta == pd.Timedelta(minutes=15):
-        return "15min"
-    elif tdelta == pd.Timedelta(hours=1):
-        return "h"
-    elif pd.Timedelta(hours=23) <= tdelta <= pd.Timedelta(hours=25):
-        return "D"
-    elif pd.Timedelta(days=27) <= tdelta <= pd.Timedelta(days=32):
-        return "MS"
-    elif pd.Timedelta(days=89) <= tdelta <= pd.Timedelta(days=93):
-        return "QS"
-    elif pd.Timedelta(days=364) <= tdelta <= pd.Timedelta(days=367):
-        return "YS"
-    else:
-        raise ValueError(
-            f"The timedelta ({tdelta}) doesn't seem to be fit to any of the allowed "
-            f"frequencies ({ALLOWED_FREQUENCIES_DOCS})."
-        )
-
-
-def guess_to_index(i: pd.DatetimeIndex) -> pd.DatetimeIndex:
-    """ "Try to infer the frequency of the index and set it if possible.
-    Parameters
-    ----------
-    i : pd.DatetimeIndex
-    Returns
-    -------
-    pd.DatetimeIndex
-        DatetimeIndex, with the inferred frequency if possible.
-    """
-    # Find frequency.
-    if i.freq:
-        return i
-    # Freq not set.
-    i = i.copy(deep=True)
-
-    try:
-        inferred_freq = pd.infer_freq(i)
-        for row_index in range(len(quarter_matrix)):  # Loop through the rows
-            if (
-                inferred_freq in quarter_matrix[row_index]
-            ):  # check if inferred_freq is somewhere in this row
-                inferred_freq = quarter_matrix[row_index][
-                    0
-                ]  # set inferred_freq to the first value in the row
-        i.freq = inferred_freq
-
-    except ValueError:
-        pass  # Couldn't find a frequency, e.g., because there are not enough values
-    return i
-
-
-def guess_to_frame(fr: Series_or_DataFrame) -> Series_or_DataFrame:
-    """Try to infer the frequency of the frame's index and set it if possible.
-
-    Parameters
-    ----------
-    fr : pd.Series or pd.DataFrame
-
-    Returns
-    -------
-    pd.Series | pd.DataFrame
-        Same type as ``fr``, with the inferred frequency if possible.
-    """
-    # Handle non-datetime-indices.
-    if not isinstance(fr.index, pd.DatetimeIndex):
-        raise ValueError(
-            "The data does not have a datetime index and can therefore not have a frequency."
-        )
-
-    if fr.index.freq:
-        return fr
-
-    return fr.set_axis(guess_to_index(fr.index), axis=0)
-
-
-def set_to_frame(fr: Series_or_DataFrame, wanted: str) -> Series_or_DataFrame:
-    """Try to force frequency of frame's index.
-
-    Parameters
-    ----------
-    fr : pd.Series or pd.DataFrame
-    wanted : str
-        Frequency to set.
-
-    Returns
-    -------
-    pd.Series | pd.DataFrame
-        Same type as ``fr``, with, if possible, a valid value for ``fr.index.freq``.
-    """
-    # Handle non-datetime-indices.
-    if not isinstance(fr.index, pd.DatetimeIndex):
-        raise ValueError(
-            "The data does not have a datetime index and can therefore not have a frequency."
-        )
-
-    # Set frequency.
-    i = fr.index.copy(deep=True)
-    i.freq = wanted
-
-    return fr.set_axis(i, axis=0)

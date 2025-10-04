@@ -5,60 +5,76 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-import pint_pandas
 import pint
+import pint_pandas
 
+from . import freq as tools_freq
 from . import unit as tools_unit
-from . import standardize as tools_standardize
-
-ALLOWED_TYPES = int | float | pint.Quantity | pd.Series | pd.DataFrame
+from .types import NontimeDataframe, NontimeSeries, TimeDataframe, TimeSeries
 
 
-def assert_value_equal(left: Any, right: Any):
+def assert_scalar_equal(left: Any, right: Any):
     try:
-        if np.isnan(left) and np.isnan(right):
-            return
-        assert np.isclose(left, right)
+        if np.isnan(left) and np.isnan(right):  # np.nan != np.nan, so separate check needed here
+            if isinstance(left, pint.Quantity):
+                assert left.units == right.units
+        else:
+            assert np.isclose(
+                left, right
+            )  # works on Quantities too, even if left=5MW, right=5000kW
     except Exception as e:
         raise AssertionError from e
 
 
+@functools.wraps(pd.testing.assert_index_equal)
+def assert_index_equal(left: pd.Index, right: pd.Index, *args, **kwargs):
+    assert isinstance(left, pd.DatetimeIndex) == isinstance(right, pd.DatetimeIndex)
+    if isinstance(left, pd.DatetimeIndex):
+        if ((left.freq is None) is not (right.freq is None)) or (
+            left.freq != right.freq and tools_freq.up_or_down(left.freq, right.freq) != 0
+        ):
+            raise AssertionError(f"Unequal frequencies. Left: {left.freq}; right: {right.freq}.")
+        left, right = left._with_freq(None), right._with_freq(None)
+    pd.testing.assert_index_equal(left, right, *args, **kwargs)
+
+
 @functools.wraps(pd.testing.assert_series_equal)
-def assert_series_equal(left: pd.Series, right: pd.Series, *args, **kwargs):
-    if pd.api.types.is_float_dtype(left) or pd.api.types.is_integer_dtype(left):
-        # Numbers.
-        leftm = left.replace([np.inf, -np.inf], np.nan)
-        rightm = right.replace([np.inf, -np.inf], np.nan)
-        pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)
+def assert_series_equal(
+    left: NontimeSeries | TimeSeries, right: NontimeSeries | TimeSeries, *args, **kwargs
+):
+    # Ensure pintseries, if possible.
+    left, right = tools_unit._convert_pintseries(left), tools_unit._convert_pintseries(right)
 
-    elif isinstance(left.dtype, pint_pandas.PintType):
-        # Units.
-        try:
-            right = right.pint.to(left.pint.units)
-        except pint.DimensionalityError as e:
-            raise AssertionError("Dimensions not equal.") from e
-        # Magnitudes.
-        leftm = left.pint.magnitude.replace([np.inf, -np.inf], np.nan)
-        rightm = right.pint.magnitude.replace([np.inf, -np.inf], np.nan)
-        pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)
+    assert isinstance(left.dtype, pint_pandas.PintType) == isinstance(
+        right.dtype, pint_pandas.PintType
+    )
 
-    elif pd.api.types.is_object_dtype(left) and isinstance(left.iloc[0], pint.Quantity):
-        # series of quantities?
-        leftm = left.apply(lambda q: q.magnitude).replace([np.inf, -np.inf], np.nan)
-        leftu = left.apply(lambda q: q.units)
-        rightm = right.apply(lambda q: q.magnitude).replace([np.inf, -np.inf], np.nan)
-        rightu = right.apply(lambda q: q.units)
-        # TODO: this (incorrectly) raises AssertionError if e.g. 5 MWh is compared with 5000 kWh.
-        pd.testing.assert_series_equal(leftm, rightm, *args, **kwargs)
-        assert (leftu == rightu).all()
+    # If we are here, both are pintseries, or both are not pintseries.
 
-    else:
-        # Whatever this is, use normal pandas testing function.
-        pd.testing.assert_series_equal(left, right, *args, **kwargs)
+    if isinstance(left.dtype, pint_pandas.PintType):
+        # For pintseries: make units equal to avoid incorrect assertionerror from pd.testing.
+        assert tools_unit.get_basedimty(left) == tools_unit.get_basedimty(right)
+        right = right.pint.to(left.pint.units)
+        left, right = left.pint.magnitude, right.pint.magnitude
+
+    # Following function works on all series, including series of pint Quantity objects. It only
+    # does not work on pintseries, but the preprocessing above takes care of that case by using
+    # only the magnitude. Also, even though np.nan != np.nan when comparing scalars, np.nan ==
+    # np.nan when using the function below.
+    assert_index_equal(left.index, right.index)  # use own index test
+    try:
+        pd.testing.assert_series_equal(
+            left, right, *args, **{**kwargs, "check_index": False, "check_freq": False}
+        )
+    except TypeError:  # can happen if series of quantities
+        for le, ri in zip(left, right):
+            assert_scalar_equal(le, ri)
 
 
 @functools.wraps(pd.testing.assert_frame_equal)
-def assert_dataframe_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwargs):
+def assert_frame_equal(
+    left: NontimeDataframe | TimeDataframe, right: NontimeDataframe | TimeDataframe, *args, **kwargs
+):
     # Dataframes equal even if *order* of columns is not the same.
     left = left.sort_index(axis=1)
     right = right.sort_index(axis=1)
@@ -71,10 +87,7 @@ def assert_dataframe_equal(left: pd.DataFrame, right: pd.DataFrame, *args, **kwa
         assert_series_equal(sl, sr, *args, **kwargs)
 
 
-assert_index_equal = pd.testing.assert_index_equal
-
-
-def assert_indices_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
+def assert_index_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
     """Assert that indices are compatible, i.e., with equal frequency, start-of-day, and timezone."""
     if (lf := left.freq) != (rf := right.freq):
         raise AssertionError(f"Indices have unequal frequency: {lf} and {rf}.")
@@ -84,63 +97,27 @@ def assert_indices_compatible(left: pd.DatetimeIndex, right: pd.DatetimeIndex):
         raise AssertionError(f"Indices that have unequal timezone; {lz} and {rz}.")
 
 
-# Characterizing input data.
-
-
-assert_index_standardized = tools_standardize.assert_index_standardized
-assert_frame_standardized = tools_standardize.assert_frame_standardized
-
-
-def assert_allowed_type(v: Any) -> None:
-    if not isinstance(v, ALLOWED_TYPES):
-        raise AssertionError(f"Unexpected type: {type(v)}.")
-
-
-def order(v: ALLOWED_TYPES) -> int:
-    """Return 0 if ``v`` is float, int, or Quantity. Return 1 if ``v`` is a Series. Return 2 if ``v`` is a DataFrame."""
-    if isinstance(v, float | int | pint.Quantity):
-        return 0
-    elif isinstance(v, pd.Series):
-        return 1
-    elif isinstance(v, pd.DataFrame):
-        return 2
-
-
-def is_order_0(v: ALLOWED_TYPES) -> bool:
-    return isinstance(v, float | int | pint.Quantity)
-
-
-def is_order_1(v: ALLOWED_TYPES) -> bool:
-    return isinstance(v, pd.Series)
-
-
-def is_order_2(v: ALLOWED_TYPES) -> bool:
-    return isinstance(v, pd.DataFrame)
-
-
-# Comparing energy, power, price, revenue.
-
-
-def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):
-    """Assert that timeseries with power- and energy-values are consistent."""
-    if freq == "15min":
-        assert_series_equal(q, w * tools_unit.Q_(0.25, "h"), check_names=False)
-    elif freq == "h":
-        assert_series_equal(q, w * tools_unit.Q_(1.0, "h"), check_names=False)
-    elif freq == "D":
-        assert (q >= w * tools_unit.Q_(22.99, "h")).all()
-        assert (q <= w * tools_unit.Q_(25.01, "h")).all()
-    elif freq == "MS":
-        assert (q >= w * 27 * tools_unit.Q_(24.0, "h")).all()
-        assert (q <= w * 32 * tools_unit.Q_(24.0, "h")).all()
-    elif freq == "QS":
-        assert (q >= w * 89 * tools_unit.Q_(24.0, "h")).all()
-        assert (q <= w * 93 * tools_unit.Q_(24.0, "h")).all()
-    elif freq == "YS":
-        assert (q >= w * tools_unit.Q_(8759.9, "h")).all()
-        assert (q <= w * tools_unit.Q_(8784.1, "h")).all()
-    else:
-        raise ValueError(f"Uncaught value for freq: {freq}.")
+# # TODO: fix if you want to use it. Currently too lax.
+# def assert_w_q_compatible(freq: str, w: pd.Series, q: pd.Series):
+#     """Assert that timeseries with power- and energy-values are consistent."""
+#     if freq == "15min":
+#         assert_series_equal(q, w * tools_unit.Q_(0.25, "h"), check_names=False)
+#     elif freq == "h":
+#         assert_series_equal(q, w * tools_unit.Q_(1.0, "h"), check_names=False)
+#     elif freq == "D":
+#         assert (q >= w * tools_unit.Q_(22.99, "h")).all()
+#         assert (q <= w * tools_unit.Q_(25.01, "h")).all()
+#     elif freq == "MS":
+#         assert (q >= w * 27 * tools_unit.Q_(24.0, "h")).all()
+#         assert (q <= w * 32 * tools_unit.Q_(24.0, "h")).all()
+#     elif freq == "QS":
+#         assert (q >= w * 89 * tools_unit.Q_(24.0, "h")).all()
+#         assert (q <= w * 93 * tools_unit.Q_(24.0, "h")).all()
+#     elif freq == "YS":
+#         assert (q >= w * tools_unit.Q_(8759.9, "h")).all()
+#         assert (q <= w * tools_unit.Q_(8784.1, "h")).all()
+#     else:
+#         raise ValueError(f"Uncaught value for freq: {freq}.")
 
 
 def assert_p_q_r_compatible(r: pd.Series, p: pd.Series, q: pd.Series):
