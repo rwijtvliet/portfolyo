@@ -8,7 +8,7 @@ import pint
 
 from . import index as tools_index
 from . import testing as tools_testing
-from .types import Col
+from .types import Col, FloatSeries, IntSeries, PintSeries
 from .unit import get_basedimty, ureg
 
 # =========================
@@ -220,7 +220,7 @@ def col_to_dimties(
 
 
 def valid_col(
-    obj: pint.util.UnitsContainer | pint.Unit | pint.Quantity | UniformSeries | str | float | int,
+    obj: pint.util.UnitsContainer | pint.Unit | pint.Quantity | str | float | int | PintSeries,
     nodim_allowed: bool = False,
 ) -> Col | Literal["nodim"]:
     """Return column allowed for a given object.

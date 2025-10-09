@@ -7,8 +7,8 @@ from typing import Any, Dict, Mapping, Tuple
 
 import pandas as pd
 
-from ... import toolsb
-from ...toolsb.types import PintTimeDataframe
+from ... import tools
+from ...tools.types import PintTimeDataframe
 from ..commodity import Commodity
 from . import pfline
 from .enums import Kind
@@ -54,7 +54,7 @@ def create_children(data: Mapping | PintTimeDataframe) -> dict[str, pfline.PfLin
         raise ValueError("Must provide at least 1 child.")
 
     # Keep only overlapping part of indices.
-    idx = toolsb.index.intersect(child.index for child in children.values())
+    idx = tools.index.intersect(child.index for child in children.values())
     if len(idx) == 0:
         raise ValueError("PfLine indices have no overlap.")
     return {name: child.loc[idx] for name, child in children.items()}
@@ -65,20 +65,3 @@ def apply_commodity(
 ) -> dict[str, pfline.PfLine]:
     """Apply ``commodity`` to ``children``, i.e., convert to correct units and do few checks."""
     return {name: child.set_commodity(commodity) for name, child in children.items()}
-
-
-def get_kind(children: dict[str, pfline.PfLine]) -> Kind:
-    """Kind of data, based on children."""
-
-    # Kind of children.
-    kindset = set([child.kind for child in children.values()])  # always >= 1
-    if len(kindset) > 1:
-        kinds1 = defaultdict(list)
-        for name, child in children.items():
-            kinds1[child.kind].append(name)
-        kinds2 = {kind: ", ".join(names) for kind, names in kinds1.items()}
-        kinds3 = " and ".join([f"{kind} ({names})" for kind, names in kinds2.items()])
-        raise ValueError(f"All children must be of the same kind; found {kinds3}.")
-    kind = next(iter(kindset))
-
-    return kind

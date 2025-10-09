@@ -1,6 +1,7 @@
 """Class that is created when instantiating a nested pfline. Brings together all functionality."""
 
 import dataclasses
+from collections import defaultdict
 from typing import Any, ClassVar, Mapping
 
 import pandas as pd
@@ -19,14 +20,25 @@ class NestedPfLine(PfLine, NestedRequiredMethods, ChildMethods):
     # . Class is only called internally, so expect children to be in correct format.
     #   Meaning: all have same `kind` and are in correct units for `commodity`.
     children: Mapping[str, PfLine]
-    kind: Kind
     commodity: Commodity
     # Class variables.
     structure: ClassVar[Structure] = Structure.NESTED
     # Calculated instance fields.
+    kind: Kind = dataclasses.field(init=False)
     df: pd.DataFrame = dataclasses.field(init=False)
 
     def __post_init__(self):
+        # Calculate kind.
+        kindset = set([child.kind for child in self.children.values()])  # always >= 1
+        if len(kindset) > 1:  # error
+            kinds1 = defaultdict(list)
+            for name, child in self.children.items():
+                kinds1[child.kind].append(name)
+            kinds2 = " and ".join([f"{kind} ({','.join(names)})" for kind, names in kinds1.items()])
+            raise ValueError(f"All children must be of the same kind; found {kinds2}.")
+        object.__setattr__(self, "kind", kindset.pop())
+
+        # Calculate dataframe.
         df = sum(child.df for child in self.children.values())
         if self.kind is Kind.COMPLETE:
             df["p"] = df["r"] / df["q"]  # TODO: convert to correct unit

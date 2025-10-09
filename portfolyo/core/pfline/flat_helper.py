@@ -74,13 +74,3 @@ def apply_commodity(df: PintTimeDataframe, commodity: Commodity | None) -> PintT
     # Convert to correct units (raises error if impossible).
     df = pd.DataFrame({col: s.pint.to(commodity.col_to_units[col]) for col, s in df.items()})
     return df
-
-
-def get_kind(df: PintTimeDataframe) -> Kind:
-    """Kind of data, based on columns in dataframe."""
-    found = set(df.columns)
-    for kind in Kind:
-        if set(kind.available) == found:
-            return kind
-
-    raise ValueError(f"Unexpected columns for ``df``: {df.columns}.")

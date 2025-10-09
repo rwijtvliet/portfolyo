@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, ClassVar, Iterable, Mapping
 import pandas as pd
 import pint
 
-from ...toolsb.types import Col, PintTimeDataframe, PintTimeSeries
+from ...tools.types import Col, PintTimeDataframe, PintTimeSeries
 from ..commodity import Commodity
 from . import flat_helper, nested
 from .enums import Kind, Structure
@@ -24,10 +24,14 @@ class FlatPfLine(PfLine, FlatRequiredMethods):
     # . Class is only called internally, so expect df to be in correct format.
     #   Meaning: correct columns for `kind`, and correct units for `commodity`.
     df: PintTimeDataframe
-    kind: Kind
     commodity: Commodity | None
     # Class variables.
     structure: ClassVar[Structure] = Structure.FLAT
+    # Calculated instance fields.
+    kind: Kind = dataclasses.field(init=False)
+
+    def __post_init__(self):
+        object.__setattr__(self, "kind", Kind.from_cols(self.df.columns))
 
     # dataframe = dataframeexport.Flat.dataframe
 
@@ -67,5 +71,4 @@ def create(
     # Data must be processed to find dataframe and kind.
     df = flat_helper.create_df(data)
     df = flat_helper.apply_commodity(df, commodity)
-    kind = flat_helper.get_kind(df)
     return FlatPfLine(df, kind, commodity)

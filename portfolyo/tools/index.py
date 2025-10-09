@@ -42,7 +42,8 @@ def coerce(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     idx = idx.copy()  # don't change original
     if idx.freq is None:  # ensure freq is set
         idx.freq = idx.inferred_freq
-    idx.tz = tools_tz.coerce(idx.tz)  # ensure tz is None or ZoneInfo
+    if idx.tz is not None and not isinstance(idx.tz, ZoneInfo):
+        idx = idx.tz_convert(tools_tz.coerce(idx.tz))  # ensure tz is ZoneInfo
 
     validate(idx)
     return idx
@@ -73,8 +74,14 @@ def to_right(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
     #   idx = pd.date_range('2020-03-29', freq='D', periods=5, tz='Europe/Berlin')
     # . idx + i.freq
     #   Same example, different error: time is moved to 01:00 for first timestamp.
-    idx = coerce(idx)
-    return pd.DatetimeIndex(idx + tools_freq.to_jump(idx.freq), idx.freq)
+    # Therefore using + tools_freq.to_jump()
+
+    # idx = coerce(idx) # too strict; function should work as long as frequency is found.
+
+    # Ensure we have a frequency and the start-of-day is correct.
+    freq = tools_freq.coerce(idx.freq)
+    tools_sod.validate(idx[0].time())
+    return pd.DatetimeIndex(idx + tools_freq.to_jump(freq), freq=freq)
 
 
 def duration(idx: pd.DatetimeIndex) -> PintTimeSeries:

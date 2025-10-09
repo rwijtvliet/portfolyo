@@ -1,6 +1,8 @@
 import enum
 from typing import Iterable
 
+from ...tools.types import Col
+
 
 class Kind(enum.Enum):
     """Enumerate what kind of information (which dimensions) is present in a PfLine."""
@@ -26,11 +28,11 @@ class Kind(enum.Enum):
         raise ValueError("No fitting 'kind' found.")
 
     @property
-    def available(self) -> tuple[str, ...]:
+    def available(self) -> tuple[Col, ...]:
         return tuple(self.value[1])
 
     @property
-    def summable(self) -> tuple[str, ...]:
+    def summable(self) -> tuple[Col, ...]:
         return tuple(self.value[2])
 
     def __repr__(self):

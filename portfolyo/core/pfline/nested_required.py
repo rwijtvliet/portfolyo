@@ -1,11 +1,13 @@
 """Implementation of methods, required by abc, for nested pflines."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 import pandas as pd
 
-from ... import toolsb
-from ...toolsb.types import Frequencylike
+from ... import tools
+from ...tools.types import Frequencylike
 from . import flat, indexer, nested, nested_helper
 from .enums import Kind, Structure
 
@@ -53,7 +55,7 @@ class NestedRequiredMethods:
         return nested.NestedPfLine(new_children, self.kind, commodity)
 
     def asfreq(self: NestedPfLine, freq: Frequencylike = "MS") -> NestedPfLine:
-        freq = toolsb.freq.coerce(freq)
+        freq = tools.freq.coerce(freq)
         newchildren = {name: child.asfreq(freq) for name, child in self.items()}
         return nested.NestedPfLine(newchildren, self.kind, self.commodity)
 
@@ -70,8 +72,8 @@ class NestedRequiredMethods:
             if child.structure is Structure.FLAT:
                 dfs.append(child.agg().to_frame(name).T)
             else:
-                dfs.append(toolsb.frame.add_header(child.agg(), name, 0))
-        return toolsb.frame.concat(dfs)
+                dfs.append(tools.frame.add_header(child.agg(), name, 0))
+        return tools.frame.concat(dfs)
 
     def __bool__(self: NestedPfLine) -> bool:
         return any(self.children.keys())  # True if a) has children of which b) any are true
@@ -84,8 +86,8 @@ class NestedRequiredMethods:
     def po(self: NestedPfLine, freq: Frequencylike) -> pd.DataFrame:
         dfs = [self.flatten().po(freq)]
         for name, child in self.items():
-            dfs.append(toolsb.frame.add_header(child.po(freq), name, 1))
-        return toolsb.frame.concat(dfs)
+            dfs.append(tools.frame.add_header(child.po(freq), name, 1))
+        return tools.frame.concat(dfs)
 
     # ---
 

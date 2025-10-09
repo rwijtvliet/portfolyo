@@ -5,8 +5,8 @@ from typing import Any
 
 import pandas as pd
 
-from ... import toolsb
-from ...toolsb.types import Frequencylike
+from ... import tools
+from ...tools.types import Frequencylike
 from ..commodity import Commodity
 from ..shared.ndframelike import NDFrameLike
 from . import flat, nested
@@ -177,7 +177,7 @@ class PfLine(NDFrameLike, TextMethods):  # , PfLinePlot, ExcelClipboardOutput, P
     #     self: PfLine,
     #     p: PricePfLine,
     #     how: str = "val",
-    #     peak_fn: toolsb.peakfn.PeakFunction = None,
+    #     peak_fn: tools.peakfn.PeakFunction = None,
     #     freq: str = "MS",
     # ) -> PfLine:
     #     """Hedge the volume in the portfolio line with a price curve.
@@ -228,7 +228,7 @@ class PfLine(NDFrameLike, TextMethods):  # , PfLinePlot, ExcelClipboardOutput, P
     @property
     def end(self) -> pd.Timestamp:
         """End (excl) of the portfolio line."""
-        return toolsb.stamp.to_right(self.df.index[-1], self.df.index.freq)
+        return tools.stamp.to_right(self.df.index[-1], self.df.index.freq)
 
     @property
     def w(self) -> pd.Series:

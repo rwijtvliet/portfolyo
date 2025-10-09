@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 import pint
 from pandas.tseries.offsets import BaseOffset
 
-from ... import toolsb
+from .. import tools
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -44,27 +44,27 @@ class Commodity:
     tz: ZoneInfo  # init with str | dt.tzinfo | "pytz.BaseTzInfo" | ZoneInfo | None
     units: InitVar[Iterable[str | pint.Unit]]
     # . Optional fields.
-    peak_fn: toolsb.peakfn.PeakFunction | None = None
-    startofday: dt.time = toolsb.startofday.MIDNIGHT  # init with dt.time | str | dt.timedelta
+    peak_fn: tools.peakfn.PeakFunction | None = None
+    startofday: dt.time = tools.startofday.MIDNIGHT  # init with dt.time | str | dt.timedelta
     # . Calculated fields.
-    unitpref: toolsb.unit.UnitPref = field(init=False)
-    col_to_dimty: dict[toolsb.types.Col, pint.util.UnitsContainer] = field(init=False)
-    col_to_units: dict[toolsb.types.Col, pint.Unit] = field(init=False)
+    unitpref: tools.unit.UnitPref = field(init=False)
+    col_to_dimty: dict[tools.types.Col, pint.util.UnitsContainer] = field(init=False)
+    col_to_units: dict[tools.types.Col, pint.Unit] = field(init=False)
 
     def __post_init__(self, units):
-        object.__setattr__(self, "freq", toolsb.freq.coerce(self.freq))
-        object.__setattr__(self, "startofday", toolsb.startofday.coerce(self.startofday))
+        object.__setattr__(self, "freq", tools.freq.coerce(self.freq))
+        object.__setattr__(self, "startofday", tools.startofday.coerce(self.startofday))
 
         # Post-processing units.
-        object.__setattr__(self, "unitpref", toolsb.unit.UnitPref.from_objs(units, "raise"))
+        object.__setattr__(self, "unitpref", tools.unit.UnitPref.from_objs(units, "raise"))
         # . Ensure no mixing of energy and emissions units, and ensure each column has a unit.
-        toolsb.wqpr.validate_compatible(self.unitpref.keys())
-        toolsb.wqpr.validate_complete(self.unitpref.keys())
+        tools.wqpr.validate_compatible(self.unitpref.keys())
+        tools.wqpr.validate_complete(self.unitpref.keys())
         # . Store base dimensionality for each column.
         col_to_dimty = {}
         col_to_units = {}
-        for col in toolsb.types.COLS:
-            allowed_dimties = toolsb.wqpr.col_to_dimties(col)
+        for col in tools.types.COLS:
+            allowed_dimties = tools.wqpr.col_to_dimties(col)
             for dimty in allowed_dimties:
                 if dimty in self.unitpref:
                     break
@@ -79,39 +79,39 @@ class Commodity:
         object.__setattr__(self, "col_to_units", col_to_units)
 
         # Post-processing timezone.
-        object.__setattr__(self, "tz", toolsb.tz.coerce(self.tz))
+        object.__setattr__(self, "tz", tools.tz.coerce(self.tz))
 
 
 power_ger = Commodity(
     name="Power, Germany",
     freq="15min",
-    units=["MWh", "Eur/MWh", "MW", "Eur"],
+    units={"MWh", "Eur/MWh", "MW", "Eur"},
     tz="Europe/Berlin",
-    peak_fn=toolsb.product.germanpower_peakfn,
+    peak_fn=tools.product.germanpower_peakfn,
 )
 power_generic = Commodity(
     name="Power, Generic",
     freq="15min",
-    units=["MWh", "Eur/MWh", "MW", "Eur"],
+    units={"MWh", "Eur/MWh", "MW", "Eur"},
     tz=None,
-    peak_fn=toolsb.product.germanpower_peakfn,
+    peak_fn=tools.product.germanpower_peakfn,
 )
 gas_ger = Commodity(
     name="Gas, Germany",
     freq="D",
-    units=["MWh", "Eur/MWh", "MW", "Eur"],
+    units={"MWh", "Eur/MWh", "MW", "Eur"},
     tz="Europe/Berlin",
     startofday="06:00",
 )
 coal_ger = Commodity(
     name="Coal, Germany",
     freq="D",
-    units=["ktce", "Eur/tce", "tce/h", "Eur"],
+    units={"ktce", "Eur/tce", "tce/h", "Eur"},
     tz="Europe/Berlin",
 )
 co2_ger = Commodity(
     name="CO2, Germany",
     freq="D",
-    units=["ktCo2", "Eur/tCo2", "tCo2/h", "Eur"],
+    units={"ktCo2", "Eur/tCo2", "tCo2/h", "Eur"},
     tz="Europe/Berlin",
 )

@@ -8,8 +8,8 @@ from typing import Any, Iterable, Literal, Mapping
 import pandas as pd
 import pint
 
-from ... import toolsb
-from ...toolsb.types import COLS, PintTimeDataframe, PintTimeSeries, TimeDataframe, TimeSeries
+from ... import tools
+from ...tools.types import COLS, PintTimeDataframe, PintTimeSeries, TimeDataframe, TimeSeries
 
 
 @dataclass
@@ -79,14 +79,14 @@ class InOp:
 
     @classmethod
     def from_skalar(cls, data: float | int | pint.Quantity) -> InOp:
-        data = toolsb.unit.coerce_quantity(data)
-        field = toolsb.wqpr.valid_col(data, nodim_allowed=True)
+        data = tools.unit.coerce_quantity(data)
+        field = tools.wqpr.valid_col(data, nodim_allowed=True)
         return cls({field: data})
 
     @classmethod
     def from_timeseries(cls, data: TimeSeries) -> InOp:
-        data = toolsb.unit.coerce_pintseries(data)
-        field = toolsb.wqpr.valid_col(data, nodim_allowed=True)
+        data = tools.unit.coerce_pintseries(data)
+        field = tools.wqpr.valid_col(data, nodim_allowed=True)
         return cls({field: data})
 
     @classmethod
@@ -119,7 +119,7 @@ class InOp:
         indices = [value.index for value in self.fields.values() if isinstance(value, pd.Series)]
         if ref_index is not None:
             indices.append(ref_index)
-        index = toolsb.index.intersect(indices)  # raises error if none passed or incompatible
+        index = tools.index.intersect(indices)  # raises error if none passed or incompatible
         if index.empty:
             raise ValueError("Data has no overlapping timestamps.")
 
@@ -133,7 +133,7 @@ class InOp:
             fields_as_pinttimeseries[field] = pinttimeseries
 
         # For all but 'nodim': add data that is missing but can be calculated. Also check if redundant info is correct.
-        w, q, p, r = toolsb.wqpr.complete_and_verify_consistency(
+        w, q, p, r = tools.wqpr.complete_and_verify_consistency(
             **{field: fields_as_pinttimeseries.get(field) for field in COLS}
         )
         if w is not None:
@@ -191,16 +191,16 @@ def _process_single_field(
 
     # Ensure value is Quantity or PintTimeSeries.
     if isinstance(value, float | int | pint.Quantity):
-        value = toolsb.unit.coerce_quantity(value)
+        value = tools.unit.coerce_quantity(value)
     elif isinstance(value, pd.Series):
-        value = toolsb.unit.coerce_pintseries(value)
-        toolsb.index.validate(value.index)
+        value = tools.unit.coerce_pintseries(value)
+        tools.index.validate(value.index)
     else:
         raise TypeError(f"Unexpected value type. Received: {value=} ({type(value)=}).")
 
     # Ensure value has expected dimensionality for the given field.
-    expected_dims = toolsb.wqpr.col_to_dimties(field, nodim_allowed=True)
-    received_dim = toolsb.unit.get_basedimty(value)
+    expected_dims = tools.wqpr.col_to_dimties(field, nodim_allowed=True)
+    received_dim = tools.unit.get_basedimty(value)
     if received_dim not in expected_dims:
         raise ValueError(
             f"For field {field}, expected one of following dimensions: {expected_dims}. Received: {received_dim} ({value=})."
@@ -236,7 +236,7 @@ def _equal(inop1: InOp, inop2: InOp) -> bool:
             return False
         if isinstance(value1, pd.Series):
             try:
-                toolsb.testing.assert_series_equal(value1, value2, check_names=False)
+                tools.testing.assert_series_equal(value1, value2, check_names=False)
             except AssertionError:
                 return False
         elif value1 != value2:

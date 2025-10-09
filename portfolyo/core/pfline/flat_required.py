@@ -1,12 +1,14 @@
 """Implementation of methods, required by abc, for flat pflines."""
 
+from __future__ import annotations
+
 from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pandas as pd
 
-from ... import toolsb
-from ...toolsb.types import Frequencylike
+from ... import tools
+from ...tools.types import Frequencylike
 from . import flat, flat_helper, indexer
 from .enums import Kind
 
@@ -51,18 +53,18 @@ class FlatRequiredMethods:
             return flat.FlatPfLine(newdf, self.kind, commodity)
 
     def asfreq(self: FlatPfLine, freq: Frequencylike = "MS") -> FlatPfLine:
-        freq = toolsb.freq.coerce(freq)
+        freq = tools.freq.coerce(freq)
 
         if self.kind is Kind.VOLUME:
-            newdf = toolsb.changefreq.summable(self.df[["q"]], freq)
-            newdf["w"] = newdf["q"] / toolsb.index.duration(newdf.index)  # TODO: check unit
+            newdf = tools.changefreq.summable(self.df[["q"]], freq)
+            newdf["w"] = newdf["q"] / tools.index.duration(newdf.index)  # TODO: check unit
         elif self.kind is Kind.PRICE:
-            newdf = toolsb.changefreq.averagable(self.df[["p"]], freq)
+            newdf = tools.changefreq.averagable(self.df[["p"]], freq)
         elif self.kind is Kind.REVENUE:
-            newdf = toolsb.changefreq.summable(self.df[["r"]], freq)
+            newdf = tools.changefreq.summable(self.df[["r"]], freq)
         else:  # self.kind is Kind.COMPLETE:
-            newdf = toolsb.changefreq.summable(self.df[["q", "r"]], freq)
-            newdf["w"] = newdf["q"] / toolsb.index.duration(newdf.index)
+            newdf = tools.changefreq.summable(self.df[["q", "r"]], freq)
+            newdf["w"] = newdf["q"] / tools.index.duration(newdf.index)
             newdf["p"] = newdf["r"] / newdf["q"]
 
         if not len(newdf):
@@ -73,7 +75,7 @@ class FlatRequiredMethods:
         return self  # already flat
 
     def reindex(self: FlatPfLine, index: pd.DatetimeIndex) -> FlatPfLine:
-        toolsb.testing.assert_index_compatible(self.index, index)
+        tools.testing.assert_index_compatible(self.index, index)
 
         if self.kind is Kind.COMPLETE:
             newdf = self.df[["w", "q", "r"]].reindex(index, fill_value=0)
@@ -86,12 +88,12 @@ class FlatRequiredMethods:
     def agg(self: FlatPfLine) -> pd.Series:
         if self.kind is Kind.VOLUME:
             q = self.df["q"].sum()
-            duration = toolsb.index.duration(self.index).sum()
+            duration = tools.index.duration(self.index).sum()
             w = q / duration
             return pd.Series({"w": w, "q": q})
         elif self.kind is Kind.PRICE:
-            duration = toolsb.index.duration(self.index)
-            p = toolsb.wavg.series(self.df["p"], duration)
+            duration = tools.index.duration(self.index)
+            p = tools.wavg.series(self.df["p"], duration)
             return pd.Series({"p": p})
         elif self.kind is Kind.REVENUE:
             r = self.df["r"].sum()
@@ -99,7 +101,7 @@ class FlatRequiredMethods:
         else:  # self.kind is Kind.COMPLETE:
             q = self.df["q"].sum()
             r = self.df["r"].sum()
-            duration = toolsb.index.duration(self.index).sum()
+            duration = tools.index.duration(self.index).sum()
             w = q / duration
             p = r / q
             return pd.Series({"w": w, "q": q, "p": p, "r": r})
@@ -111,7 +113,7 @@ class FlatRequiredMethods:
         if not isinstance(other, self.__class__):
             return False
         try:
-            toolsb.testing.assert_frame_equal(self.df, other.df, rtol=1e-7)
+            tools.testing.assert_frame_equal(self.df, other.df, rtol=1e-7)
             return True
         except AssertionError:
             return False
@@ -124,21 +126,21 @@ class FlatRequiredMethods:
         df_dict = {}
 
         # Always include duration.
-        duration = toolsb.index.duration(self.df.index)
-        df_dict["duration"] = toolsb.peakconvert.tseries2poframe(duration, peak_fn, freq, True)
+        duration = tools.index.duration(self.df.index)
+        df_dict["duration"] = tools.peakconvert.tseries2poframe(duration, peak_fn, freq, True)
 
         # Add volume.
         if self.kind in [Kind.VOLUME, Kind.COMPLETE]:
-            df_dict["q"] = toolsb.peakconvert.tseries2poframe(self.q, peak_fn, freq, True)
+            df_dict["q"] = tools.peakconvert.tseries2poframe(self.q, peak_fn, freq, True)
             df_dict["w"] = df_dict["q"] / df_dict["duration"]
 
         # Add revenue.
         if self.kind in [Kind.REVENUE, Kind.COMPLETE]:
-            df_dict["r"] = toolsb.peakconvert.tseries2poframe(self.r, peak_fn, freq, True)
+            df_dict["r"] = tools.peakconvert.tseries2poframe(self.r, peak_fn, freq, True)
 
         # Add price.
         if self.kind is Kind.PRICE:
-            df_dict["p"] = toolsb.peakconvert.tseries2poframe(self.p, peak_fn, freq, False)
+            df_dict["p"] = tools.peakconvert.tseries2poframe(self.p, peak_fn, freq, False)
         elif self.kind is Kind.COMPLETE:
             df_dict["p"] = df_dict["r"] / df_dict["q"]
 

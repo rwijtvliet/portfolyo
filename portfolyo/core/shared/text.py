@@ -5,7 +5,7 @@ from typing import Dict, Iterable
 import colorama
 import pandas as pd
 
-from ... import tools, toolsb
+from ... import tools
 from ..commodity import Commodity
 
 COLORS = ["WHITE", "YELLOW", "CYAN", "GREEN", "RED", "BLUE", "MAGENTA", "BLACK"]
@@ -60,7 +60,7 @@ def df_with_strindex(df: pd.DataFrame, num_of_ts: int):
 
 def objectheader(i: pd.DatetimeIndex, commodity: Commodity) -> Iterable[str]:
     """Info about the index and commodity."""
-    end = toolsb.stamp.to_right(i[-1], i.freq)
+    end = tools.stamp.to_right(i[-1], i.freq)
     return [
         f". Commodity: {commodity.name}",
         f". Start    : {i[0]  } (incl)    . Timezone    : {i.tz or 'none'}  ",

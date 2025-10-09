@@ -10,7 +10,7 @@ from .. import tools
 def apply():
     pd.Series.wavg = tools.wavg.series
     pd.DataFrame.wavg = tools.wavg.dataframe
-    pd.DatetimeIndex.duration = property(tools.duration.index)
-    pd.DatetimeIndex.right = property(tools.right.index)
-    pd.Timestamp.duration = property(tools.duration.stamp)
-    pd.Timestamp.right = property(tools.right.stamp)
+    pd.DatetimeIndex.duration = property(tools.index.duration)
+    pd.DatetimeIndex.to_right = property(tools.index.to_right)
+    pd.Timestamp.duration = property(tools.stamp.duration)
+    pd.Timestamp.right = property(tools.stamp.to_right)

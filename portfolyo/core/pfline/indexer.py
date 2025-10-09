@@ -1,7 +1,15 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 import pandas as pd
 
 from ... import tools
 from . import flat, nested
+
+if TYPE_CHECKING:
+    from .flat import FlatPfLine
+    from .nested import NestedPfLine
 
 
 def _assert_flat_data_ok(newdf: pd.DataFrame, olddf: pd.DataFrame) -> None:
@@ -22,10 +30,10 @@ def _assert_flat_data_ok(newdf: pd.DataFrame, olddf: pd.DataFrame) -> None:
 class FlatLoc:
     """Helper class to obtain FlatPfLine instance, whose index is subset of original index."""
 
-    def __init__(self, pfl: flat.FlatPfLine):
+    def __init__(self, pfl: FlatPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> flat.FlatPfLine:
+    def __getitem__(self, arg) -> FlatPfLine:
         newdf = self.pfl.df.loc[arg]
         return flat.create(newdf, self.pfl.commodity)
         _assert_flat_data_ok(newdf, self.pfl.df)
@@ -36,10 +44,10 @@ class FlatLoc:
 class FlatIloc:
     """Helper class to obtain FlatPfLine instance, whose index is subset of original index."""
 
-    def __init__(self, pfl: flat.FlatPfLine):
+    def __init__(self, pfl: FlatPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> flat.FlatPfLine:
+    def __getitem__(self, arg) -> FlatPfLine:
         newdf = self.pfl.df.iloc[arg]
         return flat.create(newdf, self.pfl.commodity)
         _assert_flat_data_ok(newdf, self.pfl.df)
@@ -51,10 +59,10 @@ class FlatSlice:
     """Helper class to obtain FlatPfLine instance, whose index is subset of original index.
     Exclude end point from the slice."""
 
-    def __init__(self, pfl: flat.FlatPfLine):
+    def __init__(self, pfl: FlatPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> flat.FlatPfLine:
+    def __getitem__(self, arg) -> FlatPfLine:
         mask = pd.Index([True] * len(self.pfl.df))
         if arg.start is not None:
             mask &= self.pfl.index >= arg.start
@@ -70,10 +78,10 @@ class FlatSlice:
 class NestedLoc:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index."""
 
-    def __init__(self, pfl: nested.NestedPfLine):
+    def __init__(self, pfl: NestedPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> nested.NestedPfLine:
+    def __getitem__(self, arg) -> NestedPfLine:
         newchildren = {name: child.loc[arg] for name, child in self.pfl.items()}
         return nested.create(newchildren, self.pfl.commodity)
         return nested.NestedPfLine(newchildren, self.pfl.kind, self.pfl.commodity)
@@ -82,10 +90,10 @@ class NestedLoc:
 class NestedIloc:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index."""
 
-    def __init__(self, pfl: nested.NestedPfLine):
+    def __init__(self, pfl: NestedPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> nested.NestedPfLine:
+    def __getitem__(self, arg) -> NestedPfLine:
         newchildren = {name: child.iloc[arg] for name, child in self.pfl.items()}
         return nested.create(newchildren, self.pfl.commodity)
         return nested.NestedPfLine(newchildren, self.pfl.kind, self.pfl.commodity)
@@ -95,10 +103,10 @@ class NestedSlice:
     """Helper class to obtain NestedPfLine instance, whose index is subset of original index.
     Exclude end point from the slice."""
 
-    def __init__(self, pfl: nested.NestedPfLine):
+    def __init__(self, pfl: NestedPfLine):
         self.pfl = pfl
 
-    def __getitem__(self, arg) -> nested.NestedPfLine:
+    def __getitem__(self, arg) -> NestedPfLine:
         newchildren = {name: child.slice[arg] for name, child in self.pfl.items()}
         return nested.create(newchildren, self.pfl.commodity)
         return nested.NestedPfLine(newchildren, self.pfl.kind, self.pfl.commodity)

@@ -3,8 +3,8 @@ from __future__ import annotations
 import warnings
 from typing import TYPE_CHECKING, Any, Iterable, Mapping
 
-from ... import toolsb
-from . import create, nested
+from ... import tools
+from . import nested, pfline
 
 if TYPE_CHECKING:
     from .nested import NestedPfLine
@@ -17,7 +17,7 @@ class ChildMethods(Mapping):
         if name in ["w", "q", "p", "r"]:
             raise ValueError("Name cannot be one of 'w', 'q', 'p', 'r'.")
         try:
-            child = create.create_pfline(child, self.commodity)
+            child = pfline.create(child, self.commodity)
         except (ValueError, TypeError) as e:
             raise ValueError(
                 f"Parameter ``child`` cannot be turned into a PfLine; got {child}."
@@ -31,10 +31,10 @@ class ChildMethods(Mapping):
                 f"Incompatible commodities; portfolio line has {self.commodity} but child has {child.commodity}."
             )
         try:
-            toolsb.testing.assert_index_compatible(self.index, child.index)
+            tools.testing.assert_index_compatible(self.index, child.index)
         except AssertionError as e:
             raise ValueError("Index of new child is not compatible with existing data.") from e
-        idx = toolsb.index.intersect([self.index, child.index])
+        idx = tools.index.intersect([self.index, child.index])
         if len(idx) == 0:
             raise ValueError(
                 "Delivery period of new child does not have any overlap with existing data."
