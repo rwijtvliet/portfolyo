@@ -10,7 +10,6 @@ import pint
 from ... import tools
 from ...tools.types import Col, PintTimeDataframe, PintTimeSeries
 from ..commodity import Commodity
-from .enums import Kind
 from .interop import InOp
 
 

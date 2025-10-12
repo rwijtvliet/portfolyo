@@ -25,7 +25,7 @@ class Kind(enum.Enum):
         for kind in cls:
             if set(kind.available) == cols:
                 return kind
-        raise ValueError("No fitting 'kind' found.")
+        raise ValueError(f"No fitting 'kind' found for dataframe column {cols}.")
 
     @property
     def available(self) -> tuple[Col, ...]:

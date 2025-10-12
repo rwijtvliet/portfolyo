@@ -58,9 +58,9 @@ class PfLine(NDFrameLike, TextMethods):  # , PfLinePlot, ExcelClipboardOutput, P
         # User did indeed call PfLine and data must be processed by a descendent's __init__
         return create(data, commodity)
 
-    def __post_init__(self):
-        if set(self.df.columns) != set(self.kind.available):
-            raise ValueError(f"Expected columns {self.kind.available}, received {self.df.columns}.")
+    # def __post_init__(self):
+    #     if set(self.df.columns) != set(self.kind.available):
+    #         raise ValueError(f"Expected columns {self.kind.available}, received {self.df.columns}.")
 
     # Abstact methods to be implemented by FlatPfLine and NestedPfLine.
 

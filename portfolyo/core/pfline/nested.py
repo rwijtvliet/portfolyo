@@ -41,10 +41,10 @@ class NestedPfLine(PfLine, NestedRequiredMethods, ChildMethods):
         # Calculate dataframe.
         df = sum(child.df for child in self.children.values())
         if self.kind is Kind.COMPLETE:
-            df["p"] = df["r"] / df["q"]  # TODO: convert to correct unit
+            df["p"] = df["r"] / df["q"]
+            if self.commodity:  # set correct unit
+                df["p"] = df["p"].pint.to(self.commodity.col_to_units("p"))
         object.__setattr__(self, "df", df)
-
-    # dataframe = dataframeexport.Nested.dataframe
 
 
 def create(data: Mapping[str, Any], commodity: Commodity | None) -> NestedPfLine:
@@ -71,5 +71,4 @@ def create(data: Mapping[str, Any], commodity: Commodity | None) -> NestedPfLine
     # Data must be processed to find children and kind.
     children = nested_helper.create_children(data)
     children = nested_helper.apply_commodity(children, commodity)
-    kind = nested_helper.get_kind(children)
-    return nested.NestedPfLine(children, kind, commodity)
+    return nested.NestedPfLine(children, commodity)

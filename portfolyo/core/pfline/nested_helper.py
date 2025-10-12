@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
-from typing import Any, Dict, Mapping, Tuple
+from typing import Any, Mapping
 
 import pandas as pd
 
@@ -11,25 +10,6 @@ from ... import tools
 from ...tools.types import PintTimeDataframe
 from ..commodity import Commodity
 from . import pfline
-from .enums import Kind
-
-
-def _mapping(data: Any) -> Mapping[Any, Any]:
-    """From data, create a mapping."""
-
-    if isinstance(data, Mapping):
-        return data
-
-    elif isinstance(data, pd.DataFrame):
-        children = {}
-        # Get all sub-dataframes (or series) and turn into dictionary.
-        for col in data.columns.get_level_values(0).unique():
-            children[col] = data[col]
-        return children
-
-    raise TypeError(
-        f"Parameter ``data`` must be dict (or other Mapping) or pandas.DataFrame; got {type(data).__name__}."
-    )
 
 
 def create_children(data: Mapping | PintTimeDataframe) -> dict[str, pfline.PfLine]:

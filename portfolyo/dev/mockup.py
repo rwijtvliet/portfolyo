@@ -1,45 +1,46 @@
 """Create somewhat realistic curves."""
 
-from typing import Tuple
-
 import numpy as np
 import pandas as pd
+import pint
 
+from ..core.commodity import Commodity
 from ..tools import unit  # noqa # ensure we use current ureg
 from ..tools.product import germanpower_peakfn
+from ..tools.types import FloatTimeSeries, PintTimeSeries
 
 
 def w_offtake(
-    i: pd.DatetimeIndex,
+    commodity: Commodity | None,
+    idx: pd.DatetimeIndex,
     avg: float = 100.0,
     year_amp: float = 0.20,
     week_amp: float = 0.10,
     day_amp: float = 0.30,
     rand_amp: float = 0.02,
-    has_unit: bool = True,
-) -> pd.Series:
+) -> PintTimeSeries | FloatTimeSeries:
     """Create a more or less realistic-looking offtake timeseries.
 
     Parameters
     ----------
-    i : pd.DatetimeIndex
+    commodity
+        Used to get the correct unit for ``w``. If None, return timeseries of floats.
+    idx
         Timestamps for which to create offtake.
-    avg : float, optional (default: 100.0)
-        Average offtake in MW.
-    year_amp : float, optional (default: 0.2)
-        Yearly amplitude as fraction of average. If positive: winter offtake > summer offtake.
-    week_amp : float, optional (default: 0.1)
-        Weekly amplitude as fraction of average. If positive: midweek offtake > weekend offtake.
-    day_amp : float, optional (default: 0.3)
-        Day amplitude as fraction of average. If positive: midday offtake > night offtake.
-    rand_amp : float, optional (default: 0.02)
-        Random amplitude as fraction of average.
-    has_unit : bool, optional (default: True)
-        If True, return Series with pint unit in MW.
+    avg, optional (default: 100.0)
+        Average offtake (without unit).
+    year_amp, optional (default: 0.2)
+        Yearly amplitude as fraction (of average). If positive: winter offtake > summer offtake.
+    week_amp, optional (default: 0.1)
+        Weekly amplitude as fraction (of average). If positive: midweek offtake > weekend offtake.
+    day_amp, optional (default: 0.3)
+        Day amplitude as fraction (of average). If positive: midday offtake > night
+        offtake.
+    rand_amp, optional (default: 0.02)
+        Random amplitude as fraction of average (without unit).
 
     Returns
     -------
-    pd.Series
         Offtake timeseries.
     """
     if year_amp + day_amp + week_amp + rand_amp > 1:
@@ -48,48 +49,47 @@ def w_offtake(
             f" {week_amp:.1%} and {rand_amp:.1%}) should not exceed 100%."
         )
     # year angle: 1jan0:00..1jan0:00 -> 0..2pi
-    ya = i.map(lambda ts: ts.dayofyear) / 365 * np.pi * 2
+    ya = idx.map(lambda ts: ts.dayofyear) / 365 * np.pi * 2
     # week angle: Sun0:00..Sun0:00 -> 0..2pi
-    wa = (i.map(lambda ts: (ts.weekday() + 1) * 24 + ts.hour) / 168) * np.pi * 2
+    wa = (idx.map(lambda ts: (ts.weekday() + 1) * 24 + ts.hour) / 168) * np.pi * 2
     # day angle: 0:00..0:00 -> 0..2pi
-    da = i.map(lambda ts: (ts.hour * 60 + ts.minute)) / 1440 * np.pi * 2
+    da = idx.map(lambda ts: (ts.hour * 60 + ts.minute)) / 1440 * np.pi * 2
     # Values: max mid-Jan, mid-week, at 15:00
     yv = year_amp * np.cos(ya - 0.28)
     wv = week_amp * (0.5 - 0.8 * np.cos(wa) - np.cos(2 * wa) / 2 - np.cos(3 * wa) / 6)
     dv = day_amp * (-0.7 * np.cos(da - 0.79) - 0.3 * np.sin(da * 2))
-    rv = rand_amp * (1 + 2 * np.random.rand(len(i)))  # TODO: Random mean-reverting walk
-    s = pd.Series(avg * (1 + yv + dv + wv + rv), i, name="w")
-    return s if not has_unit else s.astype("pint[MW]")
+    rv = rand_amp * (1 + 2 * np.random.rand(len(idx)))  # TODO: Random mean-reverting walk
+    s = pd.Series(avg * (1 + yv + dv + wv + rv), idx, name="w")
+    return s if commodity is None else s.astype(f"pint[{commodity.col_to_units['w']}]")
 
 
 def p_marketprices(
-    i: pd.DatetimeIndex,
+    commodity: Commodity | None,
+    idx: pd.DatetimeIndex,
     avg: float = 100.0,
     year_amp: float = 0.30,
     week_amp: float = 0.05,
     peak_amp: float = 0.30,
-    has_unit: bool = True,
-) -> pd.Series:
+) -> PintTimeSeries | FloatTimeSeries:
     """Create a more or less realistic-looking forward price curve timeseries.
 
     Parameters
     ----------
-    i : pd.DatetimeIndex
+    commodity
+        Used to get the correct unit for ``p``. If None, return timeseries of floats.
+    idx
         Timestamps for which to create prices.
-    avg : float, optional (default: 100.0)
-        Average price in Eur/MWh.
-    year_amp : float, optional (default: 0.3)
+    avg, optional (default: 100.0)
+        Average price (without unit).
+    year_amp, optional (default: 0.3)
         Yearly amplitude as fraction of average. If positive: winter prices > summer prices.
-    week_amp : float, optional (default: 0.05)
+    week_amp, optional (default: 0.05)
         Weekly amplitude as fraction of average. If positive: midweek prices > weekend prices.
-    peak_amp : float, optional (default: 0.3)
+    peak_amp, optional (default: 0.3)
         Peak-offpeak amplitude as fraction of average. If positive: peak prices > offpeak prices.
-    has_unit : bool, optional (default: True)
-        If True, return Series with pint unit in Eur/MWh.
 
     Returns
     -------
-    pd.Series
         Price timeseries.
     """
     if year_amp + week_amp + peak_amp > 1:
@@ -97,60 +97,67 @@ def p_marketprices(
             f"Sum of fractional amplitudes ({year_amp:.1%} and {week_amp:.1%} and"
             f" {peak_amp:.1%}) should not exceed 100%."
         )
-    # year angle: 1jan0:00..1jan0:00 -> 0..2pi. But: uniform within month
-    ya = i.map(lambda ts: ts.month) / 12 * np.pi * 2
-    # week angle: Sun0:00..Sun0:00 -> 0..2pi. But: uniform within day.
-    wa = i.map(lambda ts: ts.weekday() + 1) / 7 * np.pi * 2
-    # peak fraction: -1 (middle of offpeak hours) .. 1 (middle of peak hours)
-    if i.freq in ["h", "15min"]:
-        b = np.array([0.5, 0.8, 1, 0.8, 0.5])
-        if i.freq == "15min":  # repeat every value 4 times
-            b = np.array([[bb, bb, bb, bb] for bb in b]).flatten()
-        b = b[: len(i)]  # slice in case i is very short
-        pa = np.convolve(-1 + 2 * germanpower_peakfn(i), b / sum(b), mode="same")
-    else:
-        pa = np.zeros(len(i))
-    # Values
-    yv = year_amp * np.cos(ya - 0.35)  # max in feb
-    wv = week_amp * np.cos(wa - 1.07)  # max on tuesday
-    pv = peak_amp * pa
-    s = pd.Series(avg * (1 + yv + wv + pv), i, name="p")
-    return s if not has_unit else s.astype("pint[Eur/MWh]")
+    # Year angle: 1jan0:00..1jan0:00 -> 0..2pi. But: uniform within month.
+    year_angle = idx.map(lambda ts: ts.month) / 12 * np.pi * 2
+    # Week angle: Sun0:00..Sun0:00 -> 0..2pi. But: uniform within day.
+    week_angle = idx.map(lambda ts: ts.weekday() + 1) / 7 * np.pi * 2
+    # Peak fraction: -1 (middle of offpeak hours) .. 1 (middle of peak hours)
+    try:
+        # Fill with -1 (offpeak) or 1 (peak). Fails if commodity = None, or has no peak_fn, or freq too long.
+        osc = -1 + 2 * commodity.peak_fn(idx)
+        # Smooth out by convolution.
+        kernel = np.array([0.5, 0.8, 1, 0.8, 0.5])
+        kernel = kernel[: len(idx)]  # slice in case idx very short
+        peak_fraction = np.convolve(osc, kernel / sum(kernel), mode="same")
+    except (AttributeError, ValueError):
+        peak_fraction = np.zeros(len(idx))
+    # Values.
+    yv = year_amp * np.cos(year_angle - 0.35)  # max in feb
+    wv = week_amp * np.cos(week_angle - 1.07)  # max on tuesday
+    pv = peak_amp * peak_fraction  # max in middle of every peakperiod
+    s = pd.Series(avg * (1 + yv + wv + pv), idx, name="p")
+    return s if commodity is None else s.astype(f"pint[{commodity.col_to_units['p']}]")
 
 
 def wp_sourced(
-    w_offtake: pd.Series,
+    w_offtake: PintTimeSeries | FloatTimeSeries,
+    commodity: Commodity | None,
     freq: str = "MS",
     w_avg: float = 0.6,
     p_avg: float = 100.0,
     rand_amp: float = 0.2,
-    has_unit: bool = True,
-) -> Tuple[pd.Series]:
+) -> tuple[PintTimeSeries, PintTimeSeries] | tuple[FloatTimeSeries, FloatTimeSeries]:
     """Create a more or less realistic-looking sourcing volume and sourcing price timeseries.
 
     Parameters
     ----------
-    w_offtake : pd.Series
+    w_offtake
         Offtake volume timeseries for which to create sourced volume and price timeseries.
-    freq : str, optional (default: 'MS')
+    commodity
+        Used to get the correct units. If None, return timeseries of floats.
+    freq, optional (default: 'MS')
         Frequency within which sourcing volume and price are uniform.
-    w_avg : float, optional (default: 0.6)
-        Average sourced fraction.
-    p_avg : float, optional (default: 100.0)
-        Average hedge price in Eur/MWh.
-    rand_amp : float, optional (default: 0.2)
+    w_avg, optional (default: 0.6)
+        Average sourced fraction (without unit).
+    p_avg, optional (default: 100.0)
+        Average hedge price (without unit).
+    rand_amp, optional (default: 0.2)
         Random amplitude, both of sourced fraction (absolute) and of price (as fraction).
-    has_unit : bool, optional (default: True)
-        If True, return Series with unit.
-        - volume series: same unit as ``w_offtake`` or else with pint unit in MW.
-        - price series: with pint unit in Eur/MWh.
 
     Returns
     -------
-    (pd.Series, pd.Series)
         Sourced volume timeseries and sourced price timeseries.
     """
     # Prepare series for resampling.
+    # . Make w_offtake and commodity consistent with eachother.
+    if commodity is None:
+        if hasattr(w_offtake, "pint"):
+            w_offtake = w_offtake.pint.m  # floats
+    elif hasattr(w_offtake, "pint"):
+        w_offtake = w_offtake.pint.to(commodity.col_to_units["w"])
+    else:
+        w_offtake = w_offtake.astype(f"pint[{commodity.col_to_units['w']}]")
+    # . Split magnitude and units.
     if hasattr(w_offtake, "pint"):
         w_unit = w_offtake.pint.units
         sin = -1 * w_offtake.pint.magnitude
@@ -167,16 +174,16 @@ def wp_sourced(
     def group_and_calc(s):
         return s.resample(freq, group_keys=False).apply(calc_wp)
 
-    if sin.index.freq in ["15min", "h"]:
-        is_peak = germanpower_peakfn(sin.index)  # avoid running on each ts individually
+    try:
+        # Fails if commodity = None, or has no peak_fn, or freq too long.
+        is_peak = commodity.peak_fn(sin.index)
         df = sin.groupby(is_peak, group_keys=False).apply(group_and_calc)
-    else:
+    except (AttributeError, ValueError):
         df = group_and_calc(sin)
     w, p = df.w, df.p
 
     # Add unit if wanted.
-    if has_unit:
-        wunit = f"pint[{w_unit:P}]" if w_unit is not None else "pint[MW]"
-        w = w.astype(wunit)
-        p = p.astype("pint[Eur/MWh]")
+    if commodity is not None:
+        w = w.astype(f"pint[{commodity.col_to_units['w']}]")
+        p = p.astype(f"pint[{commodity.col_to_units['p']}]")
     return w, p

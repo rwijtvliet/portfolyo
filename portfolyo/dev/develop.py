@@ -15,20 +15,18 @@ from ..core.pfline import (
     Kind,
     NestedPfLine,
     PfLine,
-    Structure,
     create_flatpfline,
     create_nestedpfline,
-    create_pfline,
 )
 
 # from ..core.pfstate import PfState
-from ..tools.types import FloatTimeSeries, Frequencylike, PintTimeDataframe, PintTimeSeries
+from ..tools.types import Col, FloatTimeSeries, Frequencylike, PintTimeDataframe, PintTimeSeries
 from ..tools.unit import Q_, ureg
 from . import mockup
 
-OK_COL_COMBOS = ["w", "q", "p", "pr", "qr", "qp", "wp", "wr"]
+NOTSPECIFIED = "notspecified"  # sentinel value to allow user to pass `None` as valid value
 
-NAMES_AND_UNITS = {
+COL_TO_UNITS = {
     "w": ureg.MW,
     "q": ureg.MWh,
     "p": ureg.euro / ureg.MWh,
@@ -37,16 +35,28 @@ NAMES_AND_UNITS = {
     "nodim": ureg.dimensionless,
 }
 
-_PERIODS = {"YS": 4, "QS": 5, "MS": 14, "D": 400, "h": 10_000, "15min": 50_000, "5min": 150_000}
+_PERIODS = {"YS": 1, "QS": 4, "MS": 12, "D": 400, "h": 10_000, "15min": 40_000, "5min": 120_000}
 
 
-def _periods(freq: Frequencylike):
+def _periods_and_startdate(freq: Frequencylike) -> tuple[int, str]:
+    # Periods.
     for freq2, periods in _PERIODS.items():
         if tools.freq.up_or_down(freq, freq2) >= 0:
             break
     else:
         raise ValueError("Couldn't find a fitting frequency.")
-    return np.random.randint(periods // 2, periods * 2)
+    periods = np.random.randint(periods, periods * 3)
+
+    # Startdate.
+    y, m, d = 2016, 1, 1  # earliest possible
+    y += np.random.randint(0, 8)  # if _seed else (periods % 8)
+    if tools.freq.up_or_down(freq, "MS") <= 0:
+        m += np.random.randint(0, 12)  # if _seed else (periods % 12)
+    if tools.freq.up_or_down(freq, "D") <= 0:
+        d += np.random.randint(0, 28)  # if _seed else (periods % 28)
+    startdate = f"{y}-{m}-{d}"
+
+    return periods, startdate
 
 
 def get_scalar(
@@ -55,7 +65,7 @@ def get_scalar(
     magn: float | None = None,
     *,
     _seed: int | None = None,
-) -> float | Q_:
+) -> float | pint.Quantity:
     """Get a single value."""
     if _seed:
         np.random.seed(_seed)
@@ -64,60 +74,67 @@ def get_scalar(
     if not has_unit:
         return magn
     else:
-        return Q_(magn, NAMES_AND_UNITS[col])
+        return Q_(magn, COL_TO_UNITS[col])
 
 
 def get_index(
-    freq: Frequencylike = "D",
-    tz: ZoneInfo | str | None = "Europe/Berlin",
-    startdate: str | None = None,
-    periods: int | None = None,
-    startofday: dt.time | str = tools.startofday.MIDNIGHT,
+    commodity: Commodity | None,
+    freq: Frequencylike | None = None,
+    tz: str | ZoneInfo | None = NOTSPECIFIED,
+    startofday: dt.time | str | None = None,
     *,
     _seed: int | None = None,
 ) -> pd.DatetimeIndex:
-    """Get index."""
+    """Get index. Commodity must be specified; other parameters can be specified to override defaults
+    in commodity.
+
+    Parameters
+    ----------
+    commmodity
+        Commodity for which to create the index. None to leave unspecified.
+    freq, optional (default: shortest allowed by commodity, or daily if no commodity)
+        Frequency of datetimeindex.
+    tz, optional (default: as specified by commodity, or None if no commodity)
+        Timezone of datetimeindex.
+    startofday, optional (default: as specified by commodity, or midnight if no commodity)
+        Time of first element in datetimeindex.
+
+    Returns
+        DatetimeIndex with specified properties.
+
+    Notes
+    -----
+    If overrides are specified, the returned object might not be valid for specified commodity.
+    """
+    # Data prep.
+    if freq is None:
+        freq = commodity.freq if commodity is not None else "D"
     freq = tools.freq.coerce(freq)
+
+    if tz == NOTSPECIFIED:
+        tz = commodity.tz if commodity is not None else None
+    tz = tools.tz.coerce(tz)
+
+    if startofday is None:
+        startofday = commodity.startofday if commodity is not None else tools.startofday.MIDNIGHT
     startofday = tools.startofday.coerce(startofday)
 
-    # Prepare values.
+    # Calculate index.
     if _seed:
         np.random.seed(_seed)
-    periods = periods or _periods(freq)
-    if not startdate:
-        y, m, d = 2016, 1, 1  # earliest possible
-        y += np.random.randint(0, 8) if _seed else (periods % 8)
-        if tools.freq.up_or_down(freq, "MS") <= 0:
-            m += np.random.randint(0, 12) if _seed else (periods % 12)
-        if tools.freq.up_or_down(freq, "D") <= 0:
-            d += np.random.randint(0, 28) if _seed else (periods % 28)
-        startdate = f"{y}-{m}-{d}"
-    # Create index.
+    periods, startdate = _periods_and_startdate(freq)
     idx = pd.date_range(
         f"{startdate} {tools.startofday.to_string(startofday)}", periods=periods, freq=freq, tz=tz
     )
     # Some checks.
     if tools.freq.is_shorter_than_daily(freq):
-        idx = _shorten_index_if_necessary(idx, startofday)
+        idx = _ensure_start_end_same_time(idx, startofday)
     return idx
 
 
-def get_index_for_commodity(
-    commodity: Commodity,
-    startdate: str | None = None,
-    periods: int | None = None,
-    *,
-    _seed: int | None = None,
-) -> pd.DatetimeIndex:
-    """Get index at shortest frequency for the specified commodity."""
-    return get_index(
-        commodity.freq, commodity.tz, startdate, periods, commodity.startofday, _seed=_seed
-    )
-
-
-def _shorten_index_if_necessary(idx: pd.DatetimeIndex, start_of_day: dt.time) -> pd.DatetimeIndex:
-    """Shorten index with shorter-than-daily values, if necessary to ensure that an integer
-    number of calendar days is included."""
+def _ensure_start_end_same_time(idx: pd.DatetimeIndex, start_of_day: dt.time) -> pd.DatetimeIndex:
+    """Shorten index with shorter-than-daily values, if necessary to ensure that an integer number
+    of calendar days is included."""
     if tools.stamp.to_right(idx[-1], idx.freq).time() == start_of_day:
         return idx  # already correct
     while not idx.empty:
@@ -127,18 +144,31 @@ def _shorten_index_if_necessary(idx: pd.DatetimeIndex, start_of_day: dt.time) ->
     raise ValueError("Can't find timestamp to end index on.")
 
 
-def get_timeseries(
+def get_series(
+    commodity: Commodity | None,
     idx: pd.DatetimeIndex | None = None,
-    col: Literal["w", "q", "p", "r", "nodim"] = "w",
-    unit: pint.Unit | str | None = None,
+    col: Col = "w",
     *,
     _seed: int | None = None,
-) -> PintTimeSeries | FloatTimeSeries:
-    """Get PintSeries with index ``idx`` and name ``col``. Values from mock-up functions."""
-    idx = get_index(_seed=_seed) if idx is None else idx.copy()
+) -> PintTimeSeries:
+    """Get PintSeries.
+
+    Parameters
+    ----------
+    commmodity
+        Commodity for which to create the series. Used for unit and (if ``idx`` not specified) to
+        create datetimeindex. If None, pick unit as specified in COL_TO_UNITS.
+    idx, optional (default: create random)
+        DatetimeIndex to use.
+    col, optional (default: 'w')
+        Column to create series for.
+
+    Returns
+    -------
+        Series with specified properties.
+    """
+    idx = get_index(commodity, _seed=_seed) if idx is None else idx.copy()
     idx.name = "ts_left"
-    if unit is None:
-        unit = NAMES_AND_UNITS[col]
 
     if _seed:
         np.random.seed(_seed)
@@ -147,36 +177,26 @@ def get_timeseries(
         # random average, and 3 random amplitudes with sum < 1
         avg = 30 + 10 * np.random.random()
         ampls = np.random.rand(3) * np.array([0.3, 0.2, 0.1])
-        return mockup.w_offtake(idx, avg, *ampls, unit=unit)
+        w = mockup.w_offtake(commodity, idx, avg, *ampls)
+        return w if commodity else w.astype(f'pint[{COL_TO_UNITS["w"]}]')
     elif col == "q":
-        q = get_timeseries(idx, "w") * idx.duration
+        q = get_series(commodity, idx, "w") * tools.index.duration(idx)
+        unit = commodity.col_to_units["q"] if commodity else COL_TO_UNITS["q"]
         return q.rename("q").pint.to(unit)
     elif col == "p":
         # random average, and 3 random amplitudes with sum < 1
         avg = 100 + 20 * np.random.random()
         ampls = np.random.rand(3) * np.array([0.25, 0.04, 0.3])
-        return mockup.p_marketprices(idx, avg, *ampls, unit=unit)
+        p = mockup.p_marketprices(commodity, idx, avg, *ampls)
+        return p if commodity else p.astype(f"pint[{COL_TO_UNITS['p']}]")
     elif col == "r":
-        r = get_timeseries(idx, "q") * get_timeseries(idx, "p")
+        r = get_series(commodity, idx, "q") * get_series(commodity, idx, "p")
+        unit = commodity.col_to_units["r"] if commodity else COL_TO_UNITS["r"]
         return r.rename("r").pint.to(unit)
-    elif col == "nodim":
-        return pd.Series(0.9 + 0.2 * np.random.rand(len(idx)), idx)
 
 
-def get_timeseries_for_commodity(
-    commodity: Commodity, col: Literal["w", "q", "p", "r"], *, _seed: int | None = None
-) -> PintTimeSeries:
-    """Get Series for commodity ``commodity`` and name ``col``. Values from mock-up functions (if
-    ``col`` one of 'wqpr') or random between 100 and 200."""
-    return get_timeseries(
-        get_index_for_commodity(commodity, _seed=_seed),
-        col,
-        commodity.col_to_units[col],
-        _seed=_seed,
-    )
-
-
-def get_timedataframe(
+def get_dataframe(
+    commodity: Commodity | None,
     idx: pd.DatetimeIndex | None = None,
     cols: Iterable[Literal["w", "q", "p", "r"]] = ("w", "p"),
     *,
@@ -184,21 +204,8 @@ def get_timedataframe(
 ) -> PintTimeDataframe:
     """Get DataFrame with index ``idx`` and columns ``cols``. Columns (e.g. `q` and `w`) are not
     made consistent."""
-    if idx is None:
-        idx = get_index(_seed=_seed)
-    idx.name = "ts_left"
-    return pd.DataFrame({col: get_timeseries(idx, col, _seed=_seed) for col in cols})
-
-
-def get_timedataframe_for_commodity(
-    commodity: Commodity,
-    cols: Iterable[Literal["w", "q", "p", "r"]] = ("w", "p"),
-    *,
-    _seed: int | None = None,
-) -> PintTimeDataframe:
-    """Get DataFrame for commodity ``commodity`` and columns ``cols``. Columns (e.g. `q` and `w`)
-    are not made consistent."""
-    return get_timedataframe(get_index_for_commodity(commodity, _seed=_seed), cols, _seed=_seed)
+    idx = get_index(commodity, _seed=_seed) if idx is None else idx.copy()
+    return pd.DataFrame({col: get_series(commodity, idx, col, _seed=_seed) for col in cols})
 
 
 # Portfolio line.
@@ -252,7 +259,7 @@ def _get_namefn(nlevels: int) -> Callable[[int], str]:
 
 
 def get_pfline(
-    commodity: Commodity | None = None,
+    commodity: Commodity | None,
     kind: Kind = Kind.COMPLETE,
     nlevels: int = 1,
     childcount: int = 2,
@@ -284,15 +291,9 @@ def get_pfline(
     -------
         The portfolio line.
     """
-    # Gather information.
-    idx = (
-        get_index(_seed=_seed)
-        if commodity is None
-        else get_index_for_commodity(commodity, _seed=_seed)
-    )
     if commodity is None:
         return get_pfline(
-            gas_ger,
+            gas_ger,  # use gas_ger as commodity, later remove.
             kind,
             nlevels,
             childcount,
@@ -301,11 +302,14 @@ def get_pfline(
             _seed=_seed,
         ).set_commodity(None)
 
+    # Gather information.
+    idx = get_index(commodity, _seed=_seed)
+
     # Create flat pfline.
     if nlevels == 1:
-        df = get_timedataframe_for_commodity(commodity, kind.summable, _seed=_seed)
+        df = get_dataframe(commodity, idx, kind.summable, _seed=_seed)
         if not positive and np.random.randint(1, 4) == 1:
-            df = -1 * df  # HACK: `-df` leads to error in pint. Maybe fixed in future
+            df = -df
         return create_flatpfline(df, commodity)
     # Create nested PfLine.
     if childcount < 1:
@@ -322,13 +326,18 @@ def get_pfline(
 
 
 def get_flatpfline(
-    idx: pd.DatetimeIndex | None = None, kind: Kind = Kind.COMPLETE, *, _seed: int | None = None
+    commodity: Commodity | None,
+    idx: pd.DatetimeIndex | None = None,
+    kind: Kind = Kind.COMPLETE,
+    *,
+    _seed: int | None = None,
 ) -> FlatPfLine:
     """Get flat portfolio line, i.e. without children."""
-    return get_pfline(idx, kind, 1, _seed=_seed)
+    return get_pfline(commodity, idx, kind, 1, _seed=_seed)
 
 
 def get_nestedpfline(
+    commodity: Commodity | None,
     idx: pd.DatetimeIndex | None = None,
     kind: Kind = Kind.COMPLETE,
     nlevels: int = 2,
@@ -342,10 +351,11 @@ def get_nestedpfline(
         raise ValueError(
             "Nested PfLine must have at least 2 levels. Use `get_flatpfline` or the more general `get_pfline` instead."
         )
-    return get_pfline(idx, kind, nlevels, childcount, _seed=_seed)
+    return get_pfline(commodity, idx, kind, nlevels, childcount, _seed=_seed)
 
 
 def get_randompfline(
+    commodity: Commodity | None,
     idx: pd.DatetimeIndex | None = None,
     kind: Kind = Kind.COMPLETE,
     max_nlevels: int = 3,
@@ -359,13 +369,13 @@ def get_randompfline(
     (including the current level; max_nlevels must be >= 1.)"""
     # Gather information.
     if idx is None:
-        idx = get_index(_seed=_seed)
+        idx = get_index(commodity, _seed=_seed)
     if _seed:
         np.random.seed(_seed)
     nlevels = np.random.randint(1, max_nlevels + 1)
     # Create flat PfLine.
     if nlevels == 1:
-        return get_pfline(idx, kind, 1, positive=positive, _seed=_seed)
+        return get_pfline(commodity, idx, kind, 1, positive=positive, _seed=_seed)
     # Create nested PfLine.
     namefn = _get_namefn(nlevels)
     children = {}
@@ -374,6 +384,7 @@ def get_randompfline(
         names = (*_ancestornames, namefn(c))
         name = "-".join(names)
         children[name] = get_randompfline(
+            commodity,
             idx,
             kind,
             max_nlevels - 1,

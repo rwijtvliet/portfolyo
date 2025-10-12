@@ -43,7 +43,7 @@ def assert_series_equal(
     left: NontimeSeries | TimeSeries, right: NontimeSeries | TimeSeries, *args, **kwargs
 ):
     # Ensure pintseries, if possible.
-    left, right = tools_unit._convert_pintseries(left), tools_unit._convert_pintseries(right)
+    left, right = tools_unit.coerce_pintseries(left), tools_unit.coerce_pintseries(right)
 
     assert isinstance(left.dtype, pint_pandas.PintType) == isinstance(
         right.dtype, pint_pandas.PintType

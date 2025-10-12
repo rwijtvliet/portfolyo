@@ -8,7 +8,15 @@ from .__version__ import __version__
 from .core import extendpandas  # extend functionalty of pandas
 from .core import commodity, suppresswarnings
 from .core.commodity import Commodity, gas_ger, power_generic, power_ger
-from .core.pfline import FlatPfLine, Kind, NestedPfLine, PfLine, Structure
+from .core.pfline import (
+    FlatPfLine,
+    Kind,
+    NestedPfLine,
+    PfLine,
+    Structure,
+    create_flatpfline,
+    create_nestedpfline,
+)
 from .tools import testing
 
 # from .tools2.concat import general as concat
