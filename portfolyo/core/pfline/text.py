@@ -105,9 +105,7 @@ def pfl_as_string(pfl: PfLine, num_of_ts: int, color: bool) -> str:
     #     lines.extend(_flatdatablock(pfl, num_of_ts))
     # else:
     spaces = " " * (shared_text.MAX_DEPTH + 5)
-    columns_and_units = {
-        col: unit for col, unit in pfl.commodity.col_to_units.items() if col in pfl.kind.available
-    }
+    columns_and_units = dict(pfl.df.pint.dequantify().columns)
     lines.extend([spaces + txtline for txtline in shared_text.dataheader(columns_and_units)])
     lines.extend(nestedtree("(this pfline)", pfl, num_of_ts))
     txt = "\n".join(lines)

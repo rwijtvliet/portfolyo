@@ -18,7 +18,7 @@ def freq(request) -> str:
 def test_verifydict_kindconsistency(freq, kind1, kind2, kind3):
     """Test if conversions are done correctly and inconsistent kind raises error."""
 
-    i = dev.get_index(freq, "Europe/Berlin")
+    i = dev._get_index(freq, "Europe/Berlin")
 
     kinds, children = [], {}
 

@@ -9,14 +9,14 @@ from portfolyo import toolsb
     ["15min", "h", "D", "MS", "QS", "QS-FEB", "QS-APR", "YS", "YS-FEB", "YS-APR"],
 )
 def test_freq_conversionvalidation(freq):
-    freq = toolsb.freq.convert(freq)
+    freq = toolsb.freq.coerce(freq)
     toolsb.freq.validate(freq)
 
 
 @pytest.mark.parametrize("freq", ["3min", "2h", "7D", "ME", "2QS", "BS", "W-MON"])
 def test_freq_conversionvalidation_error(freq):
     with pytest.raises(ValueError):
-        freq = toolsb.freq.convert(freq)
+        freq = toolsb.freq.coerce(freq)
         toolsb.freq.validate(freq)
 
 

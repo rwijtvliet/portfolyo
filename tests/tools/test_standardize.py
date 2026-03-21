@@ -112,7 +112,7 @@ def test_standardize_convert(freq, in_tz, floating, series_or_df, bound, out_tz)
     force = "aware" if out_tz else "agnostic"
 
     # Get index.
-    i = dev.get_index(freq, in_tz, _seed=1)
+    i = dev._get_index(freq, in_tz, _seed=1)
     if bound == "right" and freq == "15min":  # Ensure it's a correct full-hour index
         i += pd.Timedelta(minutes=15)
     if freq == "15min" and in_tz == "Asia/Kolkata" and not floating and out_tz:
@@ -156,7 +156,7 @@ def test_standardize_freq(freq, in_tz, floating, series_or_df, force):
     out_tz = "Europe/Berlin"
 
     # Get index.
-    i = dev.get_index(freq, in_tz, _seed=1)
+    i = dev._get_index(freq, in_tz, _seed=1)
 
     # Add values.
     fr = dev.get_series(i) if series_or_df == "series" else dev.get_dataframe(i)
@@ -184,7 +184,7 @@ def test_standardize_gaps(freq, in_tz, remove, series_or_df):
     out_tz = in_tz
 
     # Get index.
-    i = dev.get_index(freq, in_tz, _seed=1)
+    i = dev._get_index(freq, in_tz, _seed=1)
 
     # remove timestamp from middle of index.
     if remove == "remove_some":

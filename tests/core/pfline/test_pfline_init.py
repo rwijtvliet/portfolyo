@@ -6,8 +6,8 @@ from enum import Enum
 from typing import Any, Callable, Iterable
 
 import pandas as pd
-from pint import DimensionalityError
 import pytest
+from pint import DimensionalityError
 
 import portfolyo as pf
 from portfolyo import Kind, PfLine, create, dev
@@ -201,7 +201,7 @@ def test_init_A(
 ):
     """Test if pfline can be initialized correctly from a flat testcase."""
 
-    i = dev.get_index(freq, tz)
+    i = dev._get_index(freq, tz)
     if has_unit is False and inputtype in [
         InputTypeA.FLATPFLINE,
         InputTypeA.NESTEDPFLINE,
@@ -250,7 +250,7 @@ def test_init_B(
     constructor: type,
 ):
     """Test if pfline can be initialized correctly from a more complex testcase."""
-    i = dev.get_index(freq, tz)
+    i = dev._get_index(freq, tz)
     itc = get_testcase_B(i, kind, inputtype)
     expected_type = inputtype.returntype(constructor)
 

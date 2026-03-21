@@ -78,16 +78,16 @@ def test_fill_gaps(values, index, maxgap, gapvalues, tol):
 )
 def test_addheader_tocolumns(df_columns, header, expected_columns):
     """Test if header can be added to the columns of a dataframe."""
-    i = dev.get_index()
+    i = dev._get_index()
     df_in = pd.DataFrame(np.random.rand(len(i), len(df_columns)), i, df_columns)
     result_columns = tools.frame.add_header(df_in, header).columns.to_list()
     assert np.array_equal(result_columns, expected_columns)
 
 
 # TODO: put in ... fixture (?)
-test_index_D = dev.get_index("D")
+test_index_D = dev._get_index("D")
 test_index_D_deconstructed = test_index_D.map(lambda ts: (ts.year, ts.month, ts.day))
-test_index_H = dev.get_index("h")
+test_index_H = dev._get_index("h")
 test_index_H_deconstructed = test_index_H.map(lambda ts: (ts.year, ts.month, ts.day))
 
 

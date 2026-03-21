@@ -1,11 +1,12 @@
 """String representation of PfLine and PfState objects."""
 
-from typing import Dict, Iterable
+from typing import Any, Callable, Dict, Iterable, Mapping
 
 import colorama
 import pandas as pd
 
 from ... import tools
+from ...tools.types import Col
 from ..commodity import Commodity
 
 COLORS = ["WHITE", "YELLOW", "CYAN", "GREEN", "RED", "BLUE", "MAGENTA", "BLACK"]
@@ -35,16 +36,16 @@ def remove_color(text: str) -> str:
     return text
 
 
-def df_with_strvalues(df: pd.DataFrame, cols_and_units: dict[str, tools.unit.Unit]):
+def df_with_strvalues(
+    df: pd.DataFrame, col_to_formatter: Mapping[Col, Callable[[float | Any], str]]
+) -> pd.DataFrame:
     """Turn dataframe with single column names ('w', 'p', etc) into text strings."""
     if isinstance(df.columns, pd.MultiIndex):
         raise ValueError("Dataframe must have single column index; has MultiIndex.")
     str_series = {}
-    for name, s in df.items():
-        sin = s.pint.to(cols_and_units[str(name)]).pint.magnitude
-        formt = VALUEFORMAT[str(name)].format
-        sout = sin.apply(formt).str.replace(",", " ", regex=False)
-        str_series[name] = sout.mask(s.isna(), "")
+    for col, s in df.items():
+        s2 = s.pint.magnitude.apply(col_to_formatter[col])
+        str_series[col] = s2.mask(s.isna(), "")
     return pd.DataFrame(str_series)
 
 
@@ -58,11 +59,11 @@ def df_with_strindex(df: pd.DataFrame, num_of_ts: int):
     return df
 
 
-def objectheader(i: pd.DatetimeIndex, commodity: Commodity) -> Iterable[str]:
+def objectheader(i: pd.DatetimeIndex, commodity: Commodity | None) -> Iterable[str]:
     """Info about the index and commodity."""
     end = tools.stamp.to_right(i[-1], i.freq)
     return [
-        f". Commodity: {commodity.name}",
+        f". Commodity: {'none' if commodity is None else commodity.name}",
         f". Start    : {i[0]  } (incl)    . Timezone    : {i.tz or 'none'}  ",
         f". End      : {end   } (excl)    . Start-of-day: {i[0].time()}  ",
         f". Freq     : {i.freq} ({len(i)} datapoints)",
@@ -87,7 +88,7 @@ def treedict(depth: int, is_last_child: bool, has_children: bool) -> Dict[str, s
     return tree
 
 
-def dataheader(cols_and_units: Dict[str, tools.unit.Unit]) -> Iterable[str]:
+def dataheader(cols_and_units: Dict[Col, tools.unit.Unit]) -> Iterable[str]:
     out = [" " * COLWIDTHS["ts"]] * 2  # width of timestamps
     for c, units in cols_and_units.items():
         width = COLWIDTHS[c] + 1

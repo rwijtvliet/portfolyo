@@ -1,8 +1,8 @@
 from typing import Any
 
 import pandas as pd
-from pint import DimensionalityError
 import pytest
+from pint import DimensionalityError
 
 from portfolyo import dev, testing
 from portfolyo.core.pfline import flat_helper
@@ -26,7 +26,7 @@ TEST_FREQUENCIES = [
 def test_makedataframe_freqtz(freq, tz):
     """Test if dataframe can made from data with various timezones and frequencies."""
 
-    i = dev.get_index(freq, tz)
+    i = dev._get_index(freq, tz)
     q = dev.get_series(i, "q")
     w = q / q.index.duration
     result1 = flat_helper._dataframe({"q": q})
@@ -105,7 +105,7 @@ TESTCASES_COLUMNS = [
 def test_makedataframe_consistency(tz, freq, columns, inputtype):
     """Test if conversions are done correctly and inconsistent data raises error."""
 
-    i = dev.get_index(freq, tz)
+    i = dev._get_index(freq, tz)
     df = dev.get_dataframe(i, columns)
     dic = {key: df[key] for key in columns}
 

@@ -57,7 +57,7 @@ from portfolyo import Kind, PfLine, create, dev, testing, tools
 def test_flatpfline_access(columns: str, available: str, constructor: type):
     """Test if core data can be accessed by item and attribute."""
 
-    df_in = dev.get_dataframe(columns=columns)
+    df_in = dev.get_dataframe(cols=columns)
     result = constructor(df_in)
 
     testing.assert_index_equal(result.index, df_in.index)

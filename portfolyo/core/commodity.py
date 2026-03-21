@@ -1,12 +1,18 @@
 import datetime as dt
+from collections import defaultdict
 from dataclasses import InitVar, dataclass, field
-from typing import Iterable
+from typing import Any, Callable, Iterable
 from zoneinfo import ZoneInfo
 
 import pint
 from pandas.tseries.offsets import BaseOffset
 
 from .. import tools
+from ..tools.types import Col
+
+
+def DEFAULT_FORMATTER(x: float) -> str:
+    return f"{x:,.2f}".replace(",", " ")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -35,6 +41,10 @@ class Commodity:
     startofday, optional
         Starting/ending time of daily-or-longer delivery periods of this commodity. E.g. for
         European natural gas '06:00'. Default: midnight.
+    col_to_formatter, optional
+        Maps column name ('w', 'q', 'p', 'r') to a formatting function, which is a one-parameter
+        function that takes a float and returns a string. Default formatter (12 345.67) is used for
+        missing columns.
     """
 
     # Fields. Type = type after __post_init__
@@ -45,7 +55,10 @@ class Commodity:
     units: InitVar[Iterable[str | pint.Unit]]
     # . Optional fields.
     peak_fn: tools.peakfn.PeakFunction | None = None
-    startofday: dt.time = tools.startofday.MIDNIGHT  # init with dt.time | str | dt.timedelta
+    startofday: dt.time = (
+        tools.startofday.MIDNIGHT
+    )  # init with dt.time | str | dt.timedelta
+    col_to_formatter: dict[Col, Callable[[float | Any], str]] | None = None
     # . Calculated fields.
     unitpref: tools.unit.UnitPref = field(init=False)
     col_to_dimty: dict[tools.types.Col, pint.util.UnitsContainer] = field(init=False)
@@ -56,7 +69,9 @@ class Commodity:
         object.__setattr__(self, "startofday", tools.startofday.coerce(self.startofday))
 
         # Post-processing units.
-        object.__setattr__(self, "unitpref", tools.unit.UnitPref.from_objs(units, "raise"))
+        object.__setattr__(
+            self, "unitpref", tools.unit.UnitPref.from_objs(units, "raise")
+        )
         # . Ensure no mixing of energy and emissions units, and ensure each column has a unit.
         tools.wqpr.validate_compatible(self.unitpref.keys())
         tools.wqpr.validate_complete(self.unitpref.keys())
@@ -77,6 +92,11 @@ class Commodity:
             col_to_units[col] = self.unitpref[dimty]
         object.__setattr__(self, "col_to_dimty", col_to_dimty)
         object.__setattr__(self, "col_to_units", col_to_units)
+        # . Store formatting for each column
+        col_to_formatter = (self.col_to_formatter or {}) | defaultdict(
+            lambda: DEFAULT_FORMATTER
+        )
+        object.__setattr__(self, "col_to_formatter", col_to_formatter)
 
         # Post-processing timezone.
         object.__setattr__(self, "tz", tools.tz.coerce(self.tz))

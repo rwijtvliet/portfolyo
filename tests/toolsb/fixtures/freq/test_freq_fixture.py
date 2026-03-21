@@ -5,10 +5,10 @@ from portfolyo import toolsb
 
 class TestFreq:
     def test_conversion_ok(self, freq_asstr, freq):
-        assert toolsb.freq.convert(freq_asstr) == freq
+        assert toolsb.freq.coerce(freq_asstr) == freq
 
     def test_conversion_nok(self, freq_nok_asstr, freq_nok):
-        assert toolsb.freq.convert(freq_nok_asstr) == freq_nok
+        assert toolsb.freq.coerce(freq_nok_asstr) == freq_nok
 
     def test_validation_ok(self, freq):
         toolsb.freq.validate(freq)
@@ -19,7 +19,7 @@ class TestFreq:
 
     def test_conversionvalidation_error(self, freq_nok_asstr):
         with pytest.raises(ValueError):
-            freq_nok_asstr = toolsb.freq.convert(freq_nok_asstr)
+            freq_nok_asstr = toolsb.freq.coerce(freq_nok_asstr)
             toolsb.freq.validate(freq_nok_asstr)
 
     def test_isshorterthandaily(self, freq_asstr, freq_is_shorterthandaily):
